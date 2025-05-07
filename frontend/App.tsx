@@ -1,3 +1,4 @@
+import React from 'react';
 import CleaningTaskTracker from './components/CleaningTaskTracker';
 
 function App() {
