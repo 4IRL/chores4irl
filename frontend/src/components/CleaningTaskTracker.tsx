@@ -27,18 +27,12 @@ const CleaningTaskTrackerPreview = () => {
   }, [tasks]);
 
   // Get progress bar color based on percentage (always 50% transparent)
-  const getProgressColor = (percentage) => {
+  const getProgressColor = (percentage: number) => {
     if (percentage < 50) return 'bg-green-500 bg-opacity-50';
     if (percentage < 85) return 'bg-yellow-500 bg-opacity-50';
     return 'bg-red-500 bg-opacity-50';
   };
 
-  // Reset task timer
-  const resetTask = (id) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, daysSince: 0, progress: 0 } : task
-    ));
-  };
 
   return (
     <div className="max-w-md mx-auto p-4 bg-gray-900 min-h-screen">
