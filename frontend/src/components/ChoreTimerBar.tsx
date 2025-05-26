@@ -1,14 +1,22 @@
 import React from 'react';
 
-import { Chore } from 'types/index'
+// import { Chore } from '@types/index'
 
 type ChoreTimerBarProps = {
-  task: Chore;
+  // task: Chore;
+  task: Object;
   onClick: (id: number) => void;
 };
 
 const ChoreTimerBar = ({ task, onClick }: ChoreTimerBarProps) => {
+  // Get progress bar color based on percentage (always 50% transparent)
+  const getProgressColor = (percentage: number) => {
+    if (percentage < 50) return 'bg-green-500 bg-opacity-50';
+    if (percentage < 85) return 'bg-yellow-500 bg-opacity-50';
+    return 'bg-red-500 bg-opacity-50';
+  };
 
+  const progressBarColor = getProgressColor(task[progress]: number);
 
   return (
     <div
