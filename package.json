@@ -9,7 +9,6 @@
     "lint": "eslint . --ext .ts,.tsx"
   },
   "dependencies": {
-    "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2"
   },
   "devDependencies": {
@@ -17,11 +16,14 @@
     "@types/node": "^22.15.17",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9.22.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
     "nodemon": "^3.1.10",
+    "postcss": "^8.5.4",
+    "tailwindcss": "^4.1.8",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },

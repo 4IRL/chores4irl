@@ -1,10 +1,17 @@
 import React from 'react';
+// import { Chore } from '@types/index';
 
-// import { Chore } from '@types/index'
+// Until then...
+interface Chore {
+  id: number,
+  name: string,
+  frequency: number,
+  daysSince: number,
+  progress: number
+}
 
 type ChoreTimerBarProps = {
-  // task: Chore;
-  task: Object;
+  task: Chore;
   onClick: (id: number) => void;
 };
 
@@ -16,7 +23,7 @@ const ChoreTimerBar = ({ task, onClick }: ChoreTimerBarProps) => {
     return 'bg-red-500 bg-opacity-50';
   };
 
-  const progressBarColor = getProgressColor(task[progress]: number);
+  const progressBarColor = getProgressColor(task.progress);
 
   return (
     <div
