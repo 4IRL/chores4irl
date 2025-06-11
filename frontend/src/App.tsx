@@ -1,61 +1,56 @@
 import { useEffect, useState } from 'react';
+
 import ChoreTimerBar from './components/ChoreTimerBar';
 import AddChoreButton from './components/AddChoreButton';
 
-// TODO: make `@types` reference definition in tsconfig.base.json work so both frontend and backend can share common custom TypeScript type `Chore`
-// {
-//   "compilerOptions": {
-//     "paths": {
-//       "@types/*": [
-//         "types/*"
-//       ]
-//     }
-//   }
-// }
-// import { Chore } from '@types/index';
-// import type { Chore } from '@types/index';
+import { data } from './assets/database';
 
 // Until then...
 interface Chore {
-  id: number,
-  name: string,
-  frequency: number,
-  daysSince: number,
-  progress: number
+    id: number,
+    name: string, 
+    frequency: number,  
+    daysSince: number, 
+    progress: number, 
+    duration: number, 
 }
+
 
 function App() {
   // const [chores, setChores] = useState<Chore[]>([]);
-  // Sample data, TODO: pull from Express
-  const data: Chore[] = [
-    { id: 1, name: 'Vacuum Floors', frequency: 7, daysSince: 6, progress: (6 / 7) * 100 },
-    { id: 2, name: 'Change Bedsheets', frequency: 7, daysSince: 7, progress: 100 },
-    { id: 3, name: 'Change Towels', frequency: 3, daysSince: 3, progress: 100 },
-    { id: 4, name: 'Sweep Floors', frequency: 2, daysSince: 2, progress: 100 },
-    { id: 5, name: 'Mop Floors', frequency: 7, daysSince: 5, progress: (5 / 7) * 100 },
-    { id: 6, name: 'Clean Bathroom', frequency: 7, daysSince: 8, progress: 100 }
-  ];
+  const startDate: Date = new Date("2025-06-10");
 
   // State variables
   const [tasks, setTasks] = useState(data);
   // Simulation of +1 day passed
-  const [simulationDays, setSimulationDays] = useState(1);
+  const [day, setDay] = useState(startDate);
+
 
   // Simulate time passage (only for demo purposes)
   useEffect(() => {
     const timer = setTimeout(() => {
-      setSimulationDays(prev => prev + 1);
+      const nextDate = new Date(day);
+      nextDate.setDate(nextDate.getDate() + 1);
+      setDay(nextDate);
+
+      // const incrementedTasks = tasks.map(task => {
+      //   const newDaysSince = task.daysSince + 1;
+      //   const newProgress = Math.min((newDaysSince / task.frequency) * 100, 100);
+      //   return { ...task, daysSince: newDaysSince, progress: newProgress };
+      // })
+      // const orderedTasks = sortChores(incrementedTasks)
+
+      // setTasks(orderedTasks);
       setTasks(tasks.map(task => {
         const newDaysSince = task.daysSince + 1;
         const newProgress = Math.min((newDaysSince / task.frequency) * 100, 100);
         return { ...task, daysSince: newDaysSince, progress: newProgress };
       }));
+
     }, 120000);
 
     return () => clearTimeout(timer);
   }, [tasks]);
-
-
 
   // Reset task timer
   const resetTask = (id: number) => {
@@ -64,19 +59,46 @@ function App() {
     ));
   };
 
+  function getChorePriority(chore: Chore, alpha = 0.7): number {
+    // Normalize both fields to the same scale (e.g., 0 to 1)
+    const normalizedDuration = chore.duration;
+    const normalizedDaysSince = chore.daysSince;
+
+    // Lower score = higher priority
+    // alpha is the weight for duration, (1-alpha) for daysSince
+    return alpha * normalizedDuration - (1 - alpha) * normalizedDaysSince;
+  }
+
+  function sortChores(chores: Chore[], alpha = 0.7): Chore[] {
+    return chores.slice().sort((a, b) => {
+        const aScore = getChorePriority(a, alpha);
+        const bScore = getChorePriority(b, alpha);
+        return aScore - bScore;
+    });
+}
+  // Sorts tasks by lastAssigned date value in Meal Object. TODO: update `...tasks` with database input
+  const sortedTasks = [...tasks].sort((a, b) => {
+    return new Date(a.duration).getDate() / (1 + new Date(b.daysSince).getDate());
+  });
+
   return (
     <div className="App">
       <div className="mx-auto p-4 bg-gray-900 min-h-screen">
 
         {/* Hidden simulation status for debugging */}
-        <div className="text-xs text-gray-600 mb-2">Simulation: +{simulationDays} virtual days</div>
+        <div className="text-s text-white mb-2">
+          {day.toDateString()}
+        </div>
 
         <div className="space-y-3">
           {tasks.map(task => (
-            <ChoreTimerBar
-              task={task}
-              onClick={resetTask}
-            />
+            <div
+              key={task.id}>
+              <ChoreTimerBar
+                task={task}
+                onClick={resetTask}
+              />
+            </div>
           )
           )}
         </div>

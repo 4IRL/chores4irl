@@ -3,12 +3,14 @@ import React from 'react';
 
 // Until then...
 interface Chore {
-  id: number,
-  name: string,
-  frequency: number,
-  daysSince: number,
-  progress: number
+    id: number,
+    name: string, 
+    frequency: number,  
+    daysSince: number, 
+    progress: number, 
+    duration: number, 
 }
+
 
 type ChoreTimerBarProps = {
   task: Chore;
@@ -27,7 +29,6 @@ const ChoreTimerBar = ({ task, onClick }: ChoreTimerBarProps) => {
 
   return (
     <div
-      key={task.id}
       className="relative h-16 w-full bg-gray-800 rounded-full shadow cursor-pointer overflow-hidden"
       onClick={() => onClick(task.id)}
     >
