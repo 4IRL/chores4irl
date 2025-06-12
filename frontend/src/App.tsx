@@ -1,68 +1,76 @@
 import { useEffect, useState } from 'react';
+import { differenceInDays } from 'date-fns';
 
-import ChoreTimerBar from './components/ChoreTimerBar';
+import ChoreList from './components/ChoreList';
 import AddChoreButton from './components/AddChoreButton';
 
 import { data } from './assets/database';
 
-// Until then...
-interface Chore {
-    id: number,
-    name: string, 
-    frequency: number,  
-    daysSince: number, 
-    progress: number, 
-    duration: number, 
-}
+import type { Chore } from '@customTypes/SharedTypes';
 
 
 function App() {
+
+  const today: Date = new Date();
+
+  // Extract unique categories from data
+  const uniqueCategories = Array.from(
+    new Set(data.flatMap(chore => chore.category.map(cat => cat.trim())))
+  );
+
+  // State Variables
+  // 
+  // Sample data, TODO: pull from Express
   // const [chores, setChores] = useState<Chore[]>([]);
-  const startDate: Date = new Date("2025-06-10");
-
-  // State variables
-  const [tasks, setTasks] = useState(data);
-  // Simulation of +1 day passed
-  const [day, setDay] = useState(startDate);
-
+  const [chores, setChores] = useState(data);
+  // Simulation of days passing
+  const [day, setDay] = useState(today);
+  // State for selected category, default to first unique category
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
   // Simulate time passage (only for demo purposes)
   useEffect(() => {
     const timer = setTimeout(() => {
-      const nextDate = new Date(day);
-      nextDate.setDate(nextDate.getDate() + 1);
+      const nextDate = new Date(day.getDate() + 1);
       setDay(nextDate);
 
-      // const incrementedTasks = tasks.map(task => {
-      //   const newDaysSince = task.daysSince + 1;
-      //   const newProgress = Math.min((newDaysSince / task.frequency) * 100, 100);
-      //   return { ...task, daysSince: newDaysSince, progress: newProgress };
+      // const incrementedTasks = chores.map(chore => {
+      //   const newDaysSince = chore.daysSince + 1;
+      //   const newProgress = Math.min((newDaysSince / chore.frequency) * 100, 100);
+      //   return { ...chore, daysSince: newDaysSince, progress: newProgress };
       // })
       // const orderedTasks = sortChores(incrementedTasks)
 
-      // setTasks(orderedTasks);
-      setTasks(tasks.map(task => {
-        const newDaysSince = task.daysSince + 1;
-        const newProgress = Math.min((newDaysSince / task.frequency) * 100, 100);
-        return { ...task, daysSince: newDaysSince, progress: newProgress };
-      }));
-
-    }, 120000);
+      // setChores(orderedTasks);
+      setChores(
+        sortChores(
+          chores.map(chore => {
+            const newDaysSince = differenceInDays(nextDate, chore.dateLastCompleted);
+            const newProgress = Math.min((newDaysSince / chore.frequency) * 100, 100);
+            return { ...chore, progress: newProgress };
+          })
+        )
+      );
+    }, 30000);
 
     return () => clearTimeout(timer);
-  }, [tasks]);
+  }, [chores]);
 
-  // Reset task timer
+  // Reset chore timer
   const resetTask = (id: number) => {
-    setTasks(tasks.map(task =>
-      task.id === id ? { ...task, daysSince: 0, progress: 0 } : task
-    ));
+    setChores(
+      sortChores(
+        chores.map(chore => (
+          chore.id === id ? { ...chore, dateLastCompleted: day, progress: 0 } : chore
+        ))
+      )
+    );
   };
 
-  function getChorePriority(chore: Chore, alpha = 0.7): number {
+  function getChorePriority(chore: Chore, alpha: number): number {
     // Normalize both fields to the same scale (e.g., 0 to 1)
     const normalizedDuration = chore.duration;
-    const normalizedDaysSince = chore.daysSince;
+    const normalizedDaysSince = differenceInDays(new Date(day), chore.dateLastCompleted);
 
     // Lower score = higher priority
     // alpha is the weight for duration, (1-alpha) for daysSince
@@ -71,14 +79,14 @@ function App() {
 
   function sortChores(chores: Chore[], alpha = 0.7): Chore[] {
     return chores.slice().sort((a, b) => {
-        const aScore = getChorePriority(a, alpha);
-        const bScore = getChorePriority(b, alpha);
-        return aScore - bScore;
+      const aScore = getChorePriority(a, alpha);
+      const bScore = getChorePriority(b, alpha);
+      return aScore - bScore;
     });
-}
-  // Sorts tasks by lastAssigned date value in Meal Object. TODO: update `...tasks` with database input
-  const sortedTasks = [...tasks].sort((a, b) => {
-    return new Date(a.duration).getDate() / (1 + new Date(b.daysSince).getDate());
+  }
+  // Sorts chores by lastAssigned date value in Meal Object. TODO: update `...chores` with database input
+  const sortedTasks = [...chores].sort((a, b) => {
+    return new Date(a.duration).getDate() / (1 + new Date(b.dateLastCompleted).getDate());
   });
 
   return (
@@ -90,19 +98,12 @@ function App() {
           {day.toDateString()}
         </div>
 
-        <div className="space-y-3">
-          {tasks.map(task => (
-            <div
-              key={task.id}>
-              <ChoreTimerBar
-                task={task}
-                onClick={resetTask}
-              />
-            </div>
-          )
-          )}
-        </div>
+        {/* Task list */}
+        <ChoreList
+          chores={chores}
+          onClick={resetTask} />
 
+        {/* Add Task button */}
         <div className="mt-6 flex justify-center">
           <AddChoreButton />
         </div>

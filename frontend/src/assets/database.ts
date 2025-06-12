@@ -1,74 +1,78 @@
-// TODO: make `@types` reference definition in tsconfig.base.json work so both frontend and backend can share common custom TypeScript type `Chore`
-// {
-//   "compilerOptions": {
-//     "paths": {
-//       "@types/*": [
-//         "types/*"
-//       ]
-//     }
-//   }
-// }
-// import { Chore } from '@types/index';
-// import type { Chore } from '@types/index';
-
-// Until then...
-interface Chore {
-    id: number,
-    name: string, // name of task
-    frequency: number, // task should be completed at a frequency equal to this number of days 
-    daysSince: number, // number of days since last completed
-    progress: number, // percentage til overdue
-    duration: number, // estimate of task duration til completion minutes
-}
+import type { Chore } from '@customTypes/SharedTypes';
 
 // Sample data, TODO: pull from Express
 export const data: Chore[] = [
     {
         id: 1,
         name: 'Vacuum Floors',
+        category: ['Bedroom', 'Living Room', 'Kitchen'],
+        dateLastCompleted: new Date("2025-05-31"),
+        duration: 20,
         frequency: 7,
-        daysSince: 6,
-        progress: (6 / 7) * 100,
-        duration: 20
+        hidden: false,
     },
     {
         id: 2,
         name: 'Change Bedsheets',
+        category: ['bedroom'],
+        dateLastCompleted: new Date("2025-06-04"),
+        duration: 10,
         frequency: 7,
-        daysSince: 7,
-        progress: 100,
-        duration: 10
+        hidden: false,
     },
     {
         id: 3,
         name: 'Change Towels',
+        category: ['Bathroom'],
+        dateLastCompleted: new Date("2025-06-08"),
+        duration: 2,
         frequency: 3,
-        daysSince: 3,
-        progress: 100,
-        duration: 2
+        hidden: false,
     },
     {
         id: 4,
         name: 'Sweep Floors',
+        category: ['Kitchen'],
+        dateLastCompleted: new Date("2025-06-09"),
+        duration: 3,
         frequency: 2,
-        daysSince: 2,
-        progress: 100,
-        duration: 3
+        hidden: false,
     },
     {
         id: 5,
-        name: 'Mop Floors',
-        frequency: 7,
-        daysSince: 5,
-        progress: (5 / 7) * 100,
-        duration: 45
+        name: 'Sweep Floors',
+        category: ['Sunroom'],
+        dateLastCompleted: new Date("2025-03-09"),
+        duration: 7,
+        frequency: 30,
+        hidden: false,
     },
     {
         id: 6,
-        name: 'Clean Bathroom',
+        name: 'Mop Floors',
+        category: ['Kitchen'],
+        dateLastCompleted: new Date("2025-06-06"),
+        duration: 45,
         frequency: 7,
-        daysSince: 8,
-        progress: 100,
-        duration: 60
-    }
+        hidden: false,
+    },
+    {
+        id: 7,
+        name: 'Clean Bathroom',
+        category: ['Bathroom'],
+        dateLastCompleted: new Date("2025-06-03"),
+        duration: 60,
+        frequency: 7,
+        hidden: false,
+    },
+    {
+        id: 8,
+        name: 'HVAC Air Filter Replacement',
+        details: 'Replace the air filter in the HVAC system to ensure proper airflow and air quality.',
+        category: ['Basement'],
+        dateLastCompleted: new Date("2025-03-31"),
+        duration: 10,
+        frequency: 90, // every 3 months
+        hidden: false,
+    },
 ];

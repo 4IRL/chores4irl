@@ -9,9 +9,11 @@
     },
     "dependencies": {
         "@tailwindcss/vite": "^4.1.6",
+        "autoprefixer": "^10.4.21",
+        "postcss": "^8.5.4",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
-        "tailwindcss": "^4.1.6",
+        "tailwindcss": "^4.1.8",
         "ts-transformer-keys": "^0.4.4"
     },
     "devDependencies": {
