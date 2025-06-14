@@ -9,7 +9,6 @@ export const choreData: Chore[] = [
         dateLastCompleted: new Date("2025-06-12"),
         duration: 20,
         frequency: 7,
-        hidden: false,
     },
     {
         id: 2,
@@ -18,7 +17,6 @@ export const choreData: Chore[] = [
         dateLastCompleted: new Date("2025-06-09"),
         duration: 10,
         frequency: 7,
-        hidden: false,
     },
     {
         id: 3,
@@ -27,7 +25,6 @@ export const choreData: Chore[] = [
         dateLastCompleted: new Date("2025-06-13"),
         duration: 2,
         frequency: 3,
-        hidden: false,
     },
     {
         id: 4,
@@ -36,7 +33,6 @@ export const choreData: Chore[] = [
         dateLastCompleted: new Date("2025-06-14"),
         duration: 3,
         frequency: 2,
-        hidden: false,
     },
     {
         id: 5,
@@ -45,7 +41,6 @@ export const choreData: Chore[] = [
         dateLastCompleted: new Date("2025-05-31"),
         duration: 7,
         frequency: 30,
-        hidden: false,
     },
     {
         id: 6,
@@ -54,7 +49,6 @@ export const choreData: Chore[] = [
         dateLastCompleted: new Date("2025-06-09"),
         duration: 45,
         frequency: 7,
-        hidden: false,
     },
     {
         id: 7,
@@ -63,7 +57,6 @@ export const choreData: Chore[] = [
         dateLastCompleted: new Date("2025-06-10"),
         duration: 60,
         frequency: 7,
-        hidden: false,
     },
     {
         id: 8,
@@ -73,6 +66,6 @@ export const choreData: Chore[] = [
         dateLastCompleted: new Date("2025-03-31"),
         duration: 10,
         frequency: 90, // every 3 months
-        hidden: false,
+        urgency: 'low',
     },
 ];

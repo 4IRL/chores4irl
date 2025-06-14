@@ -4,18 +4,18 @@ import ChoreTimerBar from './ChoreTimerBar';
 
 type ChoreListProps = {
   chores: Chore[];
-  today: Date;
+  day: Date;
   // onClick: (id: number) => void;
 };
 
-const ChoreList = ({ chores, today }: ChoreListProps) => {
+const ChoreList = ({ chores, day }: ChoreListProps) => {
   return (
     <div className="space-y-3">
       {chores.map(chore => (
         <div key={chore.id}>
           <ChoreTimerBar
             chore={chore}
-            today={today}
+            day={day}
             // onClick={onClick}
           />
         </div>

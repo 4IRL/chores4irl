@@ -11,7 +11,9 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@customTypes': path.resolve(__dirname, '../types')
+      '@assets': path.resolve(__dirname, './assets'),
+      '@customTypes': path.resolve(__dirname, '../types'),
+      '@src': path.resolve(__dirname, './')
     },
   },
   server: {

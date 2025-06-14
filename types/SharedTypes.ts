@@ -7,7 +7,6 @@ export interface Chore {
     dateLastCompleted: Date; // chore last completed on this date
     duration: number; // estimate of how long the chore takes to complete in minutes
     frequency: number; // how often the chore should be completed in days 
-    hidden: boolean;
     urgency?: 'low' | 'medium' | 'high';
 }
 

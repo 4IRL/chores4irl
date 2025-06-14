@@ -1,3 +1,5 @@
+import type { Chore } from '@customTypes/SharedTypes';
+
 type NavBarProps = {
     categories: string[];
     selectedCategory: string;

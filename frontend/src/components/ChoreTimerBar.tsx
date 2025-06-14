@@ -1,37 +1,42 @@
 import { useMemo, useState } from 'react';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, startOfDay } from 'date-fns';
 
 import type { Chore } from '@customTypes/SharedTypes';
+import { statusColors } from '../assets/constants';
+
+type StatusColor = { benchmark: number; color: string };
 
 type ChoreTimerBarProps = {
   chore: Chore;
-  today: Date;
+  day: Date;
   // onClick: (id: number) => void;
 };
 
-const ChoreTimerBar = ({ chore, today }: ChoreTimerBarProps) => {
+const ChoreTimerBar = ({ chore, day }: ChoreTimerBarProps) => {
   // Simulation of days passing
   const [dateLastCompleted, setDateLastCompleted] = useState(chore.dateLastCompleted);
 
   const daysSince = useMemo(() => {
-    return differenceInDays(today, dateLastCompleted);
-  }, [today, dateLastCompleted]);
+    return differenceInDays(startOfDay(day), startOfDay(dateLastCompleted));
+  }, [day, dateLastCompleted]);
 
-  const progress = Math.min(daysSince / chore.frequency, 1) * 100;
-
-  // Get progress bar color based on percentage (always 50% transparent)
-  const getProgressColor = (percentage: number) => {
-    if (percentage < 50) return 'bg-green-500 bg-opacity-50';
-    if (percentage < 85) return 'bg-yellow-500 bg-opacity-50';
-    return 'bg-red-500 bg-opacity-50';
+  const status = daysSince / chore.frequency;
+  const barWidth = Math.min(status, 1) * 100;
+  const getStatusColor = (percentage: number) => {
+    // Find the first status color that matches or exceeds the percentage
+    return (statusColors as StatusColor[]).find(
+      (status) => status.benchmark >= percentage
+    )?.color
+      // Otherwise, return the last color in the array
+      || (statusColors as StatusColor[])[statusColors.length - 1].color;
   };
 
-  const progressBarColor: string = getProgressColor(progress);
+  const statusBarColor: string = getStatusColor(status) + ' bg-opacity-50';
 
   // Reset chore timer
   // This may need to bubble back up. I want the chores to resort after clicks
   const resetTask = () => {
-    setDateLastCompleted(today)
+    setDateLastCompleted(day)
   };
 
   return (
@@ -40,12 +45,15 @@ const ChoreTimerBar = ({ chore, today }: ChoreTimerBarProps) => {
       onClick={() => resetTask()}
     >
       <div
-        className={`absolute left-0 top-0 h-full ${progressBarColor} rounded-full transition-all duration-300 ease-in-out`}
-        style={{ width: `${progress}%` }}
+        className={`absolute left-0 top-0 h-full ${statusBarColor} rounded-full transition-all duration-300 ease-in-out`}
+        style={{ width: status === 0 ? "100%" : `${barWidth}%` }}
       ></div>
 
       <div className="absolute inset-0 px-4 flex items-center justify-between">
 
+        <div className="font-medium text-white">
+          {chore.id}
+        </div>
         <div className="font-medium text-white">
           {chore.name}
           <div className="text-xs text-white text-opacity-80">
@@ -53,7 +61,7 @@ const ChoreTimerBar = ({ chore, today }: ChoreTimerBarProps) => {
           </div>
         </div>
 
-        {progress >= 100 &&
+        {status > 1 &&
           <div className="text-white bg-red-600 px-2 py-0.5 font-medium rounded-full">
             Overdue
           </div>

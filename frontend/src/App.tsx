@@ -1,20 +1,23 @@
-import { useEffect, useState } from 'react';
-import { addDays, differenceInDays } from 'date-fns';
+import React, { JSX, useEffect, useState } from 'react';
+import { addDays, differenceInDays, startOfDay } from 'date-fns';
 
+import NavBar from './components/NavBar';
 import ChoreList from './components/ChoreList';
 import AddChoreButton from './components/AddChoreButton';
-import NavBar from './components/NavBar';
 
 import { choreData } from './assets/database';
 
 import type { Chore } from '@customTypes/SharedTypes';
-import { data } from 'autoprefixer';
+import { get } from 'http';
 
 
-function App() {
+const App: React.FC = () => {
 
   const database = choreData as Chore[];
   const today: Date = new Date();
+  const simTimeSecPerDay: number = 30; // Simulation time in seconds per day
+  // TODO: reorder after some delay...if reorder per click, screen will be commonly red, making user feel bad that there are perpetually more chores to do. Leaving the green screen makes them feel like they are making progress. But at certain intervals, it would be nice to reorder the chores so that user can see the next chore that needs to be done.
+  // const refreshOrderTimer: number = 1; // How often to refresh the order of chores in seconds
 
   // Extract unique categories from data
   const uniqueCategories = Array.from(
@@ -26,10 +29,11 @@ function App() {
   // Sample data, TODO: pull from Express
   // const [chores, setChores] = useState<Chore[]>([]);
   const [chores, setChores] = useState(database);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [displayedChores, setDisplayedChores] = useState<(Chore[])>(chores);
   // Simulation of days passing
   const [day, setDay] = useState(today);
   // State for selected category, default to first unique category
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
   // Simulate time passage (only for demo purposes)
   useEffect(() => {
@@ -37,67 +41,59 @@ function App() {
       const nextDate = addDays(day, 1);
       setDay(nextDate);
 
-      setChores(sortChores(chores));
-    }, 30000);
+      setChores(orderChores(chores));
+    }, simTimeSecPerDay * 1000); // Convert seconds to milliseconds
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    }
   }, [chores]);
 
-  function getChorePriority(chore: Chore, maxDuration: number, maxDaysSince: number, alpha: number): number {
+  useEffect(() => {
+  }, [chores]);
+
+  function getChorePriority(chore: Chore, maxDuration: number, maxDaysSince: number): number {
     // Normalize both fields to the same scale (e.g., 0 to 1)
     const normalizedDuration: number = chore.duration / maxDuration;
-    const normalizedDaysSince: number = differenceInDays(day, chore.dateLastCompleted) / maxDaysSince;
+    const normalizedDaysSince: number = differenceInDays(startOfDay(day), startOfDay(chore.dateLastCompleted)) / maxDaysSince;
+    const urgencyScore: number = chore.urgency === 'high' ? 0 : chore.urgency === 'medium' ? 0.5 : 1;
 
     // Lower score = higher priority
     // alpha is the weight for duration, (1-alpha) for daysSince
-    return alpha * normalizedDuration - (1 - alpha) * normalizedDaysSince;
+    return 0.6 * normalizedDuration - 0.1 * normalizedDaysSince + 0.3 * urgencyScore;
   }
 
-  function sortChores(chores: Chore[], alpha = 0.7): Chore[] {
+  function orderChores(chores: Chore[]): Chore[] {
     const choreDurations: number[] = chores.map(chore => chore.duration);
     const maxDuration: number = Math.max(...choreDurations);
 
-    const choreDaysSince: number[] = chores.map(chore => differenceInDays(day, chore.dateLastCompleted));
+    const choreDaysSince: number[] = chores.map(chore => differenceInDays(startOfDay(day), startOfDay(chore.dateLastCompleted)));
     const maxDaysSince: number = Math.max(...choreDaysSince);
 
+    // Debugging priority score 
+    console.log("Day:", day.toDateString());
+    chores.map(chore => console.log(`${chore.name}: `, getChorePriority(chore, maxDuration, maxDaysSince)));
 
     return chores.slice().sort((a, b) => {
-      const aScore = getChorePriority(a, maxDuration, maxDaysSince, alpha);
-      const bScore = getChorePriority(b, maxDuration, maxDaysSince, alpha);
+      const aScore = getChorePriority(a, maxDuration, maxDaysSince);
+      const bScore = getChorePriority(b, maxDuration, maxDaysSince);
       return aScore - bScore;
     });
   }
 
-  // Sorts chores by lastAssigned date value in Meal Object. TODO: update `...chores` with database input
-  const sortedTasks = [...chores].sort((a, b) => {
-    return new Date(a.duration).getDate() / (1 + new Date(b.dateLastCompleted).getDate());
-  });
-
-  // Filter chores by chore.category
-  const filteredTasks = database.filter(chore => chore.category.includes(selectedCategory) || selectedCategory === 'all');
-  const handleFilterChange = (category: string) => {
-    console.log(`Filtering by category: ${category}`);
-    setSelectedCategory(category);
-    setChores(filteredTasks);
-    console.log({chores});
-  }
-
-  // Reset chore timer
-  // const resetTask = () => {
-  //   setChores(
-  //     sortChores(
-  //       chores.map(chore => (
-  //         chore.id === id ? { ...chore, dateLastCompleted: day, progress: 0 } : chore
-  //       ))
-  //     )
-  //   );
-  // };
+  // Update displayedChores when chores or selectedCategory changes
+  useEffect(() => {
+    const filteredTasks: Chore[] = selectedCategory === 'all'
+      ? chores
+      : chores.filter(chore => chore.category.includes(selectedCategory));
+    setDisplayedChores(filteredTasks);
+  }, [chores, selectedCategory]);
 
   return (
     <div className="App">
       <div className="mx-auto p-4 bg-gray-900 min-h-screen">
 
-        <NavBar categories={uniqueCategories} selectedCategory={selectedCategory} onClick={handleFilterChange} />
+        <NavBar categories={uniqueCategories} selectedCategory={selectedCategory} onClick={setSelectedCategory} />
 
         {/* Hidden simulation status for debugging */}
         <div className="text-s text-white mb-2">
@@ -106,9 +102,8 @@ function App() {
 
         {/* Task list */}
         <ChoreList
-          chores={chores}
-          today={day}
-        // onClick={resetTask} 
+          chores={displayedChores}
+          day={day}
         />
 
         {/* Add Task button */}

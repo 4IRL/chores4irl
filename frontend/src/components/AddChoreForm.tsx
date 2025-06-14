@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { keys } from 'ts-transformer-keys';
-// import { Chore } from '@types';
 
-// Until then...
-interface Chore {
-  id: number,
-  name: string,
-  frequency: number,
-  daysSince: number,
-  progress: number
-}
+import type { Chore } from '@customTypes/SharedTypes';
 
 const AddChoreForm = ({ onSubmit, onCancel }) => {
   const columns = keys<Chore>();
