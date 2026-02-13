@@ -8,6 +8,7 @@ export interface Chore {
     duration: number; // estimate of how long the chore takes to complete in minutes
     frequency: number; // how often the chore should be completed in days 
     urgency?: 'low' | 'medium' | 'high';
+    longTermTask?: boolean; // whether this is a long-term task
 }
 
 export interface ApiResponse<T> {

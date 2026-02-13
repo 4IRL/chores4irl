@@ -1,7 +1,7 @@
 import type { Chore } from '@customTypes/SharedTypes';
 
 // Sample data, TODO: pull from Express
-export const choreData: Chore[] = [
+export const database: Chore[] = [
     {
         id: 1,
         name: 'Vacuum Floors',
@@ -67,5 +67,6 @@ export const choreData: Chore[] = [
         duration: 10,
         frequency: 90, // every 3 months
         urgency: 'low',
+        longTermTask: true, // long-term task
     },
 ];

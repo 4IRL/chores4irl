@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { differenceInDays, startOfDay } from 'date-fns';
+
 import type { Chore } from '@customTypes/SharedTypes';
 
 import ChoreTimerBar from './ChoreTimerBar';
@@ -9,6 +12,7 @@ type ChoreListProps = {
 };
 
 const ChoreList = ({ chores, day }: ChoreListProps) => {
+
   return (
     <div className="space-y-3">
       {chores.map(chore => (
@@ -16,7 +20,7 @@ const ChoreList = ({ chores, day }: ChoreListProps) => {
           <ChoreTimerBar
             chore={chore}
             day={day}
-            // onClick={onClick}
+          // onClick={onClick}
           />
         </div>
       ))}

@@ -1,93 +1,88 @@
-import React, { JSX, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { addDays, differenceInDays, startOfDay } from 'date-fns';
 
 import NavBar from './components/NavBar';
 import ChoreList from './components/ChoreList';
 import AddChoreButton from './components/AddChoreButton';
 
-import { choreData } from './assets/database';
+import { database } from './assets/database';
 
 import type { Chore } from '@customTypes/SharedTypes';
-import { get } from 'http';
 
 
 const App: React.FC = () => {
-
-  const database = choreData as Chore[];
-  const today: Date = new Date();
   const simTimeSecPerDay: number = 30; // Simulation time in seconds per day
-  // TODO: reorder after some delay...if reorder per click, screen will be commonly red, making user feel bad that there are perpetually more chores to do. Leaving the green screen makes them feel like they are making progress. But at certain intervals, it would be nice to reorder the chores so that user can see the next chore that needs to be done.
-  // const refreshOrderTimer: number = 1; // How often to refresh the order of chores in seconds
 
+  // CONSTANTS
+  const choreData = database as Chore[];
+  const today: Date = new Date();
   // Extract unique categories from data
   const uniqueCategories = Array.from(
-    new Set(database.flatMap(chore => chore.category.map(cat => cat.trim())))
+    new Set(choreData.flatMap(chore => chore.category.map(cat => cat.trim())))
   );
+  // TODO: reorder after some delay...if reorder per resetTask click, screen will commonly be overwhelming red, making user feel bad that there are perpetually more chores to do. Leaving the green screen makes them feel like they are making progress. But at certain intervals, it would be nice to reorder the chores so that user can see the next chore that needs to be done. #humanPsychologyProblems
+  // const refreshOrderTimer: number = 1; // How often to refresh the order of chores in seconds
 
-  // State Variables
-  // 
+  // STATE VARIABLES
+
   // Sample data, TODO: pull from Express
-  // const [chores, setChores] = useState<Chore[]>([]);
-  const [chores, setChores] = useState(database);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [displayedChores, setDisplayedChores] = useState<(Chore[])>(chores);
+  // State for selected category, default to 'all'
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  // State for displayed chores based on selected category
+  // Initialize displayed chores with all chores
+  const [displayedChores, setDisplayedChores] = useState<(Chore[])>(choreData);
+  const [orderedChores, setOrderedChores] = useState<(Chore[])>(choreData);
+
   // Simulation of days passing
-  const [day, setDay] = useState(today);
-  // State for selected category, default to first unique category
+  const [day, setDay] = useState<Date>(today);
 
   // Simulate time passage (only for demo purposes)
   useEffect(() => {
     const timer = setTimeout(() => {
       const nextDate = addDays(day, 1);
       setDay(nextDate);
-
-      setChores(orderChores(chores));
     }, simTimeSecPerDay * 1000); // Convert seconds to milliseconds
 
     return () => {
       clearTimeout(timer);
     }
-  }, [chores]);
-
-  useEffect(() => {
-  }, [chores]);
-
-  function getChorePriority(chore: Chore, maxDuration: number, maxDaysSince: number): number {
-    // Normalize both fields to the same scale (e.g., 0 to 1)
-    const normalizedDuration: number = chore.duration / maxDuration;
-    const normalizedDaysSince: number = differenceInDays(startOfDay(day), startOfDay(chore.dateLastCompleted)) / maxDaysSince;
-    const urgencyScore: number = chore.urgency === 'high' ? 0 : chore.urgency === 'medium' ? 0.5 : 1;
-
-    // Lower score = higher priority
-    // alpha is the weight for duration, (1-alpha) for daysSince
-    return 0.6 * normalizedDuration - 0.1 * normalizedDaysSince + 0.3 * urgencyScore;
-  }
-
-  function orderChores(chores: Chore[]): Chore[] {
-    const choreDurations: number[] = chores.map(chore => chore.duration);
-    const maxDuration: number = Math.max(...choreDurations);
-
-    const choreDaysSince: number[] = chores.map(chore => differenceInDays(startOfDay(day), startOfDay(chore.dateLastCompleted)));
-    const maxDaysSince: number = Math.max(...choreDaysSince);
-
-    // Debugging priority score 
-    console.log("Day:", day.toDateString());
-    chores.map(chore => console.log(`${chore.name}: `, getChorePriority(chore, maxDuration, maxDaysSince)));
-
-    return chores.slice().sort((a, b) => {
-      const aScore = getChorePriority(a, maxDuration, maxDaysSince);
-      const bScore = getChorePriority(b, maxDuration, maxDaysSince);
-      return aScore - bScore;
-    });
-  }
+  }, [day]);
 
   // Update displayedChores when chores or selectedCategory changes
   useEffect(() => {
-    const filteredTasks: Chore[] = selectedCategory === 'all'
-      ? chores
-      : chores.filter(chore => chore.category.includes(selectedCategory));
-    setDisplayedChores(filteredTasks);
-  }, [chores, selectedCategory]);
+    const filteredChores: Chore[] = selectedCategory === 'all'
+      ? choreData
+      : choreData.filter(choreData => choreData.category.includes(selectedCategory));
+    setDisplayedChores(filteredChores);
+  }, [choreData, selectedCategory]);
+
+  
+
+
+  // Update orderedChores when chores or day changes
+  useEffect(() => {
+    const orderedChores: Chore[] = orderChores(displayedChores, day);
+    setOrderedChores(orderedChores);
+  }, [displayedChores, day]);
+
+  function orderChores(chores: Chore[], today: Date): Chore[] {
+    const shortTermChores: Chore[] = chores.filter(chore => !chore.longTermTask)
+    const longTermChores: Chore[] = chores.filter(chore => chore.longTermTask)
+
+    return [...orderSubList(shortTermChores, today), ...orderSubList(longTermChores, today)]
+  }
+
+  function orderSubList(chores: Chore[], today: Date): Chore[] {
+    return chores.sort((a, b) => {
+      return calcDurationWeightedScore(b, today) - calcDurationWeightedScore(a, today);
+    });
+  }
+
+  function calcDurationWeightedScore(chore: Chore, today: Date): number {
+    const daysSince: number = differenceInDays(startOfDay(today), startOfDay(chore.dateLastCompleted));
+    const percentOverdue: number = daysSince / chore.frequency;
+    return chore.duration * percentOverdue;
+  }
 
   return (
     <div className="App">
@@ -102,7 +97,7 @@ const App: React.FC = () => {
 
         {/* Task list */}
         <ChoreList
-          chores={displayedChores}
+          chores={orderedChores}
           day={day}
         />
 

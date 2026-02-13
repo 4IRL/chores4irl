@@ -16,13 +16,13 @@ const ChoreTimerBar = ({ chore, day }: ChoreTimerBarProps) => {
   // Simulation of days passing
   const [dateLastCompleted, setDateLastCompleted] = useState(chore.dateLastCompleted);
 
-  const daysSince = useMemo(() => {
+  const daysSince: number = useMemo(() => {
     return differenceInDays(startOfDay(day), startOfDay(dateLastCompleted));
   }, [day, dateLastCompleted]);
 
-  const status = daysSince / chore.frequency;
-  const barWidth = Math.min(status, 1) * 100;
-  const getStatusColor = (percentage: number) => {
+  const status: number = daysSince / chore.frequency;
+  const barWidth: number = Math.min(status, 1) * 100;
+  const getStatusColor = (percentage: number): string => {
     // Find the first status color that matches or exceeds the percentage
     return (statusColors as StatusColor[]).find(
       (status) => status.benchmark >= percentage
@@ -35,7 +35,7 @@ const ChoreTimerBar = ({ chore, day }: ChoreTimerBarProps) => {
 
   // Reset chore timer
   // This may need to bubble back up. I want the chores to resort after clicks
-  const resetTask = () => {
+  const resetTask = (): void => {
     setDateLastCompleted(day)
   };
 
