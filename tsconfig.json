@@ -16,7 +16,10 @@
     "noEmit": true,
     "outDir": "./",
     "paths": {
-      "@types/*": [
+      "@assets/*": [
+        "assets/*"
+      ],
+      "@customTypes/*": [
         "types/*"
       ]
     },
@@ -27,6 +30,9 @@
     "useDefineForClassFields": true,
   },
   "include": [
+    "types",
+    "frontend",
+    "backend",
     "**/*.ts"
   ],
   "exclude": [
