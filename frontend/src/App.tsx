@@ -1,113 +1,56 @@
-import React, { useEffect, useState } from 'react';
-import { addDays, differenceInDays, startOfDay } from 'date-fns';
-
-import NavBar from './components/NavBar';
-import ChoreList from './components/ChoreList';
-import AddChoreButton from './components/AddChoreButton';
-
-import { database } from './assets/database';
-
+import { useMemo, useState } from 'react';
+import { database } from '@assets/database';
+import { useTimeSimulation } from './hooks/useTimeSimulation';
+import { useRoomFilter } from './hooks/useRoomFilter';
+import { useChoreSort } from './hooks/useChoreSort';
+import NavBar from './components/nav/NavBar';
+import ChoreList from './components/chore/ChoreList';
+import AddChoreButton from './components/form/AddChoreButton';
+import AddChoreForm from './components/form/AddChoreForm';
 import type { Chore } from '@customTypes/SharedTypes';
 
+export default function App() {
+    const day = useTimeSimulation();
+    const [selectedRoom, setSelectedRoom] = useState<string>('all');
+    const [showForm, setShowForm] = useState<boolean>(false);
+    const [choreData, setChoreData] = useState<Chore[]>(database);
 
-const App: React.FC = () => {
-  const simTimeSecPerDay: number = 30; // Simulation time in seconds per day
+    const uniqueRooms = useMemo(
+        () => Array.from(new Set(choreData.map(c => c.room))),
+        [choreData]
+    );
 
-  // CONSTANTS
-  const choreData = database as Chore[];
-  const today: Date = new Date();
-  // Extract unique categories from data
-  const uniqueCategories = Array.from(
-    new Set(choreData.flatMap(chore => chore.category.map(cat => cat.trim())))
-  );
-  // TODO: reorder after some delay...if reorder per resetTask click, screen will commonly be overwhelming red, making user feel bad that there are perpetually more chores to do. Leaving the green screen makes them feel like they are making progress. But at certain intervals, it would be nice to reorder the chores so that user can see the next chore that needs to be done. #humanPsychologyProblems
-  // const refreshOrderTimer: number = 1; // How often to refresh the order of chores in seconds
+    const filteredChores = useRoomFilter(choreData, selectedRoom);
+    const orderedChores = useChoreSort(filteredChores, day);
 
-  // STATE VARIABLES
-
-  // Sample data, TODO: pull from Express
-  // State for selected category, default to 'all'
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  // State for displayed chores based on selected category
-  // Initialize displayed chores with all chores
-  const [displayedChores, setDisplayedChores] = useState<(Chore[])>(choreData);
-  const [orderedChores, setOrderedChores] = useState<(Chore[])>(choreData);
-
-  // Simulation of days passing
-  const [day, setDay] = useState<Date>(today);
-
-  // Simulate time passage (only for demo purposes)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const nextDate = addDays(day, 1);
-      setDay(nextDate);
-    }, simTimeSecPerDay * 1000); // Convert seconds to milliseconds
-
-    return () => {
-      clearTimeout(timer);
+    function handleAddChore(newChore: Omit<Chore, 'id'>) {
+        const id = choreData.length > 0 ? Math.max(...choreData.map(c => c.id)) + 1 : 1;
+        setChoreData(prev => [...prev, { ...newChore, id }]);
+        setShowForm(false);
     }
-  }, [day]);
 
-  // Update displayedChores when chores or selectedCategory changes
-  useEffect(() => {
-    const filteredChores: Chore[] = selectedCategory === 'all'
-      ? choreData
-      : choreData.filter(choreData => choreData.category.includes(selectedCategory));
-    setDisplayedChores(filteredChores);
-  }, [choreData, selectedCategory]);
+    return (
+        <div className="App">
+            <div className="mx-auto p-4 bg-gray-900 min-h-screen">
+                <NavBar rooms={uniqueRooms} selectedRoom={selectedRoom} onSelect={setSelectedRoom} />
 
-  
+                <div className="text-s text-white mb-2">
+                    {day.toDateString()}
+                </div>
 
+                <ChoreList chores={orderedChores} day={day} />
 
-  // Update orderedChores when chores or day changes
-  useEffect(() => {
-    const orderedChores: Chore[] = orderChores(displayedChores, day);
-    setOrderedChores(orderedChores);
-  }, [displayedChores, day]);
-
-  function orderChores(chores: Chore[], today: Date): Chore[] {
-    const shortTermChores: Chore[] = chores.filter(chore => !chore.longTermTask)
-    const longTermChores: Chore[] = chores.filter(chore => chore.longTermTask)
-
-    return [...orderSubList(shortTermChores, today), ...orderSubList(longTermChores, today)]
-  }
-
-  function orderSubList(chores: Chore[], today: Date): Chore[] {
-    return chores.sort((a, b) => {
-      return calcDurationWeightedScore(b, today) - calcDurationWeightedScore(a, today);
-    });
-  }
-
-  function calcDurationWeightedScore(chore: Chore, today: Date): number {
-    const daysSince: number = differenceInDays(startOfDay(today), startOfDay(chore.dateLastCompleted));
-    const percentOverdue: number = daysSince / chore.frequency;
-    return chore.duration * percentOverdue;
-  }
-
-  return (
-    <div className="App">
-      <div className="mx-auto p-4 bg-gray-900 min-h-screen">
-
-        <NavBar categories={uniqueCategories} selectedCategory={selectedCategory} onClick={setSelectedCategory} />
-
-        {/* Hidden simulation status for debugging */}
-        <div className="text-s text-white mb-2">
-          {day.toDateString()}
+                <div className="mt-6 flex justify-center">
+                    {showForm ? (
+                        <AddChoreForm
+                            onSubmit={handleAddChore}
+                            onCancel={() => setShowForm(false)}
+                        />
+                    ) : (
+                        <AddChoreButton onClick={() => setShowForm(true)} />
+                    )}
+                </div>
+            </div>
         </div>
-
-        {/* Task list */}
-        <ChoreList
-          chores={orderedChores}
-          day={day}
-        />
-
-        {/* Add Task button */}
-        <div className="mt-6 flex justify-center">
-          <AddChoreButton />
-        </div>
-      </div>
-    </div>
-  );
+    );
 }
-
-export default App;

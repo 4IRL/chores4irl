@@ -7,7 +7,7 @@
         "module": "ESNext",
         "moduleResolution": "Bundler",
         "paths": {
-            "@assets/*": ["./assets/*"],
+            "@assets/*": ["./src/assets/*"],
             "@customTypes/*": ["../types/*"],
             "@src/*": ["./*"],
         },

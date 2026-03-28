@@ -1,14 +1,13 @@
 export interface Chore {
     id: number;
-    name: string; 
-    details?: string | null; // optional details about the chore
-    category: string[];
-    // 'bedroom' | 'kitchen' | 'living room' | 'garage' | 'other'
-    dateLastCompleted: Date; // chore last completed on this date
-    duration: number; // estimate of how long the chore takes to complete in minutes
-    frequency: number; // how often the chore should be completed in days 
+    name: string;
+    details?: string | null;
+    room: string;
+    dateLastCompleted: Date;
+    duration: number;
+    frequency: number;
     urgency?: 'low' | 'medium' | 'high';
-    longTermTask?: boolean; // whether this is a long-term task
+    longTermTask?: boolean;
 }
 
 export interface ApiResponse<T> {
