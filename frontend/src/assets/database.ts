@@ -1,6 +1,6 @@
 import type { Chore } from '@customTypes/SharedTypes';
 
-// Sample data, TODO: pull from Express
+// Sample data — kept as reference. Express API now serves this data from SQLite (backend/src/db.ts).
 export const database: Chore[] = [
     {
         id: 1,
