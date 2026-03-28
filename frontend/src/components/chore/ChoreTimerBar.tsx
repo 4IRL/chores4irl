@@ -10,6 +10,7 @@ import OverdueBadge from './OverdueBadge';
 type ChoreTimerBarProps = {
     chore: Chore;
     day: Date;
+    onComplete: (id: number, date: Date) => void;
 };
 
 function getStatusColor(status: number): string {
@@ -17,7 +18,7 @@ function getStatusColor(status: number): string {
     return (match ?? statusColors[statusColors.length - 1]).color + ' bg-opacity-50';
 }
 
-export default function ChoreTimerBar({ chore, day }: ChoreTimerBarProps) {
+export default function ChoreTimerBar({ chore, day, onComplete }: ChoreTimerBarProps) {
     const [dateLastCompleted, setDateLastCompleted] = useState(chore.dateLastCompleted);
 
     const daysSince = useMemo(
@@ -31,6 +32,7 @@ export default function ChoreTimerBar({ chore, day }: ChoreTimerBarProps) {
 
     function resetTask() {
         setDateLastCompleted(day);
+        onComplete(chore.id, day);
     }
 
     return (
