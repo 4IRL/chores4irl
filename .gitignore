@@ -25,5 +25,6 @@ dist-ssr
 *.db*
 
 # Claude Code files
+.claude
 plan.md
 research.md
