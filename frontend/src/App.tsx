@@ -6,7 +6,7 @@ import NavBar from './components/nav/NavBar';
 import ChoreList from './components/chore/ChoreList';
 import AddChoreButton from './components/form/AddChoreButton';
 import AddChoreForm from './components/form/AddChoreForm';
-import { fetchAllChores, addChore, completeChore } from './services/choreApi';
+import { fetchAllChores, addChore, completeChore, removeChore } from './services/choreApi';
 import type { Chore } from '@customTypes/SharedTypes';
 
 export default function App() {
@@ -47,14 +47,28 @@ export default function App() {
         }
     }
 
-    async function handleCompleteChore(id: number, date: Date) {
-        setChoreData(prev =>
-            prev.map(c => c.id === id ? { ...c, dateLastCompleted: date } : c)
+    const handleDeleteChore = async (id: number): Promise<void> => {
+        const prev = choreData;
+        setChoreData(curr => curr.filter(c => c.id !== id)); // optimistic remove
+        try {
+            await removeChore(id);
+        } catch (err) {
+            setChoreData(prev); // rollback
+            setError(err instanceof Error ? err.message : 'Failed to delete chore');
+        }
+    };
+
+    async function handleCompleteChore(id: number, date: Date): Promise<void> {
+        const prev = choreData;
+        setChoreData(curr =>
+            curr.map(c => c.id === id ? { ...c, dateLastCompleted: date } : c)
         );
         try {
-            await completeChore(id, date);
+            const updated = await completeChore(id, date);
+            setChoreData(curr => curr.map(c => c.id === id ? updated : c));
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to save completion');
+            setChoreData(prev);
+            setError(err instanceof Error ? err.message : 'Failed to mark chore complete');
         }
     }
 
@@ -84,7 +98,7 @@ export default function App() {
                     {day.toDateString()}
                 </div>
 
-                <ChoreList chores={orderedChores} day={day} onComplete={handleCompleteChore} />
+                <ChoreList chores={orderedChores} day={day} onComplete={handleCompleteChore} onDelete={handleDeleteChore} />
 
                 <div className="mt-6 flex justify-center">
                     {showForm ? (
