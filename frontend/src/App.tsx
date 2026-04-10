@@ -47,7 +47,7 @@ export default function App() {
         }
     }
 
-    const handleDeleteChore = async (id: number): Promise<void> => {
+    async function handleDeleteChore(id: number): Promise<void> {
         const prev = choreData;
         setChoreData(curr => curr.filter(c => c.id !== id)); // optimistic remove
         try {
@@ -56,7 +56,7 @@ export default function App() {
             setChoreData(prev); // rollback
             setError(err instanceof Error ? err.message : 'Failed to delete chore');
         }
-    };
+    }
 
     async function handleCompleteChore(id: number, date: Date): Promise<void> {
         const prev = choreData;

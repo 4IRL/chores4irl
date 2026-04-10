@@ -28,8 +28,12 @@ test.describe('Chores App Smoke Tests', () => {
     test('persists completed chore date after page reload', async ({ page }) => {
         // Click complete on the first chore bar, then reload and confirm no error
         const firstChoreBar = page.locator('.bg-gray-800.rounded-full').first();
+        const patchDone = page.waitForResponse(
+            resp => resp.url().includes('/api/chores') && resp.url().includes('/complete') && resp.request().method() === 'PATCH',
+            { timeout: 10_000 }
+        );
         await firstChoreBar.click();
-        await page.waitForTimeout(500); // let PATCH settle
+        await patchDone;
         await page.reload();
         await page.waitForSelector('text=Vacuum Bedroom Floor', { timeout: 10_000 });
         await expect(page.locator('.bg-red-700')).not.toBeVisible();
@@ -56,10 +60,8 @@ test.describe('Chores App Smoke Tests', () => {
         const choreText = await firstChore.textContent();
         const deleteBtn = firstChore.locator('[aria-label="Delete chore"]');
         await deleteBtn.click();
-        if (choreText) {
-            const nameFragment = choreText.trim().slice(0, 15);
-            await expect(page.locator(`text=${nameFragment}`)).not.toBeVisible({ timeout: 5_000 });
-        }
+        const nameFragment = choreText!.trim().slice(0, 15);
+        await expect(page.locator(`text=${nameFragment}`)).not.toBeVisible({ timeout: 5_000 });
     });
 
     test('shows error and rolls back on simulated backend failure', async ({ page }) => {
