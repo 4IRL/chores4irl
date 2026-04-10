@@ -4,7 +4,9 @@ import path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DB_PATH = path.resolve(__dirname, '../../data.db');
+const DB_PATH = process.env.TEST_DB_PATH === ':memory:'
+    ? ':memory:'
+    : path.resolve(__dirname, '../../data.db');
 
 export const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
@@ -47,15 +49,16 @@ const SEED_DATA: SeedRow[] = [
     { name: 'HVAC Air Filter Replacement', details: 'Replace the air filter in the HVAC system to ensure proper airflow and air quality.', room: 'Basement', date_last_completed: '2025-03-31T00:00:00.000Z', duration: 10, frequency: 90, urgency: 'low', long_term_task: 1 },
 ];
 
-const count = (db.prepare('SELECT COUNT(*) as count FROM chores').get() as { count: number }).count;
-
-if (count === 0) {
-    const insert = db.prepare(`
-        INSERT INTO chores (name, details, room, date_last_completed, duration, frequency, urgency, long_term_task)
-        VALUES (@name, @details, @room, @date_last_completed, @duration, @frequency, @urgency, @long_term_task)
-    `);
-    const seedMany = db.transaction((rows: SeedRow[]) => {
-        for (const r of rows) insert.run(r);
-    });
-    seedMany(SEED_DATA);
+if (!process.env.TEST_DB_PATH) {
+    const count = (db.prepare('SELECT COUNT(*) as count FROM chores').get() as { count: number }).count;
+    if (count === 0) {
+        const insert = db.prepare(`
+            INSERT INTO chores (name, details, room, date_last_completed, duration, frequency, urgency, long_term_task)
+            VALUES (@name, @details, @room, @date_last_completed, @duration, @frequency, @urgency, @long_term_task)
+        `);
+        const seedMany = db.transaction((rows: SeedRow[]) => {
+            for (const r of rows) insert.run(r);
+        });
+        seedMany(SEED_DATA);
+    }
 }

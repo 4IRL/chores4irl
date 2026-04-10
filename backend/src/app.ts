@@ -64,4 +64,4 @@ app.delete('/api/chores/:id', (req, res) => {
     }
 });
 
-app.listen(3000, () => console.log('chores4irl backend listening on port 3000'));
+export default app;
