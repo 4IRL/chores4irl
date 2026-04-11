@@ -24,7 +24,12 @@ dist-ssr
 *.sw?
 *.db*
 
+# Playwright
+test-results/
+playwright-report/
+
 # Claude Code files
 .claude
 plan.md
 research.md
+*plans/
