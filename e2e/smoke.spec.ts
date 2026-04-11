@@ -53,14 +53,21 @@ test.describe('Chores App Smoke Tests', () => {
     });
 
     test('deletes a chore and it disappears from the list', async ({ page }) => {
+        // Add a dedicated chore to delete so seed data (used by subsequent tests) is preserved
+        await page.locator('button', { hasText: /\+ Add Task/i }).click();
+        await page.fill('input[name="name"]', 'E2E Delete Target');
+        await page.fill('input[name="room"]', 'Test Room');
+        await page.fill('input[name="dateLastCompleted"]', '2026-01-01');
+        await page.fill('input[name="duration"]', '5');
+        await page.fill('input[name="frequency"]', '3');
+        await page.locator('button[type="submit"]', { hasText: /save/i }).click();
+        await page.waitForSelector('text=E2E Delete Target', { timeout: 5_000 });
+
         // Delete button has aria-label="Delete chore" and text "✕"
-        const allChoreNames = page.locator('.bg-gray-800.rounded-full');
-        const firstChore = allChoreNames.first();
-        // Read some identifying text before deletion
-        const choreText = await firstChore.textContent();
-        const deleteBtn = firstChore.locator('[aria-label="Delete chore"]');
+        const targetChore = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Delete Target' });
+        const deleteBtn = targetChore.locator('[aria-label="Delete chore"]');
         await deleteBtn.click();
-        await expect(page.locator(`text=${choreText!.trim().slice(0, 20)}`)).not.toBeVisible({ timeout: 5_000 });
+        await expect(page.locator('text=E2E Delete Target')).not.toBeVisible({ timeout: 5_000 });
     });
 
     test('shows error and rolls back on simulated backend failure', async ({ page }) => {
