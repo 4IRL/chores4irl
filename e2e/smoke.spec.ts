@@ -60,8 +60,7 @@ test.describe('Chores App Smoke Tests', () => {
         const choreText = await firstChore.textContent();
         const deleteBtn = firstChore.locator('[aria-label="Delete chore"]');
         await deleteBtn.click();
-        const nameFragment = choreText!.trim().slice(0, 15);
-        await expect(page.locator(`text=${nameFragment}`)).not.toBeVisible({ timeout: 5_000 });
+        await expect(page.locator(`text=${choreText!.trim().slice(0, 20)}`)).not.toBeVisible({ timeout: 5_000 });
     });
 
     test('shows error and rolls back on simulated backend failure', async ({ page }) => {

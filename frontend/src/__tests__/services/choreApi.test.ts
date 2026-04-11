@@ -12,14 +12,6 @@ function mockResponse<T>(data: T, status = 200) {
     } as Response);
 }
 
-function mockErrorResponse(error: string, status: number) {
-    return Promise.resolve({
-        ok: false,
-        status,
-        json: () => Promise.resolve({ success: false, error }),
-    } as Response);
-}
-
 const WIRE_CHORE = {
     id: 1, name: 'Sweep', room: 'Kitchen',
     dateLastCompleted: '2025-01-01T00:00:00.000Z',
