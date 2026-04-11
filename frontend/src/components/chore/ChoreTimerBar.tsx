@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { differenceInDays, startOfDay } from 'date-fns';
 import type { Chore } from '@customTypes/SharedTypes';
 import { statusColors } from '@assets/constants';
@@ -20,15 +20,9 @@ function getStatusColor(status: number): string {
 }
 
 export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: ChoreTimerBarProps) {
-    const [dateLastCompleted, setDateLastCompleted] = useState(chore.dateLastCompleted);
-
-    useEffect(() => {
-        setDateLastCompleted(chore.dateLastCompleted);
-    }, [chore.dateLastCompleted]);
-
     const daysSince = useMemo(
-        () => differenceInDays(startOfDay(day), startOfDay(dateLastCompleted)),
-        [day, dateLastCompleted]
+        () => differenceInDays(startOfDay(day), startOfDay(chore.dateLastCompleted)),
+        [day, chore.dateLastCompleted]
     );
 
     const status = daysSince / chore.frequency;
@@ -36,7 +30,6 @@ export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: Chor
     const barColor = getStatusColor(status);
 
     function resetTask() {
-        setDateLastCompleted(day);
         onComplete(chore.id, day);
     }
 
@@ -50,7 +43,7 @@ export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: Chor
                 <div className="font-medium text-white">{chore.id}</div>
                 <ChoreInfo name={chore.name} room={chore.room} frequency={chore.frequency} />
                 {status > 1 && <OverdueBadge />}
-                <CompletionInfo date={dateLastCompleted} daysSince={daysSince} />
+                <CompletionInfo date={chore.dateLastCompleted} daysSince={daysSince} />
                 <button
                     className="ml-2 px-3 py-1 bg-red-600 bg-opacity-80 hover:bg-red-500 text-white text-sm rounded-full"
                     onClick={e => { e.stopPropagation(); onDelete(chore.id); }}

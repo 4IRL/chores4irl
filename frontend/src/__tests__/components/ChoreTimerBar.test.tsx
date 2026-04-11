@@ -2,17 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChoreTimerBar from '../../components/chore/ChoreTimerBar';
-import type { Chore } from '@customTypes/SharedTypes';
-
-const makeChore = (overrides: Partial<Chore> = {}): Chore => ({
-    id: 1,
-    name: 'Sweep',
-    room: 'Kitchen',
-    dateLastCompleted: new Date('2025-01-01T00:00:00.000Z'),
-    duration: 10,
-    frequency: 7,
-    ...overrides,
-});
+import { makeChore } from '../fixtures/chore';
 
 const day = new Date(2025, 0, 15, 12, 0, 0);
 

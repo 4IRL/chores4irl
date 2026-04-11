@@ -57,7 +57,7 @@ if (!process.env.TEST_DB_PATH) {
             VALUES (@name, @details, @room, @date_last_completed, @duration, @frequency, @urgency, @long_term_task)
         `);
         const seedMany = db.transaction((rows: SeedRow[]) => {
-            for (const r of rows) insert.run(r);
+            for (const row of rows) insert.run(row);
         });
         seedMany(SEED_DATA);
     }

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { fetchAllChores, addChore, completeChore, removeChore } from '../services/choreApi';
 import type { Chore } from '@customTypes/SharedTypes';
+import { makeChore } from './fixtures/chore';
 
 vi.mock('../services/choreApi', () => ({
     fetchAllChores: vi.fn(),
@@ -16,14 +17,15 @@ vi.mock('../hooks/useTimeSimulation', () => ({
     useTimeSimulation: () => new Date(2025, 0, 15, 12, 0, 0),
 }));
 
-const makeChore = (overrides: Partial<Chore> = {}): Chore => ({
-    id: 1,
-    name: 'Sweep',
-    room: 'Kitchen',
-    dateLastCompleted: new Date('2025-01-01T00:00:00.000Z'),
-    duration: 10,
-    frequency: 7,
-    ...overrides,
+describe('initial load', () => {
+    it('shows error banner when fetchAllChores rejects', async () => {
+        vi.mocked(fetchAllChores).mockRejectedValue(new Error('Network error'));
+
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Network error')).toBeInTheDocument());
+        expect(screen.queryByText('Loading chores...')).not.toBeInTheDocument();
+    });
 });
 
 describe('handleDeleteChore', () => {
@@ -63,5 +65,100 @@ describe('handleDeleteChore', () => {
 
         // Error state is set
         expect(screen.getByText('Delete failed')).toBeInTheDocument();
+    });
+});
+
+describe('handleCompleteChore', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore()]);
+        vi.mocked(removeChore).mockResolvedValue(undefined);
+        vi.mocked(addChore).mockResolvedValue(makeChore());
+    });
+
+    it('calls completeChore with the chore id and current day', async () => {
+        vi.mocked(completeChore).mockResolvedValue(makeChore());
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        await user.click(screen.getByText('Sweep'));
+
+        expect(completeChore).toHaveBeenCalledWith(1, new Date(2025, 0, 15, 12, 0, 0));
+    });
+
+    it('rolls back and sets error when completeChore rejects', async () => {
+        let rejectComplete!: (err: Error) => void;
+        vi.mocked(completeChore).mockReturnValue(
+            new Promise<Chore>((_, rej) => { rejectComplete = rej; })
+        );
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        await user.click(screen.getByText('Sweep'));
+
+        rejectComplete(new Error('Complete failed'));
+
+        await waitFor(() => expect(screen.getByText('Complete failed')).toBeInTheDocument());
+        expect(screen.getByText('Sweep')).toBeInTheDocument();
+    });
+
+    it('reconciles with the server-returned chore value on success', async () => {
+        // Server returns a chore with a different name to distinguish from the initial value
+        const serverChore = makeChore({ name: 'Sweep (reconciled)' });
+        vi.mocked(completeChore).mockResolvedValue(serverChore);
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        await user.click(screen.getByText('Sweep'));
+
+        await waitFor(() => expect(screen.getByText('Sweep (reconciled)')).toBeInTheDocument());
+    });
+});
+
+describe('handleAddChore', () => {
+    beforeEach(() => {
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore()]);
+        vi.mocked(removeChore).mockResolvedValue(undefined);
+        vi.mocked(completeChore).mockResolvedValue(makeChore());
+    });
+
+    async function openAndFillForm(container: HTMLElement, user: ReturnType<typeof userEvent.setup>) {
+        await waitFor(() => expect(screen.getByText('+ Add Task')).toBeInTheDocument());
+        await user.click(screen.getByText('+ Add Task'));
+        await user.type(container.querySelector('input[name="name"]')!, 'Mop');
+        await user.type(container.querySelector('input[name="room"]')!, 'Kitchen');
+        await user.type(container.querySelector('input[name="dateLastCompleted"]')!, '2025-01-01');
+        await user.type(container.querySelector('input[name="duration"]')!, '10');
+        await user.type(container.querySelector('input[name="frequency"]')!, '7');
+    }
+
+    it('appends the new chore to the list on success', async () => {
+        vi.mocked(addChore).mockResolvedValue(makeChore({ id: 2, name: 'Mop' }));
+
+        const user = userEvent.setup();
+        const { container } = render(<App />);
+
+        await openAndFillForm(container, user);
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(screen.getByText('Mop')).toBeInTheDocument());
+    });
+
+    it('shows error banner when addChore rejects', async () => {
+        vi.mocked(addChore).mockRejectedValue(new Error('Add failed'));
+
+        const user = userEvent.setup();
+        const { container } = render(<App />);
+
+        await openAndFillForm(container, user);
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(screen.getByText('Add failed')).toBeInTheDocument());
     });
 });

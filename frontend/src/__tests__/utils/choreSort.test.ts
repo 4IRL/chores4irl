@@ -1,22 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calcDurationWeightedScore, orderChores } from '../../utils/choreSort';
-import type { Chore } from '@customTypes/SharedTypes';
-
-const makeChore = (overrides: Partial<Chore> = {}): Chore => ({
-    id: 1,
-    name: 'Test',
-    room: 'Kitchen',
-    dateLastCompleted: new Date('2025-01-01T00:00:00.000Z'),
-    duration: 10,
-    frequency: 7,
-    ...overrides,
-});
-
-// Helper to create a local noon date for a given YYYY-MM-DD string (avoids DST edge cases)
-function localNoon(dateStr: string): Date {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    return new Date(y, m - 1, d, 12, 0, 0);
-}
+import { makeChore, localNoon } from '../fixtures/chore';
 
 describe('calcDurationWeightedScore', () => {
     it('returns 0 when completed today', () => {

@@ -12,6 +12,12 @@ function mockResponse<T>(data: T, status = 200) {
     } as Response);
 }
 
+function mockErrorResponse(error: string) {
+    return Promise.resolve({
+        json: () => Promise.resolve({ success: false, error }),
+    } as Response);
+}
+
 const WIRE_CHORE = {
     id: 1, name: 'Sweep', room: 'Kitchen',
     dateLastCompleted: '2025-01-01T00:00:00.000Z',
@@ -51,6 +57,15 @@ describe('addChore', () => {
         const body = JSON.parse(call[1].body);
         expect(body.dateLastCompleted).toBe('2025-01-01T00:00:00.000Z');
     });
+
+    it('throws when API returns success: false', async () => {
+        mockFetch.mockReturnValue(mockErrorResponse('Validation error'));
+        await expect(addChore({
+            name: 'Sweep', room: 'Kitchen',
+            dateLastCompleted: new Date('2025-01-01T00:00:00.000Z'),
+            duration: 10, frequency: 7,
+        })).rejects.toThrow('Validation error');
+    });
 });
 
 describe('completeChore', () => {
@@ -62,6 +77,11 @@ describe('completeChore', () => {
         expect(call[0]).toBe('/api/chores/1/complete');
         expect(call[1].method).toBe('PATCH');
     });
+
+    it('throws when API returns success: false', async () => {
+        mockFetch.mockReturnValue(mockErrorResponse('Not found'));
+        await expect(completeChore(1, new Date())).rejects.toThrow('Not found');
+    });
 });
 
 describe('removeChore', () => {
@@ -71,5 +91,10 @@ describe('removeChore', () => {
         const call = mockFetch.mock.calls[0];
         expect(call[0]).toBe('/api/chores/1');
         expect(call[1].method).toBe('DELETE');
+    });
+
+    it('throws when API returns success: false', async () => {
+        mockFetch.mockReturnValue(mockErrorResponse('Delete failed'));
+        await expect(removeChore(1)).rejects.toThrow('Delete failed');
     });
 });

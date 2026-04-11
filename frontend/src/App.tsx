@@ -30,7 +30,7 @@ export default function App() {
     }, []);
 
     const uniqueRooms = useMemo(
-        () => Array.from(new Set(choreData.map(c => c.room))),
+        () => Array.from(new Set(choreData.map(chore => chore.room))),
         [choreData]
     );
 
@@ -48,26 +48,28 @@ export default function App() {
     }
 
     async function handleDeleteChore(id: number): Promise<void> {
-        const prev = choreData;
-        setChoreData(curr => curr.filter(c => c.id !== id)); // optimistic remove
+        const deletedChore = choreData.find(chore => chore.id === id);
+        if (!deletedChore) return;
+        setChoreData(curr => curr.filter(chore => chore.id !== id));
         try {
             await removeChore(id);
         } catch (err) {
-            setChoreData(prev); // rollback
+            setChoreData(curr => curr.some(chore => chore.id === id) ? curr : [...curr, deletedChore]);
             setError(err instanceof Error ? err.message : 'Failed to delete chore');
         }
     }
 
     async function handleCompleteChore(id: number, date: Date): Promise<void> {
-        const prev = choreData;
+        const originalChore = choreData.find(chore => chore.id === id);
+        if (!originalChore) return;
         setChoreData(curr =>
-            curr.map(c => c.id === id ? { ...c, dateLastCompleted: date } : c)
+            curr.map(chore => chore.id === id ? { ...chore, dateLastCompleted: date } : chore)
         );
         try {
             const updated = await completeChore(id, date);
-            setChoreData(curr => curr.map(c => c.id === id ? updated : c));
+            setChoreData(curr => curr.map(chore => chore.id === id ? updated : chore));
         } catch (err) {
-            setChoreData(prev);
+            setChoreData(curr => curr.map(chore => chore.id === id ? originalChore : chore));
             setError(err instanceof Error ? err.message : 'Failed to mark chore complete');
         }
     }
