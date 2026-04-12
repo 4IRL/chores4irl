@@ -49,7 +49,18 @@ test.describe('Chores App Smoke Tests', () => {
         await page.fill('input[name="frequency"]', '3');
         // Submit button text is "Save"
         await page.locator('button[type="submit"]', { hasText: /save/i }).click();
-        await expect(page.locator('text=E2E Test Chore')).toBeVisible({ timeout: 5_000 });
+        try {
+            await expect(page.locator('text=E2E Test Chore')).toBeVisible({ timeout: 5_000 });
+        } finally {
+            // Delete all copies of E2E Test Chore — including any left over from prior failed runs
+            const testChores = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Test Chore' });
+            let count = await testChores.count();
+            while (count > 0) {
+                await testChores.first().locator('[aria-label="Delete chore"]').click();
+                await expect(testChores.first()).not.toBeVisible({ timeout: 5_000 });
+                count = await testChores.count();
+            }
+        }
     });
 
     test('deletes a chore and it disappears from the list', async ({ page }) => {
