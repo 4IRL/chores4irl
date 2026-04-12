@@ -55,9 +55,8 @@ export default function App() {
     async function handleAddChore(newChore: Omit<Chore, 'id'>) {
         try {
             const created = await addChore(newChore);
-            const updated = [...choreData, created];
-            setChoreData(updated);
-            setSortedIds(orderChores(updated, day).map(c => c.id));
+            setChoreData(curr => [...curr, created]);
+            setSortedIds(prev => [...prev, created.id]);
             setShowForm(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to add chore');
