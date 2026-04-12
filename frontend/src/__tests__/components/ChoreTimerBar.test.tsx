@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChoreTimerBar from '../../components/chore/ChoreTimerBar';
 import { makeChore } from '../fixtures/chore';
@@ -62,5 +62,15 @@ describe('ChoreTimerBar', () => {
             <ChoreTimerBar chore={updatedChore} day={day} onComplete={vi.fn()} onDelete={vi.fn()} />
         );
         expect(screen.getByText('1 day ago')).toBeInTheDocument();
+    });
+
+    it('calls onComplete with the real current date when the chore bar is clicked', () => {
+        const fixedNow = new Date(2025, 0, 15, 14, 0, 0);
+        vi.useFakeTimers({ now: fixedNow });
+        const onComplete = vi.fn();
+        render(<ChoreTimerBar chore={makeChore()} day={new Date(2025, 0, 15)} onComplete={onComplete} onDelete={vi.fn()} />);
+        fireEvent.click(screen.getByTestId('chore-bar'));
+        expect(onComplete).toHaveBeenCalledWith(makeChore().id, fixedNow);
+        vi.useRealTimers();
     });
 });

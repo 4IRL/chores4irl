@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { fetchAllChores, addChore, completeChore, removeChore } from '../services/choreApi';
@@ -13,8 +13,9 @@ vi.mock('../services/choreApi', () => ({
     removeChore: vi.fn(),
 }));
 
-vi.mock('../hooks/useTimeSimulation', () => ({
-    useTimeSimulation: () => new Date(2025, 0, 15, 12, 0, 0),
+const MOCK_DAY = new Date(2025, 0, 15, 12, 0, 0);
+vi.mock('../hooks/useMidnightClock', () => ({
+    useMidnightClock: () => MOCK_DAY,
 }));
 
 describe('initial load', () => {
@@ -85,7 +86,7 @@ describe('handleCompleteChore', () => {
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
         await user.click(screen.getByText('Sweep'));
 
-        expect(completeChore).toHaveBeenCalledWith(1, new Date(2025, 0, 15, 12, 0, 0));
+        expect(completeChore).toHaveBeenCalledWith(1, expect.any(Date));
     });
 
     it('rolls back and sets error when completeChore rejects', async () => {
@@ -160,5 +161,32 @@ describe('handleAddChore', () => {
         await user.click(screen.getByRole('button', { name: 'Save' }));
 
         await waitFor(() => expect(screen.getByText('Add failed')).toBeInTheDocument());
+    });
+});
+
+describe('frozen sort order', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(removeChore).mockResolvedValue(undefined);
+    });
+
+    it('completing a chore does not change its list position', async () => {
+        const choreA = makeChore({ id: 1, name: 'Chore A', dateLastCompleted: new Date(2024, 11, 1) });
+        const choreB = makeChore({ id: 2, name: 'Chore B', dateLastCompleted: new Date(2025, 0, 14) });
+        vi.mocked(fetchAllChores).mockResolvedValue([choreA, choreB]);
+        const updatedA = { ...choreA, dateLastCompleted: new Date(2025, 0, 15, 12, 0, 0) };
+        vi.mocked(completeChore).mockResolvedValue(updatedA);
+        render(<App />);
+        await waitFor(() => expect(screen.getAllByTestId('chore-bar')).toHaveLength(2));
+        // Capture name order before completing (names are stable; dates/counters are not)
+        const namesBefore = screen.getAllByTestId('chore-bar').map(el =>
+            el.textContent?.match(/Chore [AB]/)?.[0] ?? ''
+        );
+        fireEvent.click(screen.getAllByTestId('chore-bar')[0]);
+        await waitFor(() => expect(completeChore).toHaveBeenCalled());
+        const namesAfter = screen.getAllByTestId('chore-bar').map(el =>
+            el.textContent?.match(/Chore [AB]/)?.[0] ?? ''
+        );
+        expect(namesAfter).toEqual(namesBefore);
     });
 });
