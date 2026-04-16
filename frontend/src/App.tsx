@@ -55,7 +55,7 @@ export default function App() {
     async function handleAddChore(newChore: Omit<Chore, 'id'>) {
         try {
             const created = await addChore(newChore);
-            setChoreData(curr => [...curr, created]);
+            setChoreData(prev => [...prev, created]);
             setSortedIds(prev => [...prev, created.id]);
             setShowForm(false);
         } catch (err) {

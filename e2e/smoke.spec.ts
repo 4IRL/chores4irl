@@ -57,8 +57,8 @@ test.describe('Chores App Smoke Tests', () => {
             let count = await testChores.count();
             while (count > 0) {
                 await testChores.first().locator('[aria-label="Delete chore"]').click();
-                await expect(testChores.first()).not.toBeVisible({ timeout: 5_000 });
-                count = await testChores.count();
+                await expect(testChores).toHaveCount(count - 1, { timeout: 5_000 });
+                count = count - 1;
             }
         }
     });

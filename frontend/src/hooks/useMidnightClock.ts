@@ -5,8 +5,9 @@ export function useMidnightClock(): Date {
     const [now, setNow] = useState<Date>(new Date());
 
     useEffect(() => {
-        const nextMidnight = startOfDay(addDays(now, 1));
-        const msUntilMidnight = nextMidnight.getTime() - Date.now();
+        const nowMs = Date.now();
+        const nextMidnight = startOfDay(addDays(nowMs, 1));
+        const msUntilMidnight = nextMidnight.getTime() - nowMs;
         const timer = setTimeout(() => {
             setNow(new Date());
         }, msUntilMidnight);
