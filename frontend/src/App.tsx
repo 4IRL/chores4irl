@@ -24,7 +24,7 @@ export default function App() {
         fetchAllChores()
             .then(chores => {
                 setChoreData(chores);
-                setSortedIds(orderChores(chores, new Date()).map(c => c.id));
+                setSortedIds(orderChores(chores, day).map(c => c.id));
                 setLoading(false);
             })
             .catch((err: unknown) => {

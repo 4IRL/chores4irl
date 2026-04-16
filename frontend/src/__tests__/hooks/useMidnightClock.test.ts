@@ -1,5 +1,5 @@
-import { renderHook, act } from '@testing-library/react';
 import { vi, describe, it, expect, afterEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
 import { useMidnightClock } from '../../hooks/useMidnightClock';
 import { startOfDay, addDays } from 'date-fns';
 
