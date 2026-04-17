@@ -14,8 +14,9 @@ type ChoreTimerBarProps = {
     onDelete: (id: number) => void;
 };
 
-function getStatusColor(status: number): string {
-    const match = statusColors.find(s => s.benchmark >= status);
+function getStatusColor(remainingRatio: number, isOverdue: boolean): string {
+    if (isOverdue) return 'bg-red-500 bg-opacity-50';
+    const match = statusColors.find(s => remainingRatio > s.threshold);
     return (match ?? statusColors[statusColors.length - 1]).color + ' bg-opacity-50';
 }
 
@@ -25,9 +26,21 @@ export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: Chor
         [day, chore.dateLastCompleted]
     );
 
-    const status = daysSince / chore.frequency;
-    const barWidth = Math.min(status, 1) * 100;
-    const barColor = getStatusColor(status);
+    const isOverdue = daysSince > chore.frequency;
+    const remainingRatio = (chore.frequency - daysSince) / chore.frequency; // can go negative when overdue
+
+    let barWidth: number;
+    let isUrgent = false;
+    if (!isOverdue) {
+        barWidth = Math.max(remainingRatio, 0) * 100;
+    } else {
+        const daysOverdue = daysSince - chore.frequency;
+        const growthRatio = (daysOverdue * 2) / chore.frequency;
+        barWidth = Math.min(growthRatio, 1) * 100;
+        isUrgent = growthRatio >= 1;
+    }
+
+    const barColor = getStatusColor(remainingRatio, isOverdue);
 
     function resetTask() {
         onComplete(chore.id, new Date());
@@ -39,11 +52,11 @@ export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: Chor
             className="relative h-24 w-full bg-gray-800 rounded-full shadow cursor-pointer overflow-hidden"
             onClick={resetTask}
         >
-            <ProgressBar width={status === 0 ? 100 : barWidth} color={barColor} />
+            <ProgressBar width={barWidth} color={barColor} isUrgent={isUrgent} />
             <div className="absolute inset-0 px-4 flex items-center justify-between">
                 <div className="font-medium text-white">{chore.id}</div>
                 <ChoreInfo name={chore.name} room={chore.room} frequency={chore.frequency} />
-                {status > 1 && <OverdueBadge />}
+                {isOverdue && <OverdueBadge />}
                 <CompletionInfo date={chore.dateLastCompleted} daysSince={daysSince} />
                 <button
                     className="ml-2 px-3 py-1 bg-red-600 bg-opacity-80 hover:bg-red-500 text-white text-sm rounded-full"
