@@ -10,13 +10,10 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
     "express": "^5.1.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/cors": "^2.8.18",
     "@types/express": "^5.0.1",
     "@types/supertest": "^7.2.0",
     "supertest": "^7.2.2",
