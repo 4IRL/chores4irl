@@ -13,7 +13,8 @@ export default defineConfig({
     alias: {
       '@assets': path.resolve(__dirname, './src/assets'),
       '@customTypes': path.resolve(__dirname, '../types'),
-      '@src': path.resolve(__dirname, './')
+      '@src': path.resolve(__dirname, './'),
+      '@utils': path.resolve(__dirname, './src/utils')
     },
   },
   server: {

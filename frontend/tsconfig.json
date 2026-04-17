@@ -10,6 +10,7 @@
             "@assets/*": ["./src/assets/*"],
             "@customTypes/*": ["../types/*"],
             "@src/*": ["./*"],
+            "@utils/*": ["./src/utils/*"],
         },
         "target": "ES2020",
     },

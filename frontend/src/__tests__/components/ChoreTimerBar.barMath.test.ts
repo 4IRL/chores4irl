@@ -1,37 +1,5 @@
 import { describe, it, expect } from 'vitest';
-
-// Pure math extracted from ChoreTimerBar.tsx — tested without React rendering.
-function computeBar(daysSince: number, frequency: number) {
-    const isOverdue = frequency > 0 && daysSince > frequency;
-    const remainingRatio = frequency > 0 ? (frequency - daysSince) / frequency : 1;
-
-    let barWidth: number;
-    let isUrgent = false;
-    if (frequency === 0) {
-        barWidth = 100;
-    } else if (!isOverdue) {
-        barWidth = Math.max(remainingRatio, 0) * 100;
-    } else {
-        const daysOverdue = daysSince - frequency;
-        const growthRatio = (daysOverdue * 2) / frequency;
-        barWidth = Math.min(growthRatio, 1) * 100;
-        isUrgent = growthRatio >= 1;
-    }
-
-    // Color logic mirrors getStatusColor in ChoreTimerBar.tsx
-    let barColor: string;
-    if (isOverdue) {
-        barColor = 'bg-red-500 bg-opacity-50';
-    } else if (remainingRatio > 0.5) {
-        barColor = 'bg-green-500 bg-opacity-50';
-    } else if (remainingRatio > 0.25) {
-        barColor = 'bg-orange-500 bg-opacity-50';
-    } else {
-        barColor = 'bg-red-500 bg-opacity-50';
-    }
-
-    return { barWidth, barColor, isUrgent };
-}
+import { computeBar } from '@utils/choreBarMath';
 
 describe('ChoreTimerBar bar math', () => {
     it('day 0 of a 10-day chore → barWidth = 100, green, not urgent', () => {
@@ -59,9 +27,16 @@ describe('ChoreTimerBar bar math', () => {
         expect(result.barColor).toContain('red');
     });
 
-    it('2 days overdue on a 10-day chore → barWidth = 40, red, not urgent', () => {
+    it('2 days overdue on a 10-day chore (daysSince=12) → barWidth = 40, red, not urgent', () => {
         const result = computeBar(12, 10);
         expect(result.barWidth).toBe(40);
+        expect(result.barColor).toContain('red');
+        expect(result.isUrgent).toBe(false);
+    });
+
+    it('4 days overdue on a 10-day chore (daysSince=14) → barWidth = 80, red, not urgent (just below urgent threshold)', () => {
+        const result = computeBar(14, 10);
+        expect(result.barWidth).toBeCloseTo(80);
         expect(result.barColor).toContain('red');
         expect(result.isUrgent).toBe(false);
     });

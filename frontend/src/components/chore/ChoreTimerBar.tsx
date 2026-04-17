@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { differenceInDays, startOfDay } from 'date-fns';
 import type { Chore } from '@customTypes/SharedTypes';
-import { statusColors } from '@assets/constants';
+import { computeBar } from '@utils/choreBarMath';
 import ProgressBar from './ProgressBar';
 import ChoreInfo from './ChoreInfo';
 import CompletionInfo from './CompletionInfo';
@@ -14,35 +14,13 @@ type ChoreTimerBarProps = {
     onDelete: (id: number) => void;
 };
 
-function getStatusColor(remainingRatio: number, isOverdue: boolean): string {
-    if (isOverdue) return 'bg-red-500 bg-opacity-50';
-    const match = statusColors.find(s => remainingRatio > s.threshold);
-    return match!.color + ' bg-opacity-50';
-}
-
 export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: ChoreTimerBarProps) {
     const daysSince = useMemo(
         () => differenceInDays(startOfDay(day), startOfDay(chore.dateLastCompleted)),
         [day, chore.dateLastCompleted]
     );
 
-    const isOverdue = chore.frequency > 0 && daysSince > chore.frequency;
-    const remainingRatio = chore.frequency > 0 ? (chore.frequency - daysSince) / chore.frequency : 1; // can go negative when overdue
-
-    let barWidth: number;
-    let isUrgent = false;
-    if (chore.frequency === 0) {
-        barWidth = 100;
-    } else if (!isOverdue) {
-        barWidth = Math.max(remainingRatio, 0) * 100;
-    } else {
-        const daysOverdue = daysSince - chore.frequency;
-        const growthRatio = (daysOverdue * 2) / chore.frequency;
-        barWidth = Math.min(growthRatio, 1) * 100;
-        isUrgent = growthRatio >= 1;
-    }
-
-    const barColor = getStatusColor(remainingRatio, isOverdue);
+    const { isOverdue, barWidth, isUrgent, barColor } = computeBar(daysSince, chore.frequency);
 
     function resetTask() {
         onComplete(chore.id, new Date());

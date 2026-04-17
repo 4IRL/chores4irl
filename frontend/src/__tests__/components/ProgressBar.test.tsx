@@ -8,6 +8,7 @@ describe('ProgressBar', () => {
         const bar = container.firstChild as HTMLElement;
         expect(bar).toBeInTheDocument();
         expect(bar.style.width).toBe('75%');
+        expect(bar.className).toContain('bg-green-500');
     });
 
     it('does not render the Urgent label when isUrgent is omitted', () => {
