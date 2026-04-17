@@ -15,8 +15,7 @@
         "postcss": "^8.5.4",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
-        "tailwindcss": "^4.1.8",
-        "ts-transformer-keys": "^0.4.4"
+        "tailwindcss": "^4.1.8"
     },
     "devDependencies": {
         "@testing-library/jest-dom": "^6.9.1",

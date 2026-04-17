@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useTimeSimulation } from './hooks/useTimeSimulation';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMidnightClock } from './hooks/useMidnightClock';
 import { useRoomFilter } from './hooks/useRoomFilter';
-import { useChoreSort } from './hooks/useChoreSort';
+import { orderChores } from './utils/choreSort';
 import NavBar from './components/nav/NavBar';
 import ChoreList from './components/chore/ChoreList';
 import AddChoreButton from './components/form/AddChoreButton';
@@ -10,17 +10,21 @@ import { fetchAllChores, addChore, completeChore, removeChore } from './services
 import type { Chore } from '@customTypes/SharedTypes';
 
 export default function App() {
-    const day = useTimeSimulation();
+    const day = useMidnightClock();
     const [selectedRoom, setSelectedRoom] = useState<string>('all');
     const [showForm, setShowForm] = useState<boolean>(false);
     const [choreData, setChoreData] = useState<Chore[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [sortedIds, setSortedIds] = useState<number[]>([]);
+    const choreDataRef = useRef<Chore[]>(choreData);
+    choreDataRef.current = choreData;
 
     useEffect(() => {
         fetchAllChores()
             .then(chores => {
                 setChoreData(chores);
+                setSortedIds(orderChores(chores, day).map(c => c.id));
                 setLoading(false);
             })
             .catch((err: unknown) => {
@@ -29,18 +33,30 @@ export default function App() {
             });
     }, []);
 
+    useEffect(() => {
+        if (choreDataRef.current.length > 0) {
+            setSortedIds(orderChores(choreDataRef.current, day).map(c => c.id));
+        }
+    }, [day]);
+
     const uniqueRooms = useMemo(
         () => Array.from(new Set(choreData.map(chore => chore.room))),
         [choreData]
     );
 
     const filteredChores = useRoomFilter(choreData, selectedRoom);
-    const orderedChores = useChoreSort(filteredChores, day);
+    const orderedChores = useMemo(() => {
+        const choreMap = new Map(filteredChores.map(c => [c.id, c]));
+        return sortedIds
+            .map(id => choreMap.get(id))
+            .filter((c): c is Chore => c !== undefined);
+    }, [sortedIds, filteredChores]);
 
     async function handleAddChore(newChore: Omit<Chore, 'id'>) {
         try {
             const created = await addChore(newChore);
             setChoreData(prev => [...prev, created]);
+            setSortedIds(prev => [...prev, created.id]);
             setShowForm(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to add chore');
@@ -50,11 +66,14 @@ export default function App() {
     async function handleDeleteChore(id: number): Promise<void> {
         const deletedChore = choreData.find(chore => chore.id === id);
         if (!deletedChore) return;
+        const prevSortedIds = sortedIds;
         setChoreData(curr => curr.filter(chore => chore.id !== id));
+        setSortedIds(prev => prev.filter(sortedId => sortedId !== id));
         try {
             await removeChore(id);
         } catch (err) {
             setChoreData(curr => curr.some(chore => chore.id === id) ? curr : [...curr, deletedChore]);
+            setSortedIds(prevSortedIds);
             setError(err instanceof Error ? err.message : 'Failed to delete chore');
         }
     }

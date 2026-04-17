@@ -1,10 +1,15 @@
 import express from 'express';
-import cors from 'cors';
 import { getAllChores, createChore, completeChore, deleteChore } from './chores.js';
 import type { Chore, ApiResponse } from '../../types/SharedTypes.js';
 
 const app = express();
-app.use(cors());
+app.use((_req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (_req.method === 'OPTIONS') { res.sendStatus(204); return; }
+    next();
+});
 app.use(express.json());
 
 app.get('/api/chores', (_req, res) => {

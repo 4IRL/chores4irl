@@ -30,11 +30,12 @@ export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: Chor
     const barColor = getStatusColor(status);
 
     function resetTask() {
-        onComplete(chore.id, day);
+        onComplete(chore.id, new Date());
     }
 
     return (
         <div
+            data-testid="chore-bar"
             className="relative h-24 w-full bg-gray-800 rounded-full shadow cursor-pointer overflow-hidden"
             onClick={resetTask}
         >
