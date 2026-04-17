@@ -17,7 +17,7 @@ type ChoreTimerBarProps = {
 function getStatusColor(remainingRatio: number, isOverdue: boolean): string {
     if (isOverdue) return 'bg-red-500 bg-opacity-50';
     const match = statusColors.find(s => remainingRatio > s.threshold);
-    return (match ?? statusColors[statusColors.length - 1]).color + ' bg-opacity-50';
+    return match!.color + ' bg-opacity-50';
 }
 
 export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: ChoreTimerBarProps) {
@@ -26,12 +26,14 @@ export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: Chor
         [day, chore.dateLastCompleted]
     );
 
-    const isOverdue = daysSince > chore.frequency;
-    const remainingRatio = (chore.frequency - daysSince) / chore.frequency; // can go negative when overdue
+    const isOverdue = chore.frequency > 0 && daysSince > chore.frequency;
+    const remainingRatio = chore.frequency > 0 ? (chore.frequency - daysSince) / chore.frequency : 1; // can go negative when overdue
 
     let barWidth: number;
     let isUrgent = false;
-    if (!isOverdue) {
+    if (chore.frequency === 0) {
+        barWidth = 100;
+    } else if (!isOverdue) {
         barWidth = Math.max(remainingRatio, 0) * 100;
     } else {
         const daysOverdue = daysSince - chore.frequency;

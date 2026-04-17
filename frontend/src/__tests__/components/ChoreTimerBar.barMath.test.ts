@@ -2,12 +2,14 @@ import { describe, it, expect } from 'vitest';
 
 // Pure math extracted from ChoreTimerBar.tsx — tested without React rendering.
 function computeBar(daysSince: number, frequency: number) {
-    const isOverdue = daysSince > frequency;
-    const remainingRatio = (frequency - daysSince) / frequency;
+    const isOverdue = frequency > 0 && daysSince > frequency;
+    const remainingRatio = frequency > 0 ? (frequency - daysSince) / frequency : 1;
 
     let barWidth: number;
     let isUrgent = false;
-    if (!isOverdue) {
+    if (frequency === 0) {
+        barWidth = 100;
+    } else if (!isOverdue) {
         barWidth = Math.max(remainingRatio, 0) * 100;
     } else {
         const daysOverdue = daysSince - frequency;
@@ -69,5 +71,19 @@ describe('ChoreTimerBar bar math', () => {
         expect(result.barWidth).toBe(100);
         expect(result.barColor).toContain('red');
         expect(result.isUrgent).toBe(true);
+    });
+
+    it('daysSince === frequency → barWidth = 0, red, not urgent (exactly due, not yet overdue)', () => {
+        const result = computeBar(10, 10);
+        expect(result.barWidth).toBe(0);
+        expect(result.barColor).toContain('red');
+        expect(result.isUrgent).toBe(false);
+    });
+
+    it('frequency=0 → barWidth = 100, green, not urgent (safe default)', () => {
+        const result = computeBar(5, 0);
+        expect(result.barWidth).toBe(100);
+        expect(result.barColor).toContain('green');
+        expect(result.isUrgent).toBe(false);
     });
 });
