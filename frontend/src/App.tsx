@@ -5,7 +5,7 @@ import { orderChores } from './utils/choreSort';
 import NavBar from './components/nav/NavBar';
 import ChoreList from './components/chore/ChoreList';
 import AddChoreButton from './components/form/AddChoreButton';
-import AddChoreForm from './components/form/AddChoreForm';
+import ChoreFormModal from './components/form/ChoreFormModal';
 import { fetchAllChores, addChore, completeChore, removeChore } from './services/choreApi';
 import type { Chore } from '@customTypes/SharedTypes';
 
@@ -105,33 +105,25 @@ export default function App() {
 
     return (
         <div className="App h-full flex flex-col overflow-hidden">
-            <div className="mx-auto p-4 bg-gray-900 min-h-screen">
+            <div className="flex flex-col h-full overflow-hidden bg-gray-900 px-4 pt-4">
                 {error && (
-                    <div className="mb-4 p-3 bg-red-700 text-white rounded-lg text-sm flex justify-between items-center">
+                    <div className="mb-4 p-3 bg-red-700 text-white rounded-lg text-sm flex justify-between items-center flex-shrink-0">
                         <span>{error}</span>
                         <button onClick={() => setError(null)} className="ml-4 underline">Dismiss</button>
                     </div>
                 )}
-
                 <NavBar rooms={uniqueRooms} selectedRoom={selectedRoom} onSelect={setSelectedRoom} />
-
-                <div className="text-s text-white mb-2">
+                <div className="text-xs text-white mb-2 flex-shrink-0">
                     {day.toDateString()}
                 </div>
-
-                <ChoreList chores={orderedChores} day={day} onComplete={handleCompleteChore} onDelete={handleDeleteChore} />
-
-                <div className="mt-6 flex justify-center">
-                    {showForm ? (
-                        <AddChoreForm
-                            onSubmit={handleAddChore}
-                            onCancel={() => setShowForm(false)}
-                        />
-                    ) : (
-                        <AddChoreButton onClick={() => setShowForm(true)} />
-                    )}
+                <div className="flex-1 overflow-y-auto min-h-0">
+                    <ChoreList chores={orderedChores} day={day} onComplete={handleCompleteChore} onDelete={handleDeleteChore} />
+                </div>
+                <div className="flex-shrink-0 py-4 flex justify-center border-t border-gray-700">
+                    <AddChoreButton onClick={() => setShowForm(true)} />
                 </div>
             </div>
+            {showForm && <ChoreFormModal onSubmit={handleAddChore} onCancel={() => setShowForm(false)} />}
         </div>
     );
 }

@@ -52,7 +52,7 @@ export default function AddChoreForm({ onSubmit, onCancel }: AddChoreFormProps) 
     }
 
     return (
-        <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md">
+        <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md overflow-y-auto max-h-[90dvh]">
             <h3 className="text-white font-semibold text-lg mb-4">Add New Chore</h3>
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <FormField name="name" label="Name" value={formData.name} onChange={handleFieldChange} required autoFocus />

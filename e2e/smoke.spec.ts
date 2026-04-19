@@ -42,6 +42,7 @@ test.describe('Chores App Smoke Tests', () => {
     test('adds a new chore via the form', async ({ page }) => {
         // The add button text is "+ Add Task"
         await page.locator('button', { hasText: /\+ Add Task/i }).click();
+        await expect(page.locator('.fixed.inset-0')).toBeVisible();
         await page.fill('input[name="name"]', 'E2E Test Chore');
         await page.fill('input[name="room"]', 'Office');
         await page.fill('input[name="dateLastCompleted"]', '2026-01-01');
@@ -66,6 +67,7 @@ test.describe('Chores App Smoke Tests', () => {
     test('deletes a chore and it disappears from the list', async ({ page }) => {
         // Add a dedicated chore to delete so seed data (used by subsequent tests) is preserved
         await page.locator('button', { hasText: /\+ Add Task/i }).click();
+        await expect(page.locator('.fixed.inset-0')).toBeVisible();
         await page.fill('input[name="name"]', 'E2E Delete Target');
         await page.fill('input[name="room"]', 'Test Room');
         await page.fill('input[name="dateLastCompleted"]', '2026-01-01');

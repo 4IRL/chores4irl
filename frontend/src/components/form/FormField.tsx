@@ -19,8 +19,9 @@ export default function FormField({
 }: FormFieldProps) {
     return (
         <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-400 capitalize">{label}</label>
+            <label htmlFor={name} className="text-sm text-gray-400 capitalize">{label}</label>
             <input
+                id={name}
                 name={name}
                 type={type}
                 value={value}
