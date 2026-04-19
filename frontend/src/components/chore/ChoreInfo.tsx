@@ -6,7 +6,7 @@ type ChoreInfoProps = {
 
 export default function ChoreInfo({ name, room, frequency }: ChoreInfoProps) {
     return (
-        <div className="font-medium text-white">
+        <div className="font-medium text-white truncate min-w-0">
             {name}
             <div className="text-xs text-white text-opacity-80">
                 {room} · Every {frequency} days
