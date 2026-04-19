@@ -1,17 +1,26 @@
 @import "tailwindcss";
 
-body, html {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* SPA: all layout scrolling delegated to .flex-1 overflow-y-auto wrappers. Revisit if a page-level scroll route is added. */
+html {
+  height: 100dvh;
+  overflow: hidden;
 }
 
 body {
-  outline: 3px solid green;
+  height: 100dvh;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 /*Note: `:root` has a greater specificity than `html` and will override */
