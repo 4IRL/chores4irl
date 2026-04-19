@@ -11,7 +11,7 @@ export default function RoomTab({ label, value, isActive, onClick }: RoomTabProp
 
     return (
         <button
-            className={`px-6 py-4 font-medium flex items-center ${isActive ? activeClasses : inactiveClasses}`}
+            className={`px-4 sm:px-6 min-h-[44px] py-3 text-sm sm:text-base font-medium flex items-center ${isActive ? activeClasses : inactiveClasses}`}
             onClick={() => onClick(value)}
         >
             {label}

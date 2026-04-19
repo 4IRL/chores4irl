@@ -38,6 +38,7 @@ export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: Chor
                 <ChoreInfo name={chore.name} room={chore.room} frequency={chore.frequency} />
                 {isOverdue && <OverdueBadge />}
                 <CompletionInfo date={chore.dateLastCompleted} daysSince={daysSince} />
+                {/* TODO: replace with swipe-to-delete — touch target intentionally below 44px until then */}
                 <button
                     className="ml-2 px-3 py-1 bg-red-600 bg-opacity-80 hover:bg-red-500 text-white text-sm rounded-full"
                     onClick={e => { e.stopPropagation(); onDelete(chore.id); }}
