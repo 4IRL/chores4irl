@@ -96,7 +96,7 @@ export default function App() {
     if (loading) {
         return (
             <div className="App">
-                <div className="mx-auto p-4 bg-gray-900 min-h-screen flex items-center justify-center">
+                <div className="mx-auto px-4 bg-gray-900 h-screen flex items-center justify-center">
                     <div className="text-white text-lg">Loading chores...</div>
                 </div>
             </div>
@@ -104,7 +104,7 @@ export default function App() {
     }
 
     return (
-        <div className="App">
+        <div className="App h-full flex flex-col overflow-hidden">
             <div className="mx-auto p-4 bg-gray-900 min-h-screen">
                 {error && (
                     <div className="mb-4 p-3 bg-red-700 text-white rounded-lg text-sm flex justify-between items-center">
