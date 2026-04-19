@@ -23,6 +23,40 @@ body {
   display: none;
 }
 
+#rotate-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: #111827;
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+
+#rotate-overlay-content {
+  text-align: center;
+  color: white;
+  padding: 2rem;
+}
+
+#rotate-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  display: inline-block;
+  animation: rotate-hint 2s linear infinite;
+}
+
+@keyframes rotate-hint {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #rotate-overlay {
+    display: flex;
+  }
+}
+
 /*Note: `:root` has a greater specificity than `html` and will override */
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
