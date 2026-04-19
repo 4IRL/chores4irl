@@ -94,4 +94,16 @@ test.describe('Chores App Smoke Tests', () => {
         // App shows error in bg-red-700 div with the error message
         await expect(page.locator('.bg-red-700').first()).toBeVisible({ timeout: 5_000 });
     });
+
+    test('portrait-enforcement overlay toggles with viewport orientation', async ({ page }) => {
+        const overlay = page.locator('#rotate-overlay');
+
+        // Landscape viewport with height < 500px triggers the rotate overlay
+        await page.setViewportSize({ width: 812, height: 375 });
+        await expect(overlay).toBeVisible();
+
+        // Portrait viewport hides the overlay again
+        await page.setViewportSize({ width: 375, height: 812 });
+        await expect(overlay).toBeHidden();
+    });
 });

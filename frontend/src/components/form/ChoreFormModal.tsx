@@ -18,6 +18,7 @@ export default function ChoreFormModal({ onSubmit, onCancel }: ChoreFormModalPro
         <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 px-4 pt-4"
             onClick={handleBackdropClick}
+            data-testid="chore-modal-backdrop"
         >
             <AddChoreForm onSubmit={onSubmit} onCancel={onCancel} />
         </div>,
