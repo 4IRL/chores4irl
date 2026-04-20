@@ -54,4 +54,20 @@ describe('ChoreList', () => {
 
         expect(screen.getAllByRole('button', { name: 'Delete chore' })).toHaveLength(3);
     });
+
+    it('renders the empty-state message when chores is empty', () => {
+        render(
+            <ChoreList
+                chores={[]}
+                day={day}
+                onComplete={vi.fn()}
+                onDelete={vi.fn()}
+            />
+        );
+
+        expect(
+            screen.getByText('No chores yet — tap + Add Task to get started.')
+        ).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Delete chore' })).not.toBeInTheDocument();
+    });
 });

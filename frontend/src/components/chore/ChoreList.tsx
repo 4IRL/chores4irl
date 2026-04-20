@@ -9,8 +9,17 @@ type ChoreListProps = {
 };
 
 export default function ChoreList({ chores, day, onComplete, onDelete }: ChoreListProps) {
+    if (chores.length === 0) {
+        return (
+            <div>
+                <p className="text-gray-400 text-center py-8">
+                    No chores yet — tap + Add Task to get started.
+                </p>
+            </div>
+        );
+    }
     return (
-        <div className="space-y-3">
+        <div className="space-y-3 pb-4">
             {chores.map(chore => (
                 <div key={chore.id}>
                     <ChoreTimerBar chore={chore} day={day} onComplete={onComplete} onDelete={onDelete} />

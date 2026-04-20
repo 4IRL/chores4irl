@@ -2,7 +2,6 @@
     "extends": "../tsconfig.json",
     "compilerOptions": {
         "allowSyntheticDefaultImports": true,
-        "baseUrl": "./",
         "jsx": "react-jsx",
         "module": "ESNext",
         "moduleResolution": "Bundler",

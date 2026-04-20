@@ -29,23 +29,28 @@ export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: Chor
     return (
         <div
             data-testid="chore-bar"
-            className="relative h-24 w-full bg-gray-800 rounded-full shadow cursor-pointer overflow-hidden"
+            className="relative h-36 sm:h-24 w-full bg-gray-800 rounded-full shadow cursor-pointer overflow-hidden"
             onClick={resetTask}
         >
             <ProgressBar width={barWidth} color={barColor} isUrgent={isUrgent} />
-            <div className="absolute inset-0 px-4 flex items-center justify-between">
-                <div className="font-medium text-white">{chore.id}</div>
+            <div className="absolute inset-0 px-4 pr-12 flex flex-col justify-center gap-1 sm:flex-row sm:items-center sm:justify-between sm:pr-4">
                 <ChoreInfo name={chore.name} room={chore.room} frequency={chore.frequency} />
-                {isOverdue && <OverdueBadge />}
+                {isOverdue && (
+                    <div className="absolute top-2 right-20 sm:static sm:order-2">
+                        <OverdueBadge />
+                    </div>
+                )}
                 <CompletionInfo date={chore.dateLastCompleted} daysSince={daysSince} />
-                <button
-                    className="ml-2 px-3 py-1 bg-red-600 bg-opacity-80 hover:bg-red-500 text-white text-sm rounded-full"
-                    onClick={e => { e.stopPropagation(); onDelete(chore.id); }}
-                    aria-label="Delete chore"
-                >
-                    ✕
-                </button>
             </div>
+
+            {/* TODO(#10): replace with swipe-to-delete — touch target intentionally below 44px until then */}
+            <button
+                className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 bg-red-600 bg-opacity-80 hover:bg-red-500 text-white text-sm rounded-full"
+                onClick={e => { e.stopPropagation(); onDelete(chore.id); }}
+                aria-label="Delete chore"
+            >
+                ✕
+            </button>
         </div>
     );
 }

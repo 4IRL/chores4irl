@@ -140,23 +140,23 @@ describe('handleAddChore', () => {
         vi.mocked(completeChore).mockResolvedValue(makeChore());
     });
 
-    async function openAndFillForm(container: HTMLElement, user: ReturnType<typeof userEvent.setup>) {
+    async function openAndFillForm(user: ReturnType<typeof userEvent.setup>) {
         await waitFor(() => expect(screen.getByText('+ Add Task')).toBeInTheDocument());
         await user.click(screen.getByText('+ Add Task'));
-        await user.type(container.querySelector('input[name="name"]')!, 'Mop');
-        await user.type(container.querySelector('input[name="room"]')!, 'Kitchen');
-        await user.type(container.querySelector('input[name="dateLastCompleted"]')!, '2025-01-01');
-        await user.type(container.querySelector('input[name="duration"]')!, '10');
-        await user.type(container.querySelector('input[name="frequency"]')!, '7');
+        await user.type(screen.getByLabelText('Name'), 'Mop');
+        await user.type(screen.getByLabelText('Room'), 'Kitchen');
+        await user.type(screen.getByLabelText('Last Completed'), '2025-01-01');
+        await user.type(screen.getByLabelText('Duration (minutes)'), '10');
+        await user.type(screen.getByLabelText('Frequency (days)'), '7');
     }
 
     it('appends the new chore to the list on success', async () => {
         vi.mocked(addChore).mockResolvedValue(makeChore({ id: 2, name: 'Mop' }));
 
         const user = userEvent.setup();
-        const { container } = render(<App />);
+        render(<App />);
 
-        await openAndFillForm(container, user);
+        await openAndFillForm(user);
         await user.click(screen.getByRole('button', { name: 'Save' }));
 
         await waitFor(() => expect(screen.getByText('Mop')).toBeInTheDocument());
@@ -166,9 +166,9 @@ describe('handleAddChore', () => {
         vi.mocked(addChore).mockRejectedValue(new Error('Add failed'));
 
         const user = userEvent.setup();
-        const { container } = render(<App />);
+        render(<App />);
 
-        await openAndFillForm(container, user);
+        await openAndFillForm(user);
         await user.click(screen.getByRole('button', { name: 'Save' }));
 
         await waitFor(() => expect(screen.getByText('Add failed')).toBeInTheDocument());
@@ -193,7 +193,7 @@ describe('frozen sort order', () => {
         vi.mocked(addChore).mockResolvedValue(choreC);
 
         const user = userEvent.setup();
-        const { container } = render(<App />);
+        render(<App />);
 
         await waitFor(() => expect(screen.getAllByTestId('chore-bar')).toHaveLength(2));
 
@@ -205,11 +205,11 @@ describe('frozen sort order', () => {
 
         // Add choreC via the form
         await user.click(screen.getByText('+ Add Task'));
-        await user.type(container.querySelector('input[name="name"]')!, 'Chore C');
-        await user.type(container.querySelector('input[name="room"]')!, 'Kitchen');
-        await user.type(container.querySelector('input[name="dateLastCompleted"]')!, '2020-01-01');
-        await user.type(container.querySelector('input[name="duration"]')!, '10');
-        await user.type(container.querySelector('input[name="frequency"]')!, '7');
+        await user.type(screen.getByLabelText('Name'), 'Chore C');
+        await user.type(screen.getByLabelText('Room'), 'Kitchen');
+        await user.type(screen.getByLabelText('Last Completed'), '2020-01-01');
+        await user.type(screen.getByLabelText('Duration (minutes)'), '10');
+        await user.type(screen.getByLabelText('Frequency (days)'), '7');
         await user.click(screen.getByRole('button', { name: 'Save' }));
 
         await waitFor(() => expect(screen.getAllByTestId('chore-bar')).toHaveLength(3));

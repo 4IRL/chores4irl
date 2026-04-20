@@ -5,7 +5,7 @@ type CompletionInfoProps = {
 
 export default function CompletionInfo({ date, daysSince }: CompletionInfoProps) {
     return (
-        <div className="font-medium text-white text-right">
+        <div className="font-medium text-white text-left sm:text-right">
             <div className="text-xs text-white text-opacity-80">Last Completed:</div>
             {date.toDateString()}
             <div className="text-white text-sm font-bold">

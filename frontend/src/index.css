@@ -1,17 +1,60 @@
 @import "tailwindcss";
 
-body, html {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* SPA: all layout scrolling delegated to .flex-1 overflow-y-auto wrappers. Revisit if a page-level scroll route is added. */
+html {
+  height: 100dvh;
+  overflow: hidden;
 }
 
 body {
-  outline: 3px solid green;
+  height: 100dvh;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+#rotate-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: #111827;
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+
+#rotate-overlay-content {
+  text-align: center;
+  color: white;
+  padding: 2rem;
+}
+
+#rotate-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  display: inline-block;
+  animation: rotate-hint 2s linear infinite;
+}
+
+@keyframes rotate-hint {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #rotate-overlay {
+    display: flex;
+  }
 }
 
 /*Note: `:root` has a greater specificity than `html` and will override */
