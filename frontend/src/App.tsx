@@ -127,7 +127,7 @@ export default function App() {
                     onReset={() => setDayOffset(0)}
                 />
                 <div className="flex-1 overflow-y-auto min-h-0">
-                    <ChoreList chores={orderedChores} day={simulatedDate} onComplete={handleCompleteChore} onDelete={handleDeleteChore} />
+                    <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleDeleteChore} />
                 </div>
                 <div className="flex-shrink-0 py-4 flex justify-center border-t border-gray-700">
                     <AddChoreButton onClick={() => setShowForm(true)} />
