@@ -226,7 +226,7 @@ Thread `isSimulating` down to `ChoreTimerBar` and conditionally suppress the cli
 Extend the E2E suite with one test that exercises the full navigation flow in a real browser. Tailwind classes and slide transitions are only truly verified in a real DOM.
 
 **To-do:**
-- [ ] Open `e2e/smoke.spec.ts`. Inside the existing `test.describe('Chores App Smoke Tests', ...)` block, add a new test block:
+- [x] Open `e2e/smoke.spec.ts`. Inside the existing `test.describe('Chores App Smoke Tests', ...)` block, add a new test block:
   ```typescript
   test('navigates forward and back in time and resets to today', async ({ page }) => {
       const nextBtn = page.getByRole('button', { name: 'Next day' });
@@ -250,11 +250,13 @@ Extend the E2E suite with one test that exercises the full navigation flow in a 
       await expect(page.getByRole('button', { name: 'Reset to today' })).not.toBeVisible();
   });
   ```
-- [ ] The test relies on `aria-label` attributes defined in Step 3. Confirm those labels match exactly.
-- [ ] Note: the existing `marks a chore complete` test at `e2e/smoke.spec.ts` uses `.locator('.bg-gray-800.rounded-full').first().click()` — confirm this still works once `pointer-events-none` is added (it will, because in non-simulation mode the bar is clickable).
-- [ ] Run `npm run test:e2e` and confirm the new test and all existing tests pass.
+- [x] The test relies on `aria-label` attributes defined in Step 3. Confirm those labels match exactly.
+- [x] Note: the existing `marks a chore complete` test at `e2e/smoke.spec.ts` uses `.locator('.bg-gray-800.rounded-full').first().click()` — confirm this still works once `pointer-events-none` is added (it will, because in non-simulation mode the bar is clickable).
+- [x] Run `npm run test:e2e` and confirm the new test and all existing tests pass.
 
 **Verification:** `npm run test:e2e` — all E2E tests pass.
+
+**Completed 2026-04-21:** Added the `navigates forward and back in time and resets to today` test to `e2e/smoke.spec.ts` inside the existing `Chores App Smoke Tests` describe block. Two deviations from the plan's inline code, both necessary and verified correct: (1) the chore-bar click uses `{ force: true }` instead of `{ trial: false }` — because `pointer-events-none` is now on the bar during simulation, Playwright's actionability auto-wait would time out waiting for the element to become clickable; `force: true` bypasses the check and dispatches the click anyway, which is the correct semantics here (we want to confirm the handler-level guard ALSO works, not just the CSS guard). (2) Strengthened the "no completion" assertion by attaching a `page.on('request', ...)` listener that flags any PATCH to `/api/chores/*/complete` — this is stronger than the plan's "no error banner" check because an optimistic update could succeed silently; the request listener catches that case too. Also added `await expect(firstChoreBar).toHaveClass(/pointer-events-none/)` to explicitly verify the CSS guard. The existing `marks a chore complete` test (line 18) still passes because it runs in non-simulation mode where `cursor-pointer` is applied. Results: `npx playwright test` — 8/8 pass (7 existing + 1 new) in 5.8s. Inline 3-perspective review: Correctness/Fit PASS, Security/Edges PASS, Quality/Completeness PASS — no fix pass needed.
 
 ### 9. Manual browser smoke test
 UI behavior, especially the slide animation, cannot be fully validated by automated tests.
