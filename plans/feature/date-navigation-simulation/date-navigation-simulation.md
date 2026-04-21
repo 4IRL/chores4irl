@@ -47,8 +47,8 @@ Write the full unit test file for the new banner before the component exists. Te
 Minimum code to make the Step 2 tests pass.
 
 **To-do:**
-- [ ] Create `frontend/src/components/nav/DateNavigationBanner.tsx` exporting default `DateNavigationBanner({ simulatedDate, dayOffset, onPrev, onNext, onReset })`.
-- [ ] Props type:
+- [x] Create `frontend/src/components/nav/DateNavigationBanner.tsx` exporting default `DateNavigationBanner({ simulatedDate, dayOffset, onPrev, onNext, onReset })`.
+- [x] Props type:
   ```typescript
   type DateNavigationBannerProps = {
       simulatedDate: Date;
@@ -58,8 +58,8 @@ Minimum code to make the Step 2 tests pass.
       onReset: () => void;
   };
   ```
-- [ ] Import icons: `import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';`.
-- [ ] JSX structure:
+- [x] Import icons: `import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';`.
+- [x] JSX structure:
   ```tsx
   <div className="flex items-center justify-center gap-3 my-3 flex-shrink-0 text-white relative">
       {dayOffset > 0 && (
@@ -95,10 +95,12 @@ Minimum code to make the Step 2 tests pass.
       </button>
   </div>
   ```
-- [ ] Reset button is absolutely positioned to the left so the chevrons bracket the centered date symmetrically (keeps the date visually centered regardless of reset visibility). Chevrons retain the 44px touch target established in `RoomTab`/`AddChoreButton` per the project's viewport refactor.
-- [ ] Run `npm test --workspace frontend -- DateNavigationBanner.test.tsx`. All tests pass (Green).
+- [x] Reset button is absolutely positioned to the left so the chevrons bracket the centered date symmetrically (keeps the date visually centered regardless of reset visibility). Chevrons retain the 44px touch target established in `RoomTab`/`AddChoreButton` per the project's viewport refactor.
+- [x] Run `npm test --workspace frontend -- DateNavigationBanner.test.tsx`. All tests pass (Green).
 
 **Verification:** `npm test --workspace frontend -- DateNavigationBanner.test.tsx` — all tests pass.
+
+**Completed 2026-04-21:** Created `frontend/src/components/nav/DateNavigationBanner.tsx` with the prop contract, inline `DateNavigationBannerProps` type, and `lucide-react` icon imports (`ChevronLeft`, `ChevronRight`, `RotateCcw`). JSX matches the plan template with one adjustment: button `onClick` handlers are wrapped as `() => onPrev()` / `onNext()` / `onReset()` thunks to satisfy the Step 2 `toHaveBeenCalledWith()` assertions (raw references would leak a React SyntheticEvent arg). Step 4 already expected wrapped handlers, so this is forward-compatible. Reset button absolutely positioned left; all three icon buttons keep 44px min touch targets. Results: `DateNavigationBanner.test.tsx` 7/7 pass (Green), full frontend suite 59/59 pass, `npx tsc --noEmit` clean, `vite build` clean (206.40 kB).
 
 ### 4. Add slide transition for date change
 Animate the date text sliding left while the next/previous date slides in from the right/left, respectively.
