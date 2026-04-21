@@ -12,7 +12,6 @@ describe('DateNavigationBanner', () => {
                 dayOffset={0}
                 onPrev={vi.fn()}
                 onNext={vi.fn()}
-                onReset={vi.fn()}
             />
         );
         const heading = screen.getByRole('heading', { level: 1 });
@@ -21,34 +20,36 @@ describe('DateNavigationBanner', () => {
         expect(heading.className).toMatch(/text-(2xl|3xl|4xl|5xl|6xl)/);
     });
 
-    it('shows forward arrow and hides back arrow and reset when dayOffset === 0', () => {
+    it('shows forward arrow and keeps back arrow hidden (invisible) when dayOffset === 0', () => {
         render(
             <DateNavigationBanner
                 simulatedDate={new Date(2025, 0, 15)}
                 dayOffset={0}
                 onPrev={vi.fn()}
                 onNext={vi.fn()}
-                onReset={vi.fn()}
             />
         );
         expect(screen.getByRole('button', { name: 'Next day' })).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Previous day' })).toBeNull();
-        expect(screen.queryByRole('button', { name: 'Reset to today' })).toBeNull();
+        // Previous button is rendered in the DOM (reserves layout) but has the
+        // Tailwind `invisible` class so it's hidden visually and from pointer events.
+        const prevBtn = screen.getByRole('button', { name: 'Previous day' });
+        expect(prevBtn).toBeInTheDocument();
+        expect(prevBtn).toHaveClass('invisible');
     });
 
-    it('shows back arrow and reset when dayOffset > 0', () => {
+    it('shows back arrow without invisible class when dayOffset > 0', () => {
         render(
             <DateNavigationBanner
                 simulatedDate={new Date(2025, 0, 17)}
                 dayOffset={2}
                 onPrev={vi.fn()}
                 onNext={vi.fn()}
-                onReset={vi.fn()}
             />
         );
         expect(screen.getByRole('button', { name: 'Next day' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Previous day' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Reset to today' })).toBeInTheDocument();
+        const prevBtn = screen.getByRole('button', { name: 'Previous day' });
+        expect(prevBtn).toBeInTheDocument();
+        expect(prevBtn).not.toHaveClass('invisible');
     });
 
     it('clicking next invokes onNext', async () => {
@@ -60,7 +61,6 @@ describe('DateNavigationBanner', () => {
                 dayOffset={0}
                 onPrev={vi.fn()}
                 onNext={onNext}
-                onReset={vi.fn()}
             />
         );
         await user.click(screen.getByRole('button', { name: 'Next day' }));
@@ -77,29 +77,11 @@ describe('DateNavigationBanner', () => {
                 dayOffset={1}
                 onPrev={onPrev}
                 onNext={vi.fn()}
-                onReset={vi.fn()}
             />
         );
         await user.click(screen.getByRole('button', { name: 'Previous day' }));
         expect(onPrev).toHaveBeenCalledOnce();
         expect(onPrev).toHaveBeenCalledWith();
-    });
-
-    it('clicking reset invokes onReset', async () => {
-        const onReset = vi.fn();
-        const user = userEvent.setup();
-        render(
-            <DateNavigationBanner
-                simulatedDate={new Date(2025, 0, 18)}
-                dayOffset={3}
-                onPrev={vi.fn()}
-                onNext={vi.fn()}
-                onReset={onReset}
-            />
-        );
-        await user.click(screen.getByRole('button', { name: 'Reset to today' }));
-        expect(onReset).toHaveBeenCalledOnce();
-        expect(onReset).toHaveBeenCalledWith();
     });
 
     it('applies slide-in-right class to the heading after clicking Next', async () => {
@@ -115,7 +97,6 @@ describe('DateNavigationBanner', () => {
                     dayOffset={offset}
                     onPrev={() => setOffset((o) => Math.max(0, o - 1))}
                     onNext={() => setOffset((o) => o + 1)}
-                    onReset={() => setOffset(0)}
                 />
             );
         }
@@ -125,7 +106,7 @@ describe('DateNavigationBanner', () => {
         expect(heading.className).toMatch(/slide-in-right/);
     });
 
-    it('omits previous button when dayOffset === 0 even if onPrev is provided', () => {
+    it('keeps previous button in DOM with invisible class when dayOffset === 0 even if onPrev is provided', () => {
         const onPrev = vi.fn();
         render(
             <DateNavigationBanner
@@ -133,9 +114,10 @@ describe('DateNavigationBanner', () => {
                 dayOffset={0}
                 onPrev={onPrev}
                 onNext={vi.fn()}
-                onReset={vi.fn()}
             />
         );
-        expect(screen.queryByRole('button', { name: 'Previous day' })).toBeNull();
+        const prevBtn = screen.getByRole('button', { name: 'Previous day' });
+        expect(prevBtn).toBeInTheDocument();
+        expect(prevBtn).toHaveClass('invisible');
     });
 });

@@ -61,8 +61,14 @@ body {
   to   { transform: translateX(0);      opacity: 1; }
 }
 
+@keyframes slide-in-from-top {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
 .slide-in-right { animation: slide-in-from-right 250ms ease-out; }
 .slide-in-left  { animation: slide-in-from-left  250ms ease-out; }
+.slide-in-top   { animation: slide-in-from-top   250ms ease-out; }
 
 @media (orientation: landscape) and (max-height: 500px) {
   #rotate-overlay {

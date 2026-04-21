@@ -339,8 +339,11 @@ describe('date navigation', () => {
 
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Wed Jan 15 2025');
         expect(screen.getByRole('button', { name: 'Next day' })).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Previous day' })).not.toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Reset to today' })).not.toBeInTheDocument();
+        // Previous button is in DOM with Tailwind `invisible` class to reserve layout space
+        const prevBtn = screen.getByRole('button', { name: 'Previous day' });
+        expect(prevBtn).toHaveClass('invisible');
+        // Return-to-today pill is NOT in DOM at dayOffset === 0
+        expect(screen.queryByRole('button', { name: /return to today/i })).not.toBeInTheDocument();
     });
 
     it('clicking Next advances the date by one day and reveals Previous and Reset buttons', async () => {
@@ -355,8 +358,10 @@ describe('date navigation', () => {
 
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Thu Jan 16 2025');
         expect(screen.getByRole('button', { name: 'Next day' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Previous day' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Reset to today' })).toBeInTheDocument();
+        const prevBtn = screen.getByRole('button', { name: 'Previous day' });
+        expect(prevBtn).toBeInTheDocument();
+        expect(prevBtn).not.toHaveClass('invisible');
+        expect(screen.getByRole('button', { name: /return to today/i })).toBeInTheDocument();
     });
 
     it('chore bars become non-clickable when simulating a future date', async () => {
@@ -392,11 +397,12 @@ describe('date navigation', () => {
         await user.click(screen.getByRole('button', { name: 'Next day' }));
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Fri Jan 17 2025');
 
-        await user.click(screen.getByRole('button', { name: 'Reset to today' }));
+        await user.click(screen.getByRole('button', { name: /return to today/i }));
 
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Wed Jan 15 2025');
-        expect(screen.queryByRole('button', { name: 'Reset to today' })).not.toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Previous day' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /return to today/i })).not.toBeInTheDocument();
+        // Previous button stays in DOM but becomes invisible again at dayOffset === 0
+        expect(screen.getByRole('button', { name: 'Previous day' })).toHaveClass('invisible');
 
         await user.click(screen.getByTestId('chore-bar'));
         expect(completeChore).toHaveBeenCalledTimes(1);
@@ -416,7 +422,8 @@ describe('date navigation', () => {
         await user.click(screen.getByRole('button', { name: 'Previous day' }));
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Wed Jan 15 2025');
 
-        expect(screen.queryByRole('button', { name: 'Previous day' })).not.toBeInTheDocument();
+        // Previous button stays in DOM at dayOffset === 0 but becomes invisible
+        expect(screen.getByRole('button', { name: 'Previous day' })).toHaveClass('invisible');
     });
 
     it('bar math recomputes against the simulated date', async () => {

@@ -262,18 +262,22 @@ Extend the E2E suite with one test that exercises the full navigation flow in a 
 UI behavior, especially the slide animation, cannot be fully validated by automated tests.
 
 **To-do:**
-- [ ] Run `npm run dev` from the repo root to start backend + frontend together.
-- [ ] In the browser at `http://localhost:5174`, confirm on load: date banner is large, centered, and shows today. Only the right chevron is visible.
-- [ ] Click the right chevron — date slides left, tomorrow slides in from the right, left chevron and reset icon appear.
-- [ ] Click the right chevron multiple times — confirm each chore bar's fill/overdue state updates to match future days (e.g., a chore with frequency=7 and completed today should show as overdue after 8 advances).
-- [ ] Click the chore bar — confirm nothing happens (no completion).
-- [ ] Click the delete button on a chore while simulating — confirm the chore disappears (delete still works).
-- [ ] Click the left chevron — date slides right, previous day slides in from the left.
-- [ ] Click the reset icon — date jumps back to today, chevron-left and reset disappear, chores become clickable again.
-- [ ] Click a chore bar now — confirm it completes (bar resets, backend PATCH fires).
-- [ ] Verify on mobile width (375px) that the banner remains centered and buttons retain their 44px touch target.
+- [x] Run `npm run dev` from the repo root to start backend + frontend together.
+- [x] In the browser at `http://localhost:5174`, confirm on load: date banner is large, centered, and shows today. Only the right chevron is visible.
+- [x] Click the right chevron — date slides left, tomorrow slides in from the right, left chevron and reset icon appear.
+- [x] UPDATE: Click the right chevron — ensure reset icon space was pre-accounted for and chevron and date do not shift when navigating through dates
+- [x] Click the right chevron multiple times — confirm each chore bar's fill/overdue state updates to match future days (e.g., a chore with frequency=7 and completed today should show as overdue after 8 advances).
+- [x] Click the chore bar — confirm nothing happens (no completion).
+- [x] Click the delete button on a chore while simulating — confirm the chore disappears (delete still works).
+- [x] Click the left chevron — date slides right, previous day slides in from the left.
+- [x] Click the reset icon — date jumps back to today, chevron-left and reset disappear, chores become clickable again.
+- [x] Click a chore bar now — confirm it completes (bar resets, backend PATCH fires).
+- [x] Verify on mobile width (375px) that the banner remains centered and buttons retain their 44px touch target. 
+    - On mobile width, the left chevron and reset button overlap. Perhaps an alternative button should appear below the room list and above the date that indicates to the user the option to 'Return to today'
 
 **Verification:** Manual — all listed interactions behave as described. If any regression is observed, fix before moving on.
+
+**Fixed 2026-04-21:** Resolved the two outstanding layout regressions from the manual smoke pass. (1) Desktop layout shift: the Previous chevron (`ChevronLeft`) is now always rendered in the DOM but carries the Tailwind `invisible` class when `dayOffset === 0`, reserving layout space without being visible, focusable, or clickable (`aria-hidden` + `tabIndex={-1}` when hidden). Symmetric 3-column banner layout `[Prev or invisible placeholder] [date] [Next]` now keeps the date and Next button anchored when stepping through dates. (2) Mobile overlap of reset icon + left chevron: the Reset (`RotateCcw`) icon has been removed from `DateNavigationBanner` entirely (including the `onReset` prop) and replaced by a new standalone `ReturnToTodayButton` component (`frontend/src/components/nav/ReturnToTodayButton.tsx`) — a compact pill button with the `RotateCcw` icon and visible "Return to today" text, 44px min-height touch target, only rendered when `dayOffset > 0`, and slides in from the top via a new `.slide-in-top` 250ms ease-out animation (new `@keyframes slide-in-from-top` added to `frontend/src/index.css`, modeled after the existing `.slide-in-right` / `.slide-in-left` keyframes). `App.tsx` renders `<ReturnToTodayButton>` directly above `<DateNavigationBanner>`, between the NavBar and the banner row. Tests updated: `DateNavigationBanner.test.tsx` no longer passes `onReset`; Reset-button tests removed; Previous-button tests now assert the `invisible` class instead of DOM absence. New `ReturnToTodayButton.test.tsx` covers presence/absence + click delegation. `App.test.tsx` switched to `{ name: /return to today/i }` role queries and updated Previous-button assertions to check the `invisible` class. `e2e/smoke.spec.ts` renamed `'Reset to today'` → `'Return to today'`.
 
 ### 10. Verify all test suites pass
 Final gate before marking the plan finished.

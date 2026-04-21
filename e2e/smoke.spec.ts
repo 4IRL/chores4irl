@@ -111,11 +111,11 @@ test.describe('Chores App Smoke Tests', () => {
         const nextBtn = page.getByRole('button', { name: 'Next day' });
         await expect(nextBtn).toBeVisible();
         await expect(page.getByRole('button', { name: 'Previous day' })).not.toBeVisible();
-        await expect(page.getByRole('button', { name: 'Reset to today' })).not.toBeVisible();
+        await expect(page.getByRole('button', { name: 'Return to today' })).not.toBeVisible();
 
         await nextBtn.click();
         await expect(page.getByRole('button', { name: 'Previous day' })).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Reset to today' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Return to today' })).toBeVisible();
 
         // During simulation, clicking the bar must not fire a PATCH /complete.
         // Attach a request listener and fail the test if a complete PATCH fires while simulating.
@@ -144,8 +144,8 @@ test.describe('Chores App Smoke Tests', () => {
 
         page.off('request', completeListener);
 
-        await page.getByRole('button', { name: 'Reset to today' }).click();
+        await page.getByRole('button', { name: 'Return to today' }).click();
         await expect(page.getByRole('button', { name: 'Previous day' })).not.toBeVisible();
-        await expect(page.getByRole('button', { name: 'Reset to today' })).not.toBeVisible();
+        await expect(page.getByRole('button', { name: 'Return to today' })).not.toBeVisible();
     });
 });
