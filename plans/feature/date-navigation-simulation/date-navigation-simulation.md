@@ -283,10 +283,12 @@ UI behavior, especially the slide animation, cannot be fully validated by automa
 Final gate before marking the plan finished.
 
 **To-do:**
-- [ ] Run `npm test --workspace frontend` and confirm all frontend unit tests pass.
-- [ ] Run `npm test --workspace backend` and confirm all backend tests pass (none should be affected, but run as a safety check).
-- [ ] Run `npm run test:e2e` and confirm all Playwright tests pass.
-- [ ] Investigate and fix any failures before marking the plan finished.
+- [x] Run `npm test --workspace frontend` and confirm all frontend unit tests pass.
+- [x] Run `npm test --workspace backend` and confirm all backend tests pass (none should be affected, but run as a safety check).
+- [x] Run `npm run test:e2e` and confirm all Playwright tests pass.
+- [x] Investigate and fix any failures before marking the plan finished.
+
+**Completed 2026-04-21:** All three test suites pass cleanly on the final gate run. Frontend (`npm test --workspace frontend`): 70/70 tests pass across 12 test files (4.15s). Backend (`npm test --workspace backend`): 19/19 tests pass across 2 test files (469ms) — confirms no incidental backend regression from the frontend-only feature. Playwright E2E (`npx playwright test`): 8/8 tests pass (6.8s), including the 7 pre-existing smoke tests and the new `navigates forward and back in time and resets to today` test added in Step 8. No failures encountered — the feature-branch's `data.db` seed state was clean, so no `data.db` reset was needed this run (the non-hermetic seed-state behavior was flagged during an earlier run of this plan and is worth tracking in a follow-up: Playwright's pre-existing seed depends on `data.db` being empty or in a known state at test start, which can drift between local runs).
 
 ## Status
-finished: false
+finished: true
