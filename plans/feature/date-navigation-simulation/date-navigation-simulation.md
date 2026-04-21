@@ -106,7 +106,7 @@ Minimum code to make the Step 2 tests pass.
 Animate the date text sliding left while the next/previous date slides in from the right/left, respectively.
 
 **To-do:**
-- [ ] Add keyframes to `frontend/src/index.css`. Append after the existing `rotate-hint` keyframes:
+- [x] Add keyframes to `frontend/src/index.css`. Append after the existing `rotate-hint` keyframes:
   ```css
   @keyframes slide-in-from-right {
       from { transform: translateX(100%); opacity: 0; }
@@ -119,7 +119,7 @@ Animate the date text sliding left while the next/previous date slides in from t
   .slide-in-right { animation: slide-in-from-right 250ms ease-out; }
   .slide-in-left  { animation: slide-in-from-left  250ms ease-out; }
   ```
-- [ ] In `DateNavigationBanner.tsx`, track direction of last navigation. Add state `const [slideClass, setSlideClass] = useState<string>('')`. Wrap the `<h1>` in an overflow-clipping container so slide-in doesn't horizontally scroll the page:
+- [x] In `DateNavigationBanner.tsx`, track direction of last navigation. Add state `const [slideClass, setSlideClass] = useState<string>('')`. Wrap the `<h1>` in an overflow-clipping container so slide-in doesn't horizontally scroll the page:
   ```tsx
   <div className="overflow-hidden min-w-0 flex-1 max-w-xs sm:max-w-sm">
       <h1 key={simulatedDate.toDateString()} className={`text-center text-2xl sm:text-3xl font-semibold tracking-wide ${slideClass}`}>
@@ -128,11 +128,13 @@ Animate the date text sliding left while the next/previous date slides in from t
   </div>
   ```
   The `key={simulatedDate.toDateString()}` forces React to re-mount the `<h1>` on date change, which re-triggers the CSS animation.
-- [ ] Update click handlers inside the component to set the slide direction before delegating: `onClick={() => { setSlideClass('slide-in-right'); onNext(); }}` for Next, `slide-in-left` for Previous and Reset.
-- [ ] Add test: `applies slide-in-right class after clicking Next`. Use `await userEvent.click(screen.getByRole('button', { name: 'Next day' }))`, then re-render by updating `simulatedDate` prop (use `rerender` from `render()` result) and assert the heading has `className` matching `/slide-in-right/`.
-- [ ] Run `npm test --workspace frontend -- DateNavigationBanner.test.tsx`. All tests including the new animation test pass.
+- [x] Update click handlers inside the component to set the slide direction before delegating: `onClick={() => { setSlideClass('slide-in-right'); onNext(); }}` for Next, `slide-in-left` for Previous and Reset.
+- [x] Add test: `applies slide-in-right class after clicking Next`. Use `await userEvent.click(screen.getByRole('button', { name: 'Next day' }))`, then re-render by updating `simulatedDate` prop (use `rerender` from `render()` result) and assert the heading has `className` matching `/slide-in-right/`.
+- [x] Run `npm test --workspace frontend -- DateNavigationBanner.test.tsx`. All tests including the new animation test pass.
 
 **Verification:** `npm test --workspace frontend -- DateNavigationBanner.test.tsx` — all tests pass.
+
+**Completed 2026-04-21:** Added `slide-in-from-right` / `slide-in-from-left` keyframes and `.slide-in-right` / `.slide-in-left` 250ms ease-out animation classes to `frontend/src/index.css` (appended after `rotate-hint`). In `DateNavigationBanner.tsx`: added `useState<string>('')` for `slideClass`, wrapped the `<h1>` in an `overflow-hidden min-w-0 flex-1 max-w-xs sm:max-w-sm` clip container, applied `key={simulatedDate.toDateString()}` to force re-mount for animation retrigger, and updated the three onClick thunks to set the direction class (`slide-in-right` for Next; `slide-in-left` for Previous and Reset) before delegating to the callback. Preserved the Step 3 thunk form to keep the zero-args `toHaveBeenCalledWith()` assertions satisfied. Added a new test `applies slide-in-right class to the heading after clicking Next` that drives the component through a stateful `Harness` (so the `key` actually changes on click and the animation class survives re-mount). Results: `DateNavigationBanner.test.tsx` 8/8 pass; full frontend suite 60/60 pass; `vite build` clean (206.40 kB unchanged). Inline 3-perspective review: all PASS — no fix pass needed.
 
 ### 5. Write tests for App-level simulation state (Red)
 Extend `App.test.tsx` to cover the new behavior before touching `App.tsx`.

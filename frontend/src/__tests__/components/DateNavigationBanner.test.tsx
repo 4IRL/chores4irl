@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import DateNavigationBanner from '../../components/nav/DateNavigationBanner';
 
 describe('DateNavigationBanner', () => {
@@ -99,6 +100,29 @@ describe('DateNavigationBanner', () => {
         await user.click(screen.getByRole('button', { name: 'Reset to today' }));
         expect(onReset).toHaveBeenCalledOnce();
         expect(onReset).toHaveBeenCalledWith();
+    });
+
+    it('applies slide-in-right class to the heading after clicking Next', async () => {
+        const user = userEvent.setup();
+        function Harness() {
+            const [offset, setOffset] = useState(0);
+            const base = new Date(2025, 0, 15);
+            const simulated = new Date(base);
+            simulated.setDate(base.getDate() + offset);
+            return (
+                <DateNavigationBanner
+                    simulatedDate={simulated}
+                    dayOffset={offset}
+                    onPrev={() => setOffset((o) => Math.max(0, o - 1))}
+                    onNext={() => setOffset((o) => o + 1)}
+                    onReset={() => setOffset(0)}
+                />
+            );
+        }
+        render(<Harness />);
+        await user.click(screen.getByRole('button', { name: 'Next day' }));
+        const heading = screen.getByRole('heading', { level: 1 });
+        expect(heading.className).toMatch(/slide-in-right/);
     });
 
     it('omits previous button when dayOffset === 0 even if onPrev is provided', () => {
