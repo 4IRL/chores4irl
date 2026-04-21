@@ -120,13 +120,13 @@ export default function App() {
                     </div>
                 )}
                 <NavBar rooms={uniqueRooms} selectedRoom={selectedRoom} onSelect={setSelectedRoom} />
-                <ReturnToTodayButton dayOffset={dayOffset} onReset={() => setDayOffset(0)} />
                 <DateNavigationBanner
                     simulatedDate={simulatedDate}
                     dayOffset={dayOffset}
                     onPrev={() => setDayOffset(o => Math.max(0, o - 1))}
                     onNext={() => setDayOffset(o => o + 1)}
                 />
+                <ReturnToTodayButton dayOffset={dayOffset} onReset={() => setDayOffset(0)} />
                 <div className="flex-1 overflow-y-auto min-h-0">
                     <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleDeleteChore} />
                 </div>
