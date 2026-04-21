@@ -20,7 +20,7 @@ export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: Chor
         [day, chore.dateLastCompleted]
     );
 
-    const { isOverdue, barWidth, isUrgent, barColor } = computeBar(daysSince, chore.frequency);
+    const { isOverdue, barWidth, barColor } = computeBar(daysSince, chore.frequency);
 
     function resetTask() {
         onComplete(chore.id, new Date());
@@ -32,7 +32,7 @@ export default function ChoreTimerBar({ chore, day, onComplete, onDelete }: Chor
             className="relative h-36 sm:h-24 w-full bg-gray-800 rounded-full shadow cursor-pointer overflow-hidden"
             onClick={resetTask}
         >
-            <ProgressBar width={barWidth} color={barColor} isUrgent={isUrgent} />
+            <ProgressBar width={barWidth} color={barColor} />
             <div className="absolute inset-0 px-4 pr-12 flex flex-col justify-center gap-1 sm:flex-row sm:items-center sm:justify-between sm:pr-4">
                 <ChoreInfo name={chore.name} room={chore.room} frequency={chore.frequency} />
                 {isOverdue && (

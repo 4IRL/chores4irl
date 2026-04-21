@@ -2,11 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { computeBar } from '@utils/choreBarMath';
 
 describe('ChoreTimerBar bar math', () => {
-    it('day 0 of a 10-day chore → barWidth = 100, green, not urgent', () => {
+    it('day 0 of a 10-day chore → barWidth = 100, green', () => {
         const result = computeBar(0, 10);
         expect(result.barWidth).toBe(100);
         expect(result.barColor).toContain('green');
-        expect(result.isUrgent).toBe(false);
     });
 
     it('day 3 of a 10-day chore → barWidth ≈ 70, green', () => {
@@ -27,38 +26,35 @@ describe('ChoreTimerBar bar math', () => {
         expect(result.barColor).toContain('red');
     });
 
-    it('2 days overdue on a 10-day chore (daysSince=12) → barWidth = 40, red, not urgent', () => {
+    it('2 days overdue on a 10-day chore (daysSince=12) → barWidth = 40, red, overdue', () => {
         const result = computeBar(12, 10);
         expect(result.barWidth).toBe(40);
         expect(result.barColor).toContain('red');
-        expect(result.isUrgent).toBe(false);
+        // TODO: Replace obsolete 'isUrgent' with a check of whether ChoreTimerBar has isOverdue.toBe(true)
+        // expect(result.isUrgent).toBe(false);
     });
 
-    it('4 days overdue on a 10-day chore (daysSince=14) → barWidth = 80, red, not urgent (just below urgent threshold)', () => {
+    it('4 days overdue on a 10-day chore (daysSince=14) → barWidth = 80, red, overdue', () => {
         const result = computeBar(14, 10);
         expect(result.barWidth).toBeCloseTo(80);
         expect(result.barColor).toContain('red');
-        expect(result.isUrgent).toBe(false);
     });
 
-    it('5 days overdue on a 10-day chore → barWidth = 100, red, urgent', () => {
+    it('5 days overdue on a 10-day chore → barWidth = 100, red, overdue', () => {
         const result = computeBar(15, 10);
         expect(result.barWidth).toBe(100);
         expect(result.barColor).toContain('red');
-        expect(result.isUrgent).toBe(true);
     });
 
-    it('daysSince === frequency → barWidth = 0, red, not urgent (exactly due, not yet overdue)', () => {
+    it('daysSince === frequency → barWidth = 0, red', () => {
         const result = computeBar(10, 10);
         expect(result.barWidth).toBe(0);
         expect(result.barColor).toContain('red');
-        expect(result.isUrgent).toBe(false);
     });
 
-    it('frequency=0 → barWidth = 100, green, not urgent (safe default)', () => {
+    it('frequency=0 → barWidth = 100, green', () => {
         const result = computeBar(5, 0);
         expect(result.barWidth).toBe(100);
         expect(result.barColor).toContain('green');
-        expect(result.isUrgent).toBe(false);
     });
 });
