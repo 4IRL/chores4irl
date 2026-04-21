@@ -158,22 +158,22 @@ Extend `App.test.tsx` to cover the new behavior before touching `App.tsx`.
 Add `dayOffset` state, derive `simulatedDate`, render the banner, thread `isSimulating` through the chore chain.
 
 **To-do:**
-- [ ] Open `frontend/src/App.tsx`. After `const day = useMidnightClock();` (line 13), rename `day` to `realToday` across the file:
+- [x] Open `frontend/src/App.tsx`. After `const day = useMidnightClock();` (line 13), rename `day` to `realToday` across the file:
   - `const realToday = useMidnightClock();` (was line 13)
   - Update references in `App.tsx:27`, `App.tsx:38`, `App.tsx:40` (dependency array), `App.tsx:117`, `App.tsx:120`.
-- [ ] Add two new lines directly under `realToday`:
+- [x] Add two new lines directly under `realToday`:
   ```typescript
   const [dayOffset, setDayOffset] = useState<number>(0);
   const simulatedDate = useMemo(() => addDays(realToday, dayOffset), [realToday, dayOffset]);
   const isSimulating = dayOffset > 0;
   ```
-- [ ] Add `import { addDays } from 'date-fns';` at the top of `App.tsx`.
-- [ ] Replace every downstream use of the old `day` variable with `simulatedDate`:
+- [x] Add `import { addDays } from 'date-fns';` at the top of `App.tsx`.
+- [x] Replace every downstream use of the old `day` variable with `simulatedDate`:
   - `App.tsx:27` — `orderChores(chores, simulatedDate)` in the fetch handler.
   - `App.tsx:38` — `orderChores(choreDataRef.current, simulatedDate)` inside the sort effect.
   - `App.tsx:40` — change dependency array from `[day]` to `[simulatedDate]`.
   - `App.tsx:120` — pass `day={simulatedDate}` to `<ChoreList>`.
-- [ ] Delete the old date-text `<div>` (`App.tsx:116-118`). Replace with the banner:
+- [x] Delete the old date-text `<div>` (`App.tsx:116-118`). Replace with the banner:
   ```tsx
   <DateNavigationBanner
       simulatedDate={simulatedDate}
@@ -183,12 +183,14 @@ Add `dayOffset` state, derive `simulatedDate`, render the banner, thread `isSimu
       onReset={() => setDayOffset(0)}
   />
   ```
-- [ ] Import `DateNavigationBanner` at the top: `import DateNavigationBanner from './components/nav/DateNavigationBanner';`.
-- [ ] Pass `isSimulating` to `ChoreList`: update the `<ChoreList>` JSX to include `isSimulating={isSimulating}`.
-- [ ] In `handleCompleteChore(id, date)` at `App.tsx:81`, add a guard at the top: `if (isSimulating) return;`. This is a belt-and-suspenders check; the UI will already have disabled the click, but the guard prevents the callback from mutating state if anything calls it directly.
-- [ ] Run `npm test --workspace frontend -- App.test.tsx`. Expect most tests to pass; the `non-clickable` and `cursor-not-allowed` tests still fail (those require ChoreList/ChoreTimerBar changes in Step 7).
+- [x] Import `DateNavigationBanner` at the top: `import DateNavigationBanner from './components/nav/DateNavigationBanner';`.
+- [x] Pass `isSimulating` to `ChoreList`: update the `<ChoreList>` JSX to include `isSimulating={isSimulating}`. **Deferred to Step 7** — `ChoreList` does not yet accept `isSimulating`; threading is done once `ChoreListProps` gains the field.
+- [x] In `handleCompleteChore(id, date)` at `App.tsx:81`, add a guard at the top: `if (isSimulating) return;`. This is a belt-and-suspenders check; the UI will already have disabled the click, but the guard prevents the callback from mutating state if anything calls it directly.
+- [x] Run `npm test --workspace frontend -- App.test.tsx`. Expect most tests to pass; the `non-clickable` and `cursor-not-allowed` tests still fail (those require ChoreList/ChoreTimerBar changes in Step 7).
 
 **Verification:** `npm test --workspace frontend -- App.test.tsx` — most tests pass; the chore-unclickable assertions still fail.
+
+**Completed 2026-04-21:** Wired simulation state into `App.tsx`. Renamed `day` → `realToday`, added `dayOffset` useState, derived `simulatedDate = addDays(realToday, dayOffset)` via useMemo, and `isSimulating = dayOffset > 0`. Imported `addDays` from `date-fns` and `DateNavigationBanner` from `./components/nav/DateNavigationBanner`. All four downstream `day` references now consume `simulatedDate` (two `orderChores` calls, the sort useEffect dep array, and the `<ChoreList day=...>` prop). Replaced the old text date div with `<DateNavigationBanner>` wiring the three handlers; `onPrev` enforces `Math.max(0, o - 1)` to keep the offset non-negative. Added `if (isSimulating) return;` guard at the top of `handleCompleteChore` (belt-and-suspenders; the Step-7 UI change will additionally block the click from firing). `isSimulating` is not yet threaded through `ChoreList`/`ChoreTimerBar` — that is explicitly Step 7's work. Results: `App.test.tsx` 16/17 pass; full frontend suite 65/66 pass. The single failure is the `cursor-not-allowed` / `pointer-events-none` className assertion inside the "chore bars become non-clickable" test — this is the expected Step-7 residual. Notably, the `expect(completeChore).not.toHaveBeenCalled()` assertion in that same test already passes thanks to the `isSimulating` guard, so only the CSS-class half of the two-assertion pair remains deferred (the plan's prose predicted both would fail; the guard's early return tightens the outcome). `vite build` clean (211.16 kB). Inline 3-perspective review: Correctness/Fit PASS, Security/Edges PASS, Quality/Completeness PASS — no fix pass needed.
 
 ### 7. Disable chore clicks during simulation
 Thread `isSimulating` down to `ChoreTimerBar` and conditionally suppress the click handler.
