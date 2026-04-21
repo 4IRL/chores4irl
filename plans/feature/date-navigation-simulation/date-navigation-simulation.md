@@ -29,17 +29,19 @@ Add `lucide-react` as a dependency; it supplies `ChevronLeft`, `ChevronRight`, a
 Write the full unit test file for the new banner before the component exists. Tests drive the component's prop contract.
 
 **To-do:**
-- [ ] Create `frontend/src/__tests__/components/DateNavigationBanner.test.tsx`. Import `render`, `screen` from `@testing-library/react`, `userEvent` from `@testing-library/user-event`, `describe`/`it`/`expect`/`vi` from `vitest`, and the yet-to-be-created `DateNavigationBanner` from `../../components/nav/DateNavigationBanner`.
-- [ ] Test: `renders the provided day as a large centered heading`. Pass `simulatedDate={new Date(2025, 0, 15)}`, `dayOffset={0}`. Assert `screen.getByRole('heading', { level: 1 })` has text matching `Wed Jan 15 2025` (native `Date.toDateString()` format). Assert the heading element's `className` contains `text-center` and a font-size class `>= text-2xl`.
-- [ ] Test: `shows forward arrow and hides back arrow and reset when dayOffset === 0`. Assert `screen.getByRole('button', { name: 'Next day' })` exists. Assert `screen.queryByRole('button', { name: 'Previous day' })` is `null`. Assert `screen.queryByRole('button', { name: 'Reset to today' })` is `null`.
-- [ ] Test: `shows back arrow and reset when dayOffset > 0`. Pass `dayOffset={2}`. Assert all three buttons (`Next day`, `Previous day`, `Reset to today`) are present.
-- [ ] Test: `clicking next invokes onNext`. Use `const onNext = vi.fn()`. `await userEvent.click(screen.getByRole('button', { name: 'Next day' }))`. Assert `onNext` called once with no args.
-- [ ] Test: `clicking previous invokes onPrev`. Same pattern with `onPrev` prop; set `dayOffset={1}` to make it visible.
-- [ ] Test: `clicking reset invokes onReset`. Same pattern with `onReset` prop; set `dayOffset={3}` to make it visible.
-- [ ] Test: `previous button is omitted when dayOffset === 0 even if onPrev is provided` (floor guarantee — no way to navigate before today).
-- [ ] Run `npm test --workspace frontend -- DateNavigationBanner.test.tsx`. Confirm every test fails with a module-not-found error. This is the Red state.
+- [x] Create `frontend/src/__tests__/components/DateNavigationBanner.test.tsx`. Import `render`, `screen` from `@testing-library/react`, `userEvent` from `@testing-library/user-event`, `describe`/`it`/`expect`/`vi` from `vitest`, and the yet-to-be-created `DateNavigationBanner` from `../../components/nav/DateNavigationBanner`.
+- [x] Test: `renders the provided day as a large centered heading`. Pass `simulatedDate={new Date(2025, 0, 15)}`, `dayOffset={0}`. Assert `screen.getByRole('heading', { level: 1 })` has text matching `Wed Jan 15 2025` (native `Date.toDateString()` format). Assert the heading element's `className` contains `text-center` and a font-size class `>= text-2xl`.
+- [x] Test: `shows forward arrow and hides back arrow and reset when dayOffset === 0`. Assert `screen.getByRole('button', { name: 'Next day' })` exists. Assert `screen.queryByRole('button', { name: 'Previous day' })` is `null`. Assert `screen.queryByRole('button', { name: 'Reset to today' })` is `null`.
+- [x] Test: `shows back arrow and reset when dayOffset > 0`. Pass `dayOffset={2}`. Assert all three buttons (`Next day`, `Previous day`, `Reset to today`) are present.
+- [x] Test: `clicking next invokes onNext`. Use `const onNext = vi.fn()`. `await userEvent.click(screen.getByRole('button', { name: 'Next day' }))`. Assert `onNext` called once with no args.
+- [x] Test: `clicking previous invokes onPrev`. Same pattern with `onPrev` prop; set `dayOffset={1}` to make it visible.
+- [x] Test: `clicking reset invokes onReset`. Same pattern with `onReset` prop; set `dayOffset={3}` to make it visible.
+- [x] Test: `previous button is omitted when dayOffset === 0 even if onPrev is provided` (floor guarantee — no way to navigate before today).
+- [x] Run `npm test --workspace frontend -- DateNavigationBanner.test.tsx`. Confirm every test fails with a module-not-found error. This is the Red state.
 
 **Verification:** `npm test --workspace frontend -- DateNavigationBanner.test.tsx` — all tests fail with "Cannot find module" or equivalent.
+
+**Completed 2026-04-21:** Created `frontend/src/__tests__/components/DateNavigationBanner.test.tsx` with 8 tests covering the banner's prop contract (heading rendering, conditional button visibility for `dayOffset === 0` vs `dayOffset > 0`, click delegation for `onNext`/`onPrev`/`onReset`, and the floor guarantee that Previous is hidden at offset 0). Red verified: vitest reports `Failed to resolve import "../../components/nav/DateNavigationBanner"` — a module resolution error, not a logic error. Test suite count: 1 failed suite, 0 tests executed (expected for a resolution-time failure).
 
 ### 3. Implement `DateNavigationBanner` component (Green)
 Minimum code to make the Step 2 tests pass.
