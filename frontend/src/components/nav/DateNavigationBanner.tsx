@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 type DateNavigationBannerProps = {
@@ -14,17 +14,22 @@ export default function DateNavigationBanner({
     onPrev,
     onNext,
 }: DateNavigationBannerProps) {
-    const [slideClass, setSlideClass] = useState<string>('');
+    const prevDayOffsetRef = useRef(dayOffset);
     const prevHidden = dayOffset === 0;
+
+    let slideClass = '';
+    if (dayOffset < prevDayOffsetRef.current) slideClass = 'slide-in-left';
+    else if (dayOffset > prevDayOffsetRef.current) slideClass = 'slide-in-right';
+
+    useEffect(() => {
+        prevDayOffsetRef.current = dayOffset;
+    }, [dayOffset]);
 
     return (
         <div className="flex items-center justify-center gap-3 my-3 flex-shrink-0 text-white relative">
             <button
                 type="button"
-                onClick={() => {
-                    setSlideClass('slide-in-left');
-                    onPrev();
-                }}
+                onClick={onPrev}
                 aria-label="Previous day"
                 tabIndex={prevHidden ? -1 : undefined}
                 className={`p-2 rounded-full hover:bg-gray-700 min-w-[44px] min-h-[44px] flex items-center justify-center ${prevHidden ? 'invisible' : ''}`}
@@ -41,10 +46,7 @@ export default function DateNavigationBanner({
             </div>
             <button
                 type="button"
-                onClick={() => {
-                    setSlideClass('slide-in-right');
-                    onNext();
-                }}
+                onClick={onNext}
                 aria-label="Next day"
                 className="p-2 rounded-full hover:bg-gray-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
             >

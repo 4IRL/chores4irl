@@ -30,8 +30,7 @@ describe('ChoreTimerBar bar math', () => {
         const result = computeBar(12, 10);
         expect(result.barWidth).toBe(40);
         expect(result.barColor).toContain('red');
-        // TODO: Replace obsolete 'isUrgent' with a check of whether ChoreTimerBar has isOverdue.toBe(true)
-        // expect(result.isUrgent).toBe(false);
+        expect(result.isOverdue).toBe(true);
     });
 
     it('4 days overdue on a 10-day chore (daysSince=14) → barWidth = 80, red, overdue', () => {

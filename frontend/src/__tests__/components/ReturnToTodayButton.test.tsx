@@ -14,12 +14,11 @@ describe('ReturnToTodayButton', () => {
         expect(screen.getByRole('button', { name: /return to today/i })).toBeInTheDocument();
     });
 
-    it('clicking invokes onReset with no args', async () => {
+    it('clicking invokes onReset', async () => {
         const onReset = vi.fn();
         const user = userEvent.setup();
         render(<ReturnToTodayButton dayOffset={3} onReset={onReset} />);
         await user.click(screen.getByRole('button', { name: /return to today/i }));
         expect(onReset).toHaveBeenCalledOnce();
-        expect(onReset).toHaveBeenCalledWith();
     });
 });

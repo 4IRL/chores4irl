@@ -109,4 +109,26 @@ describe('ChoreTimerBar', () => {
         expect(onDelete).toHaveBeenCalledOnce();
         expect(onDelete).toHaveBeenCalledWith(7);
     });
+
+    it('renders the OverdueBadge when the chore is overdue', () => {
+        const chore = makeChore({
+            frequency: 7,
+            dateLastCompleted: new Date(2024, 11, 31, 12, 0, 0),
+        });
+        render(
+            <ChoreTimerBar chore={chore} day={day} isSimulating={false} onComplete={vi.fn()} onDelete={vi.fn()} />
+        );
+        expect(screen.getByText('Overdue')).toBeInTheDocument();
+    });
+
+    it('does not render the OverdueBadge when the chore is not overdue', () => {
+        const chore = makeChore({
+            frequency: 7,
+            dateLastCompleted: new Date(2025, 0, 13, 12, 0, 0),
+        });
+        render(
+            <ChoreTimerBar chore={chore} day={day} isSimulating={false} onComplete={vi.fn()} onDelete={vi.fn()} />
+        );
+        expect(screen.queryByText('Overdue')).not.toBeInTheDocument();
+    });
 });

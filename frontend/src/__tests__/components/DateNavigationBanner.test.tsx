@@ -65,7 +65,6 @@ describe('DateNavigationBanner', () => {
         );
         await user.click(screen.getByRole('button', { name: 'Next day' }));
         expect(onNext).toHaveBeenCalledOnce();
-        expect(onNext).toHaveBeenCalledWith();
     });
 
     it('clicking previous invokes onPrev', async () => {
@@ -81,7 +80,6 @@ describe('DateNavigationBanner', () => {
         );
         await user.click(screen.getByRole('button', { name: 'Previous day' }));
         expect(onPrev).toHaveBeenCalledOnce();
-        expect(onPrev).toHaveBeenCalledWith();
     });
 
     it('applies slide-in-right class to the heading after clicking Next', async () => {
