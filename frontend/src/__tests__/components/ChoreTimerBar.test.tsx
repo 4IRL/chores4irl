@@ -131,4 +131,15 @@ describe('ChoreTimerBar', () => {
         );
         expect(screen.queryByText('Overdue')).not.toBeInTheDocument();
     });
+
+    it('does not render the OverdueBadge at the exact-due-date boundary (daysSince === frequency)', () => {
+        const chore = makeChore({
+            frequency: 7,
+            dateLastCompleted: new Date(2025, 0, 8, 12, 0, 0),
+        });
+        render(
+            <ChoreTimerBar chore={chore} day={day} isSimulating={false} onComplete={vi.fn()} onDelete={vi.fn()} />
+        );
+        expect(screen.queryByText('Overdue')).not.toBeInTheDocument();
+    });
 });

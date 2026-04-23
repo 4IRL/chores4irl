@@ -104,6 +104,33 @@ describe('DateNavigationBanner', () => {
         expect(heading.className).toMatch(/slide-in-right/);
     });
 
+    it('applies slide-in-left class to the heading when dayOffset jumps back to 0 (Return to today)', async () => {
+        const user = userEvent.setup();
+        function Harness() {
+            const [offset, setOffset] = useState(0);
+            const base = new Date(2025, 0, 15);
+            const simulated = new Date(base);
+            simulated.setDate(base.getDate() + offset);
+            return (
+                <>
+                    <DateNavigationBanner
+                        simulatedDate={simulated}
+                        dayOffset={offset}
+                        onPrev={() => setOffset((o) => Math.max(0, o - 1))}
+                        onNext={() => setOffset((o) => o + 1)}
+                    />
+                    <button type="button" onClick={() => setOffset(0)}>reset</button>
+                </>
+            );
+        }
+        render(<Harness />);
+        await user.click(screen.getByRole('button', { name: 'Next day' }));
+        await user.click(screen.getByRole('button', { name: 'Next day' }));
+        await user.click(screen.getByRole('button', { name: 'reset' }));
+        const heading = screen.getByRole('heading', { level: 1 });
+        expect(heading.className).toMatch(/slide-in-left/);
+    });
+
     it('keeps previous button in DOM with invisible class when dayOffset === 0 even if onPrev is provided', () => {
         const onPrev = vi.fn();
         render(

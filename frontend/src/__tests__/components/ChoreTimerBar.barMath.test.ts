@@ -49,6 +49,7 @@ describe('ChoreTimerBar bar math', () => {
         const result = computeBar(10, 10);
         expect(result.barWidth).toBe(0);
         expect(result.barColor).toContain('red');
+        expect(result.isOverdue).toBe(false);
     });
 
     it('frequency=0 → barWidth = 100, green', () => {
