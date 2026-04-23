@@ -320,3 +320,134 @@ describe('frozen sort order', () => {
         expect(namesAfter).toEqual(namesBefore);
     });
 });
+
+describe('date navigation', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(removeChore).mockResolvedValue(undefined);
+        vi.mocked(addChore).mockResolvedValue(makeChore());
+        vi.mocked(completeChore).mockResolvedValue(makeChore());
+        mockUseMidnightClock.mockReturnValue(MOCK_DAY);
+    });
+
+    it('on initial load, banner shows today\'s date and only the Next button', async () => {
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep' })]);
+
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Wed Jan 15 2025');
+        expect(screen.getByRole('button', { name: 'Next day' })).toBeInTheDocument();
+        // Previous button is in DOM with Tailwind `invisible` class to reserve layout space
+        const prevBtn = screen.getByRole('button', { name: 'Previous day' });
+        expect(prevBtn).toHaveClass('invisible');
+        // Return-to-today pill is NOT in DOM at dayOffset === 0
+        expect(screen.queryByRole('button', { name: /return to today/i })).not.toBeInTheDocument();
+    });
+
+    it('clicking Next advances the date by one day and reveals Previous and Reset buttons', async () => {
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep' })]);
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        await user.click(screen.getByRole('button', { name: 'Next day' }));
+
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Thu Jan 16 2025');
+        expect(screen.getByRole('button', { name: 'Next day' })).toBeInTheDocument();
+        const prevBtn = screen.getByRole('button', { name: 'Previous day' });
+        expect(prevBtn).toBeInTheDocument();
+        expect(prevBtn).not.toHaveClass('invisible');
+        expect(screen.getByRole('button', { name: /return to today/i })).toBeInTheDocument();
+    });
+
+    it('chore bars become non-clickable when simulating a future date', async () => {
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep' })]);
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        await user.click(screen.getByRole('button', { name: 'Next day' }));
+
+        // Use fireEvent.click here: userEvent v14 throws on pointer-events:none,
+        // but we want to verify the React guard (resetTask early-return) independently
+        // of CSS pointer-events enforcement.
+        const choreBar = screen.getByTestId('chore-bar');
+        fireEvent.click(choreBar);
+
+        expect(completeChore).not.toHaveBeenCalled();
+        expect(choreBar.className).toMatch(/cursor-not-allowed/);
+        expect(choreBar.className).toMatch(/pointer-events-none/);
+    });
+
+    it('Reset returns to today and re-enables chore clicks', async () => {
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep' })]);
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        await user.click(screen.getByRole('button', { name: 'Next day' }));
+        await user.click(screen.getByRole('button', { name: 'Next day' }));
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Fri Jan 17 2025');
+
+        await user.click(screen.getByRole('button', { name: /return to today/i }));
+
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Wed Jan 15 2025');
+        expect(screen.queryByRole('button', { name: /return to today/i })).not.toBeInTheDocument();
+        // Previous button stays in DOM but becomes invisible again at dayOffset === 0
+        expect(screen.getByRole('button', { name: 'Previous day' })).toHaveClass('invisible');
+
+        await user.click(screen.getByTestId('chore-bar'));
+        expect(completeChore).toHaveBeenCalledTimes(1);
+    });
+
+    it('Previous after Next returns to today but never goes earlier', async () => {
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep' })]);
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        await user.click(screen.getByRole('button', { name: 'Next day' }));
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Thu Jan 16 2025');
+
+        await user.click(screen.getByRole('button', { name: 'Previous day' }));
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Wed Jan 15 2025');
+
+        // Previous button stays in DOM at dayOffset === 0 but becomes invisible
+        expect(screen.getByRole('button', { name: 'Previous day' })).toHaveClass('invisible');
+    });
+
+    it('bar math recomputes against the simulated date', async () => {
+        // Chore completed Jan 14, frequency 7. On real today (Jan 15), daysSince = 1, not overdue.
+        // After 10 Next clicks, simulated date is Jan 25 → daysSince = 11, overdue (11 > 7).
+        const chore = makeChore({
+            id: 1,
+            name: 'Sweep',
+            dateLastCompleted: new Date(2025, 0, 14),
+            frequency: 7,
+        });
+        vi.mocked(fetchAllChores).mockResolvedValue([chore]);
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        expect(screen.queryByText(/overdue/i)).not.toBeInTheDocument();
+
+        const nextBtn = screen.getByRole('button', { name: 'Next day' });
+        for (let i = 0; i < 10; i++) {
+            await user.click(nextBtn);
+        }
+
+        expect(screen.getByText(/overdue/i)).toBeInTheDocument();
+    });
+});

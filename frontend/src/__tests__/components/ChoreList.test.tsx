@@ -19,6 +19,7 @@ describe('ChoreList', () => {
             <ChoreList
                 chores={chores}
                 day={day}
+                isSimulating={false}
                 onComplete={vi.fn()}
                 onDelete={onDelete}
             />
@@ -47,6 +48,7 @@ describe('ChoreList', () => {
             <ChoreList
                 chores={chores}
                 day={day}
+                isSimulating={false}
                 onComplete={vi.fn()}
                 onDelete={vi.fn()}
             />
@@ -60,6 +62,7 @@ describe('ChoreList', () => {
             <ChoreList
                 chores={[]}
                 day={day}
+                isSimulating={false}
                 onComplete={vi.fn()}
                 onDelete={vi.fn()}
             />

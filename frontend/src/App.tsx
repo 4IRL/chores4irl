@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { addDays } from 'date-fns';
 import { useMidnightClock } from './hooks/useMidnightClock';
 import { useRoomFilter } from './hooks/useRoomFilter';
 import { orderChores } from './utils/choreSort';
 import NavBar from './components/nav/NavBar';
+import DateNavigationBanner from './components/nav/DateNavigationBanner';
+import ReturnToTodayButton from './components/nav/ReturnToTodayButton';
 import ChoreList from './components/chore/ChoreList';
 import AddChoreButton from './components/form/AddChoreButton';
 import ChoreFormModal from './components/form/ChoreFormModal';
@@ -10,7 +13,10 @@ import { fetchAllChores, addChore, completeChore, removeChore } from './services
 import type { Chore } from '@customTypes/SharedTypes';
 
 export default function App() {
-    const day = useMidnightClock();
+    const realToday = useMidnightClock();
+    const [dayOffset, setDayOffset] = useState<number>(0);
+    const simulatedDate = useMemo(() => addDays(realToday, dayOffset), [realToday, dayOffset]);
+    const isSimulating = dayOffset > 0;
     const [selectedRoom, setSelectedRoom] = useState<string>('all');
     const [showForm, setShowForm] = useState<boolean>(false);
     const [choreData, setChoreData] = useState<Chore[]>([]);
@@ -24,7 +30,7 @@ export default function App() {
         fetchAllChores()
             .then(chores => {
                 setChoreData(chores);
-                setSortedIds(orderChores(chores, day).map(c => c.id));
+                setSortedIds(orderChores(chores, simulatedDate).map(c => c.id));
                 setLoading(false);
             })
             .catch((err: unknown) => {
@@ -35,9 +41,9 @@ export default function App() {
 
     useEffect(() => {
         if (choreDataRef.current.length > 0) {
-            setSortedIds(orderChores(choreDataRef.current, day).map(c => c.id));
+            setSortedIds(orderChores(choreDataRef.current, simulatedDate).map(c => c.id));
         }
-    }, [day]);
+    }, [simulatedDate]);
 
     const uniqueRooms = useMemo(
         () => Array.from(new Set(choreData.map(chore => chore.room))),
@@ -79,6 +85,7 @@ export default function App() {
     }
 
     async function handleCompleteChore(id: number, date: Date): Promise<void> {
+        if (isSimulating) return;
         const originalChore = choreData.find(chore => chore.id === id);
         if (!originalChore) return;
         setChoreData(curr =>
@@ -113,11 +120,15 @@ export default function App() {
                     </div>
                 )}
                 <NavBar rooms={uniqueRooms} selectedRoom={selectedRoom} onSelect={setSelectedRoom} />
-                <div className="text-xs text-white mb-2 flex-shrink-0">
-                    {day.toDateString()}
-                </div>
+                <DateNavigationBanner
+                    simulatedDate={simulatedDate}
+                    dayOffset={dayOffset}
+                    onPrev={() => setDayOffset(o => Math.max(0, o - 1))}
+                    onNext={() => setDayOffset(o => o + 1)}
+                />
+                <ReturnToTodayButton dayOffset={dayOffset} onReset={() => setDayOffset(0)} />
                 <div className="flex-1 overflow-y-auto min-h-0">
-                    <ChoreList chores={orderedChores} day={day} onComplete={handleCompleteChore} onDelete={handleDeleteChore} />
+                    <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleDeleteChore} />
                 </div>
                 <div className="flex-shrink-0 py-4 flex justify-center border-t border-gray-700">
                     <AddChoreButton onClick={() => setShowForm(true)} />

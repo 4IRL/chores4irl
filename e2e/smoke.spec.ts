@@ -106,4 +106,46 @@ test.describe('Chores App Smoke Tests', () => {
         await page.setViewportSize({ width: 375, height: 812 });
         await expect(overlay).toBeHidden();
     });
+
+    test('navigates forward and back in time and resets to today', async ({ page }) => {
+        const nextBtn = page.getByRole('button', { name: 'Next day' });
+        await expect(nextBtn).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Previous day' })).not.toBeVisible();
+        await expect(page.getByRole('button', { name: 'Return to today' })).not.toBeVisible();
+
+        await nextBtn.click();
+        await expect(page.getByRole('button', { name: 'Previous day' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Return to today' })).toBeVisible();
+
+        // During simulation, clicking the bar must not fire a PATCH /complete.
+        // Attach a request listener and fail the test if a complete PATCH fires while simulating.
+        let completePatchFired = false;
+        const completeListener = (request: import('@playwright/test').Request) => {
+            if (
+                request.method() === 'PATCH' &&
+                request.url().includes('/api/chores') &&
+                request.url().includes('/complete')
+            ) {
+                completePatchFired = true;
+            }
+        };
+        page.on('request', completeListener);
+
+        // The chore bar has `pointer-events-none` during simulation, so a normal click
+        // would hit Playwright's actionability timeout. Use `force: true` to dispatch
+        // the click regardless — the assertion is that the handler STILL does nothing.
+        const firstChoreBar = page.locator('.bg-gray-800.rounded-full').first();
+        await expect(firstChoreBar).toHaveClass(/pointer-events-none/);
+        await firstChoreBar.click({ force: true });
+        // Give the click a chance to propagate; confirm no network request and no error banner.
+        await page.waitForTimeout(250);
+        expect(completePatchFired).toBe(false);
+        await expect(page.locator('.bg-red-700')).not.toBeVisible();
+
+        page.off('request', completeListener);
+
+        await page.getByRole('button', { name: 'Return to today' }).click();
+        await expect(page.getByRole('button', { name: 'Previous day' })).not.toBeVisible();
+        await expect(page.getByRole('button', { name: 'Return to today' })).not.toBeVisible();
+    });
 });

@@ -4,7 +4,6 @@ export type BarMathResult = {
     isOverdue: boolean;
     remainingRatio: number;
     barWidth: number;
-    isUrgent: boolean;
     barColor: string;
 };
 
@@ -13,7 +12,6 @@ export function computeBar(daysSince: number, frequency: number): BarMathResult 
     const remainingRatio = frequency > 0 ? (frequency - daysSince) / frequency : 1;
 
     let barWidth: number;
-    let isUrgent = false;
     if (frequency === 0) {
         barWidth = 100;
     } else if (!isOverdue) {
@@ -22,7 +20,6 @@ export function computeBar(daysSince: number, frequency: number): BarMathResult 
         const daysOverdue = daysSince - frequency;
         const growthRatio = (daysOverdue * 2) / frequency;
         barWidth = Math.min(growthRatio, 1) * 100;
-        isUrgent = growthRatio >= 1;
     }
 
     let barColor: string;
@@ -33,5 +30,5 @@ export function computeBar(daysSince: number, frequency: number): BarMathResult 
         barColor = (match ?? statusColors[statusColors.length - 1]).color + ' bg-opacity-50';
     }
 
-    return { isOverdue, remainingRatio, barWidth, isUrgent, barColor };
+    return { isOverdue, remainingRatio, barWidth, barColor };
 }
