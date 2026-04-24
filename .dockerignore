@@ -1,0 +1,60 @@
+# VCS + CI
+.git
+.gitignore
+.github
+
+# Node
+node_modules
+**/node_modules
+npm-debug.log*
+.npm
+
+# Build artifacts (Dockerfile builds these fresh)
+backend/dist
+frontend/dist
+dist
+dist-ssr
+
+# Dev DB (must never bake into image)
+*.db
+*.db-shm
+*.db-wal
+
+# Tests + E2E
+e2e
+test-results
+playwright-report
+playwright.config.ts
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/vitest.config.ts
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+*.sw?
+
+# Claude Code + planning
+.claude
+plan.md
+research.md
+plans
+
+# Stray user dotfiles leaked into repo root
+.bash_profile
+.bashrc
+.gitconfig
+.gitmodules
+.mcp.json
+.profile
+.ripgreprc
+.zprofile
+.zshrc
+
+# Docker artifacts
+Dockerfile*
+docker-compose*.yml
+.dockerignore
