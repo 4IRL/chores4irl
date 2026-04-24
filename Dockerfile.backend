@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1.7
+FROM node:20.18.0-bookworm-slim AS builder
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY tsconfig.json ./tsconfig.json
+COPY backend/package.json backend/tsconfig.json ./backend/
+RUN npm ci --workspace backend --include=dev
+COPY backend/src ./backend/src
+RUN npm run build --workspace backend
+
+FROM node:20.18.0-bookworm-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV DB_PATH=/data/data.db
+COPY package.json package-lock.json ./
+COPY backend/package.json ./backend/
+RUN npm ci --workspace backend --omit=dev \
+    && npm cache clean --force
+COPY --from=builder /app/backend/dist ./backend/dist
+RUN mkdir -p /data && chown -R node:node /data /app
+USER node
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD node -e "fetch('http://localhost:3000/api/chores').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["node", "backend/dist/server.js"]
