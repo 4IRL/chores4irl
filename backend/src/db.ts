@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DB_PATH = process.env.TEST_DB_PATH === ':memory:'
     ? ':memory:'
-    : path.resolve(__dirname, '../../data.db');
+    : (process.env.DB_PATH ?? path.resolve(__dirname, '../../data.db'));
 
 export const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
