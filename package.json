@@ -7,7 +7,9 @@
     "dev": "concurrently \"npm run dev --workspace frontend\" \"npm run dev --workspace backend\"",
     "build": "npm run build --workspace frontend && npm run build --workspace backend",
     "lint": "eslint .",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "compose:up": "docker compose up -d --build",
+    "compose:down": "docker compose down"
   },
   "dependencies": {
     "concurrently": "^9.1.2"
