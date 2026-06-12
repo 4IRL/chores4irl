@@ -1,6 +1,6 @@
 # chores4irl
 
-A household chore-tracking app designed to run on a Raspberry Pi 5 with an attached touchscreen in kiosk mode. Two containers — an Express + SQLite API and an Nginx-served React/Vite frontend — wired together with a persistent Docker volume so chore history survives restarts.
+A household chore-tracking app designed to run on a Raspberry Pi 4 with an attached touchscreen in kiosk mode. Two containers — an Express + SQLite API and an Nginx-served React/Vite frontend — wired together with a persistent Docker volume so chore history survives restarts.
 
 ## Architecture
 
@@ -26,7 +26,7 @@ npx playwright test                  # e2e
 
 ## Deployment
 
-The production target is a Raspberry Pi 5 (ARM64) running 64-bit Raspberry Pi OS Bookworm. Deployment ships the **source tree** to the Pi and builds natively there, because `better-sqlite3`, `@tailwindcss/oxide`, `lightningcss`, and `@rollup/rollup` all have platform-specific native binaries — building the image on an x86_64 laptop and `docker save`/`docker load`-ing to the Pi would ship the wrong binaries.
+The production target is a Raspberry Pi 4 (ARM64) running 64-bit Raspberry Pi OS Bookworm. Deployment ships the **source tree** to the Pi and builds natively there, because `better-sqlite3`, `@tailwindcss/oxide`, `lightningcss`, and `@rollup/rollup` all have platform-specific native binaries — building the image on an x86_64 laptop and `docker save`/`docker load`-ing to the Pi would ship the wrong binaries.
 
 For the full rationale, step-by-step validation, and troubleshooting, see [`plans/deploy/docker-raspberry-pi/docker-raspberry-pi.md`](plans/deploy/docker-raspberry-pi/docker-raspberry-pi.md).
 
@@ -44,7 +44,7 @@ Open `http://localhost/` in a browser to confirm the frontend renders and the ad
 
 ### Pi prerequisites
 
-On a fresh Raspberry Pi 5:
+On a fresh Raspberry Pi 4:
 
 - 64-bit Raspberry Pi OS Bookworm.
 - Docker installed:
@@ -85,7 +85,7 @@ Once the containers are running, configure the Pi host so it boots straight into
 
 - **Timezone** — `sudo timedatectl set-timezone <your-zone>` (e.g. `America/New_York`). Chore urgency/completion dates depend on this. The systemd unit and Docker Compose propagate the host's `TZ` through to the backend container.
 - **NTP** — `sudo timedatectl set-ntp true`. Primary time source while online.
-- **RTC backup battery** — the Pi 5's J5 connector accepts a CR2032 cell (Raspberry Pi's official battery, or an Energizer ECR2032BP with the 2-pin 1.25mm JST connector). Without it, a full power loss with no network leaves the clock stuck at the kernel build date until NTP resyncs. With it, offline boots keep correct wall-clock time. Verify with `sudo hwclock --verbose`; write system time into the RTC once with `sudo hwclock --systohc --utc`.
+- **Offline timekeeping** — the Pi 4 has **no on-board RTC**. Raspberry Pi OS enables `fake-hwclock` by default, which restores the last-saved time on boot so the clock never falls back to 1970 (verify with `systemctl is-enabled fake-hwclock` → `enabled`; force a save with `sudo fake-hwclock save`). After a long offline stretch the restored time can be stale until NTP resyncs. For true battery-backed offline time, fit an external I2C/HAT RTC (e.g. a DS3231): add `dtoverlay=i2c-rtc,ds3231` to `/boot/firmware/config.txt`, reboot, then `sudo hwclock --systohc --utc` once NTP has synced and disable `fake-hwclock`.
 - **Chromium kiosk mode** — install `chromium-browser` and `unclutter`, then drop a `chores4irl-kiosk.desktop` file into `~/.config/autostart/` that launches Chromium with `--kiosk --incognito http://localhost/` (plus `xset` calls to disable screen blanking).
 - **Display rotation** — depends on session type (`echo $XDG_SESSION_TYPE`):
   - **Wayland** (Bookworm default): `wlr-randr --output <name> --transform 90` (discover `<name>` by running `wlr-randr` with no args). Add the command to the autostart `.desktop` `Exec=` line before `chromium-browser` so rotation applies every login.
