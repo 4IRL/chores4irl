@@ -20,6 +20,10 @@ dist-ssr
 *.db-shm
 *.db-wal
 
+# Env files (must never bake into image)
+.env
+.env.*
+
 # Tests + E2E
 e2e
 test-results

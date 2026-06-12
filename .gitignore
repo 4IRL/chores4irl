@@ -33,3 +33,18 @@ playwright-report/
 plan.md
 research.md
 plans
+
+# Env files
+.env
+.env.*
+
+# Stray user dotfiles that leaked into repo root
+.bash_profile
+.bashrc
+.gitconfig
+.gitmodules
+.mcp.json
+.profile
+.ripgreprc
+.zprofile
+.zshrc
