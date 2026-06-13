@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Compiled output of the shared type declarations (types/SharedTypes.d.ts is
+# source; no .js should ever be emitted there — guard against stray artifacts)
+types/*.js
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
