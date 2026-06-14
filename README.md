@@ -101,21 +101,37 @@ Full copy-pasteable snippets for all of the above are in the deployment plan.
 
 ### Backup strategy
 
-Household chore history lives in a single Docker volume on an SD card — and SD cards fail. A weekly SQLite online backup is scheduled via cron:
+Household chore history lives in a single Docker volume on an SD card — and SD cards fail. Two distinct failure modes need covering, and they need different defenses:
 
-- Script: `bin/chores4irl-backup.sh` — runs `better-sqlite3`'s online `db.backup()` against the live container, copies the snapshot to `~/backups/chores4irl-<timestamp>.db`, and prunes older backups.
-- Retention: last **14 weeks**.
-- Cron: `0 3 * * 0 /home/pi/bin/chores4irl-backup.sh >> /home/pi/backups/backup.log 2>&1` (Sundays 03:00 local).
+- **Logical loss** — a bug, a bad write, an accidental `docker compose down -v`, or fat-fingered deletion. Restore from a recent snapshot.
+- **Physical card death** — the on-card snapshots die *with* the card, so the only protection is a copy kept **off** the Pi.
 
-Optional: add an `rsync` line to the script to copy `~/backups/` off the Pi to a NAS or another LAN host.
+A weekly SQLite **online** backup (`better-sqlite3`'s `db.backup()` against the live container — safe with WAL mode, unlike copying the file directly) plus a mandatory off-Pi `rsync` covers both. Backups run on a **systemd timer**, not cron: with `Persistent=true`, a run missed because the Pi was powered off at the scheduled time is caught up on next boot — plain cron silently skips it.
+
+Files (shipped in the source tree, so they reach the Pi via `git archive`):
+
+- `bin/chores4irl-backup.sh` — takes the snapshot into `~/backups/chores4irl-<timestamp>.db`, prunes to the most recent **14**, then rsyncs the backup dir off the Pi. **Refuses to run** unless `BACKUP_RSYNC_DEST` is set, so a backup can never end up only on the SD card.
+- `deploy/pi/chores4irl-backup.service` — oneshot that runs the script.
+- `deploy/pi/chores4irl-backup.timer` — Sundays 03:00 local, `Persistent=true`.
+
+Install on the Pi (substitute `/home/pi` if your login differs). First set the off-Pi destination in the service unit — `Environment=BACKUP_RSYNC_DEST=user@nas:/srv/backups/chores4irl` (a LAN host / NAS reachable over key-based SSH) — then:
+
+```bash
+sudo cp deploy/pi/chores4irl-backup.service deploy/pi/chores4irl-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now chores4irl-backup.timer
+systemctl list-timers chores4irl-backup.timer   # confirm the next scheduled run
+```
+
+Validate once immediately: `sudo systemctl start chores4irl-backup.service && ls -la ~/backups`. Check logs with `journalctl -u chores4irl-backup.service`. Spot-check the snapshot: `sqlite3 ~/backups/chores4irl-*.db 'SELECT count(*) FROM chores;'` should match the live count.
 
 ### Updating an existing Pi deployment
 
 Same shipping workflow — the `chores-data` volume is not touched by builds, so chore data persists across upgrades:
 
 ```bash
-# On the laptop:
-tar --exclude-from=.dockerignore -czf /tmp/chores4irl-src.tar.gz .
+# On the laptop (ships the committed tree — commit first):
+git archive --format=tar.gz -o /tmp/chores4irl-src.tar.gz HEAD
 scp /tmp/chores4irl-src.tar.gz pi@<pi-host>:~/chores4irl-src.tar.gz
 
 # On the Pi:
