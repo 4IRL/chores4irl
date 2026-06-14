@@ -60,20 +60,25 @@ On a fresh Raspberry Pi 4:
 
 ### Shipping source to the Pi
 
-From the repo root on the laptop:
+From the repo root on the laptop, build the tarball with `git archive` — it ships
+exactly the committed tree (Dockerfiles, compose, nginx.conf, source) and omits
+`node_modules`, `.git`, `.env`, and build artifacts. (Do **not** use
+`tar --exclude-from=.dockerignore`: `.dockerignore` excludes `Dockerfile*` and
+`docker-compose*.yml` from the image build context, so a tarball built that way
+would ship without the files needed to build on the Pi.)
 
 ```bash
-tar --exclude-from=.dockerignore -czf /tmp/chores4irl-src.tar.gz .
-scp /tmp/chores4irl-src.tar.gz pi@<pi-host>:~/chores4irl-src.tar.gz
+git archive --format=tar.gz -o /tmp/chores4irl-src.tar.gz HEAD
+scp /tmp/chores4irl-src.tar.gz <pi-user>@<pi-host>:~/chores4irl-src.tar.gz
 ```
 
 Then on the Pi:
 
 ```bash
-mkdir -p ~/chores4irl
+rm -rf ~/chores4irl && mkdir -p ~/chores4irl
 tar -xzf ~/chores4irl-src.tar.gz -C ~/chores4irl
 cd ~/chores4irl
-docker compose build     # 5–15 min on first build; npm install dominates
+docker compose build     # native ARM64 build; npm install dominates
 docker compose up -d
 ```
 
