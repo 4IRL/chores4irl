@@ -4,8 +4,40 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
+  # Defense-in-depth backstop for the "Protect main" repository ruleset
+  # (.github/rulesets/main-protection.json). The ruleset is the authoritative
+  # control that blocks direct pushes; this job fails loudly if a commit ever
+  # lands on main without an associated pull request — e.g. if the ruleset is
+  # disabled or misconfigured.
+  guard-direct-push:
+    name: Guard - block direct push to main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Verify the pushed commit came from a pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sha="${{ github.sha }}"
+          echo "Checking commit $sha for an associated pull request..."
+          for attempt in 1 2 3; do
+            count=$(gh api "repos/${{ github.repository }}/commits/${sha}/pulls" --jq 'length' 2>/dev/null || echo 0)
+            if [ "$count" -gt 0 ]; then
+              echo "OK: commit is associated with $count pull request(s)."
+              exit 0
+            fi
+            echo "Attempt $attempt: no PR association yet, retrying in 5s..."
+            sleep 5
+          done
+          echo "::error::Commit $sha was pushed directly to main without a pull request. Direct pushes are not allowed; open a PR instead."
+          exit 1
+
   test-backend:
     name: Backend Tests
     runs-on: ubuntu-latest

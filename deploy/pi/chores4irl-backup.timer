@@ -1,0 +1,13 @@
+[Unit]
+Description=Weekly chores4irl SQLite backup
+
+[Timer]
+OnCalendar=Sun *-*-* 03:00:00
+# Catch up a missed run on next boot if the Pi was powered off at 03:00.
+# This is the key difference from cron, which silently skips missed runs.
+Persistent=true
+# Spread load so the backup doesn't fire at the exact same instant as other timers.
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

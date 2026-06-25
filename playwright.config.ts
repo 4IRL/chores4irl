@@ -1,11 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const PLAYWRIGHT_BASE_URL = process.env.PLAYWRIGHT_BASE_URL;
+
 export default defineConfig({
     testDir: './e2e',
     fullyParallel: false,
     retries: process.env.CI ? 1 : 0,
     use: {
-        baseURL: 'http://localhost:5174',
+        baseURL: PLAYWRIGHT_BASE_URL ?? 'http://localhost:5174',
         headless: true,
     },
     projects: [
@@ -14,7 +16,7 @@ export default defineConfig({
             use: { ...devices['Desktop Chrome'] },
         },
     ],
-    webServer: [
+    webServer: PLAYWRIGHT_BASE_URL ? undefined : [
         {
             command: 'npm run dev --workspace backend',
             url: 'http://localhost:3000/api/chores',

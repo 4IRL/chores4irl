@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Compiled output of the shared type declarations (types/SharedTypes.d.ts is
+# source; no .js should ever be emitted there — guard against stray artifacts)
+types/*.js
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -33,3 +37,18 @@ playwright-report/
 plan.md
 research.md
 plans
+
+# Env files
+.env
+.env.*
+
+# Stray user dotfiles that leaked into repo root
+.bash_profile
+.bashrc
+.gitconfig
+.gitmodules
+.mcp.json
+.profile
+.ripgreprc
+.zprofile
+.zshrc

@@ -1,0 +1,39 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    image: chores4irl-backend:local
+    restart: "on-failure:5"
+    environment:
+      PORT: "3000"
+      DB_PATH: /data/data.db
+      TZ: ${TZ:-America/New_York}   # Override via 'export TZ=...' on the host; chore dates depend on it
+    volumes:
+      - chores-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # No host port publish — only reachable via the Compose network.
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    image: chores4irl-frontend:local
+    restart: "on-failure:5"
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  chores-data:
