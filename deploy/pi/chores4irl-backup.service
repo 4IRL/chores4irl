@@ -5,8 +5,9 @@ After=chores4irl.service docker.service
 
 [Service]
 Type=oneshot
-# Substitute /home/pi if your Pi login differs (e.g. /home/rmilarachi).
-ExecStart=/home/pi/chores4irl/bin/chores4irl-backup.sh
+# Path matches the actual Pi (user rmilarachi, home /home/rmilarachi).
+# Substitute /home/rmilarachi if your Pi login differs.
+ExecStart=/home/rmilarachi/chores4irl/bin/chores4irl-backup.sh
 # REQUIRED: off-Pi backup destination. The script refuses to run without it,
 # because on-card-only backups don't survive an SD-card failure. Point at a LAN
 # host / NAS reachable over SSH (key-based auth, no passphrase prompt):

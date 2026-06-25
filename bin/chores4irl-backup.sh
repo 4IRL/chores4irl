@@ -9,8 +9,8 @@
 # Invoked weekly by chores4irl-backup.timer (systemd). See README "Backup strategy".
 set -euo pipefail
 
-COMPOSE_FILE="${COMPOSE_FILE:-/home/pi/chores4irl/docker-compose.yml}"
-DEST="${BACKUP_DIR:-/home/pi/backups}"
+COMPOSE_FILE="${COMPOSE_FILE:-/home/rmilarachi/chores4irl/docker-compose.yml}"
+DEST="${BACKUP_DIR:-/home/rmilarachi/backups}"
 RETENTION="${BACKUP_RETENTION:-14}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
