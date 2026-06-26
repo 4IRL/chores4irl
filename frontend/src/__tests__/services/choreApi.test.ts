@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchAllChores, addChore, completeChore, removeChore } from '../../services/choreApi';
+import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from '../../services/choreApi';
 
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
@@ -81,6 +81,32 @@ describe('completeChore', () => {
     it('throws when API returns success: false', async () => {
         mockFetch.mockReturnValue(mockErrorResponse('Not found'));
         await expect(completeChore(1, new Date())).rejects.toThrow('Not found');
+    });
+});
+
+describe('updateChore', () => {
+    it('sends PUT with ISO date string and returns parsed Chore', async () => {
+        mockFetch.mockReturnValue(mockResponse(WIRE_CHORE));
+        const result = await updateChore(1, {
+            name: 'Sweep', room: 'Kitchen',
+            dateLastCompleted: new Date('2025-01-01T00:00:00.000Z'),
+            duration: 10, frequency: 7,
+        });
+        expect(result.dateLastCompleted).toBeInstanceOf(Date);
+        const call = mockFetch.mock.calls[0];
+        expect(call[0]).toBe('/api/chores/1');
+        expect(call[1].method).toBe('PUT');
+        const body = JSON.parse(call[1].body);
+        expect(body.dateLastCompleted).toBe('2025-01-01T00:00:00.000Z');
+    });
+
+    it('throws when API returns success: false', async () => {
+        mockFetch.mockReturnValue(mockErrorResponse('Validation error'));
+        await expect(updateChore(1, {
+            name: 'Sweep', room: 'Kitchen',
+            dateLastCompleted: new Date('2025-01-01T00:00:00.000Z'),
+            duration: 10, frequency: 7,
+        })).rejects.toThrow('Validation error');
     });
 });
 

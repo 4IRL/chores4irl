@@ -33,6 +33,20 @@ export async function addChore(newChore: Omit<Chore, 'id'>): Promise<Chore> {
     return parseChore(await handleResponse<ChoreWire>(res));
 }
 
+export async function updateChore(id: number, chore: Omit<Chore, 'id'>): Promise<Chore> {
+    const res = await fetch(`/api/chores/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            ...chore,
+            dateLastCompleted: chore.dateLastCompleted instanceof Date
+                ? chore.dateLastCompleted.toISOString()
+                : chore.dateLastCompleted,
+        }),
+    });
+    return parseChore(await handleResponse<ChoreWire>(res));
+}
+
 export async function completeChore(id: number, date: Date): Promise<Chore> {
     const res = await fetch(`/api/chores/${id}/complete`, {
         method: 'PATCH',

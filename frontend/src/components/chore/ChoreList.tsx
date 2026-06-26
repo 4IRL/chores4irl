@@ -7,9 +7,10 @@ type ChoreListProps = {
     isSimulating: boolean;
     onComplete: (id: number, date: Date) => void;
     onDelete: (id: number) => void;
+    onEdit?: (id: number) => void;
 };
 
-export default function ChoreList({ chores, day, isSimulating, onComplete, onDelete }: ChoreListProps) {
+export default function ChoreList({ chores, day, isSimulating, onComplete, onDelete, onEdit }: ChoreListProps) {
     if (chores.length === 0) {
         return (
             <div>
@@ -29,6 +30,7 @@ export default function ChoreList({ chores, day, isSimulating, onComplete, onDel
                         isSimulating={isSimulating}
                         onComplete={onComplete}
                         onDelete={onDelete}
+                        onEdit={onEdit}
                     />
                 </div>
             ))}

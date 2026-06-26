@@ -37,6 +37,32 @@ describe('ChoreList', () => {
         expect(onDelete).toHaveBeenCalledTimes(2);
     });
 
+    it('passes onEdit to each ChoreTimerBar', async () => {
+        const onEdit = vi.fn();
+        const chores = [
+            makeChore({ id: 1, name: 'Sweep' }),
+            makeChore({ id: 2, name: 'Mop' }),
+        ];
+
+        const user = userEvent.setup();
+        render(
+            <ChoreList
+                chores={chores}
+                day={day}
+                isSimulating={false}
+                onComplete={vi.fn()}
+                onDelete={vi.fn()}
+                onEdit={onEdit}
+            />
+        );
+
+        const editButtons = screen.getAllByRole('button', { name: 'Edit chore' });
+        expect(editButtons).toHaveLength(2);
+
+        await user.click(editButtons[0]);
+        expect(onEdit).toHaveBeenCalledWith(1);
+    });
+
     it('renders one ChoreTimerBar per chore', () => {
         const chores = [
             makeChore({ id: 1, name: 'Sweep' }),

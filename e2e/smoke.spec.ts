@@ -85,6 +85,51 @@ test.describe('Chores App Smoke Tests', () => {
         await expect(page.locator('text=E2E Delete Target')).not.toBeVisible({ timeout: 5_000 });
     });
 
+    test('edits a chore via the pencil button', async ({ page }) => {
+        // Add a dedicated chore to edit so seed data (used by subsequent tests) is preserved
+        await page.locator('button', { hasText: /\+ Add Task/i }).click();
+        await expect(page.locator('.fixed.inset-0')).toBeVisible();
+        await page.fill('input[name="name"]', 'E2E Edit Target');
+        await page.fill('input[name="room"]', 'Test Room');
+        await page.fill('input[name="dateLastCompleted"]', '2026-01-01');
+        await page.fill('input[name="duration"]', '5');
+        await page.fill('input[name="frequency"]', '3');
+        await page.locator('button[type="submit"]', { hasText: /save/i }).click();
+        await page.waitForSelector('text=E2E Edit Target', { timeout: 5_000 });
+
+        try {
+            // Open the edit modal via the pencil button on the target chore's bar
+            const bar = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Edit Target' });
+            await bar.locator('[aria-label="Edit chore"]').click();
+
+            // Modal opens pre-filled with the chore's name
+            await expect(page.locator('input[name="name"]')).toHaveValue('E2E Edit Target');
+
+            // Edit and save, verifying the real server round-trip (PUT), not just the optimistic render
+            const putResponse = page.waitForResponse(
+                r => r.url().includes('/api/chores/') && r.request().method() === 'PUT'
+            );
+            await page.fill('input[name="name"]', 'E2E Edited');
+            // The edit submit button reads "Save Changes" — still matches /save/i
+            await page.locator('button[type="submit"]', { hasText: /save/i }).click();
+            await putResponse;
+
+            await expect(page.locator('text=E2E Edited')).toBeVisible({ timeout: 5_000 });
+            // Modal closed after a successful save
+            await expect(page.getByTestId('chore-modal-backdrop')).not.toBeVisible();
+        } finally {
+            // Delete every E2E Edited (and any E2E Edit Target leftover from a failed run) bar
+            const editedChores = page.locator('.bg-gray-800.rounded-full', { hasText: /E2E Edited|E2E Edit Target/ });
+            let count = await editedChores.count();
+            while (count > 0) {
+                await editedChores.first().locator('[aria-label="Delete chore"]').click();
+                await page.getByTestId('confirm-dialog-confirm').click();
+                await expect(editedChores).toHaveCount(count - 1, { timeout: 5_000 });
+                count = count - 1;
+            }
+        }
+    });
+
     test('shows error and rolls back on simulated backend failure', async ({ page }) => {
         // Intercept the PATCH request and force it to fail
         await page.route('**/api/chores/*/complete', route =>
