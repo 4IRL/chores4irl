@@ -58,6 +58,7 @@ test.describe('Chores App Smoke Tests', () => {
             let count = await testChores.count();
             while (count > 0) {
                 await testChores.first().locator('[aria-label="Delete chore"]').click();
+                await page.getByTestId('confirm-dialog-confirm').click();
                 await expect(testChores).toHaveCount(count - 1, { timeout: 5_000 });
                 count = count - 1;
             }
@@ -80,6 +81,7 @@ test.describe('Chores App Smoke Tests', () => {
         const targetChore = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Delete Target' });
         const deleteBtn = targetChore.locator('[aria-label="Delete chore"]');
         await deleteBtn.click();
+        await page.getByTestId('confirm-dialog-confirm').click();
         await expect(page.locator('text=E2E Delete Target')).not.toBeVisible({ timeout: 5_000 });
     });
 
