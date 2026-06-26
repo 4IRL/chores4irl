@@ -58,6 +58,30 @@ export function completeChore(id: number, dateLastCompleted: string): ChoreWire 
     return rowToChore(db.prepare('SELECT * FROM chores WHERE id = ?').get(id) as ChoreRow);
 }
 
+export function updateChore(id: number, input: Omit<Chore, 'id'>): ChoreWire | null {
+    const result = db.prepare(`
+        UPDATE chores
+        SET name = @name, details = @details, room = @room,
+            date_last_completed = @date_last_completed, duration = @duration,
+            frequency = @frequency, urgency = @urgency, long_term_task = @long_term_task
+        WHERE id = @id
+    `).run({
+        id,
+        name: input.name,
+        details: input.details ?? null,
+        room: input.room,
+        date_last_completed: input.dateLastCompleted instanceof Date
+            ? input.dateLastCompleted.toISOString()
+            : String(input.dateLastCompleted),
+        duration: input.duration,
+        frequency: input.frequency,
+        urgency: input.urgency ?? null,
+        long_term_task: input.longTermTask ? 1 : 0,
+    });
+    if (result.changes === 0) return null;
+    return rowToChore(db.prepare('SELECT * FROM chores WHERE id = ?').get(id) as ChoreRow);
+}
+
 export function deleteChore(id: number): boolean {
     return db.prepare('DELETE FROM chores WHERE id = ?').run(id).changes > 0;
 }

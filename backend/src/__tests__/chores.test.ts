@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getAllChores, createChore, completeChore, deleteChore } from '../chores.js';
+import { getAllChores, createChore, completeChore, deleteChore, updateChore } from '../chores.js';
 import { db } from '../db.js';
 
 beforeEach(() => {
@@ -74,6 +74,78 @@ describe('completeChore', () => {
 
     it('returns null when the id does not exist', () => {
         expect(completeChore(9999, '2025-06-01T00:00:00.000Z')).toBeNull();
+    });
+});
+
+describe('updateChore', () => {
+    function seedRow(): number {
+        db.exec(`INSERT INTO chores (name, details, room, date_last_completed, duration, frequency, urgency, long_term_task)
+            VALUES ('Sweep', NULL, 'Kitchen', '2025-01-01T00:00:00.000Z', 10, 7, NULL, 0)`);
+        return (db.prepare('SELECT id FROM chores').get() as { id: number }).id;
+    }
+
+    it('updates all editable fields and returns the updated row', () => {
+        const id = seedRow();
+        const result = updateChore(id, {
+            name: 'Mop',
+            details: 'edited',
+            room: 'Bathroom',
+            dateLastCompleted: new Date('2025-02-02T00:00:00.000Z'),
+            duration: 20,
+            frequency: 14,
+            urgency: 'high',
+            longTermTask: true,
+        });
+        expect(result).not.toBeNull();
+        expect(result!.name).toBe('Mop');
+        expect(result!.details).toBe('edited');
+        expect(result!.room).toBe('Bathroom');
+        expect(result!.dateLastCompleted).toBe('2025-02-02T00:00:00.000Z');
+        expect(result!.duration).toBe(20);
+        expect(result!.frequency).toBe(14);
+        expect(result!.urgency).toBe('high');
+        expect(result!.longTermTask).toBe(true);
+        expect(result!.id).toBe(id);
+    });
+
+    it('clears optional fields when omitted', () => {
+        db.exec(`INSERT INTO chores (name, details, room, date_last_completed, duration, frequency, urgency, long_term_task)
+            VALUES ('Sweep', 'has details', 'Kitchen', '2025-01-01T00:00:00.000Z', 10, 7, 'medium', 1)`);
+        const id = (db.prepare('SELECT id FROM chores').get() as { id: number }).id;
+        const result = updateChore(id, {
+            name: 'Mop',
+            room: 'Bathroom',
+            dateLastCompleted: new Date('2025-02-02T00:00:00.000Z'),
+            duration: 20,
+            frequency: 14,
+        });
+        expect(result).not.toBeNull();
+        expect(result!.details).toBeNull();
+        expect(result!.urgency).toBeUndefined();
+        expect(result!.longTermTask).toBeUndefined();
+    });
+
+    it('a no-op save (identical values) still returns the row, not null', () => {
+        const id = seedRow();
+        const result = updateChore(id, {
+            name: 'Sweep',
+            room: 'Kitchen',
+            dateLastCompleted: new Date('2025-01-01T00:00:00.000Z'),
+            duration: 10,
+            frequency: 7,
+        });
+        expect(result).not.toBeNull();
+        expect(result!.id).toBe(id);
+    });
+
+    it('returns null when the id does not exist', () => {
+        expect(updateChore(9999, {
+            name: 'Mop',
+            room: 'Bathroom',
+            dateLastCompleted: new Date('2025-02-02T00:00:00.000Z'),
+            duration: 20,
+            frequency: 14,
+        })).toBeNull();
     });
 });
 
