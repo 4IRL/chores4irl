@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChoreFormModal from '../../components/form/ChoreFormModal';
+import { makeChore } from '../fixtures/chore';
 
 describe('ChoreFormModal backdrop click', () => {
     it('calls onCancel when the backdrop itself is clicked', async () => {
@@ -22,5 +23,21 @@ describe('ChoreFormModal backdrop click', () => {
 
         await user.click(screen.getByLabelText('Name'));
         expect(onCancel).not.toHaveBeenCalled();
+    });
+});
+
+describe('ChoreFormModal edit mode', () => {
+    it('pre-populates the form', () => {
+        render(
+            <ChoreFormModal
+                mode="edit"
+                initialChore={makeChore({ name: 'Mop' })}
+                onSubmit={vi.fn()}
+                onCancel={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByLabelText('Name')).toHaveValue('Mop');
+        expect(screen.getByText('Edit Chore')).toBeInTheDocument();
     });
 });
