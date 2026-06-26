@@ -6,6 +6,13 @@ import { makeChore } from '../fixtures/chore';
 
 const day = new Date(2025, 0, 15, 12, 0, 0);
 
+function swipe(bar: HTMLElement, fromX: number, toX: number) {
+    fireEvent.mouseDown(bar, { clientX: fromX, clientY: 50 });
+    fireEvent.mouseMove(bar, { clientX: (fromX + toX) / 2, clientY: 50 });
+    fireEvent.mouseMove(bar, { clientX: toX, clientY: 50 });
+    fireEvent.mouseUp(bar, { clientX: toX, clientY: 50 });
+}
+
 describe('ChoreTimerBar', () => {
     it('renders the delete button with correct aria-label', () => {
         render(
@@ -192,5 +199,117 @@ describe('ChoreTimerBar', () => {
             <ChoreTimerBar chore={chore} day={day} isSimulating={false} onComplete={vi.fn()} onDelete={vi.fn()} />
         );
         expect(screen.queryByText('Overdue')).not.toBeInTheDocument();
+    });
+
+    it('calls onDelete (not onComplete) when the bar is swiped left', () => {
+        const onComplete = vi.fn();
+        const onDelete = vi.fn();
+        render(
+            <ChoreTimerBar
+                chore={makeChore({ id: 42 })}
+                day={day}
+                isSimulating={false}
+                onComplete={onComplete}
+                onDelete={onDelete}
+                onEdit={vi.fn()}
+            />
+        );
+        swipe(screen.getByTestId('chore-bar'), 200, 120);
+        expect(onDelete).toHaveBeenCalledOnce();
+        expect(onDelete).toHaveBeenCalledWith(42);
+        expect(onComplete).not.toHaveBeenCalled();
+    });
+
+    it('calls onEdit (not onComplete) when the bar is swiped right', () => {
+        const onComplete = vi.fn();
+        const onEdit = vi.fn();
+        render(
+            <ChoreTimerBar
+                chore={makeChore({ id: 42 })}
+                day={day}
+                isSimulating={false}
+                onComplete={onComplete}
+                onDelete={vi.fn()}
+                onEdit={onEdit}
+            />
+        );
+        swipe(screen.getByTestId('chore-bar'), 120, 220);
+        expect(onEdit).toHaveBeenCalledOnce();
+        expect(onEdit).toHaveBeenCalledWith(42);
+        expect(onComplete).not.toHaveBeenCalled();
+    });
+
+    it('suppresses the trailing click after a swipe so the chore is not completed', () => {
+        const onComplete = vi.fn();
+        const onDelete = vi.fn();
+        render(
+            <ChoreTimerBar
+                chore={makeChore()}
+                day={day}
+                isSimulating={false}
+                onComplete={onComplete}
+                onDelete={onDelete}
+                onEdit={vi.fn()}
+            />
+        );
+        const bar = screen.getByTestId('chore-bar');
+        swipe(bar, 200, 120);
+        fireEvent.click(bar);
+        expect(onComplete).not.toHaveBeenCalled();
+    });
+
+    it('does not fire swipe callbacks while simulating', () => {
+        const onDelete = vi.fn();
+        const onEdit = vi.fn();
+        render(
+            <ChoreTimerBar
+                chore={makeChore()}
+                day={day}
+                isSimulating={true}
+                onComplete={vi.fn()}
+                onDelete={onDelete}
+                onEdit={onEdit}
+            />
+        );
+        const bar = screen.getByTestId('chore-bar');
+        swipe(bar, 200, 120);
+        swipe(bar, 120, 220);
+        expect(onDelete).not.toHaveBeenCalled();
+        expect(onEdit).not.toHaveBeenCalled();
+    });
+
+    it('treats a sub-threshold drag as a tap that completes the chore', () => {
+        const onComplete = vi.fn();
+        const onDelete = vi.fn();
+        const onEdit = vi.fn();
+        render(
+            <ChoreTimerBar
+                chore={makeChore()}
+                day={day}
+                isSimulating={false}
+                onComplete={onComplete}
+                onDelete={onDelete}
+                onEdit={onEdit}
+            />
+        );
+        const bar = screen.getByTestId('chore-bar');
+        swipe(bar, 200, 180);
+        fireEvent.click(bar);
+        expect(onDelete).not.toHaveBeenCalled();
+        expect(onEdit).not.toHaveBeenCalled();
+        expect(onComplete).toHaveBeenCalledOnce();
+    });
+
+    it('applies the touch-pan-y class to the chore bar', () => {
+        render(
+            <ChoreTimerBar
+                chore={makeChore()}
+                day={day}
+                isSimulating={false}
+                onComplete={vi.fn()}
+                onDelete={vi.fn()}
+            />
+        );
+        expect(screen.getByTestId('chore-bar')).toHaveClass('touch-pan-y');
     });
 });

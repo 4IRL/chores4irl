@@ -24,6 +24,45 @@ vi.mock('../hooks/useMidnightClock', () => ({
     useMidnightClock: mockUseMidnightClock,
 }));
 
+function swipe(bar: HTMLElement, fromX: number, toX: number) {
+    fireEvent.mouseDown(bar, { clientX: fromX, clientY: 50 });
+    fireEvent.mouseMove(bar, { clientX: (fromX + toX) / 2, clientY: 50 });
+    fireEvent.mouseMove(bar, { clientX: toX, clientY: 50 });
+    fireEvent.mouseUp(bar, { clientX: toX, clientY: 50 });
+}
+
+describe('swipe gestures', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' })]);
+        vi.mocked(addChore).mockResolvedValue(makeChore());
+        vi.mocked(completeChore).mockResolvedValue(makeChore());
+        vi.mocked(removeChore).mockResolvedValue(undefined);
+    });
+
+    it('swiping a bar left opens the delete confirmation without deleting yet', async () => {
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        swipe(screen.getAllByTestId('chore-bar')[0], 200, 120);
+
+        expect(await screen.findByTestId('confirm-dialog-confirm')).toBeInTheDocument();
+        expect(removeChore).not.toHaveBeenCalled();
+    });
+
+    it('swiping a bar right opens the pre-populated edit modal', async () => {
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        swipe(screen.getAllByTestId('chore-bar')[0], 120, 220);
+
+        expect(await screen.findByText('Edit Chore')).toBeInTheDocument();
+        expect(screen.getByLabelText('Name')).toHaveValue('Sweep');
+    });
+});
+
 describe('initial load', () => {
     it('shows error banner when fetchAllChores rejects', async () => {
         vi.mocked(fetchAllChores).mockRejectedValue(new Error('Network error'));
