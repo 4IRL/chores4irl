@@ -9,6 +9,7 @@ import ReturnToTodayButton from './components/nav/ReturnToTodayButton';
 import ChoreList from './components/chore/ChoreList';
 import AddChoreButton from './components/form/AddChoreButton';
 import ChoreFormModal from './components/form/ChoreFormModal';
+import ConfirmDialog from './components/common/ConfirmDialog';
 import { fetchAllChores, addChore, completeChore, removeChore } from './services/choreApi';
 import type { Chore } from '@customTypes/SharedTypes';
 
@@ -23,6 +24,7 @@ export default function App() {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [sortedIds, setSortedIds] = useState<number[]>([]);
+    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
     const choreDataRef = useRef<Chore[]>(choreData);
     choreDataRef.current = choreData;
 
@@ -49,6 +51,8 @@ export default function App() {
         () => Array.from(new Set(choreData.map(chore => chore.room))),
         [choreData]
     );
+
+    const pendingChore = pendingDeleteId !== null ? choreData.find(c => c.id === pendingDeleteId) : undefined;
 
     const filteredChores = useRoomFilter(choreData, selectedRoom);
     const orderedChores = useMemo(() => {
@@ -82,6 +86,20 @@ export default function App() {
             setSortedIds(prevSortedIds);
             setError(err instanceof Error ? err.message : 'Failed to delete chore');
         }
+    }
+
+    function handleRequestDelete(id: number) {
+        setPendingDeleteId(id);
+    }
+
+    function handleCancelDelete() {
+        setPendingDeleteId(null);
+    }
+
+    function handleConfirmDelete() {
+        const id = pendingDeleteId;
+        setPendingDeleteId(null);
+        if (id !== null) void handleDeleteChore(id);
     }
 
     async function handleCompleteChore(id: number, date: Date): Promise<void> {
@@ -128,13 +146,20 @@ export default function App() {
                 />
                 <ReturnToTodayButton dayOffset={dayOffset} onReset={() => setDayOffset(0)} />
                 <div className="flex-1 overflow-y-auto min-h-0">
-                    <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleDeleteChore} />
+                    <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} />
                 </div>
                 <div className="flex-shrink-0 py-4 flex justify-center border-t border-gray-700">
                     <AddChoreButton onClick={() => setShowForm(true)} />
                 </div>
             </div>
             {showForm && <ChoreFormModal onSubmit={handleAddChore} onCancel={() => setShowForm(false)} />}
+            {pendingChore && (
+                <ConfirmDialog
+                    message={`Delete "${pendingChore.name}"? This can't be undone.`}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={handleCancelDelete}
+                />
+            )}
         </div>
     );
 }

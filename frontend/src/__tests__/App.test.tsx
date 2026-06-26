@@ -55,8 +55,11 @@ describe('handleDeleteChore', () => {
             expect(screen.getByRole('button', { name: 'Delete chore' })).toBeInTheDocument()
         );
 
-        // Click delete — optimistic remove fires synchronously before removeChore resolves
+        // Click delete — opens the confirm dialog
         await user.click(screen.getByRole('button', { name: 'Delete chore' }));
+
+        // Confirm the deletion — optimistic remove fires synchronously before removeChore resolves
+        await user.click(screen.getByTestId('confirm-dialog-confirm'));
 
         // Optimistic remove: chore is gone from the DOM
         expect(screen.queryByRole('button', { name: 'Delete chore' })).not.toBeInTheDocument();
@@ -71,6 +74,63 @@ describe('handleDeleteChore', () => {
 
         // Error state is set
         expect(screen.getByText('Delete failed')).toBeInTheDocument();
+    });
+});
+
+describe('delete confirmation', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore()]);
+        vi.mocked(removeChore).mockResolvedValue(undefined);
+    });
+
+    it('opens the dialog and does not delete yet', async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: 'Delete chore' })).toBeInTheDocument()
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Delete chore' }));
+
+        expect(screen.getByTestId('confirm-dialog-backdrop')).toBeInTheDocument();
+        expect(screen.getByText('Delete "Sweep"? This can\'t be undone.')).toBeInTheDocument();
+        expect(removeChore).not.toHaveBeenCalled();
+        expect(screen.getByRole('button', { name: 'Delete chore' })).toBeInTheDocument();
+    });
+
+    it('deletes the chore when Confirm is clicked', async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: 'Delete chore' })).toBeInTheDocument()
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Delete chore' }));
+        await user.click(screen.getByTestId('confirm-dialog-confirm'));
+
+        expect(removeChore).toHaveBeenCalledWith(1);
+        expect(screen.queryByText('Sweep')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Delete chore' })).not.toBeInTheDocument();
+        expect(screen.queryByTestId('confirm-dialog-backdrop')).not.toBeInTheDocument();
+    });
+
+    it('does not delete the chore when Cancel is clicked', async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: 'Delete chore' })).toBeInTheDocument()
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Delete chore' }));
+        await user.click(screen.getByTestId('confirm-dialog-cancel'));
+
+        expect(removeChore).not.toHaveBeenCalled();
+        expect(screen.queryByTestId('confirm-dialog-backdrop')).not.toBeInTheDocument();
+        expect(screen.getByText('Sweep')).toBeInTheDocument();
     });
 });
 
@@ -241,8 +301,9 @@ describe('frozen sort order', () => {
             el.textContent?.match(/Chore [AB]/)?.[0] ?? ''
         );
 
-        // Delete the first chore in the rendered list — optimistic remove fires immediately
+        // Delete the first chore in the rendered list — confirm to fire optimistic remove
         await user.click(screen.getAllByRole('button', { name: 'Delete chore' })[0]);
+        await user.click(screen.getByTestId('confirm-dialog-confirm'));
         await waitFor(() => expect(screen.getAllByTestId('chore-bar')).toHaveLength(1));
 
         // Reject the in-flight request — triggers rollback of both choreData and sortedIds
