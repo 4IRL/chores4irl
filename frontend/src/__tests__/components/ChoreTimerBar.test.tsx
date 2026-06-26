@@ -55,6 +55,57 @@ describe('ChoreTimerBar', () => {
         expect(onDelete).toHaveBeenCalledOnce();
     });
 
+    it('renders the edit button with correct aria-label', () => {
+        render(
+            <ChoreTimerBar
+                chore={makeChore()}
+                day={day}
+                isSimulating={false}
+                onComplete={vi.fn()}
+                onDelete={vi.fn()}
+                onEdit={vi.fn()}
+            />
+        );
+        expect(screen.getByRole('button', { name: 'Edit chore' })).toBeInTheDocument();
+    });
+
+    it('calls onEdit with the chore id when the edit button is clicked', async () => {
+        const onEdit = vi.fn();
+        const user = userEvent.setup();
+        render(
+            <ChoreTimerBar
+                chore={makeChore({ id: 42 })}
+                day={day}
+                isSimulating={false}
+                onComplete={vi.fn()}
+                onDelete={vi.fn()}
+                onEdit={onEdit}
+            />
+        );
+        await user.click(screen.getByRole('button', { name: 'Edit chore' }));
+        expect(onEdit).toHaveBeenCalledOnce();
+        expect(onEdit).toHaveBeenCalledWith(42);
+    });
+
+    it('does not call onComplete when the edit button is clicked (stopPropagation)', async () => {
+        const onComplete = vi.fn();
+        const onEdit = vi.fn();
+        const user = userEvent.setup();
+        render(
+            <ChoreTimerBar
+                chore={makeChore()}
+                day={day}
+                isSimulating={false}
+                onComplete={onComplete}
+                onDelete={vi.fn()}
+                onEdit={onEdit}
+            />
+        );
+        await user.click(screen.getByRole('button', { name: 'Edit chore' }));
+        expect(onComplete).not.toHaveBeenCalled();
+        expect(onEdit).toHaveBeenCalledOnce();
+    });
+
     it('updates displayed date when chore prop dateLastCompleted changes', () => {
         const chore = makeChore({ dateLastCompleted: new Date('2025-01-01T00:00:00.000Z') });
         const { rerender } = render(

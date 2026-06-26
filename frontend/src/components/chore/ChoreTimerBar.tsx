@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { differenceInDays, startOfDay } from 'date-fns';
+import { Pencil } from 'lucide-react';
 import type { Chore } from '@customTypes/SharedTypes';
 import { computeBar } from '@utils/choreBarMath';
 import ProgressBar from './ProgressBar';
@@ -13,9 +14,10 @@ type ChoreTimerBarProps = {
     isSimulating: boolean;
     onComplete: (id: number, date: Date) => void;
     onDelete: (id: number) => void;
+    onEdit?: (id: number) => void;
 };
 
-export default function ChoreTimerBar({ chore, day, isSimulating, onComplete, onDelete }: ChoreTimerBarProps) {
+export default function ChoreTimerBar({ chore, day, isSimulating, onComplete, onDelete, onEdit }: ChoreTimerBarProps) {
     const daysSince = useMemo(
         () => differenceInDays(startOfDay(day), startOfDay(chore.dateLastCompleted)),
         [day, chore.dateLastCompleted]
@@ -35,7 +37,7 @@ export default function ChoreTimerBar({ chore, day, isSimulating, onComplete, on
             onClick={resetTask}
         >
             <ProgressBar width={barWidth} color={barColor} />
-            <div className="absolute inset-0 px-4 pr-12 flex flex-col justify-center gap-1 sm:flex-row sm:items-center sm:justify-between sm:pr-4">
+            <div className="absolute inset-0 px-4 pr-20 flex flex-col justify-center gap-1 sm:flex-row sm:items-center sm:justify-between sm:pr-4">
                 <ChoreInfo name={chore.name} room={chore.room} frequency={chore.frequency} />
                 {isOverdue && (
                     <div className="absolute top-2 right-20 sm:static sm:order-2">
@@ -45,14 +47,25 @@ export default function ChoreTimerBar({ chore, day, isSimulating, onComplete, on
                 <CompletionInfo date={chore.dateLastCompleted} daysSince={daysSince} />
             </div>
 
-            {/* TODO(#10): replace with swipe-to-delete — touch target intentionally below 44px until then */}
-            <button
-                className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 bg-red-600 bg-opacity-80 hover:bg-red-500 text-white text-sm rounded-full pointer-events-auto"
-                onClick={e => { e.stopPropagation(); onDelete(chore.id); }}
-                aria-label="Delete chore"
-            >
-                ✕
-            </button>
+            {/* TODO(#10): replace edit + delete buttons with swipe gestures (F5) — removed in F6 */}
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-auto">
+                {onEdit && (
+                    <button
+                        className="p-1.5 bg-indigo-600 bg-opacity-80 hover:bg-indigo-500 text-white rounded-full"
+                        onClick={e => { e.stopPropagation(); onEdit(chore.id); }}
+                        aria-label="Edit chore"
+                    >
+                        <Pencil className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                )}
+                <button
+                    className="px-3 py-1 bg-red-600 bg-opacity-80 hover:bg-red-500 text-white text-sm rounded-full"
+                    onClick={e => { e.stopPropagation(); onDelete(chore.id); }}
+                    aria-label="Delete chore"
+                >
+                    ✕
+                </button>
+            </div>
         </div>
     );
 }
