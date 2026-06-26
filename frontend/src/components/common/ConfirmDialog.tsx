@@ -28,9 +28,10 @@ export default function ConfirmDialog({
             data-testid="confirm-dialog-backdrop"
             role="dialog"
             aria-modal="true"
+            aria-labelledby="confirm-dialog-message"
         >
             <div className="bg-gray-800 rounded-xl p-6 w-full max-w-sm">
-                <p className="text-white text-base mb-6">{message}</p>
+                <p id="confirm-dialog-message" className="text-white text-base mb-6">{message}</p>
                 <div className="flex justify-end gap-3">
                     <button
                         type="button"
