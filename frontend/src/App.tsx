@@ -10,7 +10,7 @@ import ChoreList from './components/chore/ChoreList';
 import AddChoreButton from './components/form/AddChoreButton';
 import ChoreFormModal from './components/form/ChoreFormModal';
 import ConfirmDialog from './components/common/ConfirmDialog';
-import { fetchAllChores, addChore, completeChore, removeChore } from './services/choreApi';
+import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from './services/choreApi';
 import type { Chore } from '@customTypes/SharedTypes';
 
 export default function App() {
@@ -25,6 +25,7 @@ export default function App() {
     const [error, setError] = useState<string | null>(null);
     const [sortedIds, setSortedIds] = useState<number[]>([]);
     const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+    const [editingId, setEditingId] = useState<number | null>(null);
     const choreDataRef = useRef<Chore[]>(choreData);
     choreDataRef.current = choreData;
 
@@ -53,6 +54,7 @@ export default function App() {
     );
 
     const pendingChore = pendingDeleteId !== null ? choreData.find(c => c.id === pendingDeleteId) : undefined;
+    const editingChore = editingId !== null ? choreData.find(c => c.id === editingId) : undefined;
 
     const filteredChores = useRoomFilter(choreData, selectedRoom);
     const orderedChores = useMemo(() => {
@@ -118,6 +120,29 @@ export default function App() {
         }
     }
 
+    function handleRequestEdit(id: number) {
+        setShowForm(false);
+        setEditingId(id);
+    }
+
+    function handleCancelEdit() {
+        setEditingId(null);
+    }
+
+    async function handleEditChore(id: number, edited: Omit<Chore, 'id'>): Promise<void> {
+        const originalChore = choreData.find(chore => chore.id === id);
+        if (!originalChore) return;
+        setChoreData(curr => curr.map(chore => chore.id === id ? { ...originalChore, ...edited } : chore));
+        setEditingId(null);
+        try {
+            const updated = await updateChore(id, edited);
+            setChoreData(curr => curr.map(chore => chore.id === id ? updated : chore));
+        } catch (err) {
+            setChoreData(curr => curr.map(chore => chore.id === id ? originalChore : chore));
+            setError(err instanceof Error ? err.message : 'Failed to update chore');
+        }
+    }
+
     if (loading) {
         return (
             <div className="App">
@@ -146,13 +171,21 @@ export default function App() {
                 />
                 <ReturnToTodayButton dayOffset={dayOffset} onReset={() => setDayOffset(0)} />
                 <div className="flex-1 overflow-y-auto min-h-0">
-                    <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} />
+                    <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} onEdit={handleRequestEdit} />
                 </div>
                 <div className="flex-shrink-0 py-4 flex justify-center border-t border-gray-700">
-                    <AddChoreButton onClick={() => setShowForm(true)} />
+                    <AddChoreButton onClick={() => { setEditingId(null); setShowForm(true); }} />
                 </div>
             </div>
             {showForm && <ChoreFormModal onSubmit={handleAddChore} onCancel={() => setShowForm(false)} />}
+            {!showForm && editingChore && (
+                <ChoreFormModal
+                    mode="edit"
+                    initialChore={editingChore}
+                    onSubmit={edited => handleEditChore(editingChore.id, edited)}
+                    onCancel={handleCancelEdit}
+                />
+            )}
             {pendingChore && (
                 <ConfirmDialog
                     message={`Delete "${pendingChore.name}"? This can't be undone.`}

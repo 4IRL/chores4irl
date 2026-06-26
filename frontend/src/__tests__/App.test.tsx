@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
-import { fetchAllChores, addChore, completeChore, removeChore } from '../services/choreApi';
+import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from '../services/choreApi';
 import type { Chore } from '@customTypes/SharedTypes';
 import { makeChore } from './fixtures/chore';
 
@@ -11,6 +11,7 @@ vi.mock('../services/choreApi', () => ({
     addChore: vi.fn(),
     completeChore: vi.fn(),
     removeChore: vi.fn(),
+    updateChore: vi.fn(),
 }));
 
 const MOCK_DAY = new Date(2025, 0, 15, 12, 0, 0);
@@ -190,6 +191,121 @@ describe('handleCompleteChore', () => {
         await user.click(screen.getByText('Sweep'));
 
         await waitFor(() => expect(screen.getByText('Sweep (reconciled)')).toBeInTheDocument());
+    });
+});
+
+describe('handleEditChore', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' })]);
+        vi.mocked(addChore).mockResolvedValue(makeChore());
+        vi.mocked(completeChore).mockResolvedValue(makeChore());
+        vi.mocked(removeChore).mockResolvedValue(undefined);
+    });
+
+    it('opens a pre-populated edit modal from the pencil button', async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: 'Edit chore' })).toBeInTheDocument()
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Edit chore' }));
+
+        expect(screen.getByText('Edit Chore')).toBeInTheDocument();
+        expect(screen.getByLabelText('Name')).toHaveValue('Sweep');
+    });
+
+    it('optimistically updates the chore and reconciles on success', async () => {
+        vi.mocked(updateChore).mockResolvedValue(makeChore({ id: 1, name: 'Sweep Edited', room: 'Kitchen' }));
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: 'Edit chore' })).toBeInTheDocument()
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Edit chore' }));
+        await user.clear(screen.getByLabelText('Name'));
+        await user.type(screen.getByLabelText('Name'), 'Sweep Edited');
+        await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+        await waitFor(() => expect(screen.getByText('Sweep Edited')).toBeInTheDocument());
+        expect(screen.queryByText('Edit Chore')).not.toBeInTheDocument();
+    });
+
+    it('rolls back and sets error when updateChore rejects', async () => {
+        let rejectEdit!: (err: Error) => void;
+        vi.mocked(updateChore).mockReturnValue(
+            new Promise<Chore>((_, rej) => { rejectEdit = rej; })
+        );
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: 'Edit chore' })).toBeInTheDocument()
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Edit chore' }));
+        await user.clear(screen.getByLabelText('Name'));
+        await user.type(screen.getByLabelText('Name'), 'Sweep Edited');
+        await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+        // Optimistic update applied
+        expect(screen.getByText('Sweep Edited')).toBeInTheDocument();
+
+        rejectEdit(new Error('Edit failed'));
+
+        await waitFor(() => expect(screen.getByText('Edit failed')).toBeInTheDocument());
+        expect(screen.getByText('Sweep')).toBeInTheDocument();
+    });
+
+    it('Cancel closes the edit modal without saving', async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: 'Edit chore' })).toBeInTheDocument()
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Edit chore' }));
+        await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(screen.queryByText('Edit Chore')).not.toBeInTheDocument();
+        expect(vi.mocked(updateChore)).not.toHaveBeenCalled();
+        expect(screen.getByText('Sweep')).toBeInTheDocument();
+    });
+
+    it('editing does NOT change list position (frozen sort, Decision 7)', async () => {
+        const choreA = makeChore({ id: 1, name: 'Chore A', duration: 60 });
+        const choreB = makeChore({ id: 2, name: 'Chore B', duration: 5 });
+        vi.mocked(fetchAllChores).mockResolvedValue([choreA, choreB]);
+        vi.mocked(updateChore).mockResolvedValue(makeChore({ id: 2, name: 'Chore B', duration: 999 }));
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getAllByTestId('chore-bar')).toHaveLength(2));
+
+        const orderBefore = screen.getAllByTestId('chore-bar').map(el =>
+            el.textContent?.match(/Chore [AB]/)?.[0] ?? ''
+        );
+
+        // Edit the SECOND rendered bar, bumping its duration high so it would sort first if re-sorted
+        await user.click(screen.getAllByRole('button', { name: 'Edit chore' })[1]);
+        await user.clear(screen.getByLabelText('Duration (minutes)'));
+        await user.type(screen.getByLabelText('Duration (minutes)'), '999');
+        await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+        await waitFor(() => expect(screen.queryByText('Edit Chore')).not.toBeInTheDocument());
+
+        const orderAfter = screen.getAllByTestId('chore-bar').map(el =>
+            el.textContent?.match(/Chore [AB]/)?.[0] ?? ''
+        );
+        expect(orderAfter).toEqual(orderBefore);
     });
 });
 
