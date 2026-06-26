@@ -24,13 +24,30 @@ const initialFormState: FormState = {
     longTermTask: false,
 };
 
-type AddChoreFormProps = {
+function choreToFormState(chore: Chore): FormState {
+    return {
+        name: chore.name,
+        details: chore.details ?? '',
+        room: chore.room,
+        dateLastCompleted: chore.dateLastCompleted.toISOString().slice(0, 10),
+        duration: String(chore.duration),
+        frequency: String(chore.frequency),
+        urgency: chore.urgency ?? '',
+        longTermTask: chore.longTermTask ?? false,
+    };
+}
+
+type ChoreFormProps = {
+    mode?: 'add' | 'edit';
+    initialChore?: Chore;
     onSubmit: (chore: Omit<Chore, 'id'>) => void;
     onCancel: () => void;
 };
 
-export default function AddChoreForm({ onSubmit, onCancel }: AddChoreFormProps) {
-    const [formData, setFormData] = useState<FormState>(initialFormState);
+export default function ChoreForm({ mode = 'add', initialChore, onSubmit, onCancel }: ChoreFormProps) {
+    const [formData, setFormData] = useState<FormState>(() =>
+        initialChore ? choreToFormState(initialChore) : initialFormState,
+    );
 
     function handleFieldChange(name: string, value: string) {
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -48,12 +65,12 @@ export default function AddChoreForm({ onSubmit, onCancel }: AddChoreFormProps) 
             urgency: formData.urgency || undefined,
             longTermTask: formData.longTermTask || undefined,
         });
-        setFormData(initialFormState);
+        if (mode === 'add') setFormData(initialFormState);
     }
 
     return (
         <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md overflow-y-auto max-h-[90dvh]">
-            <h3 className="text-white font-semibold text-lg mb-4">Add New Chore</h3>
+            <h3 className="text-white font-semibold text-lg mb-4">{mode === 'edit' ? 'Edit Chore' : 'Add New Chore'}</h3>
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <FormField name="name" label="Name" value={formData.name} onChange={handleFieldChange} required autoFocus />
                 <FormField name="details" label="Details" value={formData.details} onChange={handleFieldChange} />
@@ -89,7 +106,7 @@ export default function AddChoreForm({ onSubmit, onCancel }: AddChoreFormProps) 
 
                 <div className="flex gap-3 mt-2">
                     <button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg">
-                        Save
+                        {mode === 'edit' ? 'Save Changes' : 'Save'}
                     </button>
                     <button type="button" onClick={onCancel} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg">
                         Cancel

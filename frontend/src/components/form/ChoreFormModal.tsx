@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import type { Chore } from '@customTypes/SharedTypes';
-import AddChoreForm from './AddChoreForm';
+import ChoreForm from './ChoreForm';
 
 type ChoreFormModalProps = {
     onSubmit: (chore: Omit<Chore, 'id'>) => void;
@@ -20,7 +20,7 @@ export default function ChoreFormModal({ onSubmit, onCancel }: ChoreFormModalPro
             onClick={handleBackdropClick}
             data-testid="chore-modal-backdrop"
         >
-            <AddChoreForm onSubmit={onSubmit} onCancel={onCancel} />
+            <ChoreForm onSubmit={onSubmit} onCancel={onCancel} />
         </div>,
         document.body,
     );
