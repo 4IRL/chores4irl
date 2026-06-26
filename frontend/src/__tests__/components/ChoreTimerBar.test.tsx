@@ -168,7 +168,7 @@ describe('ChoreTimerBar', () => {
         expect(onDelete).toHaveBeenCalledWith(7);
     });
 
-    it('renders the OverdueBadge when the chore is overdue', () => {
+    it('exposes an sr-only "Overdue" cue when overdue', () => {
         const chore = makeChore({
             frequency: 7,
             dateLastCompleted: new Date(2024, 11, 31, 12, 0, 0),
@@ -179,7 +179,7 @@ describe('ChoreTimerBar', () => {
         expect(screen.getByText('Overdue')).toBeInTheDocument();
     });
 
-    it('does not render the OverdueBadge when the chore is not overdue', () => {
+    it('has no overdue cue when not overdue', () => {
         const chore = makeChore({
             frequency: 7,
             dateLastCompleted: new Date(2025, 0, 13, 12, 0, 0),
@@ -190,7 +190,7 @@ describe('ChoreTimerBar', () => {
         expect(screen.queryByText('Overdue')).not.toBeInTheDocument();
     });
 
-    it('does not render the OverdueBadge at the exact-due-date boundary (daysSince === frequency)', () => {
+    it('has no overdue cue at the exact-due-date boundary (daysSince === frequency)', () => {
         const chore = makeChore({
             frequency: 7,
             dateLastCompleted: new Date(2025, 0, 8, 12, 0, 0),
@@ -298,6 +298,48 @@ describe('ChoreTimerBar', () => {
         expect(onDelete).not.toHaveBeenCalled();
         expect(onEdit).not.toHaveBeenCalled();
         expect(onComplete).toHaveBeenCalledOnce();
+    });
+
+    it('is shorter than the old fixed height', () => {
+        render(
+            <ChoreTimerBar
+                chore={makeChore()}
+                day={day}
+                isSimulating={false}
+                onComplete={vi.fn()}
+                onDelete={vi.fn()}
+            />
+        );
+        const bar = screen.getByTestId('chore-bar');
+        expect(bar).toHaveClass('h-20');
+        expect(bar).not.toHaveClass('h-36');
+    });
+
+    it('does not display the room on the bar', () => {
+        render(
+            <ChoreTimerBar
+                chore={makeChore({ room: 'Kitchen' })}
+                day={day}
+                isSimulating={false}
+                onComplete={vi.fn()}
+                onDelete={vi.fn()}
+            />
+        );
+        expect(screen.queryByText('Kitchen')).toBeNull();
+        expect(screen.queryByText(/Kitchen ·/)).toBeNull();
+    });
+
+    it('displays the frequency centered', () => {
+        render(
+            <ChoreTimerBar
+                chore={makeChore({ frequency: 7 })}
+                day={day}
+                isSimulating={false}
+                onComplete={vi.fn()}
+                onDelete={vi.fn()}
+            />
+        );
+        expect(screen.getByText('Every 7 days')).toBeInTheDocument();
     });
 
     it('applies the touch-pan-y class to the chore bar', () => {
