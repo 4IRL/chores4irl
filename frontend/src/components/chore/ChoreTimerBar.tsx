@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { useSwipeable } from 'react-swipeable';
 import { differenceInDays, startOfDay } from 'date-fns';
 import { Pencil } from 'lucide-react';
 import type { Chore } from '@customTypes/SharedTypes';
@@ -25,15 +26,27 @@ export default function ChoreTimerBar({ chore, day, isSimulating, onComplete, on
 
     const { isOverdue, barWidth, barColor } = computeBar(daysSince, chore.frequency);
 
+    const swipingRef = useRef(false);
+    const swipeHandlers = useSwipeable({
+        onSwipedLeft: () => { swipingRef.current = true; if (!isSimulating) onDelete(chore.id); },
+        onSwipedRight: () => { swipingRef.current = true; if (!isSimulating && onEdit) onEdit(chore.id); },
+        onTouchStartOrOnMouseDown: () => { swipingRef.current = false; },
+        delta: 50,
+        trackMouse: true,
+        preventScrollOnSwipe: false,
+    });
+
     function resetTask() {
         if (isSimulating) return;
+        if (swipingRef.current) { swipingRef.current = false; return; }
         onComplete(chore.id, new Date());
     }
 
     return (
         <div
+            {...swipeHandlers}
             data-testid="chore-bar"
-            className={`relative h-36 sm:h-24 w-full bg-gray-800 rounded-full shadow overflow-hidden ${isSimulating ? 'cursor-not-allowed opacity-60 pointer-events-none' : 'cursor-pointer'}`}
+            className={`relative h-36 sm:h-24 w-full bg-gray-800 rounded-full shadow overflow-hidden touch-pan-y ${isSimulating ? 'cursor-not-allowed opacity-60 pointer-events-none' : 'cursor-pointer'}`}
             onClick={resetTask}
         >
             <ProgressBar width={barWidth} color={barColor} />
@@ -47,7 +60,7 @@ export default function ChoreTimerBar({ chore, day, isSimulating, onComplete, on
                 <CompletionInfo date={chore.dateLastCompleted} daysSince={daysSince} />
             </div>
 
-            {/* TODO(#10): replace edit + delete buttons with swipe gestures (F5) — removed in F6 */}
+            {/* Swipe left = delete, swipe right = edit (F5). Interim ✕/pencil buttons retained until removed in F6 (#10). */}
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-auto">
                 {onEdit && (
                     <button

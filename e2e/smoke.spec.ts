@@ -130,6 +130,90 @@ test.describe('Chores App Smoke Tests', () => {
         }
     });
 
+    // --- Swipe gestures (F5): swipe-left = delete, swipe-right = edit ---
+    // Drives react-swipeable's trackMouse path with a real mouse drag. Multiple
+    // move steps are required for the gesture (onSwiping) to register.
+    async function swipeBar(
+        page: import('@playwright/test').Page,
+        bar: import('@playwright/test').Locator,
+        direction: 'left' | 'right'
+    ) {
+        await bar.scrollIntoViewIfNeeded();
+        const box = await bar.boundingBox();
+        if (!box) throw new Error('Could not get bounding box for chore bar');
+        // Start near the left-center so a ~140px drag stays inside the bar and
+        // avoids the ✕/pencil button cluster pinned to the right edge.
+        const startX = box.x + box.width * 0.4;
+        const y = box.y + box.height / 2;
+        const sign = direction === 'left' ? -1 : 1;
+        await page.mouse.move(startX, y);
+        await page.mouse.down();
+        // react-swipeable's trackMouse path needs a sequence of discrete pointer
+        // moves over time (not one large jump) for onSwiping to fire repeatedly
+        // and register a directional swipe past the 50px delta. ~140px total.
+        for (let i = 1; i <= 10; i++) {
+            await page.mouse.move(startX + sign * i * 14, y);
+            await page.waitForTimeout(15);
+        }
+        await page.mouse.up();
+    }
+
+    test('swipe-left opens delete confirmation and removes the chore', async ({ page }) => {
+        const name = `E2E Swipe Delete ${Date.now()}`;
+        await page.locator('button', { hasText: /\+ Add Task/i }).click();
+        await expect(page.locator('.fixed.inset-0')).toBeVisible();
+        await page.fill('input[name="name"]', name);
+        await page.fill('input[name="room"]', 'Test Room');
+        await page.fill('input[name="dateLastCompleted"]', '2026-01-01');
+        await page.fill('input[name="duration"]', '5');
+        await page.fill('input[name="frequency"]', '3');
+        await page.locator('button[type="submit"]', { hasText: /save/i }).click();
+        await page.waitForSelector(`text=${name}`, { timeout: 5_000 });
+
+        const bar = page.locator('.bg-gray-800.rounded-full', { hasText: name });
+        await swipeBar(page, bar, 'left');
+
+        // Swipe-left routes through onDelete -> the F4 confirmation dialog.
+        await expect(page.getByTestId('confirm-dialog-confirm')).toBeVisible({ timeout: 5_000 });
+        await page.getByTestId('confirm-dialog-confirm').click();
+        await expect(page.locator(`text=${name}`)).not.toBeVisible({ timeout: 5_000 });
+    });
+
+    test('swipe-right opens the pre-filled edit modal', async ({ page }) => {
+        const name = `E2E Swipe Edit ${Date.now()}`;
+        await page.locator('button', { hasText: /\+ Add Task/i }).click();
+        await expect(page.locator('.fixed.inset-0')).toBeVisible();
+        await page.fill('input[name="name"]', name);
+        await page.fill('input[name="room"]', 'Test Room');
+        await page.fill('input[name="dateLastCompleted"]', '2026-01-01');
+        await page.fill('input[name="duration"]', '5');
+        await page.fill('input[name="frequency"]', '3');
+        await page.locator('button[type="submit"]', { hasText: /save/i }).click();
+        await page.waitForSelector(`text=${name}`, { timeout: 5_000 });
+
+        try {
+            const bar = page.locator('.bg-gray-800.rounded-full', { hasText: name });
+            await swipeBar(page, bar, 'right');
+
+            // Swipe-right routes through onEdit -> the F2 pre-populated edit modal.
+            await expect(page.locator('input[name="name"]')).toHaveValue(name, { timeout: 5_000 });
+        } finally {
+            // Close the modal (if open) and clean up the seeded chore.
+            const cancelBtn = page.locator('button', { hasText: /^cancel$/i });
+            if (await cancelBtn.isVisible().catch(() => false)) {
+                await cancelBtn.click();
+            }
+            const targets = page.locator('.bg-gray-800.rounded-full', { hasText: name });
+            let count = await targets.count();
+            while (count > 0) {
+                await targets.first().locator('[aria-label="Delete chore"]').click();
+                await page.getByTestId('confirm-dialog-confirm').click();
+                await expect(targets).toHaveCount(count - 1, { timeout: 5_000 });
+                count = count - 1;
+            }
+        }
+    });
+
     test('shows error and rolls back on simulated backend failure', async ({ page }) => {
         // Intercept the PATCH request and force it to fail
         await page.route('**/api/chores/*/complete', route =>
