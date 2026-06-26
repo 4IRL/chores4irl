@@ -81,6 +81,37 @@ describe('PATCH /api/chores/:id/complete', () => {
     });
 });
 
+describe('PUT /api/chores/:id', () => {
+    it('returns 200 with the updated chore', async () => {
+        const post = await request(app).post('/api/chores').send(BASE_CHORE);
+        const id = post.body.data.id;
+        const res = await request(app)
+            .put(`/api/chores/${id}`)
+            .send({ ...BASE_CHORE, name: 'Mop', room: 'Bathroom' });
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.name).toBe('Mop');
+        expect(res.body.data.room).toBe('Bathroom');
+        expect(res.body.data.id).toBe(id);
+    });
+
+    it('returns 404 when chore does not exist', async () => {
+        const res = await request(app).put('/api/chores/9999').send(BASE_CHORE);
+        expect(res.status).toBe(404);
+    });
+
+    it('returns 400 when required fields are missing', async () => {
+        const res = await request(app).put('/api/chores/1').send({ name: 'Only name' });
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+    });
+
+    it('returns 400 when id is not a number', async () => {
+        const res = await request(app).put('/api/chores/abc').send(BASE_CHORE);
+        expect(res.status).toBe(400);
+    });
+});
+
 describe('DELETE /api/chores/:id', () => {
     it('returns 200 with null data after deletion', async () => {
         const post = await request(app).post('/api/chores').send(BASE_CHORE);
