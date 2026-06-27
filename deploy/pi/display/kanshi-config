@@ -1,0 +1,26 @@
+# chores4irl — display rotation (kanshi)
+#
+# Lives on the Pi at:  ~/.config/kanshi/config
+# The RPi desktop launches kanshi from /etc/xdg/labwc/autostart, so this is the
+# canonical, reboot-persistent place for output rotation under labwc/Wayland.
+#
+# 90deg clockwise = `transform 270`. The touch side is rotated separately in
+# labwc rc.xml (see labwc-rc.xml.fragment) — rotating the output does NOT rotate
+# touch input.
+#
+# GOTCHA: kanshi matches the profile by OUTPUT NAME. The touchscreen has
+# enumerated as both "HDMI-A-1" and "HDMI-A-2" depending on which micro-HDMI
+# port the cable is in (and occasionally on boot enumeration). If the name here
+# does not match `wlr-randr`, the profile silently does not apply: the screen
+# stays upright (Transform: normal) AND touch looks misaligned (because the
+# calibrationMatrix still assumes a rotated display). Run `wlr-randr` and make
+# the output name below match the connected panel.
+#
+# Robust alternative (recommended, survives port changes): match by
+# make/model/serial instead of connector name, e.g.
+#     output "DZX Z3 0000000000000" mode 1024x600 position 0,0 transform 270
+# Verify the exact string with `wlr-randr` (Make/Model/Serial fields) before use.
+
+profile {
+    output "HDMI-A-2" mode 1024x600 position 0,0 transform 270
+}

@@ -1,0 +1,23 @@
+<!--
+  chores4irl — touch rotation (labwc / libinput calibration matrix)
+
+  This is a FRAGMENT, not a full file. Merge this <libinput> block into the
+  Pi's ~/.config/labwc/rc.xml, inside the root <labwc_config> ... </labwc_config>
+  element. Do NOT overwrite rc.xml with this file.
+
+  Why this exists: labwc's mapToOutput does NOT rotate touch input when the
+  output is rotated (see `man labwc-config`). The touch panel must be rotated
+  independently via a libinput calibrationMatrix.
+
+  The matrix below (0 1 0 / -1 0 1) is a 90deg CCW touch rotation — the inverse
+  of the display's `transform 270` in kanshi-config. If you change the display
+  rotation, change this matrix to its inverse to keep touch aligned.
+
+  After editing rc.xml: `labwc --reconfigure` (or re-login / reboot) to apply.
+  Back up first:  cp ~/.config/labwc/rc.xml ~/.config/labwc/rc.xml.bak
+-->
+<libinput>
+    <device category="touch">
+        <calibrationMatrix>0 1 0 -1 0 1</calibrationMatrix>
+    </device>
+</libinput>
