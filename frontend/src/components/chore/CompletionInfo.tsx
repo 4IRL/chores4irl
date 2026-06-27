@@ -5,8 +5,8 @@ type CompletionInfoProps = {
 
 export default function CompletionInfo({ date, daysSince }: CompletionInfoProps) {
     return (
-        <div className="font-medium text-white text-left sm:text-right">
-            <div className="text-xs text-white text-opacity-80">Last Completed:</div>
+        <div className="text-white text-right text-xs min-w-0">
+            <span className="sr-only">Last Completed: </span>
             {date.toDateString()}
             <div className="text-white text-sm font-bold">
                 {daysSince} {daysSince === 1 ? 'day' : 'days'} ago

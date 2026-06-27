@@ -2,6 +2,14 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Chores App Smoke Tests', () => {
 
+    // e2e strategy (F6): F6 removed the visible ✕/pencil buttons from the chore bar.
+    // Delete/edit are exercised via swipe (the primary UX): swipe-left = delete,
+    // swipe-right = edit. Cleanup loops invoke the sr-only
+    // [aria-label="Delete chore"] button via dispatchEvent('click') — the button
+    // is sr-only (clipped) so a real/forced click lands on overlaying siblings
+    // instead, whereas dispatchEvent fires its onClick directly — then confirm
+    // the delete dialog.
+
     test.beforeEach(async ({ page }) => {
         await page.goto('/');
         await page.waitForSelector(
@@ -57,7 +65,7 @@ test.describe('Chores App Smoke Tests', () => {
             const testChores = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Test Chore' });
             let count = await testChores.count();
             while (count > 0) {
-                await testChores.first().locator('[aria-label="Delete chore"]').click();
+                await testChores.first().locator('[aria-label="Delete chore"]').dispatchEvent('click');
                 await page.getByTestId('confirm-dialog-confirm').click();
                 await expect(testChores).toHaveCount(count - 1, { timeout: 5_000 });
                 count = count - 1;
@@ -77,15 +85,14 @@ test.describe('Chores App Smoke Tests', () => {
         await page.locator('button[type="submit"]', { hasText: /save/i }).click();
         await page.waitForSelector('text=E2E Delete Target', { timeout: 5_000 });
 
-        // Delete button has aria-label="Delete chore" and text "✕"
+        // F6: visible delete button removed — delete via swipe-left -> confirm dialog.
         const targetChore = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Delete Target' });
-        const deleteBtn = targetChore.locator('[aria-label="Delete chore"]');
-        await deleteBtn.click();
+        await swipeBar(page, targetChore, 'left');
         await page.getByTestId('confirm-dialog-confirm').click();
         await expect(page.locator('text=E2E Delete Target')).not.toBeVisible({ timeout: 5_000 });
     });
 
-    test('edits a chore via the pencil button', async ({ page }) => {
+    test('edits a chore via swipe-right', async ({ page }) => {
         // Add a dedicated chore to edit so seed data (used by subsequent tests) is preserved
         await page.locator('button', { hasText: /\+ Add Task/i }).click();
         await expect(page.locator('.fixed.inset-0')).toBeVisible();
@@ -98,9 +105,9 @@ test.describe('Chores App Smoke Tests', () => {
         await page.waitForSelector('text=E2E Edit Target', { timeout: 5_000 });
 
         try {
-            // Open the edit modal via the pencil button on the target chore's bar
+            // F6: visible pencil button removed — open the edit modal via swipe-right.
             const bar = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Edit Target' });
-            await bar.locator('[aria-label="Edit chore"]').click();
+            await swipeBar(page, bar, 'right');
 
             // Modal opens pre-filled with the chore's name
             await expect(page.locator('input[name="name"]')).toHaveValue('E2E Edit Target');
@@ -122,7 +129,7 @@ test.describe('Chores App Smoke Tests', () => {
             const editedChores = page.locator('.bg-gray-800.rounded-full', { hasText: /E2E Edited|E2E Edit Target/ });
             let count = await editedChores.count();
             while (count > 0) {
-                await editedChores.first().locator('[aria-label="Delete chore"]').click();
+                await editedChores.first().locator('[aria-label="Delete chore"]').dispatchEvent('click');
                 await page.getByTestId('confirm-dialog-confirm').click();
                 await expect(editedChores).toHaveCount(count - 1, { timeout: 5_000 });
                 count = count - 1;
@@ -141,8 +148,7 @@ test.describe('Chores App Smoke Tests', () => {
         await bar.scrollIntoViewIfNeeded();
         const box = await bar.boundingBox();
         if (!box) throw new Error('Could not get bounding box for chore bar');
-        // Start near the left-center so a ~140px drag stays inside the bar and
-        // avoids the ✕/pencil button cluster pinned to the right edge.
+        // Start near the left-center so a ~140px drag stays inside the bar.
         const startX = box.x + box.width * 0.4;
         const y = box.y + box.height / 2;
         const sign = direction === 'left' ? -1 : 1;
@@ -206,7 +212,7 @@ test.describe('Chores App Smoke Tests', () => {
             const targets = page.locator('.bg-gray-800.rounded-full', { hasText: name });
             let count = await targets.count();
             while (count > 0) {
-                await targets.first().locator('[aria-label="Delete chore"]').click();
+                await targets.first().locator('[aria-label="Delete chore"]').dispatchEvent('click');
                 await page.getByTestId('confirm-dialog-confirm').click();
                 await expect(targets).toHaveCount(count - 1, { timeout: 5_000 });
                 count = count - 1;
