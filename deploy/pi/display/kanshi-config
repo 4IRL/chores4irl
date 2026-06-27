@@ -20,7 +20,11 @@
 # transform 90 = the orientation that is upright on the current physical mount
 # (the panel was remounted since first deploy; the old `transform 270` is now
 # 180° upside down). Confirm live without a reboot:
-#     wlr-randr --output "DZX Z3 0000000000000" --transform 90
+#     wlr-randr                                    # find the connector name
+#     wlr-randr --output HDMI-A-1 --transform 90   # use that name, not the description
+# NOTE: wlr-randr matches by CONNECTOR NAME (HDMI-A-1 / HDMI-A-2), not by the
+# "DZX Z3 ..." make/model/serial description. Only kanshi (below) matches by
+# description. Run `wlr-randr` with no args to read the current connector name.
 
 profile {
     output "DZX Z3 0000000000000" mode 1024x600 position 0,0 transform 90

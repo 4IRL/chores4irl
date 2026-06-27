@@ -45,7 +45,10 @@ remounted since first deploy, so the original `270` is now 180° upside down).
 
 ```bash
 wlr-randr                                   # list outputs + current Transform
-wlr-randr --output "DZX Z3 0000000000000" --transform 90   # try until upright
+# wlr-randr identifies outputs by CONNECTOR NAME (e.g. HDMI-A-1 / HDMI-A-2) — the
+# first token on each output line — NOT by the "DZX Z3 ..." description that kanshi
+# matches on. Use the connector name printed above:
+wlr-randr --output HDMI-A-1 --transform 90  # try until upright (sub in your name)
 ```
 
 Then set the matching `calibrationMatrix` in `rc.xml` and `labwc --reconfigure`,
