@@ -27,7 +27,13 @@ mkdir -p "$(dirname "$KANSHI_DEST")"
 if [ -f "$KANSHI_DEST" ] && cmp -s "$KANSHI_SRC" "$KANSHI_DEST"; then
   info "already up to date."
 else
-  [ -f "$KANSHI_DEST" ] && cp "$KANSHI_DEST" "$KANSHI_DEST.bak" && info "backed up -> $KANSHI_DEST.bak"
+  # Separate statements (not an &&-chain): under `set -e` only the final command
+  # in an &&-list aborts on failure, so a chained backup `cp` could fail silently
+  # and let the overwrite below proceed with no backup.
+  if [ -f "$KANSHI_DEST" ]; then
+    cp "$KANSHI_DEST" "$KANSHI_DEST.bak"
+    info "backed up -> $KANSHI_DEST.bak"
+  fi
   cp "$KANSHI_SRC" "$KANSHI_DEST"
   info "installed."
 fi
@@ -55,12 +61,22 @@ else
   info "backed up -> $RC_XML.bak"
   # Strip the XML comment header from the fragment; keep only the <libinput>
   # block. Anchor to start-of-line so the "<libinput>" mention inside the
-  # comment header is not matched.
-  block="$(sed -n '/^<libinput>/,/^<\/libinput>/p' "$TOUCH_FRAGMENT")"
-  awk -v block="$block" '
-    /<\/labwc_config>/ && !done { print block; done=1 }
+  # comment header is not matched. Write to a temp file and read it into awk
+  # via getline (not `-v`, which would interpret backslash escapes in the
+  # block). Write the merged result to a temp file and mv into place so a
+  # mid-stream awk failure can never leave rc.xml truncated/empty.
+  block_file="$RC_XML.fragment.tmp"
+  merged_tmp="$RC_XML.merged.tmp"
+  sed -n '/^<libinput>/,/^<\/libinput>/p' "$TOUCH_FRAGMENT" > "$block_file"
+  awk -v fragfile="$block_file" '
+    /<\/labwc_config>/ && !done {
+      while ((getline line < fragfile) > 0) print line
+      done=1
+    }
     { print }
-  ' "$RC_XML.bak" > "$RC_XML"
+  ' "$RC_XML.bak" > "$merged_tmp"
+  mv "$merged_tmp" "$RC_XML"
+  rm -f "$block_file"
   info "inserted touch calibrationMatrix."
 fi
 

@@ -43,7 +43,7 @@ remounted since first deploy, so the original `270` is now 180° upside down).
 
 **Find the right row live, without rebooting:**
 
-```sh
+```bash
 wlr-randr                                   # list outputs + current Transform
 wlr-randr --output "DZX Z3 0000000000000" --transform 90   # try until upright
 ```
@@ -66,7 +66,7 @@ replaced.
 
 ## Apply / restore onto a Pi
 
-```sh
+```bash
 # From the repo checkout on the Pi:
 deploy/pi/install-display-config.sh        # installs kanshi config + touch matrix
 labwc --reconfigure                         # apply touch without a full reboot
@@ -74,4 +74,14 @@ labwc --reconfigure                         # apply touch without a full reboot
 
 The script is idempotent (safe to re-run), backs up `rc.xml` before touching it,
 and refuses to clobber an existing `<libinput>` block — printing instructions
-instead. Verify after a cold boot: screen upright, touch aligned.
+instead.
+
+**Verify the install before rebooting** (catches a failed apply early):
+
+```bash
+diff deploy/pi/display/kanshi-config ~/.config/kanshi/config   # display profile landed
+grep -A4 '<calibrationMatrix>' ~/.config/labwc/rc.xml          # touch matrix inserted
+wlr-randr                                                       # output name + Transform
+```
+
+Then confirm after a cold boot: screen upright, touch aligned (drag the date scrubber).
