@@ -3,8 +3,8 @@
 Host-side configuration that lives **on the Raspberry Pi**, outside Docker. These
 files are **not** part of the container images and are **never touched by a
 redeploy** (`git archive` → tarball → `docker compose build` only rebuilds the
-two containers). They are version-controlled here only so a wiped or drifted Pi
-can be restored quickly — the canonical copies are the live files on the Pi.
+two containers). They are version-controlled here so a wiped or drifted Pi can be
+restored with one command — the canonical copies are the live files on the Pi.
 
 Target Pi: Debian 13 (trixie) / RPi PIXEL desktop, compositor **labwc**, user
 `rmilarachi`, single HDMI touchscreen (panel `DZX Z3`, 1024×600), USB touch
@@ -15,58 +15,63 @@ panel `yldzkj USB2IIC_CTP_CONTROL`.
 | Repo file | Lives on the Pi at | Purpose |
 |---|---|---|
 | `chores4irl-backup.service` / `.timer` | `/etc/systemd/system/` | Weekly SQLite volume backup |
-| `display/kanshi-config` | `~/.config/kanshi/config` | Display rotation (90° CW = `transform 270`) |
+| `display/kanshi-config` | `~/.config/kanshi/config` | Display rotation |
 | `display/labwc-rc.xml.fragment` | merge into `~/.config/labwc/rc.xml` | Touch rotation (libinput `calibrationMatrix`) |
+| `install-display-config.sh` | run on the Pi | Idempotently apply both of the above |
 
 ## Display rotation & touch alignment
 
 Two independent settings — rotating the **display** does **not** rotate **touch**:
 
 1. **Display** — kanshi (`~/.config/kanshi/config`), launched by the RPi desktop
-   from `/etc/xdg/labwc/autostart`. `transform 270` = 90° clockwise.
-2. **Touch** — a libinput `calibrationMatrix` in `~/.config/labwc/rc.xml`
-   (`0 1 0 -1 0 1`, the inverse of `transform 270`). labwc's `mapToOutput` does
-   not rotate touch with the output.
+   from `/etc/xdg/labwc/autostart`.
+2. **Touch** — a libinput `calibrationMatrix` in `~/.config/labwc/rc.xml`. labwc's
+   `mapToOutput` does not rotate touch with the output.
 
-### The output-name gotcha (cause of the 2026-06-27 regression)
+**They must agree.** Pick the row for the orientation you want and use both values
+from it. (Verified known-good anchor: `transform 270` ↔ `0 1 0 -1 0 1`.)
 
-kanshi matches its profile by **output name**. The touchscreen has enumerated as
-both `HDMI-A-1` and `HDMI-A-2` depending on which micro-HDMI port the cable is in
-(Pi 4 has two) and occasionally on boot enumeration. If the name in
-`kanshi-config` does not match `wlr-randr`:
+| Upright needs | kanshi `transform` | labwc `calibrationMatrix` |
+|---|---|---|
+| no rotation | `normal` | `1 0 0 0 1 0` |
+| 90°  | `90`  | `0 -1 1 1 0 0` |
+| 180° | `180` | `-1 0 1 0 -1 1` |
+| 270° | `270` | `0 1 0 -1 0 1` |
 
-- the profile silently does **not** apply → screen stays upright
-  (`Transform: normal`), **and**
-- touch looks **misaligned**, because the `calibrationMatrix` still assumes a
-  rotated display.
+Current shipped values: **`transform 90`** ↔ **`0 -1 1 1 0 0`** (the panel was
+remounted since first deploy, so the original `270` is now 180° upside down).
 
-This presents as "rotation broke after a deploy/reboot" but the deploy is
-unrelated — it's the connector name drifting out from under kanshi.
-
-**Diagnose:** `wlr-randr` — note the output name (`HDMI-A-1` vs `HDMI-A-2`) and
-that `Transform:` reads `normal` instead of the expected rotation.
-
-**Fix (pick one):**
-- Move the HDMI cable back to the original micro-HDMI port, **or**
-- Update the `output "..."` name in `kanshi-config` to match `wlr-randr`, **or**
-- (Recommended, port-independent) match by make/model/serial instead of
-  connector name — see the comment in `display/kanshi-config`.
-
-## Restore onto a Pi
+**Find the right row live, without rebooting:**
 
 ```sh
-# Display rotation
-mkdir -p ~/.config/kanshi
-cp deploy/pi/display/kanshi-config ~/.config/kanshi/config
-# edit the output name to match `wlr-randr` if needed
-
-# Touch rotation — MERGE the fragment into rc.xml (do not overwrite it)
-cp ~/.config/labwc/rc.xml ~/.config/labwc/rc.xml.bak
-# paste the <libinput> block from deploy/pi/display/labwc-rc.xml.fragment
-# into ~/.config/labwc/rc.xml inside <labwc_config> ... </labwc_config>
-
-labwc --reconfigure   # or re-login / reboot
+wlr-randr                                   # list outputs + current Transform
+wlr-randr --output "DZX Z3 0000000000000" --transform 90   # try until upright
 ```
 
-Verify after a cold boot: screen is upright and dragging the date scrubber lands
-touches on the correct spot.
+Then set the matching `calibrationMatrix` in `rc.xml` and `labwc --reconfigure`,
+and drag the date scrubber to confirm touch lands correctly.
+
+### Port-independent output matching (the durable fix)
+
+kanshi matches an output by **name** *or* by **make/model/serial description**.
+Connector names drift between `HDMI-A-1` and `HDMI-A-2` depending on which
+micro-HDMI port the cable is in; when the name drifts, the profile silently stops
+applying — the screen goes unrotated and touch looks misaligned (the matrix still
+assumes a rotated display). This is what looked like a "deploy broke rotation"
+regression on 2026-06-27; the deploy was unrelated.
+
+The shipped config matches by description (`output "DZX Z3 0000000000000"`), which
+survives port swaps. Re-verify the string with `wlr-randr` only if the panel is
+replaced.
+
+## Apply / restore onto a Pi
+
+```sh
+# From the repo checkout on the Pi:
+deploy/pi/install-display-config.sh        # installs kanshi config + touch matrix
+labwc --reconfigure                         # apply touch without a full reboot
+```
+
+The script is idempotent (safe to re-run), backs up `rc.xml` before touching it,
+and refuses to clobber an existing `<libinput>` block — printing instructions
+instead. Verify after a cold boot: screen upright, touch aligned.

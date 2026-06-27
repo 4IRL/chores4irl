@@ -9,15 +9,15 @@
   output is rotated (see `man labwc-config`). The touch panel must be rotated
   independently via a libinput calibrationMatrix.
 
-  The matrix below (0 1 0 / -1 0 1) is a 90deg CCW touch rotation — the inverse
-  of the display's `transform 270` in kanshi-config. If you change the display
-  rotation, change this matrix to its inverse to keep touch aligned.
+  The matrix MUST match the kanshi `transform`. This one (0 -1 1 / 1 0 0)
+  pairs with `transform 90`. If you change the display rotation, swap this for
+  the matching row in deploy/pi/README.md's rotation table.
 
   After editing rc.xml: `labwc --reconfigure` (or re-login / reboot) to apply.
   Back up first:  cp ~/.config/labwc/rc.xml ~/.config/labwc/rc.xml.bak
 -->
 <libinput>
     <device category="touch">
-        <calibrationMatrix>0 1 0 -1 0 1</calibrationMatrix>
+        <calibrationMatrix>0 -1 1 1 0 0</calibrationMatrix>
     </device>
 </libinput>
