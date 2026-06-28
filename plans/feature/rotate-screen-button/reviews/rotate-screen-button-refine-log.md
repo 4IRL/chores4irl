@@ -10,6 +10,19 @@
 | 2    | 1        | 3     | 4     | 8             | No |
 | 3    | 3        | 3     | 4     | 7 of 10 (curated) | No (max reached) |
 | 4    | 0        | 0     | 2     | 2             | **Yes** |
+| 5    | 0        | 0     | 2     | 2             | **Yes** |
+
+**Pass 5 (2026-06-28, after DD-5 revision to a settings panel):** DD-5 was revised
+from a bare NavBar rotate button to a `SettingsPanel` (gear↔X toggle expanding into
+an overlaid single-row banner; rotate functional, five disconnected optimistic
+placeholders — brightness/screen-blank/restart/undo/redo — logged in
+`plans/ledger/260628_future_feature_list.md`). Re-reviewed the new panel surface.
+**Converged: 0 critical, 0 major, 2 minor** — both applied: (1) recorded the
+intentional optimistic-placeholder a11y tradeoff with a documented `aria-disabled`
+fallback; (2) added an overflow-clip caveat (verify banner un-clipped on the real
+1024×600 panel; fall back to a React portal if clipped). lucide-react icons all
+verified to exist; e2e/App.test correctly account for rotate being hidden until the
+panel opens.
 
 **Pass 4 (2026-06-28, separate run after rebase):** Re-run on the corrected
 `deploy/pi-display-configs` branch (rebased onto `main`+#20, so all `deploy/pi/*`

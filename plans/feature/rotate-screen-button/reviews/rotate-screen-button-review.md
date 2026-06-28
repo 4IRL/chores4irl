@@ -449,3 +449,78 @@ _(Step 5 of the skill — auto-apply / AskUserQuestion / loop — was intentiona
 
 ### Note on Pass 3 reversal
 Pass 3's three "Critical" findings (phantom `deploy/pi/*` files; "fabricated" `DZX Z3` panel; "shipped `transform 270` not `90`") were **branch-context and stale-doc artifacts**: Pass 3 ran on a housekeeping branch that did not contain PR #19's commits and reconciled against the stale AS-BUILT note in `plans/deploy/docker-raspberry-pi/docker-raspberry-pi.md`. On the correct `deploy/pi-display-configs` base, all four `deploy/pi/` files exist and were read; the `DZX Z3` description-match is a deliberate connector-drift safeguard; and `transform 90` is the deliberate corrected orientation. Those three findings are **not reproduced** in Pass 4. The seven branch-independent Pass 3 findings were already applied.
+
+## Review — 2026-06-28 (Pass 5 — settings panel)
+
+### Summary
+
+The plan converged at Pass 4 (0 critical, 0 major). Since then a single design change landed: **DD-5 was revised from a bare rotate button in the NavBar `rightSlot` to a `SettingsPanel`** — a NavBar toggle (gear `Settings` icon ↔ `X`, `aria-expanded` reflecting state, accessible name swapping `Open controls` ↔ `Close controls`) that conditionally mounts an overlaid single-row banner. Rotate is the one functional control (now nested inside the panel); five others — Brightness `Sun`, Screen blank `MonitorOff`, Restart `Power`, Undo `Undo2`, Redo `Redo2` — ship as disconnected optimistic placeholders (`data-placeholder='true'`, no-op handlers, no `displayApi` import). This touched the Summary, the DD-5 bullet, Step 3 (new `SettingsPanel` Red/Green TDD bullets + rotate nested in panel + App.tsx renders `<SettingsPanel/>` into `rightSlot` + App.test slot assertion now checks the `Open controls` toggle), Step 7 (e2e opens the panel before clicking rotate, in both success and forced-500 variants), and Step 8 (typecheck list adds `SettingsPanel.tsx`). Pass 5 scrutinized **only** the newly-added settings-panel surface; the converged backend/host-agent/rotate items were spot-checked and the panel change did **not** break them. All six subagents returned **PASS**. Deduplicated total: **0 critical, 0 major, 2 minor — still converged. The plan remains ready for implementation.**
+
+### Subagent Results
+
+| # | Subagent | Verdict | Findings |
+|---|---|---|---|
+| 1 | Correctness & Accuracy | PASS | 0 critical, 0 major, 0 minor |
+| 2 | Full-Stack Trace | PASS | 0 critical, 0 major, 0 minor |
+| 3 | Ordering & Cleanup | PASS | 0 critical, 0 major, 0 minor |
+| 4 | Integration & Conventions | PASS | 0 critical, 0 major, 1 minor |
+| 5 | Verification & Coverage | PASS | 0 critical, 0 major, 0 minor |
+| 6 | Completeness & Risk | PASS | 0 critical, 0 major, 2 minor |
+
+_(Raw per-subagent: 3 minor. Deduplicated total below: **0 critical, 0 major, 2 minor**. Subagents #4 and #6 independently raised the identical abs-overlay-clipping-under-`overflow-hidden` note — merged into one.)_
+
+### Panel-surface verification (what Pass 5 confirmed)
+
+All load-bearing settings-panel claims were traced against source on this branch and **hold**:
+- **lucide-react icon exports** (`Settings, X, Sun, MonitorOff, Power, Undo2, Redo2`, plus `RotateCw`): all are real named exports. `frontend/package.json` pins `lucide-react ^1.8.0`; #1 verified against the 1.8.0 tarball `dist/lucide-react.d.ts` (named exports + matching `settings.js`/`x.js`/`sun.js`/`monitor-off.js`/`power.js`/`undo-2.js`/`redo-2.js`/`rotate-cw.js`) and #4 confirmed against `node_modules`. ✓
+- **Component contract**: `SettingsPanel` props `{rotation, onRotated, onError}` thread straight through to `RotateScreenButton`; App.tsx `onRotated={setRotation}` (Dispatch assignable to `(next:DisplayRotation)=>void`) and `onError={setError}` (string assignable to `string|null` setter) typecheck. ✓
+- **NavBar `rightSlot`**: NavBar currently destructures only `{rooms, selectedRoom, onSelect}` and has no right slot today; adding `rightSlot?: ReactNode` + the outer flex row (slot OUTSIDE the `overflow-x-auto` scroller) is a clean additive change. `div#NavBar` itself carries `border-b border-gray-700 flex-shrink-0` — **no `overflow`** — so it does not clip the banner; the plan preserves those classes. ✓
+- **Collapsed-by-default test validity**: Step 3 Green mounts the banner **conditionally** ("When `open`, render the overlaid single-row banner"), so `screen.queryByRole('button', { name: /rotate screen/i })` correctly returns `null` when closed — a true conditional mount, not a CSS-hidden false positive. ✓
+- **Accessible-name swap + six-control assertions**: toggle `aria-label={open ? 'Close controls' : 'Open controls'}` + `aria-expanded={open}` back the `/open controls/i`→`/close controls/i` and the six-`aria-label` open-state assertions; `data-placeholder='true'` + `aria-label` on the five placeholders make `getByLabelText('Brightness')` + `toHaveAttribute` viable, and the no-op handler keeps the `applyRotation` spy uncalled. ✓
+- **App.test factory pattern**: `App.test.tsx` mocks via top-level factory and uses `vi.clearAllMocks()` (never `resetAllMocks`), so a factory-set `getRotation: vi.fn().mockResolvedValue(90)` survives; the `getByRole('button', { name: /open controls/i })` toggle renders immediately (collapsed default) and is reachable. ✓
+- **e2e opens panel first in BOTH variants**: Step 7 success path and the `page.route()` forced-500 variant each open the panel before clicking rotate (the rotate button is hidden until open), so the button is found in both; the forced-500 JSON `{success:false,error}` body still surfaces through the panel layer to the `.bg-red-700` banner. ✓
+- **Ordering**: within Step 3, `RotateScreenButton` (Green bullet) is created BEFORE `SettingsPanel` (its importer) BEFORE App.tsx/NavBar wiring; SettingsPanel TDD Red-before-Green intact; all icon imports added in the same Green bullet they are used; Step 8 `tsc --noEmit -p frontend/tsconfig.json` covers the whole `src` tree (`include: ['src']`), so `SettingsPanel.tsx` + all new files are type-checked. ✓
+- **Placeholder inertness**: placeholders carry no `displayApi` import and cannot reach the endpoint; the inertness test locks this in. ✓
+
+No prior-pass resolution needed to be re-opened; the panel change did not regress any converged item.
+
+### Findings
+
+#### Minor (nice to fix)
+
+- **[Step 3] Inert placeholder buttons are focusable + activatable with no inertness affordance (a11y/UX)** _(Subagent #6)_: The five placeholders render as real `<button type='button'>` with full `aria-label`s, no-op `onClick`, and the SAME `min-h-[44px] min-w-[44px] bg-gray-700 hover:bg-gray-600 rounded-full` styling as the functional rotate button, carrying only `data-placeholder='true'` (a non-semantic marker invisible to assistive tech). A keyboard or screen-reader user can Tab to and activate `Brightness`/`Screen blank`/`Restart`/`Undo`/`Redo` and the button silently does nothing — no `disabled`, no `aria-disabled='true'`, no visual cue distinguishing inert from active (the hover state even implies interactivity). The `SettingsPanel` test deliberately locks in this inert-but-enabled behavior. This does not break functionality and matches the plan's "looks complete / optimistic" intent, but the plan never records it as a deliberate tradeoff. NON-BLOCKING. Suggested disposition: either add a one-line note in the Step 3 Green bullet acknowledging the inert-button tradeoff as intentional, OR signal inertness with `aria-disabled='true'` + `opacity-50` + a `(coming soon)` label suffix (keep the no-op handler and avoid the `disabled` attribute, which would drop the buttons from the a11y tree and break the keyboard-focus assertion).
+
+- **[Step 3] Absolute overlay banner sits inside two App-level `overflow-hidden` ancestors — clipping unverified for the panel layout** _(Subagents #4, #6, merged)_: The banner is `absolute right-0 top-full mt-1 z-40` anchored in a `relative` wrapper. Moving `rightSlot` OUTSIDE the NavBar `overflow-x-auto` scroller correctly removes the *horizontal* scroller as an ancestor (it becomes a sibling), so the banner is not clipped by it. However the `relative` wrapper still renders inside App.tsx's `<div className="App h-full flex flex-col overflow-hidden">` and its inner `<div className="flex flex-col h-full overflow-hidden bg-gray-900 px-4 pt-4">` — both `overflow-hidden`. An absolutely-positioned descendant is still clipped by an `overflow-hidden` ancestor of its containing block. For the shipped 1024×600 portrait panel a single row of six `min-w-[44px]` buttons (~300px) anchored `right-0` and dropping just below the NavBar fits within bounds, so in practice it is **not** clipped — both subagents independently judged it fine for this layout — but the plan asserts the panel "overlays rather than reflowing" without ever verifying the double `overflow-hidden` does not clip the dropdown (the classic abs-overlay-inside-overflow-hidden footgun). LOW-CONFIDENCE / NON-BLOCKING. Suggested disposition: add a clip-check to Step 3 Refactor or Step 7 manual verification (open the panel on the real 1024×600 panel and confirm all six controls are visible and un-clipped); if clipping is ever observed — or a future multi-row/taller panel is added — render the banner via a React portal or `fixed` positioning to escape the App-level `overflow-hidden` boxes.
+
+### Verification Gaps
+
+None new. The panel test coverage is layer-appropriate: `SettingsPanel.test.tsx` covers collapsed-default (conditional-mount `queryByRole` null), open (six controls by `aria-label` + name swap + `aria-expanded`), close, placeholder inertness (`data-placeholder` + spy-not-called), and the rotate-wiring assertion; `App.test.tsx` adds the `Open controls` slot-integration assertion with a deterministic `displayApi` factory mock; Step 7 Playwright opens the panel before rotate in both the success and forced-500 variants; Step 8 type-checks `SettingsPanel.tsx`.
+
+### To-Do: Required Changes
+
+_(Step 5 of the skill — auto-apply / AskUserQuestion / loop — was intentionally skipped per the review request. Both items below are Minor and remain unchecked for the implementer or a follow-up apply pass. Each corresponds 1:1 to a deduplicated finding above. Neither blocks proceeding.)_
+
+**Minor**
+- [x] **[APPLIED]** **[Step 3] Record the inert-placeholder a11y tradeoff** — added a note to the placeholder-buttons bullet stating the optimistic "looks active" style is intentional per product direction (buttons stay in the a11y tree with a no-op handler), with the `aria-disabled` + `opacity-50` + `(coming soon)` fallback documented (and an explicit "not the `disabled` attribute" caveat) for later if needed. _(design_decision — kept optimistic per user)_
+- [x] **[APPLIED]** **[Step 3 / Step 7] Add an overlay clip-check for the banner under the App-level `overflow-hidden` ancestors** — added an "Overflow caveat" sub-bullet to the SettingsPanel Green step: verify on the real 1024×600 panel that the six controls render un-clipped, and fall back to a React portal / `fixed` positioning to escape the overflow context if clipped. _(mechanical)_
+
+### Verdict
+[x] Ready to proceed as-is (after the two optional Minor notes)
+[ ] Proceed after minor fixes
+[ ] Requires changes before proceeding
+
+**Converged: 0 critical, 0 major.** Pass 5 is clean — the settings-panel surface is internally consistent with `RotateScreenButton`, `NavBar` (`rightSlot`), and `App.tsx`; the lucide-react icons all exist; the open/close a11y assertions are valid against the conditional-mount markup; and both e2e variants account for the rotate button being hidden until the panel opens. The two Minor findings are non-blocking a11y/UX clarity improvements with no functional impact.
+
+### Coverage Checklist
+| Area | Checked? | Notes |
+|---|---|---|
+| Imports (dead, missing, circular) | [x] | #1/#3 confirmed all panel icon imports (`Settings, X, Sun, MonitorOff, Power, Undo2, Redo2`) are real `lucide-react@^1.8.0` exports and added in the same Green bullet they're used; `RotateCw` stays in `RotateScreenButton`; no dead imports introduced by the panel. |
+| Type annotations | [x] | #1 traced `SettingsPanelProps`/`RotateScreenButtonProps` (`rotation/onRotated/onError`), `useState<DisplayRotation>(0)`, `onRotated={setRotation}`/`onError={setError}` assignability, and `rightSlot?: ReactNode` — all type-accurate against source. |
+| Error handling (status codes, exceptions, user feedback) | [x] | #2 traced App→SettingsPanel→RotateScreenButton→`applyRotation`→`handleResponse` throw→`onError`→red banner through the new panel layer; forced-500 JSON body still surfaces after the panel opens. |
+| Test coverage (happy path, sad path, edge cases) | [x] | #5 confirmed every prescribed `SettingsPanel.test.tsx` TL query is reachable against the conditional-mount Green markup; App.test factory mock + slot assertion valid; Step 7 opens panel in both variants; Step 8 type-checks `SettingsPanel.tsx`. |
+| Breaking changes (API contracts, shared state, DB schema) | [x] | #1/#2 confirmed the panel is a pure additive frontend wrapper — wire contract, backend, and host agent unchanged; placeholders carry no `displayApi` import and hit no endpoint. |
+| Config consistency (env vars, requirements pins, lint rules) | [x] | #3 confirmed `eslint.config.js` + `frontend/tsconfig.json` (`include: ['src']`) gate the new files via Step 8 `tsc --noEmit`; no new packages (lucide-react already installed). |
+| Naming conventions (CLAUDE.md rules, project patterns) | [x] | #4 confirmed `SettingsPanel.tsx` lives in `frontend/src/components/nav/`, dark-theme 44px buttons match `ReturnToTodayButton`, lucide-react used per the icon-library rule, no window globals for `open`/`rotation` state, descriptive names throughout. |
+
+### Note on missed-finding root causes (Step 6)
+Not applicable. The settings-panel surface did not exist in Passes 1–4 (DD-5 was revised to the panel only after Pass 4 converged), so the two Pass-5 Minor findings are about brand-new plan text, not issues prior passes overlooked. No prior pass had anything to miss here, and no converged item was found broken by the panel change. Step 7 (skill self-improvement) is therefore also skipped (no missed findings → no skill gap to address).
