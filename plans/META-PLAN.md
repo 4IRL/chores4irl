@@ -467,7 +467,7 @@ surface created by deferring F1.
 ## F8 — Local URL alias instead of IP:port  ·  Infra track (parallel)  ·  Effort M–L (research spike)  ·  NEW (260627 item 4)
 
 **Goal.** Let users on the local network reach the app by a memorable name rather than the raw
-IP — e.g. typing `c4i` (or similar) in a browser instead of `192.168.1.214:80`. Explore the
+IP — e.g. typing `c4i` (or similar) in a browser instead of `[local_IP_address]:[port]`. Explore the
 viable options and implement the one that best fits the Pi/Docker deployment.
 
 **Rank rationale.** New, and **entirely separate from the frontend track** — it touches LAN

@@ -19,5 +19,5 @@
 	- [ ] Remove reference to room from the progress bar itself
 	- [ ] Center align 'frequency' e.g. "Every X days"
 - [ ] Make 'Add Task' button deck transparent blur background, allowing the chores list visible slightly visible beneath for a more modern, fluid feel. The button will remain locked at the bottom and opaque as the chores list scrolls, but you should be able to see the chore bars on the sides of the button.
-- [ ] Explore options by which local users can access a URL alias rather than an IP address and port. e.g. users connected to the local network can type 'C4I' in their browser, instead of 192.168.1.214:80
+- [ ] Explore options by which local users can access a URL alias rather than an IP address and port. e.g. users connected to the local network can type 'C4I' in their browser, instead of [local_IP_address]:[port]
 - [ ] Add a type-as-you-search text input field persistently at the top of the chores list, regardless of which room is highlighted. Chores are filtered out of visibility based on the substring entered by the user. This is meant to allow users to quickly find the desired chore to update once the list becomes unwieldly. 

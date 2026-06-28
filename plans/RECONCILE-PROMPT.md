@@ -10,8 +10,8 @@ effort + dependencies. Do not start implementing any feature — this is a
 planning-document reconciliation only.
 
 ## Inputs
-- **Current backlog (source of truth):** `plans/feature/<LATEST_YYMMDD>_future_feature_list.md`
-- **Prior backlog(s) (history only, do not plan from):** `plans/feature/<OLDER_YYMMDD>_future_feature_list.md`
+- **Current backlog (source of truth):** `plans/ledger/<LATEST_YYMMDD>_feature_ledger.md`
+- **Prior backlog(s) (history only, do not plan from):** `plans/ledger/<OLDER_YYMMDD>_feature_ledger.md`
 - **Orchestration manifest to update:** `plans/META-PLAN.md`
 
 ## Step 1 — Establish the true baseline (verify, don't trust the ledger)
