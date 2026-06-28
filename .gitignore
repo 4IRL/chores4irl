@@ -34,9 +34,11 @@ playwright-report/
 
 # Claude Code files
 .claude
-plan.md
-research.md
-plans
+research.node_modules
+
+# Planning scratch — subagent review working files are regenerated each run;
+# never commit them (the durable plan/review docs alongside them are fine to track)
+plans/**/tmp/
 
 # Env files
 .env
