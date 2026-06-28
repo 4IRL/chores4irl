@@ -1,110 +1,131 @@
-# Multi-Device Sync (Re-pull from DB)
+# Multi-Device Sync (Event-Driven, On-Demand Re-pull)
 
 ## Summary
-Keep every connected device — the Pi kiosk display and any phones/tablets — showing the latest chore data, regardless of which device made the change. Today the frontend loads chores **once on mount** and never re-reads, so a change made on a phone is written to SQLite correctly but is never reflected on the Pi (or any other device) until that browser reloads the page — which a kiosk never does.
+Keep every connected device — the Pi kiosk display and any phones/tablets — showing the latest chore data, regardless of which device made the change. Today the frontend loads chores **once on mount** and never re-reads, so a change made on a phone is written to SQLite correctly but is never reflected on the Pi (or any other device) until that browser reloads — which a kiosk never does.
 
-The fix is a **client-side periodic re-pull**: a polling hook that re-fetches `GET /api/chores` on a fixed interval and reconciles the result into existing React state, plus a **refetch-on-visibility** trigger so a phone refreshes the instant it's brought back to the foreground. The reconciliation is careful not to clobber a device's own in-flight optimistic updates or interrupt a user mid-edit. **No backend changes** are required — the single shared `better-sqlite3` process is already the source of truth; the only thing missing is the clients asking it again.
+The fix is **event-driven push, not periodic polling**: because every write from every device flows through the single Express process that owns the SQLite file, the backend already knows the instant any chore changes. We add a **Server-Sent Events (SSE)** stream — `GET /api/events` — that the backend pushes a lightweight "chores changed" signal onto whenever a mutating request succeeds. Each connected client holds an `EventSource` to that stream and, on each signal, calls the existing `fetchAllChores()` to re-pull the current truth and reconcile it into state. The result is **on-demand sync responsive to any DB change**, with no fixed latency and no wasted request volume.
 
-This is intentionally the smallest robust solution for a household LAN app with a handful of devices. Server-push (SSE/WebSocket) is documented at the end as an optional future upgrade, but is not part of this plan.
+This is a "notify, then re-pull" design: the event carries only a signal (not a diff), and the client re-fetches the full list. That keeps a single source of truth (`GET /api/chores`), is robust to coalesced/missed events, and reuses the entire existing wire/parse layer unchanged.
 
 ## Research Findings
 
-- **The bug is a single missing dependency-driven refetch.** `frontend/src/App.tsx:32-43` runs `fetchAllChores()` inside a `useEffect(..., [])` with an empty dependency array — it fires exactly once, on mount. After that, `choreData` (`App.tsx:23`) is only ever mutated by the *same device's* own handlers: `handleAddChore` (`App.tsx:67`), `handleDeleteChore` (`App.tsx:78`), `handleCompleteChore` (`App.tsx:107`), `handleEditChore` (`App.tsx:132`). There is no path for another device's write to enter this state. The Pi kiosk holds whatever it fetched at boot.
+- **The bug is a single missing refetch path.** `frontend/src/App.tsx:32-43` runs `fetchAllChores()` inside a `useEffect(..., [])` with an empty dependency array — it fires exactly once, on mount. After that, `choreData` (`App.tsx:23`) is only mutated by the *same device's* own handlers (`handleAddChore` `:67`, `handleDeleteChore` `:78`, `handleCompleteChore` `:107`, `handleEditChore` `:132`). No other device's write can enter this state. The Pi kiosk holds whatever it fetched at boot.
 
-- **The backend is already a clean, consistent source of truth.** `backend/src/app.ts` is a plain REST API; `backend/src/chores.ts` reads/writes a single `better-sqlite3` database (WAL mode per the README). Every device writes to the same DB, so the *data* is correct and shared — `GET /api/chores` (`app.ts:15`) always returns the current truth. Nothing on the backend needs to change for re-pull to work.
+- **The backend is a single process and the perfect emit point.** `backend/src/app.ts` is a plain REST API; `backend/src/chores.ts` performs every read/write against one in-process `better-sqlite3` database (WAL mode). Crucially, **all four mutations (`createChore` `:36`, `completeChore` `:55`, `updateChore` `:61`, `deleteChore` `:85`) are invoked from route handlers in this one process** — so a successful write is a precise, in-band moment we can emit an event from. There is no second writer to miss (the only out-of-band writer is the backup restore, an admin action — see Out of Scope). This is why an in-memory `EventEmitter` is sufficient: no Redis/broker needed, because one process owns both the DB and every client connection.
 
-- **The wire/parse layer already exists and is reusable.** `frontend/src/services/choreApi.ts:17` (`fetchAllChores`) returns fully-parsed `Chore[]` with `dateLastCompleted` as a real `Date`. A polling hook can call this exact function — no new service code needed for the basic re-pull.
+- **SSE fits the access pattern better than WebSockets.** Clients only need to *receive* "something changed" — writes still go through the existing REST endpoints. SSE is one-directional (server→client) over plain HTTP, and the browser `EventSource` API reconnects automatically on drop with no client code. WebSockets would add a bidirectional channel and handshake we don't need.
 
-- **State derived from `choreData` will update for free.** `uniqueRooms` (`App.tsx:51`), `filteredChores` via `useRoomFilter` (`App.tsx:59`), and the render chain all derive from `choreData`. The one piece that does **not** auto-update is `sortedIds` (`App.tsx:26`) — it's a separate state array holding display order, recomputed only on mount and when `simulatedDate` changes (`App.tsx:45-49`). A re-pull must reconcile `sortedIds` too: append ids for newly-appeared chores, drop ids for chores that vanished, and preserve existing order so the list doesn't visibly reshuffle under the user. `orderChores(chores, simulatedDate)` (`utils/choreSort.ts`) is the canonical ordering function to reuse.
+- **The wire/parse layer is fully reusable.** `frontend/src/services/choreApi.ts:17` (`fetchAllChores`) already returns parsed `Chore[]`. The "re-pull" half of the design calls this exact function — no new fetch code. Only the *trigger* changes from "once on mount" to "on every SSE signal."
 
-- **Optimistic updates create a reconciliation hazard.** Each handler optimistically mutates `choreData` *before* the network round-trip resolves (e.g. `App.tsx:111-113` for complete). If a poll lands mid-flight and overwrites state with server data that predates the local write, the user's action would appear to "flicker back" and then re-apply. The hook must therefore (a) skip applying poll results while a mutation is in flight, and (b) skip while a form/modal is open so a re-pull can't yank the list out from under someone who is editing. An `isMutating` ref + the existing `showForm`/`editingId`/`pendingDeleteId` state are enough to gate this — no new global state library needed.
+- **`sortedIds` needs explicit reconciliation.** `sortedIds` (`App.tsx:26`) is a separate state array holding display order, recomputed only on mount and when `simulatedDate` changes (`App.tsx:45-49`). A re-pull must reconcile it: keep order for ids still present, append ids for newly-seen chores (ordered via `orderChores(newOnes, simulatedDate)` from `utils/choreSort.ts`), drop ids that vanished. Everything else (`uniqueRooms` `:51`, `useRoomFilter` `:59`, the render chain) derives from `choreData` and updates for free.
 
-- **`document.visibilitychange` is the right mobile trigger.** Phones background tabs aggressively; `setInterval` timers are throttled or paused when a tab is hidden. Listening for `visibilitychange` and refetching on `visible` means a phone shows fresh data the moment the user returns to it, independent of the interval. The Pi kiosk is always visible, so it relies on the interval. The existing `useMidnightClock` hook (`hooks/useMidnightClock.ts`) is the local precedent for an effect-driven hook with cleanup.
+- **Optimistic updates create a reconciliation hazard.** Each handler optimistically mutates `choreData` before its network round-trip resolves (e.g. `App.tsx:111-113`). A re-pull triggered by an event that arrives mid-flight could momentarily overwrite the local write with pre-write server data. The client must therefore defer applying a re-pull while a mutation is in flight or a form/modal is open (`showForm`/`editingId`/`pendingDeleteId`), and apply the deferred re-pull once that clears. Because events are sparse, a single "dirty" flag + gate is enough — no queue.
 
-- **Testing conventions are established and directly applicable.** Vitest + React Testing Library; `App.test.tsx:9-15` already mocks the entire `choreApi` module, and `vi.useFakeTimers()` is the project's canonical timer-mocking pattern (`__tests__/hooks/useMidnightClock.test.ts`). A polling hook is testable by advancing fake timers and asserting `fetchAllChores` call counts; reconciliation is testable at the `App` level by changing the mock's resolved value between polls.
+- **SSE needs nginx proxy-buffering disabled.** `nginx.conf` reverse-proxies `/api/*` on the shared origin. Buffered proxying would hold SSE frames back; the events location needs `proxy_buffering off;`, `proxy_http_version 1.1;`, `proxy_set_header Connection '';`, and a long `proxy_read_timeout`. This is the one deployment-side change and is the main reason this is slightly more than a frontend-only edit.
 
-- **Nginx proxies `/api/*` transparently.** `nginx.conf` reverse-proxies the API on the shared origin; ordinary polling requests need no special proxy config (unlike SSE, which would require disabling proxy buffering). This keeps the basic solution deployment-free beyond shipping the new frontend build.
+- **Idle connections get reaped without a heartbeat.** Proxies and phones drop idle long-lived connections. The SSE endpoint should emit a periodic comment line (`:ping\n\n`, ~25s) to keep the stream alive; `EventSource` transparently reconnects if it does drop.
 
-## Design Decisions
+- **Testing conventions apply directly.** Backend uses vitest with supertest-style route tests (`backend/src/__tests__/routes.test.ts`); the EventEmitter and emit-on-write behavior are unit-testable without a real socket. Frontend uses Vitest + RTL with the whole `choreApi` module mocked (`App.test.tsx:9-15`); `EventSource` is mockable as a small fake that lets a test dispatch a `message` event and assert a re-pull + re-render.
 
-- **Poll interval: 15 seconds (configurable constant).** Fast enough that a chore completed on a phone appears on the kiosk within a few seconds of feeling "live" for a household; slow enough that the request volume on a Pi is trivial (4 req/min/device). Define it as a named constant (e.g. `POLL_INTERVAL_MS` in `frontend/src/assets/constants.ts` if a constants module is the convention) so it's tunable in one place.
-- **Reconcile, don't replace.** The poll computes the next `choreData`/`sortedIds` from server truth but preserves existing display order and avoids replacing object identities that haven't changed where practical, to minimize re-render churn on the kiosk.
-- **Gate on local activity.** Never apply a poll result while `isMutating`, `showForm`, `editingId !== null`, or `pendingDeleteId !== null`. Skipped polls are simply retried on the next tick — no queueing needed.
-- **Simulation mode still polls but the *data* updates underneath the simulated date.** Date-navigation simulation (`dayOffset > 0`) only changes which date the bars are computed against; it doesn't freeze the chore set. Re-pull should still run so that returning to "today" shows current data. (Completion is already disabled while simulating per `App.tsx:108`.)
+## Architecture (data flow)
+
+```
+Phone taps "complete"  ──PATCH /api/chores/:id/complete──▶  Express handler
+                                                              │ 1. write to SQLite (existing)
+                                                              │ 2. choreEvents.emit('changed')   ← NEW
+                                                              ▼
+                                          ┌──────────  in-process EventEmitter  ──────────┐
+                                          ▼                                               ▼
+                            GET /api/events (SSE) → Pi kiosk            GET /api/events (SSE) → phone
+                                          │                                               │
+                                  EventSource.onmessage                          EventSource.onmessage
+                                          ▼                                               ▼
+                                  loadChores() re-pull  ◀── GET /api/chores ──▶   loadChores() re-pull
+```
+
+The acting device also receives its own event and re-pulls — harmless, since it reconciles to the same truth it optimistically already showed.
 
 ## Steps
 
-### 1. Extract a reusable `refetch`/reconcile function in `App.tsx`
-Refactor the one-shot mount fetch into a named async function that both the initial load and the poller call, and that performs order-preserving reconciliation of `choreData` + `sortedIds`.
+### 1. Backend: in-process event bus + emit on every successful write
+Create a singleton `EventEmitter` and emit a `changed` event after each successful mutation.
 
 **To-do:**
-- [ ] In `App.tsx`, add a `reconcileChores(fetched: Chore[])` helper (inside the component or a pure module function taking current `sortedIds`) that: keeps the existing order for ids still present, appends ids for newly-seen chores (ordered via `orderChores(newOnes, simulatedDate)`), and drops ids no longer present. Set both `choreData` and `sortedIds` from it.
-- [ ] Replace the body of the mount `useEffect` (`App.tsx:32-43`) so it calls a shared `loadChores()` that uses the reconcile helper on success and preserves the existing `loading`/`error` handling on first load only (polls must not flip `loading` back to true or surface transient network blips as full-screen errors — log/swallow or show a subtle stale indicator instead).
-- [ ] Add an `isMutating` ref, set true at the start of each of the four mutation handlers and cleared in their `finally`, so the poller can check it.
+- [ ] Add `backend/src/events.ts` exporting a singleton `choreEvents = new EventEmitter()` (raise `setMaxListeners` to a sane bound, e.g. 50, for a household's worth of devices).
+- [ ] In `backend/src/app.ts`, after a *successful* DB write in the POST (`:30`), PUT (`:47`), PATCH complete (`:67`), and DELETE (`:83`) handlers, call `choreEvents.emit('changed')`. Emit only on success (inside the branch that returns 2xx), never on validation/500 paths.
+- [ ] Keep the emit payload trivial (no body, or a monotonically increasing counter). The client re-pulls; the event is just a doorbell.
 
-**Verification:** `npm test --workspace frontend` still passes (existing `App.test.tsx` behavior unchanged); `npm run build --workspace frontend` is clean.
+**Verification:** `npm test --workspace backend` passes; add a unit test asserting `choreEvents` fires exactly once per successful create/complete/update/delete and not on a 400/404.
 
-### 2. Write tests for the polling hook (Red)
-Create the test file for a `usePolling` (or `usePeriodicRefetch`) hook before implementing it.
-
-**To-do:**
-- [ ] Create `frontend/src/__tests__/hooks/usePolling.test.ts`. Use `vi.useFakeTimers()`.
-- [ ] Test: calls the provided callback once per interval after `advanceTimersByTime(intervalMs)`; does **not** call it before the first interval elapses.
-- [ ] Test: does not call the callback while a `paused()` predicate returns true (models the mutation/modal gate).
-- [ ] Test: cleans up its interval and `visibilitychange` listener on unmount (assert no further calls after unmount + timer advance).
-- [ ] Test: invokes the callback immediately on a simulated `visibilitychange` to `visible` (mock `document.visibilityState`).
-- [ ] Run the file and confirm all tests fail with module-not-found (Red).
-
-**Verification:** `npm test --workspace frontend -- usePolling.test.ts` — all fail at import resolution.
-
-### 3. Implement the polling hook (Green)
-Minimum hook to satisfy Step 2.
+### 2. Backend: SSE endpoint `GET /api/events`
+Stream the `changed` signal to all connected clients.
 
 **To-do:**
-- [ ] Create `frontend/src/hooks/usePolling.ts` exporting `usePolling(callback: () => void, { intervalMs, paused }: { intervalMs: number; paused: () => boolean })`.
-- [ ] Use `setInterval`; on each tick, call `callback()` only if `!paused()`. Store `callback`/`paused` in refs so the interval needn't be recreated when they change (avoid stale closures without churning timers).
-- [ ] Add a `visibilitychange` listener that calls `callback()` (subject to `!paused()`) when `document.visibilityState === 'visible'`.
-- [ ] Return nothing; clean up both the interval and the listener on unmount.
+- [ ] Add `app.get('/api/events', ...)` in `backend/src/app.ts`. Set headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`; call `res.flushHeaders()`.
+- [ ] Subscribe a listener to `choreEvents.on('changed', ...)` that writes `data: changed\n\n` to `res`. Write an initial `:ok\n\n` comment on connect.
+- [ ] Start a `setInterval` heartbeat writing `:ping\n\n` (~25s) to keep the connection alive; clear it and `choreEvents.off('changed', ...)` on `req.on('close', ...)` to avoid listener leaks.
+- [ ] Confirm CORS: `app.ts:7` already sets `Access-Control-Allow-Origin: *`; in production the stream is same-origin via nginx, so no change needed.
 
-**Verification:** `npm test --workspace frontend -- usePolling.test.ts` passes; `npx tsc --noEmit` clean.
+**Verification:** add a route test that opens the endpoint, emits `choreEvents.emit('changed')`, and asserts a `data: changed` frame is written; assert the `close` handler removes the listener (`choreEvents.listenerCount('changed')` returns to baseline).
 
-### 4. Wire the hook into `App.tsx`
-Connect the poller to the shared `loadChores()` with the activity gate.
-
-**To-do:**
-- [ ] In `App.tsx`, call `usePolling(loadChores, { intervalMs: POLL_INTERVAL_MS, paused: () => isMutatingRef.current || showForm || editingId !== null || pendingDeleteId !== null })`.
-- [ ] Add `POLL_INTERVAL_MS = 15000` as a named constant (in `assets/constants.ts` if that module exists, else top of `App.tsx`).
-- [ ] Confirm `loadChores` reads the current `simulatedDate`/`sortedIds` correctly (via refs or by passing them) so reconciliation orders new chores against the active simulated date.
-
-**Verification:** `npm test --workspace frontend` passes; `npm run build --workspace frontend` clean.
-
-### 5. App-level integration test for cross-device re-pull (Red→Green)
-Prove the behavior the user reported is fixed: a change "from another device" (simulated by changing the mock's resolved value) appears without a manual reload.
+### 3. nginx: pass SSE through unbuffered
+Allow the stream to flow in real time on the Pi.
 
 **To-do:**
-- [ ] In `App.test.tsx` (or a new `App.sync.test.tsx`), with fake timers: render `App`, let the initial `fetchAllChores` resolve with one chore, then change `vi.mocked(fetchAllChores).mockResolvedValue(...)` to include a second chore (or an updated completion date), `advanceTimersByTime(POLL_INTERVAL_MS)`, flush promises, and assert the new/updated chore is now on screen.
-- [ ] Test the gate: while a form/modal is open or a mutation is mid-flight, an interval tick does **not** replace the list (assert the open modal stays and the optimistic value is not clobbered).
-- [ ] Test visibility refetch: dispatch a `visibilitychange` event with state `visible` and assert an immediate refetch + render of changed data.
+- [ ] In `nginx.conf`, add a `location /api/events` block (before the general `/api/` block, or as a more specific match) that proxies to the backend with `proxy_buffering off;`, `proxy_cache off;`, `proxy_http_version 1.1;`, `proxy_set_header Connection '';`, and `proxy_read_timeout 1h;` (or similar long timeout).
+- [ ] Confirm the existing `/api/` proxy block still handles all other endpoints unchanged.
 
-**Verification:** all new tests pass; full `npm test --workspace frontend` green; `npx playwright test` smoke unaffected.
+**Verification:** `docker compose build && docker compose up -d`, then `curl -N http://localhost/api/events` stays open and prints a `data: changed` line when another terminal does `curl -X PATCH .../complete`. (Manual; covered again in Step 7.)
 
-### 6. Manual end-to-end verification
-Confirm on the real two-device flow before shipping to the Pi.
+### 4. Frontend: extract a shared `loadChores()` with reconciliation
+Refactor the one-shot mount fetch into a reusable re-pull used by both initial load and event-driven refresh.
 
 **To-do:**
-- [ ] `docker compose build && docker compose up -d` (per README local smoke test). Open `http://localhost/` in two browser windows (one simulating the Pi, one the phone).
-- [ ] In window A, add/complete/delete a chore. Confirm window B reflects it within ~15s without a manual reload. Background window B's tab and re-focus it — confirm it refreshes immediately.
-- [ ] Confirm no flicker/regression on the acting window's own optimistic updates, and that editing in one window is not interrupted by a poll.
-- [ ] `docker compose down` (not `-v`).
+- [ ] In `App.tsx`, add a `reconcileChores(fetched: Chore[])` that sets `choreData` and reconciles `sortedIds` order-preservingly (keep existing order, append new ids ordered via `orderChores`, drop missing ids).
+- [ ] Replace the mount `useEffect` body (`:32-43`) with a shared `loadChores()` that uses the reconcile helper. Only the *first* load toggles `loading`/surfaces a full-screen error; event-driven re-pulls swallow transient blips (optionally a subtle "stale" indicator) rather than flipping `loading` or erroring.
+- [ ] Add an `isMutating` ref set/cleared in the four mutation handlers, plus a `pendingRefresh` ref. Gate predicate: `isMutating || showForm || editingId !== null || pendingDeleteId !== null`. When an event arrives while gated, set `pendingRefresh`; when the gate clears, run the deferred `loadChores()`.
 
-**Verification:** Changes propagate across both windows; no clobbered edits; existing add/complete/delete/edit flows unchanged.
+**Verification:** `npm test --workspace frontend` still green; `npm run build --workspace frontend` clean.
 
-## Out of Scope / Future Upgrade: Server Push (SSE)
+### 5. Frontend: tests for the SSE hook (Red)
+Write the hook's tests before implementing it, using a fake `EventSource`.
 
-Polling is sufficient for a LAN household app and requires zero backend/nginx changes. If near-instant propagation is later wanted, the lowest-friction upgrade is **Server-Sent Events**:
+**To-do:**
+- [ ] Create `frontend/src/__tests__/hooks/useChoreEvents.test.ts`. Install a fake `EventSource` on `globalThis` whose instances expose `onmessage`/`onopen`/`onerror` and a `close()` spy, and let the test dispatch a `message`.
+- [ ] Test: dispatching a `message` invokes the supplied callback (the re-pull).
+- [ ] Test: `onopen` (connect/reconnect) invokes the callback too — covers refetch-after-reconnect so events missed during a drop are recovered.
+- [ ] Test: the gate predicate suppresses the callback while it returns true.
+- [ ] Test: unmount calls `EventSource.close()` and detaches handlers.
+- [ ] Run and confirm all fail at import resolution (Red).
 
-- Add a `GET /api/events` SSE endpoint in `backend/src/app.ts` backed by a simple in-process `EventEmitter`. The four mutating handlers (`createChore`/`completeChore`/`updateChore`/`deleteChore`) emit a `chores-changed` event after a successful DB write; the SSE handler forwards it to all connected clients. Because there is a single backend process owning the SQLite file, an in-memory emitter reaches every client — no message broker needed.
-- Frontend: replace (or supplement) the interval with an `EventSource('/api/events')` that calls the same `loadChores()` on each event. Keep a slow interval (e.g. 60s) as a fallback for missed events.
-- Deployment: `nginx.conf` must disable proxy buffering for the events location (`proxy_buffering off;`, `proxy_set_header Connection '';`, HTTP/1.1) so events aren't held back — this is the main reason SSE is deferred rather than done now.
+**Verification:** `npm test --workspace frontend -- useChoreEvents.test.ts` — all fail to resolve the module.
 
-This plan deliberately ships re-pull first: it solves the reported problem immediately and the `loadChores()` seam it introduces is exactly what an SSE upgrade would reuse.
+### 6. Frontend: implement `useChoreEvents` hook + wire into `App` (Green)
+Minimum hook to satisfy Step 5, then connect it.
+
+**To-do:**
+- [ ] Create `frontend/src/hooks/useChoreEvents.ts` exporting `useChoreEvents(onChange: () => void, paused: () => boolean)`. Open `new EventSource('/api/events')`; on `message` and on `open`, call `onChange()` if `!paused()` (else mark pending — or leave gating in `App` and just forward). Use refs for `onChange`/`paused` to avoid reconnect churn. Close the stream and detach on unmount.
+- [ ] Optionally also refetch on `document.visibilitychange → visible` (covers phones whose OS suspended the `EventSource` while backgrounded).
+- [ ] In `App.tsx`, call `useChoreEvents(loadChores, gatePredicate)`.
+
+**Verification:** `npm test --workspace frontend -- useChoreEvents.test.ts` passes; `npx tsc --noEmit` clean.
+
+### 7. App-level integration test + manual two-device verification
+Prove the reported scenario is fixed.
+
+**To-do:**
+- [ ] In `App.test.tsx` (or `App.sync.test.tsx`): render `App`, resolve initial `fetchAllChores` with one chore, change the mock to return a second chore, dispatch a fake SSE `message`, flush promises, assert the new chore renders — with no manual reload.
+- [ ] Test the gate: with a modal open / mutation in flight, an SSE message does not clobber the open modal or the optimistic value; assert the deferred re-pull runs after the gate clears.
+- [ ] Manual: `docker compose build && docker compose up -d`; open `http://localhost/` in two windows. Add/complete/delete in window A; confirm window B updates within a second with no reload. Background and re-focus B; confirm it stays in sync. Kill and restart the backend container; confirm `EventSource` reconnects and B refetches. `docker compose down` (not `-v`).
+
+**Verification:** all new tests pass; full `npm test` (both workspaces) green; `npx playwright test` smoke unaffected; manual two-window propagation is near-instant.
+
+## Why this over periodic polling
+- **No fixed latency.** Updates appear as fast as the write commits, not up to an interval later.
+- **No idle request volume.** One held-open connection per device instead of N requests/min forever.
+- **Single source of truth preserved.** "Notify then re-pull" reuses `GET /api/chores`; the event is only a doorbell, so coalesced or missed events are self-healing on the next event or reconnect.
+- **Trade-off accepted:** it requires a small backend endpoint and an nginx tweak (vs. a frontend-only poll). Given the app is a single-process backend on a LAN, that cost is low and the bus is trivial (in-memory `EventEmitter`).
+
+## Out of Scope
+- **Out-of-band DB writes** (e.g. restoring a backup directly into the SQLite file, per the README backup strategy) do not pass through the API and so do not emit. These are rare admin actions followed by a container/app restart, which re-fetches on mount anyway. If ever needed, a low-frequency safety-net refetch on `EventSource` reconnect (already included via `onopen`) covers the gap.
+- **Authentication / per-user streams.** The app is an unauthenticated household LAN tool; the stream broadcasts the same "changed" doorbell to all. No per-client filtering is needed.
