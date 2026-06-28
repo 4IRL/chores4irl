@@ -34,7 +34,9 @@ playwright-report/
 
 # Claude Code files
 .claude
-research.node_modules
+# Root-level scratch (the tracked archive lives under plans/, which is no longer ignored)
+plan.md
+research.md
 
 # Planning scratch — subagent review working files are regenerated each run;
 # never commit them (the durable plan/review docs alongside them are fine to track)

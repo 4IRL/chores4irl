@@ -1,0 +1,5 @@
+# Keep planning/process docs out of `git archive` tarballs. Deployment ships the
+# source tree to the Pi via `git archive HEAD` (see README → Deployment); the
+# plans/ archive is developer documentation with no runtime role, so omit it from
+# the shipped/build artifact while keeping it tracked in the repo.
+plans/ export-ignore
