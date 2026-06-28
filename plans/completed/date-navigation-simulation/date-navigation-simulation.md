@@ -1,3 +1,10 @@
+> **STATUS: Merged** `c36d867` (#12). Frozen — historical record, do not edit.
+> **Outcome:** Shipped as planned. The display chain (`useMidnightClock().day` →
+> `ChoreList` → `ChoreTimerBar`/`computeBar`/`orderChores`) was already parameterized by
+> `day`, so simulation just drives a `dayOffset`; clicks are disabled while simulating
+> (delete stays active). Both push-review rounds' findings were **fully resolved** (0 open).
+> See git for the actual diff.
+
 # Date Navigation Simulation
 
 ## Summary
