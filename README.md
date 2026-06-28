@@ -8,6 +8,47 @@ A household chore-tracking app designed to run on a Raspberry Pi 4 with an attac
 - **Frontend** (`frontend/`) — React + Vite + Tailwind. Calls the API via relative URLs (`fetch('/api/chores')`) so it must share an origin with the backend in production.
 - **Nginx** (`nginx.conf`) — serves the built frontend and reverse-proxies `/api/*` to the backend over the Compose network. That shared origin is what lets the frontend's relative URLs work.
 
+## How prioritization works
+
+Rather than a flat to-do list, chores are ranked in real time by a **duration-weighted
+urgency score**, so the task that costs the most to keep neglecting floats to the top:
+
+```
+score = duration × (daysSinceLastCompleted / frequency)
+```
+
+`daysSinceLastCompleted / frequency` is how far a chore is through its cycle (1.0 = due
+today, > 1 = overdue); multiplying by `duration` (minutes the task takes) means a long task
+that's half-overdue can outrank a quick task that's fully overdue. The scoring and sort live
+in `frontend/src/utils/choreSort.ts` (`calcDurationWeightedScore` / `orderChores`).
+
+Chores flagged `longTermTask` (e.g. a quarterly HVAC-filter change) always sort **below**
+short-term daily/weekly chores regardless of score, so routine upkeep never buries the
+day-to-day list.
+
+Each chore renders as a timer bar that drains as its due date approaches and turns red once
+overdue (`frontend/src/utils/choreBarMath.ts`). The displayed date can be stepped forward to
+preview how the bars will look on future days.
+
+### Data model
+
+The `Chore` shape is shared between frontend and backend via `types/SharedTypes.d.ts` (the
+monorepo's single source of truth, imported with `import type` on both sides):
+
+```typescript
+interface Chore {
+    id: number;
+    name: string;
+    details?: string | null;
+    room: string;
+    dateLastCompleted: Date;
+    duration: number;        // minutes — how long the task takes
+    frequency: number;       // days — how often it should be done
+    urgency?: 'low' | 'medium' | 'high';
+    longTermTask?: boolean;  // true = maintenance/infrequent
+}
+```
+
 ## Local development
 
 ```bash
