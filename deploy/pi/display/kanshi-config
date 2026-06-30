@@ -1,0 +1,31 @@
+# chores4irl — display rotation (kanshi)
+#
+# Lives on the Pi at:  ~/.config/kanshi/config
+# The RPi desktop launches kanshi from /etc/xdg/labwc/autostart, so this is the
+# canonical, reboot-persistent place for output rotation under labwc/Wayland.
+#
+# The touch panel is rotated SEPARATELY in labwc rc.xml (see
+# labwc-rc.xml.fragment) — rotating the output does NOT rotate touch input.
+# Whenever you change `transform` below, update the touch calibrationMatrix to
+# the row that matches. See the table in deploy/pi/README.md.
+#
+# PORT-INDEPENDENT MATCHING (this is the durable fix): kanshi can match an output
+# either by connector name ("HDMI-A-1") OR by its make/model/serial description.
+# Connector names drift between HDMI-A-1 and HDMI-A-2 depending on which micro-HDMI
+# port the cable is in, and when they drift the profile silently stops applying.
+# Matching by description survives that. The string below comes from `wlr-randr`
+# (Make "DZX", Model "Z3", Serial "0000000000000"). Re-verify with `wlr-randr`
+# if you swap the panel.
+#
+# transform 90 = the orientation that is upright on the current physical mount
+# (the panel was remounted since first deploy; the old `transform 270` is now
+# 180° upside down). Confirm live without a reboot:
+#     wlr-randr                                    # find the connector name
+#     wlr-randr --output HDMI-A-1 --transform 90   # use that name, not the description
+# NOTE: wlr-randr matches by CONNECTOR NAME (HDMI-A-1 / HDMI-A-2), not by the
+# "DZX Z3 ..." make/model/serial description. Only kanshi (below) matches by
+# description. Run `wlr-randr` with no args to read the current connector name.
+
+profile {
+    output "DZX Z3 0000000000000" mode 1024x600 position 0,0 transform 90
+}
