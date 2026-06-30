@@ -41,3 +41,25 @@ describe('ChoreFormModal edit mode', () => {
         expect(screen.getByText('Edit Chore')).toBeInTheDocument();
     });
 });
+
+describe('ChoreFormModal rooms prop', () => {
+    it('forwards the rooms prop into the room datalist', () => {
+        render(
+            <ChoreFormModal
+                rooms={['Kitchen', 'Garage']}
+                onSubmit={vi.fn()}
+                onCancel={vi.fn()}
+            />,
+        );
+
+        const roomInput = screen.getByLabelText('Room');
+        expect(roomInput).toHaveAttribute('list', 'room-options');
+
+        const datalist = document.getElementById('room-options');
+        expect(datalist).not.toBeNull();
+        expect(Array.from(datalist!.querySelectorAll('option')).map(o => o.getAttribute('value'))).toEqual([
+            'Kitchen',
+            'Garage',
+        ]);
+    });
+});
