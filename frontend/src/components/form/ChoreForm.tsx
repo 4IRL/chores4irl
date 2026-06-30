@@ -40,11 +40,12 @@ function choreToFormState(chore: Chore): FormState {
 type ChoreFormProps = {
     mode?: 'add' | 'edit';
     initialChore?: Chore;
+    rooms?: string[];
     onSubmit: (chore: Omit<Chore, 'id'>) => void;
     onCancel: () => void;
 };
 
-export default function ChoreForm({ mode = 'add', initialChore, onSubmit, onCancel }: ChoreFormProps) {
+export default function ChoreForm({ mode = 'add', initialChore, rooms = [], onSubmit, onCancel }: ChoreFormProps) {
     const [formData, setFormData] = useState<FormState>(() =>
         initialChore ? choreToFormState(initialChore) : initialFormState,
     );
@@ -74,14 +75,32 @@ export default function ChoreForm({ mode = 'add', initialChore, onSubmit, onCanc
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <FormField name="name" label="Name" value={formData.name} onChange={handleFieldChange} required autoFocus />
                 <FormField name="details" label="Details" value={formData.details} onChange={handleFieldChange} />
-                <FormField name="room" label="Room" value={formData.room} onChange={handleFieldChange} required />
+                <div className="flex flex-col gap-1">
+                    <label htmlFor="room" className="text-sm text-gray-400 capitalize">Room</label>
+                    <input
+                        id="room"
+                        name="room"
+                        type="text"
+                        list="room-options"
+                        value={formData.room}
+                        onChange={e => handleFieldChange('room', e.target.value)}
+                        required
+                        className="bg-gray-700 text-white rounded px-3 py-2 text-sm"
+                    />
+                    <datalist id="room-options">
+                        {rooms.map(room => (
+                            <option key={room} value={room} />
+                        ))}
+                    </datalist>
+                </div>
                 <FormField name="dateLastCompleted" label="Last Completed" value={formData.dateLastCompleted} onChange={handleFieldChange} type="date" required />
                 <FormField name="duration" label="Duration (minutes)" value={formData.duration} onChange={handleFieldChange} type="number" required />
                 <FormField name="frequency" label="Frequency (days)" value={formData.frequency} onChange={handleFieldChange} type="number" required />
 
                 <div className="flex flex-col gap-1">
-                    <label className="text-sm text-gray-400">Urgency</label>
+                    <label htmlFor="urgency" className="text-sm text-gray-400">Urgency</label>
                     <select
+                        id="urgency"
                         value={formData.urgency}
                         onChange={e => setFormData(prev => ({ ...prev, urgency: e.target.value as FormState['urgency'] }))}
                         className="bg-gray-700 text-white rounded px-3 py-2 text-sm"
