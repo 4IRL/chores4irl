@@ -1,3 +1,5 @@
+> **STATUS: Merged** `0305107` (#8). Frozen — historical record, do not edit.
+
 # Real Time Clock + Midnight-Only Sort
 
 ## Summary

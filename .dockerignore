@@ -2,6 +2,7 @@
 .git
 .gitignore
 .github
+.vscode/
 
 # Node
 node_modules

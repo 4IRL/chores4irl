@@ -23,9 +23,9 @@ backlog is visible and actionable instead of scattered.
 
 ## Quick batch view (by theme)
 - `[test]`     — ~12 items: assertion hardening, missing-branch coverage, brittle-selector fixes
-- `[style]`/`[dx]` — ~8 items: DRY helpers, hook ordering, import-style consistency, clarifying comments
+- `[style]`/`[dx]` — ~12 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, META-PLAN dual-table reminder, SSE mutation-gate/open-refetch tidies
 - `[a11y]`     — 2 items: `focus-visible:` reveal, focus-ring clipping (bar-redesign)
-- `[security]` — 1 item: server-side `urgency` enum validation (edit-task)
+- `[security]` — 3 items: server-side `urgency` enum validation (edit-task); SSE connection cap + host-specifics redaction (both opt)
 - `[design]`   — 2 items: both had a blocking dependency that **has since merged** — now decidable (see ⚠ below)
 
 ---
@@ -68,7 +68,7 @@ Source: `plans/completed/bar-redesign/reviews/push-review-feature-bar-redesign.m
 - [ ] `[style]` opt — Comment the e2e `dispatchEvent('click')` cleanup sites — `e2e/smoke.spec.ts` — brief inline note at each of the three sites that it fires the sr-only button's React `onClick` (force click is occluded).
 
 ## reconfig/viewport  (portrait viewport, #9 `ece4fe6`)
-Source: `plans/reconfig/viewport/reviews/push-review-reconfig-viewport.md`
+Source: `plans/completed/reconfig-viewport/viewport/reviews/push-review-reconfig-viewport.md`
 > Pre-F2 infra work; not part of the F-series but its findings are still open.
 
 - [ ] `[dx]` minor — Dedupe `ChoreFormModal` backdrop-click test setup via `beforeEach` — `frontend/src/__tests__/components/ChoreFormModal.test.tsx` — extract `userEvent.setup()`, the `onCancel` `vi.fn()`, and `render(...)` into a `beforeEach` exposing `user`/`onCancel`.
@@ -76,9 +76,26 @@ Source: `plans/reconfig/viewport/reviews/push-review-reconfig-viewport.md`
 - [ ] `[test]` minor — Loosen `ChoreList` empty-state copy assertion — `frontend/src/__tests__/components/ChoreList.test.tsx` — change exact-string match to `/no chores yet/i` so copy tweaks don't break it.
 - [ ] `[test]` minor — Add explicit load-state wait before overlay viewport assertions — `e2e/smoke.spec.ts:98` — add `await page.waitForLoadState('domcontentloaded')` at the top of the portrait-enforcement test.
 
+## (non-F) Multi-device sync via SSE  (`42040cc`, #21)
+Source: `plans/completed/multi-device-sync/reviews/push-review-claude-mobile-pi-device-sync-is0teg.md`
+> Push verdict was PASS (6/7) with one Test-Coverage major **fixed in-session**; the items below are the accepted, non-blocking deferrals.
+
+- [ ] `[security]` opt — Connection cap on `GET /api/events` — `backend/src/app.ts` — if exposure ever grows beyond the LAN, reject past N concurrent SSE clients (e.g. `listenerCount >= 20 → 503`).
+- [ ] `[dx]` opt — Reference-counted mutation gate — `frontend/src/App.tsx` — replace boolean `isMutatingRef` with a counter if concurrent mutations ever become reachable in the UI.
+- [ ] `[dx]` opt — Skip the initial `open` re-fetch — `frontend/src/hooks/useChoreEvents.ts` — guard the `open` handler to fire only on reconnects, avoiding one redundant idempotent fetch per mount.
+- [ ] `[style]` opt — Exact-match nginx location — `nginx.conf` — use `location = /api/events` to scope SSE settings to exactly that path (no `/api/events/*` sub-path catch).
+
+## (chore) plans-housekeeping  (`b823ad4`, #20)
+Source: `plans/completed/plans-housekeeping/reviews/push-review-chore-plans-housekeeping.md`
+> The two doc-hygiene findings (freeze headers on older completed plans; correct progress-bar-decay's status) were **resolved in this `/compact-plans` sweep** — see Resolved/archived. The two below remain open.
+
+- [ ] `[dx]` minor — Make the META-PLAN dual-table update explicit — `plans/META-PLAN.md` — completed features live in **both** the Summary table and the Status ledger; add a one-line reminder to the ledger-update protocol to also move the row in the Summary table, so the two never drift.
+- [ ] `[security]` opt — Redact host specifics in historical deploy plans — `plans/completed/docker-raspberry-pi/docker-raspberry-pi.md` et al. — replace `192.168.1.214` / `rmilarachi` with placeholders **only if this repo ever goes public**. Non-blocking for a private repo.
+
 ---
 
 ## Resolved / archived
 Findings whose feature reviews reached 0-open at push time (kept for provenance, no action):
 - **date-navigation-simulation** (`c36d867`, #12) — both review rounds fully resolved (8/8 done).
 - **reconfig-ClaudeCode** push review — 20/20 done.
+- **plans-housekeeping** (`b823ad4`, #20) — two doc-hygiene findings resolved in the 2026-06-30 `/compact-plans` sweep: (1) freeze headers added to the six older completed plans that lacked them; (2) `progress-bar-decay.md` corrected to **Merged `e929b75` (#7)** with an F6-consolidation note (the prior "never merged" claim was contradicted by git).

@@ -29,7 +29,7 @@ For each feature/plan dir, determine true status from the repo, not the doc:
 - **Merged** → code is on `main`. Find the merge SHA (`git log --oneline -i
   --grep="<feature>"`).
 - **Abandoned** → not on main, no longer in the current backlog
-  (`plans/feature/<LATEST>_future_feature_list.md`), no active branch.
+  (`plans/ledger/<LATEST>_feature_ledger.md`), no active branch.
 - **Superseded** → its functionality shipped via a different path, OR a newer
   backlog item reverses/replaces its decisions.
 - **Live** → still in the current backlog or on an active branch. Leave it,
@@ -63,7 +63,30 @@ For each Merged / Abandoned / Superseded plan:
 - Leave `tmp/` for **live** plans untouched.
 - Ensure `.gitignore` contains `plans/**/tmp/` so scratch can never be committed.
 
-## Step 4 — Preserve, never discard
+## Step 4 — Prune merged feature branches
+The archive isn't the only thing that accumulates rot — **merged branches linger too**.
+After a feature's plan is frozen and relocated, its branch is dead weight.
+1. **Find merged branches by PR state, not ancestry.** This repo **squash-merges**, so a
+   merged branch is *not* an ancestor of `main` — `git branch --merged main` will miss it
+   (it typically shows only `main`). Drive the list from PRs instead:
+   `gh pr list --state merged --json number,title,headRefName,mergeCommit`. Cross-check each
+   against the **`META-PLAN.md` status ledger** (rows marked `merged` / `(prune)`).
+2. **Prune only truly-merged branches** — local and remote:
+   `git branch -d <branch>` (use `-d`, never `-D`, so git refuses to drop anything not
+   actually merged/captured) and `git push origin --delete <branch>`. A branch whose
+   functionality shipped via a *different* path (squashed into another PR, or **superseded**)
+   is also safe to prune — confirm its work is genuinely on `main` first.
+3. **Never prune:** the default branch; any branch with **unmerged commits**; a branch for a
+   **live** backlog feature or an open PR. When `-d` refuses, stop and investigate rather than
+   forcing `-D`.
+4. **Confirm before deleting** (especially remote deletes) — list the exact branches you intend
+   to prune and get the user's go-ahead, same gate as committing. Branch deletion is recoverable
+   (reflog locally, re-push from a teammate's copy remotely) but treat remote deletes as
+   outward-facing.
+5. Record the pruned branches in the run summary, and clear/annotate their `(prune)` markers in
+   the `META-PLAN.md` ledger so the next sweep doesn't re-flag them.
+
+## Step 5 — Preserve, never discard
 Before deleting anything non-`tmp/`, confirm it isn't the only record of:
 - a design decision or rejected alternative,
 - an unresolved design question on a live plan (fold it into the plan body first),
@@ -75,7 +98,9 @@ When in doubt, freeze-and-archive rather than delete.
 - `plans/completed/` (and/or `plans/abandoned/`) holds frozen, headered records.
 - All deferred minor findings harvested into `plans/PUSH-REVIEW-FINDINGS.md`.
 - No `tmp/` scratch for finished plans; `plans/**/tmp/` is gitignored.
-- A short summary to the user: what was frozen (with SHAs), moved, and deleted.
+- No lingering merged branches (local or remote); the `META-PLAN.md` ledger's `(prune)`
+  markers cleared for branches actually removed.
+- A short summary to the user: what was frozen (with SHAs), moved, deleted, and pruned.
 
 ## Tracking decision (raise once, then respect the answer)
 If `plans/` is currently untracked, ask the user whether to (a) start committing

@@ -1,3 +1,6 @@
+> **STATUS: Merged** (early test-infra setup; predates per-PR plan tracking — doc itself
+> entered git via #20 `b823ad4`). Frozen — historical record, do not edit.
+
 # Automated Test Infrastructure
 
 ## Summary

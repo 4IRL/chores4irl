@@ -1,3 +1,9 @@
+> **STATUS: Merged** `ece4fe6` (#9). Frozen — historical record, do not edit.
+> **Outcome:** Portrait mobile viewport reconfig shipped — sticky layout, modal
+> extraction (`ChoreFormModal`), and the orientation-enforcement overlay. Pre-F-series
+> infra work. Its push-review minors remain open and are tracked in
+> `plans/PUSH-REVIEW-FINDINGS.md` under the `reconfig/viewport` section.
+
 # Viewport Layout Reconfiguration
 
 ## Summary

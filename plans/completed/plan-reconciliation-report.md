@@ -1,3 +1,6 @@
+> **STATUS: Archived report** (2026-04-09 reconciliation snapshot). Frozen — historical
+> record, do not edit. Superseded by later reconciles; current backlog truth is `META-PLAN.md`.
+
 # Plan Reconciliation Report
 
 **Generated:** 2026-04-09

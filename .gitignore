@@ -6,6 +6,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.vscode/
 
 node_modules
 dist
@@ -42,6 +43,9 @@ plans/**/tmp/
 # Env files
 .env
 .env.*
+
+# Shell scripts
+*.sh
 
 # Stray user dotfiles that leaked into repo root
 .bash_profile
