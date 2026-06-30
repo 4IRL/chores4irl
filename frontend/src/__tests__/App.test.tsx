@@ -31,6 +31,14 @@ function swipe(bar: HTMLElement, fromX: number, toX: number) {
     fireEvent.mouseUp(bar, { clientX: toX, clientY: 50 });
 }
 
+// jsdom reports 0 for layout, so the 25%-of-width confirm threshold never trips.
+// Stub the measured wrapper's width so a full-width drag crosses the threshold.
+function stubBarWidth(bar: HTMLElement, width = 400) {
+    const measured = bar.parentElement as HTMLElement;
+    measured.getBoundingClientRect = () =>
+        ({ width, height: 64, top: 0, left: 0, right: width, bottom: 64, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+}
+
 describe('swipe gestures', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -40,23 +48,27 @@ describe('swipe gestures', () => {
         vi.mocked(removeChore).mockResolvedValue(undefined);
     });
 
-    it('swiping a bar left opens the delete confirmation without deleting yet', async () => {
+    it('swiping a bar right opens the delete confirmation without deleting yet', async () => {
         render(<App />);
 
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
-        swipe(screen.getAllByTestId('chore-bar')[0], 200, 120);
+        const bar = screen.getAllByTestId('chore-bar')[0];
+        stubBarWidth(bar);
+        swipe(bar, 50, 300);
 
         expect(await screen.findByTestId('confirm-dialog-confirm')).toBeInTheDocument();
         expect(removeChore).not.toHaveBeenCalled();
     });
 
-    it('swiping a bar right opens the pre-populated edit modal', async () => {
+    it('swiping a bar left opens the pre-populated edit modal', async () => {
         render(<App />);
 
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
-        swipe(screen.getAllByTestId('chore-bar')[0], 120, 220);
+        const bar = screen.getAllByTestId('chore-bar')[0];
+        stubBarWidth(bar);
+        swipe(bar, 350, 100);
 
         expect(await screen.findByText('Edit Chore')).toBeInTheDocument();
         expect(screen.getByLabelText('Name')).toHaveValue('Sweep');
