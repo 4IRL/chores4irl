@@ -1,5 +1,6 @@
 import express from 'express';
 import { getAllChores, createChore, completeChore, deleteChore, updateChore } from './chores.js';
+import { choreEvents, CHORE_CHANGED } from './events.js';
 import type { Chore, ApiResponse } from '../../types/SharedTypes.js';
 
 const app = express();
@@ -21,6 +22,30 @@ app.get('/api/chores', (_req, res) => {
     }
 });
 
+// Server-Sent Events stream: pushes a lightweight "chores changed" doorbell to
+// every connected device whenever any mutation succeeds. Clients re-pull the
+// full list from GET /api/chores on each signal. One-directional over plain
+// HTTP, so the browser EventSource reconnects automatically on drop.
+app.get('/api/events', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+    res.write(':ok\n\n'); // initial comment so proxies open the stream immediately
+
+    const onChange = () => res.write(`data: ${CHORE_CHANGED}\n\n`);
+    choreEvents.on(CHORE_CHANGED, onChange);
+
+    // Heartbeat keeps the connection alive through idle-connection reapers
+    // (proxies, phones). EventSource transparently reconnects if it still drops.
+    const heartbeat = setInterval(() => res.write(':ping\n\n'), 25_000);
+
+    req.on('close', () => {
+        clearInterval(heartbeat);
+        choreEvents.off(CHORE_CHANGED, onChange);
+    });
+});
+
 app.post('/api/chores', (req, res) => {
     const body = req.body as Omit<Chore, 'id'>;
     if (!body.name || !body.room || !body.dateLastCompleted || body.duration == null || body.frequency == null) {
@@ -28,6 +53,7 @@ app.post('/api/chores', (req, res) => {
     }
     try {
         const data = createChore(body);
+        choreEvents.emit(CHORE_CHANGED);
         return res.status(201).json({ success: true, data } satisfies ApiResponse<typeof data>);
     } catch {
         return res.status(500).json({ success: false, error: 'Failed to create chore' } satisfies ApiResponse<never>);
@@ -48,6 +74,7 @@ app.put('/api/chores/:id', (req, res) => {
         if (!data) {
             return res.status(404).json({ success: false, error: 'Chore not found' } satisfies ApiResponse<never>);
         }
+        choreEvents.emit(CHORE_CHANGED);
         return res.json({ success: true, data } satisfies ApiResponse<typeof data>);
     } catch {
         return res.status(500).json({ success: false, error: 'Failed to update chore' } satisfies ApiResponse<never>);
@@ -68,6 +95,7 @@ app.patch('/api/chores/:id/complete', (req, res) => {
         if (!data) {
             return res.status(404).json({ success: false, error: 'Chore not found' } satisfies ApiResponse<never>);
         }
+        choreEvents.emit(CHORE_CHANGED);
         return res.json({ success: true, data } satisfies ApiResponse<typeof data>);
     } catch {
         return res.status(500).json({ success: false, error: 'Failed to update chore' } satisfies ApiResponse<never>);
@@ -83,6 +111,7 @@ app.delete('/api/chores/:id', (req, res) => {
         if (!deleteChore(id)) {
             return res.status(404).json({ success: false, error: 'Chore not found' } satisfies ApiResponse<never>);
         }
+        choreEvents.emit(CHORE_CHANGED);
         return res.json({ success: true, data: null } satisfies ApiResponse<null>);
     } catch {
         return res.status(500).json({ success: false, error: 'Failed to delete chore' } satisfies ApiResponse<never>);

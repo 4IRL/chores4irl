@@ -51,9 +51,9 @@ The acting device also receives its own event and re-pulls — harmless, since i
 Create a singleton `EventEmitter` and emit a `changed` event after each successful mutation.
 
 **To-do:**
-- [ ] Add `backend/src/events.ts` exporting a singleton `choreEvents = new EventEmitter()` (raise `setMaxListeners` to a sane bound, e.g. 50, for a household's worth of devices).
-- [ ] In `backend/src/app.ts`, after a *successful* DB write in the POST (`:30`), PUT (`:47`), PATCH complete (`:67`), and DELETE (`:83`) handlers, call `choreEvents.emit('changed')`. Emit only on success (inside the branch that returns 2xx), never on validation/500 paths.
-- [ ] Keep the emit payload trivial (no body, or a monotonically increasing counter). The client re-pulls; the event is just a doorbell.
+- [x] Add `backend/src/events.ts` exporting a singleton `choreEvents = new EventEmitter()` (raise `setMaxListeners` to a sane bound, e.g. 50, for a household's worth of devices).
+- [x] In `backend/src/app.ts`, after a *successful* DB write in the POST (`:30`), PUT (`:47`), PATCH complete (`:67`), and DELETE (`:83`) handlers, call `choreEvents.emit('changed')`. Emit only on success (inside the branch that returns 2xx), never on validation/500 paths.
+- [x] Keep the emit payload trivial (no body, or a monotonically increasing counter). The client re-pulls; the event is just a doorbell.
 
 **Verification:** `npm test --workspace backend` passes; add a unit test asserting `choreEvents` fires exactly once per successful create/complete/update/delete and not on a 400/404.
 
@@ -61,10 +61,10 @@ Create a singleton `EventEmitter` and emit a `changed` event after each successf
 Stream the `changed` signal to all connected clients.
 
 **To-do:**
-- [ ] Add `app.get('/api/events', ...)` in `backend/src/app.ts`. Set headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`; call `res.flushHeaders()`.
-- [ ] Subscribe a listener to `choreEvents.on('changed', ...)` that writes `data: changed\n\n` to `res`. Write an initial `:ok\n\n` comment on connect.
-- [ ] Start a `setInterval` heartbeat writing `:ping\n\n` (~25s) to keep the connection alive; clear it and `choreEvents.off('changed', ...)` on `req.on('close', ...)` to avoid listener leaks.
-- [ ] Confirm CORS: `app.ts:7` already sets `Access-Control-Allow-Origin: *`; in production the stream is same-origin via nginx, so no change needed.
+- [x] Add `app.get('/api/events', ...)` in `backend/src/app.ts`. Set headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`; call `res.flushHeaders()`.
+- [x] Subscribe a listener to `choreEvents.on('changed', ...)` that writes `data: changed\n\n` to `res`. Write an initial `:ok\n\n` comment on connect.
+- [x] Start a `setInterval` heartbeat writing `:ping\n\n` (~25s) to keep the connection alive; clear it and `choreEvents.off('changed', ...)` on `req.on('close', ...)` to avoid listener leaks.
+- [x] Confirm CORS: `app.ts:7` already sets `Access-Control-Allow-Origin: *`; in production the stream is same-origin via nginx, so no change needed.
 
 **Verification:** add a route test that opens the endpoint, emits `choreEvents.emit('changed')`, and asserts a `data: changed` frame is written; assert the `close` handler removes the listener (`choreEvents.listenerCount('changed')` returns to baseline).
 
@@ -72,8 +72,8 @@ Stream the `changed` signal to all connected clients.
 Allow the stream to flow in real time on the Pi.
 
 **To-do:**
-- [ ] In `nginx.conf`, add a `location /api/events` block (before the general `/api/` block, or as a more specific match) that proxies to the backend with `proxy_buffering off;`, `proxy_cache off;`, `proxy_http_version 1.1;`, `proxy_set_header Connection '';`, and `proxy_read_timeout 1h;` (or similar long timeout).
-- [ ] Confirm the existing `/api/` proxy block still handles all other endpoints unchanged.
+- [x] In `nginx.conf`, add a `location /api/events` block (before the general `/api/` block, or as a more specific match) that proxies to the backend with `proxy_buffering off;`, `proxy_cache off;`, `proxy_http_version 1.1;`, `proxy_set_header Connection '';`, and `proxy_read_timeout 1h;` (or similar long timeout).
+- [x] Confirm the existing `/api/` proxy block still handles all other endpoints unchanged.
 
 **Verification:** `docker compose build && docker compose up -d`, then `curl -N http://localhost/api/events` stays open and prints a `data: changed` line when another terminal does `curl -X PATCH .../complete`. (Manual; covered again in Step 7.)
 
@@ -81,9 +81,9 @@ Allow the stream to flow in real time on the Pi.
 Refactor the one-shot mount fetch into a reusable re-pull used by both initial load and event-driven refresh.
 
 **To-do:**
-- [ ] In `App.tsx`, add a `reconcileChores(fetched: Chore[])` that sets `choreData` and reconciles `sortedIds` order-preservingly (keep existing order, append new ids ordered via `orderChores`, drop missing ids).
-- [ ] Replace the mount `useEffect` body (`:32-43`) with a shared `loadChores()` that uses the reconcile helper. Only the *first* load toggles `loading`/surfaces a full-screen error; event-driven re-pulls swallow transient blips (optionally a subtle "stale" indicator) rather than flipping `loading` or erroring.
-- [ ] Add an `isMutating` ref set/cleared in the four mutation handlers, plus a `pendingRefresh` ref. Gate predicate: `isMutating || showForm || editingId !== null || pendingDeleteId !== null`. When an event arrives while gated, set `pendingRefresh`; when the gate clears, run the deferred `loadChores()`.
+- [x] In `App.tsx`, add a `reconcileChores(fetched: Chore[])` that sets `choreData` and reconciles `sortedIds` order-preservingly (keep existing order, append new ids ordered via `orderChores`, drop missing ids).
+- [x] Replace the mount `useEffect` body (`:32-43`) with a shared `loadChores()` that uses the reconcile helper. Only the *first* load toggles `loading`/surfaces a full-screen error; event-driven re-pulls swallow transient blips (optionally a subtle "stale" indicator) rather than flipping `loading` or erroring.
+- [x] Add an `isMutating` ref set/cleared in the four mutation handlers, plus a `pendingRefresh` ref. Gate predicate: `isMutating || showForm || editingId !== null || pendingDeleteId !== null`. When an event arrives while gated, set `pendingRefresh`; when the gate clears, run the deferred `loadChores()`.
 
 **Verification:** `npm test --workspace frontend` still green; `npm run build --workspace frontend` clean.
 
@@ -91,12 +91,12 @@ Refactor the one-shot mount fetch into a reusable re-pull used by both initial l
 Write the hook's tests before implementing it, using a fake `EventSource`.
 
 **To-do:**
-- [ ] Create `frontend/src/__tests__/hooks/useChoreEvents.test.ts`. Install a fake `EventSource` on `globalThis` whose instances expose `onmessage`/`onopen`/`onerror` and a `close()` spy, and let the test dispatch a `message`.
-- [ ] Test: dispatching a `message` invokes the supplied callback (the re-pull).
-- [ ] Test: `onopen` (connect/reconnect) invokes the callback too — covers refetch-after-reconnect so events missed during a drop are recovered.
-- [ ] Test: the gate predicate suppresses the callback while it returns true.
-- [ ] Test: unmount calls `EventSource.close()` and detaches handlers.
-- [ ] Run and confirm all fail at import resolution (Red).
+- [x] Create `frontend/src/__tests__/hooks/useChoreEvents.test.ts`. Install a fake `EventSource` on `globalThis` whose instances expose `onmessage`/`onopen`/`onerror` and a `close()` spy, and let the test dispatch a `message`.
+- [x] Test: dispatching a `message` invokes the supplied callback (the re-pull).
+- [x] Test: `onopen` (connect/reconnect) invokes the callback too — covers refetch-after-reconnect so events missed during a drop are recovered.
+- [x] Test: the gate predicate suppresses the callback while it returns true.
+- [x] Test: unmount calls `EventSource.close()` and detaches handlers.
+- [x] Run and confirm all fail at import resolution (Red).
 
 **Verification:** `npm test --workspace frontend -- useChoreEvents.test.ts` — all fail to resolve the module.
 
@@ -104,9 +104,9 @@ Write the hook's tests before implementing it, using a fake `EventSource`.
 Minimum hook to satisfy Step 5, then connect it.
 
 **To-do:**
-- [ ] Create `frontend/src/hooks/useChoreEvents.ts` exporting `useChoreEvents(onChange: () => void, paused: () => boolean)`. Open `new EventSource('/api/events')`; on `message` and on `open`, call `onChange()` if `!paused()` (else mark pending — or leave gating in `App` and just forward). Use refs for `onChange`/`paused` to avoid reconnect churn. Close the stream and detach on unmount.
-- [ ] Optionally also refetch on `document.visibilitychange → visible` (covers phones whose OS suspended the `EventSource` while backgrounded).
-- [ ] In `App.tsx`, call `useChoreEvents(loadChores, gatePredicate)`.
+- [x] Create `frontend/src/hooks/useChoreEvents.ts` exporting `useChoreEvents(onChange: () => void, paused: () => boolean)`. Open `new EventSource('/api/events')`; on `message` and on `open`, call `onChange()` if `!paused()` (else mark pending — or leave gating in `App` and just forward). Use refs for `onChange`/`paused` to avoid reconnect churn. Close the stream and detach on unmount.
+- [x] Optionally also refetch on `document.visibilitychange → visible` (covers phones whose OS suspended the `EventSource` while backgrounded).
+- [x] In `App.tsx`, call `useChoreEvents(loadChores, gatePredicate)`.
 
 **Verification:** `npm test --workspace frontend -- useChoreEvents.test.ts` passes; `npx tsc --noEmit` clean.
 
@@ -114,9 +114,9 @@ Minimum hook to satisfy Step 5, then connect it.
 Prove the reported scenario is fixed.
 
 **To-do:**
-- [ ] In `App.test.tsx` (or `App.sync.test.tsx`): render `App`, resolve initial `fetchAllChores` with one chore, change the mock to return a second chore, dispatch a fake SSE `message`, flush promises, assert the new chore renders — with no manual reload.
-- [ ] Test the gate: with a modal open / mutation in flight, an SSE message does not clobber the open modal or the optimistic value; assert the deferred re-pull runs after the gate clears.
-- [ ] Manual: `docker compose build && docker compose up -d`; open `http://localhost/` in two windows. Add/complete/delete in window A; confirm window B updates within a second with no reload. Background and re-focus B; confirm it stays in sync. Kill and restart the backend container; confirm `EventSource` reconnects and B refetches. `docker compose down` (not `-v`).
+- [x] In `App.test.tsx` (or `App.sync.test.tsx`): render `App`, resolve initial `fetchAllChores` with one chore, change the mock to return a second chore, dispatch a fake SSE `message`, flush promises, assert the new chore renders — with no manual reload.
+- [x] Test the gate: with a modal open / mutation in flight, an SSE message does not clobber the open modal or the optimistic value; assert the deferred re-pull runs after the gate clears.
+- [x] Manual: `docker compose build && docker compose up -d`; open `http://localhost/` in two windows. Add/complete/delete in window A; confirm window B updates within a second with no reload. Background and re-focus B; confirm it stays in sync. Kill and restart the backend container; confirm `EventSource` reconnects and B refetches. `docker compose down` (not `-v`).
 
 **Verification:** all new tests pass; full `npm test` (both workspaces) green; `npx playwright test` smoke unaffected; manual two-window propagation is near-instant.
 

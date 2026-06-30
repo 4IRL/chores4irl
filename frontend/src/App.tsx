@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addDays } from 'date-fns';
 import { useMidnightClock } from './hooks/useMidnightClock';
 import { useRoomFilter } from './hooks/useRoomFilter';
+import { useChoreEvents } from './hooks/useChoreEvents';
 import { orderChores } from './utils/choreSort';
 import NavBar from './components/nav/NavBar';
 import DateNavigationBanner from './components/nav/DateNavigationBanner';
@@ -28,19 +29,87 @@ export default function App() {
     const [editingId, setEditingId] = useState<number | null>(null);
     const choreDataRef = useRef<Chore[]>(choreData);
     choreDataRef.current = choreData;
+    // Kept current for callbacks that run outside React's render flow (SSE re-pull,
+    // which needs the live simulated date to order newly-seen chores).
+    const simulatedDateRef = useRef<Date>(simulatedDate);
+    simulatedDateRef.current = simulatedDate;
+    // True while a mutation's network round-trip is in flight; gates event-driven
+    // re-pulls so a stale signal can't clobber an optimistic write mid-flight.
+    const isMutatingRef = useRef<boolean>(false);
+    // Set when a "chores changed" signal arrives while the re-pull is gated; the
+    // deferred refresh runs once the gate clears.
+    const pendingRefreshRef = useRef<boolean>(false);
 
-    useEffect(() => {
+    // Re-pulls clobber local state, so defer them while a write is in flight or a
+    // form/dialog is open (those hold un-committed user input or optimistic values).
+    const isRepullGated = useCallback(
+        () => isMutatingRef.current || showForm || editingId !== null || pendingDeleteId !== null,
+        [showForm, editingId, pendingDeleteId]
+    );
+
+    // Apply a freshly-fetched list, reconciling display order: keep the order of
+    // ids still present, append newly-seen ids (sorted), drop ids that vanished.
+    const reconcileChores = useCallback((fetched: Chore[]) => {
+        setChoreData(fetched);
+        setSortedIds(prev => {
+            const fetchedIds = new Set(fetched.map(chore => chore.id));
+            const kept = prev.filter(id => fetchedIds.has(id));
+            const keptIds = new Set(kept);
+            const newOnes = fetched.filter(chore => !keptIds.has(chore.id));
+            const appended = orderChores(newOnes, simulatedDateRef.current).map(chore => chore.id);
+            return [...kept, ...appended];
+        });
+    }, []);
+
+    // Re-pull the current truth from the server. The initial load owns the
+    // loading/error UI; event-driven re-pulls swallow transient blips so a flaky
+    // refresh never blanks a working screen.
+    const loadChores = useCallback((initial = false) =>
         fetchAllChores()
             .then(chores => {
-                setChoreData(chores);
-                setSortedIds(orderChores(chores, simulatedDate).map(c => c.id));
-                setLoading(false);
+                reconcileChores(chores);
+                if (initial) setLoading(false);
             })
             .catch((err: unknown) => {
-                setError(err instanceof Error ? err.message : 'Failed to load chores');
-                setLoading(false);
-            });
+                if (initial) {
+                    setError(err instanceof Error ? err.message : 'Failed to load chores');
+                    setLoading(false);
+                }
+            }),
+        [reconcileChores]
+    );
+
+    // Run a deferred re-pull if one is pending and the gate has cleared. Called
+    // after each mutation settles and whenever a form/dialog closes.
+    const flushPendingRefresh = useCallback(() => {
+        if (pendingRefreshRef.current && !isRepullGated()) {
+            pendingRefreshRef.current = false;
+            void loadChores();
+        }
+    }, [isRepullGated, loadChores]);
+
+    // A "chores changed" signal from another device: re-pull now if safe, else
+    // defer until the gate clears so we never clobber an open form or in-flight write.
+    const handleRemoteChange = useCallback(() => {
+        if (isRepullGated()) {
+            pendingRefreshRef.current = true;
+        } else {
+            void loadChores();
+        }
+    }, [isRepullGated, loadChores]);
+
+    useChoreEvents(handleRemoteChange);
+
+    useEffect(() => {
+        void loadChores(true);
+        // Run once on mount; loadChores is stable across renders.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // A form/dialog closing can clear the gate — flush any deferred refresh.
+    useEffect(() => {
+        flushPendingRefresh();
+    }, [showForm, editingId, pendingDeleteId, flushPendingRefresh]);
 
     useEffect(() => {
         if (choreDataRef.current.length > 0) {
@@ -65,6 +134,7 @@ export default function App() {
     }, [sortedIds, filteredChores]);
 
     async function handleAddChore(newChore: Omit<Chore, 'id'>) {
+        isMutatingRef.current = true;
         try {
             const created = await addChore(newChore);
             setChoreData(prev => [...prev, created]);
@@ -72,6 +142,9 @@ export default function App() {
             setShowForm(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to add chore');
+        } finally {
+            isMutatingRef.current = false;
+            flushPendingRefresh();
         }
     }
 
@@ -81,12 +154,16 @@ export default function App() {
         const prevSortedIds = sortedIds;
         setChoreData(curr => curr.filter(chore => chore.id !== id));
         setSortedIds(prev => prev.filter(sortedId => sortedId !== id));
+        isMutatingRef.current = true;
         try {
             await removeChore(id);
         } catch (err) {
             setChoreData(curr => curr.some(chore => chore.id === id) ? curr : [...curr, deletedChore]);
             setSortedIds(prevSortedIds);
             setError(err instanceof Error ? err.message : 'Failed to delete chore');
+        } finally {
+            isMutatingRef.current = false;
+            flushPendingRefresh();
         }
     }
 
@@ -111,12 +188,16 @@ export default function App() {
         setChoreData(curr =>
             curr.map(chore => chore.id === id ? { ...chore, dateLastCompleted: date } : chore)
         );
+        isMutatingRef.current = true;
         try {
             const updated = await completeChore(id, date);
             setChoreData(curr => curr.map(chore => chore.id === id ? updated : chore));
         } catch (err) {
             setChoreData(curr => curr.map(chore => chore.id === id ? originalChore : chore));
             setError(err instanceof Error ? err.message : 'Failed to mark chore complete');
+        } finally {
+            isMutatingRef.current = false;
+            flushPendingRefresh();
         }
     }
 
@@ -134,12 +215,16 @@ export default function App() {
         if (!originalChore) return;
         setChoreData(curr => curr.map(chore => chore.id === id ? { ...originalChore, ...edited } : chore));
         setEditingId(null);
+        isMutatingRef.current = true;
         try {
             const updated = await updateChore(id, edited);
             setChoreData(curr => curr.map(chore => chore.id === id ? updated : chore));
         } catch (err) {
             setChoreData(curr => curr.map(chore => chore.id === id ? originalChore : chore));
             setError(err instanceof Error ? err.message : 'Failed to update chore');
+        } finally {
+            isMutatingRef.current = false;
+            flushPendingRefresh();
         }
     }
 
