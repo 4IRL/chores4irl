@@ -43,8 +43,6 @@ playwright.config.ts
 
 # Claude Code + planning
 .claude
-plan.md
-research.md
 plans
 
 # Stray user dotfiles leaked into repo root
