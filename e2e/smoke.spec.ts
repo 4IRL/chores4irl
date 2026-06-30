@@ -3,8 +3,9 @@ import { test, expect } from '@playwright/test';
 test.describe('Chores App Smoke Tests', () => {
 
     // e2e strategy (F6): F6 removed the visible ✕/pencil buttons from the chore bar.
-    // Delete/edit are exercised via swipe (the primary UX): swipe-left = delete,
-    // swipe-right = edit. Cleanup loops invoke the sr-only
+    // Delete/edit are exercised via swipe (the primary UX). F10 REVERSED the
+    // directions: swipe-left = edit, swipe-right = delete (action only fires past
+    // 25% of the bar's own width). Cleanup loops invoke the sr-only
     // [aria-label="Delete chore"] button via dispatchEvent('click') — the button
     // is sr-only (clipped) so a real/forced click lands on overlaying siblings
     // instead, whereas dispatchEvent fires its onClick directly — then confirm
@@ -85,14 +86,14 @@ test.describe('Chores App Smoke Tests', () => {
         await page.locator('button[type="submit"]', { hasText: /save/i }).click();
         await page.waitForSelector('text=E2E Delete Target', { timeout: 5_000 });
 
-        // F6: visible delete button removed — delete via swipe-left -> confirm dialog.
+        // F10: visible delete button removed — delete via swipe-right -> confirm dialog.
         const targetChore = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Delete Target' });
-        await swipeBar(page, targetChore, 'left');
+        await swipeBar(page, targetChore, 'right');
         await page.getByTestId('confirm-dialog-confirm').click();
         await expect(page.locator('text=E2E Delete Target')).not.toBeVisible({ timeout: 5_000 });
     });
 
-    test('edits a chore via swipe-right', async ({ page }) => {
+    test('edits a chore via swipe-left', async ({ page }) => {
         // Add a dedicated chore to edit so seed data (used by subsequent tests) is preserved
         await page.locator('button', { hasText: /\+ Add Task/i }).click();
         await expect(page.locator('.fixed.inset-0')).toBeVisible();
@@ -105,9 +106,9 @@ test.describe('Chores App Smoke Tests', () => {
         await page.waitForSelector('text=E2E Edit Target', { timeout: 5_000 });
 
         try {
-            // F6: visible pencil button removed — open the edit modal via swipe-right.
+            // F10: visible pencil button removed — open the edit modal via swipe-left.
             const bar = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Edit Target' });
-            await swipeBar(page, bar, 'right');
+            await swipeBar(page, bar, 'left');
 
             // Modal opens pre-filled with the chore's name
             await expect(page.locator('input[name="name"]')).toHaveValue('E2E Edit Target');
@@ -137,9 +138,11 @@ test.describe('Chores App Smoke Tests', () => {
         }
     });
 
-    // --- Swipe gestures (F5): swipe-left = delete, swipe-right = edit ---
+    // --- Swipe gestures (F10): swipe-left = edit, swipe-right = delete ---
     // Drives react-swipeable's trackMouse path with a real mouse drag. Multiple
-    // move steps are required for the gesture (onSwiping) to register.
+    // move steps are required for the gesture (onSwiping) to register. F10 only
+    // fires the action once the drag passes 25% of the bar's own width, so this
+    // helper drags ~80% of the bar width to comfortably clear that threshold.
     async function swipeBar(
         page: import('@playwright/test').Page,
         bar: import('@playwright/test').Locator,
@@ -148,23 +151,29 @@ test.describe('Chores App Smoke Tests', () => {
         await bar.scrollIntoViewIfNeeded();
         const box = await bar.boundingBox();
         if (!box) throw new Error('Could not get bounding box for chore bar');
-        // Start near the left-center so a ~140px drag stays inside the bar.
-        const startX = box.x + box.width * 0.4;
-        const y = box.y + box.height / 2;
         const sign = direction === 'left' ? -1 : 1;
+        // Drag ~80% of the bar width (well past the 25% confirm threshold). Start
+        // offset from the appropriate edge so the full drag stays inside the bar:
+        // left swipe starts near the right edge, right swipe starts near the left.
+        const distance = box.width * 0.8;
+        const startX = direction === 'left'
+            ? box.x + box.width * 0.9
+            : box.x + box.width * 0.1;
+        const y = box.y + box.height / 2;
         await page.mouse.move(startX, y);
         await page.mouse.down();
         // react-swipeable's trackMouse path needs a sequence of discrete pointer
         // moves over time (not one large jump) for onSwiping to fire repeatedly
-        // and register a directional swipe past the 50px delta. ~140px total.
-        for (let i = 1; i <= 10; i++) {
-            await page.mouse.move(startX + sign * i * 14, y);
+        // and register a directional swipe past the 50px delta.
+        const steps = 12;
+        for (let i = 1; i <= steps; i++) {
+            await page.mouse.move(startX + sign * (distance * i / steps), y);
             await page.waitForTimeout(15);
         }
         await page.mouse.up();
     }
 
-    test('swipe-left opens delete confirmation and removes the chore', async ({ page }) => {
+    test('swipe-right opens delete confirmation and removes the chore', async ({ page }) => {
         const name = `E2E Swipe Delete ${Date.now()}`;
         await page.locator('button', { hasText: /\+ Add Task/i }).click();
         await expect(page.locator('.fixed.inset-0')).toBeVisible();
@@ -177,15 +186,15 @@ test.describe('Chores App Smoke Tests', () => {
         await page.waitForSelector(`text=${name}`, { timeout: 5_000 });
 
         const bar = page.locator('.bg-gray-800.rounded-full', { hasText: name });
-        await swipeBar(page, bar, 'left');
+        await swipeBar(page, bar, 'right');
 
-        // Swipe-left routes through onDelete -> the F4 confirmation dialog.
+        // Swipe-right routes through onDelete -> the F4 confirmation dialog.
         await expect(page.getByTestId('confirm-dialog-confirm')).toBeVisible({ timeout: 5_000 });
         await page.getByTestId('confirm-dialog-confirm').click();
         await expect(page.locator(`text=${name}`)).not.toBeVisible({ timeout: 5_000 });
     });
 
-    test('swipe-right opens the pre-filled edit modal', async ({ page }) => {
+    test('swipe-left opens the pre-filled edit modal', async ({ page }) => {
         const name = `E2E Swipe Edit ${Date.now()}`;
         await page.locator('button', { hasText: /\+ Add Task/i }).click();
         await expect(page.locator('.fixed.inset-0')).toBeVisible();
@@ -199,9 +208,9 @@ test.describe('Chores App Smoke Tests', () => {
 
         try {
             const bar = page.locator('.bg-gray-800.rounded-full', { hasText: name });
-            await swipeBar(page, bar, 'right');
+            await swipeBar(page, bar, 'left');
 
-            // Swipe-right routes through onEdit -> the F2 pre-populated edit modal.
+            // Swipe-left routes through onEdit -> the F2 pre-populated edit modal.
             await expect(page.locator('input[name="name"]')).toHaveValue(name, { timeout: 5_000 });
         } finally {
             // Close the modal (if open) and clean up the seeded chore.
