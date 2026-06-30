@@ -262,11 +262,12 @@ export default function App() {
                     <AddChoreButton onClick={() => { setEditingId(null); setShowForm(true); }} />
                 </div>
             </div>
-            {showForm && <ChoreFormModal onSubmit={handleAddChore} onCancel={() => setShowForm(false)} />}
+            {showForm && <ChoreFormModal rooms={uniqueRooms} onSubmit={handleAddChore} onCancel={() => setShowForm(false)} />}
             {!showForm && editingChore && (
                 <ChoreFormModal
                     mode="edit"
                     initialChore={editingChore}
+                    rooms={uniqueRooms}
                     onSubmit={edited => handleEditChore(editingChore.id, edited)}
                     onCancel={handleCancelEdit}
                 />
