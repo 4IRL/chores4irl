@@ -1,3 +1,6 @@
+> **STATUS: Merged** `20d3dbe` (#3 — "backend connected, data persistent"). Frozen —
+> historical record, do not edit.
+
 # Plan: Backend Connectivity for chores4irl
 
 ## Context

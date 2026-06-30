@@ -1,4 +1,4 @@
-> **PREDECESSOR — superseded by `260627_future_feature_list.md`.** This was the original
+> **PREDECESSOR — superseded by `260630_feature_ledger.md`** (via `260627` → `260628`). This was the original
 > backlog. Four of its features have since merged to `main` (Edit Task, Confirm-delete,
 > Swipe behaviors, Reduce bar height — F2/F4/F5/F6) and were removed from the current list;
 > two new features were added there. See `plans/META-PLAN.md` for the live rollout. Kept for

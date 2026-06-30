@@ -1,3 +1,9 @@
+> **PREDECESSOR — superseded by `260630_feature_ledger.md`.** This was the META-PLAN's
+> previous basis. Since then: F9's chore-search wording was refreshed; the swipe-swap threshold
+> changed 50%→25% (now **F10**); and Undo/Rotate were folded — with brightness, screen-blank,
+> restart, and redo added — into a new **device-control panel** (now **F11–F17**). See
+> `plans/META-PLAN.md` for the live rollout. Kept for history only — **do not plan from this file.**
+
 - [ ] Remove 'Details' and 'Long-term task' toggle from the Add Task form. Propagate the removal from the database and other associated schema related to these fields.
 - [ ] Include a type-as-you-search dropdown box for 'Room' on Add Task and Edit Task forms. native <datalist> is acceptable
 - [ ] Make 'Add Task' button deck transparent blur background, allowing the chores list visible slightly visible beneath for a more modern, fluid feel. The button will remain locked at the bottom and opaque as the chores list scrolls, but you should be able to see the chore bars on the sides of the button.

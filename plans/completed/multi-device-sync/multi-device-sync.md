@@ -1,3 +1,12 @@
+> **STATUS: Merged** `42040cc` (#21). Frozen — historical record, do not edit.
+> **Outcome:** Shipped as planned — in-process `EventEmitter` on the backend emits a
+> `changed` event on every successful write; `GET /api/events` streams an SSE doorbell;
+> the frontend `useChoreEvents` hook + gated `reconcileChores` re-pull in `App.tsx` keep
+> all devices in sync. **Interface later features inherit:** any new write path must emit
+> on the bus, and any new `App.tsx` state holding uncommitted/optimistic input must be
+> added to `isRepullGated()` so a stray signal can't clobber it (see META-PLAN Baseline
+> invariant 5). Now part of the Baseline for every remaining frontend feature.
+
 # Multi-Device Sync (Event-Driven, On-Demand Re-pull)
 
 ## Summary

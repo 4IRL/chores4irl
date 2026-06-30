@@ -43,6 +43,9 @@ plans/**/tmp/
 .env
 .env.*
 
+# Shell scripts
+*.sh
+
 # Stray user dotfiles that leaked into repo root
 .bash_profile
 .bashrc

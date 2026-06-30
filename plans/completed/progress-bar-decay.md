@@ -1,3 +1,9 @@
+> **STATUS: Merged** `e929b75` (#7). Frozen — historical record, do not edit.
+> **Outcome:** The decay/urgency bar model merged here was later consolidated into
+> `@utils/choreBarMath` (`computeBar`) during F6 bar-redesign (`3a30a42`); that consolidated
+> module is the live implementation. (META-PLAN's note that the *branch* was deleted/superseded
+> refers to the later F6 consolidation — the original PR #7 did merge to `main`.)
+
 # Progress Bar Decay & Urgency Feature
 
 ## Summary

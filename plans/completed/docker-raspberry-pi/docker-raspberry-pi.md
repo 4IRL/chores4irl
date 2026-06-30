@@ -1,3 +1,11 @@
+> **STATUS: Merged** `db6016c` (#13). Frozen — historical record, do not edit.
+> **Outcome:** chores4irl dockerized and deployed to the Pi 4 (ARM64); this dir is the
+> deployment stack of record. Two later deploy PRs build on it: **#19** (`c4153a9`,
+> version-controlled kanshi/labwc display-rotation + touch calibration) and the pending
+> **F17** in-app rotate button. Per META-PLAN Baseline Assumption 4, future host-bridge
+> deploy docs (F8 LAN alias, F17 rotate, F12–F14) may be anchored here **or** in the
+> feature's own plan dir — F17's already lives in `plans/feature/rotate-screen-button/`.
+
 # Docker Deployment to Raspberry Pi 4 (ARM64)
 
 ## Summary

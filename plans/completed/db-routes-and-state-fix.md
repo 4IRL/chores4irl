@@ -1,3 +1,6 @@
+> **STATUS: Merged** (early DB-schema/routes/state-propagation fix; predates per-PR plan
+> tracking — doc itself entered git via #20 `b823ad4`). Frozen — historical record, do not edit.
+
 # DB Schema, Routes & State Propagation Fix
 
 ## Summary

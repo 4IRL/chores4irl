@@ -1,6 +1,6 @@
 # Task: Reconcile META-PLAN.md with the latest backlog + true main-branch state
 
-> Reusable prompt template. Fill in the two `<...>` date placeholders below, paste
+> Reusable prompt template. Fill in the two `<...>` date placeholders, and one `<...>` critical feature placeholder below, paste
 > the body into a fresh Claude Code session, and run. This file is the *instructions*,
 > not a backlog — do not plan features from it.
 
@@ -33,13 +33,17 @@ Compare the latest list against the prior one(s):
 - Preserve any recorded "implemented contract" blocks for merged features —
   later features depend on those interfaces.
 
+## Step 4 — Recommend shortest, critical path to most-desired feature
+- The primary focus feature is `<insert_critical_feature_name>`. Using the dependencies and assessed effort, recommend the shortest path of sequentially implemented features to arrive at integration of the critical feature.
+- Minimize churn (e.g. adding features that will later be superseded) through the critical path.
+
 ## Output (update `plans/META-PLAN.md`)
 1. **Baseline** section rewritten to describe main as it actually is now.
 2. **Summary table** split into Completed (with merge SHAs) + Remaining
    (reassessed effort/deps).
 3. **Status ledger** reconciled to git reality.
 4. New **per-feature sections** for added features; **superseded** markers for retired branches.
-5. Updated **dependency/chain diagram**.
+5. Updated **dependency/chain diagram** to critical feature.
 
 Also add a one-line "PREDECESSOR — superseded by `<LATEST>`" banner to the top of any older backlog file so it can't be planned from by mistake.
 

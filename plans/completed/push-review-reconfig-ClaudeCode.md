@@ -1,3 +1,6 @@
+> **STATUS: Frozen push-review** for reconfig/ClaudeCode (#4/#5, `af4ebff`); all 20 findings
+> resolved at push time. Historical record, do not edit.
+
 # Push Review: reconfig/ClaudeCode
 
 ## Review 1
