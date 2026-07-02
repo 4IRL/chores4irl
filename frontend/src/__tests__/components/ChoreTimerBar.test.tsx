@@ -362,11 +362,14 @@ describe('ChoreTimerBar', () => {
         fireEvent.mouseDown(bar, { clientX: 350, clientY: 50 });
         fireEvent.mouseMove(bar, { clientX: 250, clientY: 50 });
         fireEvent.mouseMove(bar, { clientX: 150, clientY: 50 });
-        // Yellow edit background is active and the pencil icon is shown.
-        expect(container.querySelector('.bg-yellow-400')).toBeTruthy();
+        // Yellow edit background is active and the pencil icon is fully shown:
+        // the 100px swipe reaches the 25%-of-400px threshold, so opacity is 1.
+        const bg = container.querySelector('.bg-yellow-400') as HTMLElement;
+        expect(bg).toBeTruthy();
+        expect(bg.style.opacity).toBe('1');
         const pencil = container.querySelector('.lucide-pencil');
         expect(pencil).toBeTruthy();
-        expect(pencil?.closest('span')?.className).toContain('opacity-100');
+        expect((pencil?.closest('span') as HTMLElement)?.style.opacity).toBe('1');
     });
 
     it('reveals a red delete (trash) action layer while swiping right', () => {
@@ -385,10 +388,34 @@ describe('ChoreTimerBar', () => {
         fireEvent.mouseDown(bar, { clientX: 50, clientY: 50 });
         fireEvent.mouseMove(bar, { clientX: 150, clientY: 50 });
         fireEvent.mouseMove(bar, { clientX: 250, clientY: 50 });
-        expect(container.querySelector('.bg-red-600')).toBeTruthy();
+        const bg = container.querySelector('.bg-red-600') as HTMLElement;
+        expect(bg).toBeTruthy();
+        expect(bg.style.opacity).toBe('1');
         const trash = container.querySelector('.lucide-trash-2');
         expect(trash).toBeTruthy();
-        expect(trash?.closest('span')?.className).toContain('opacity-100');
+        expect((trash?.closest('span') as HTMLElement)?.style.opacity).toBe('1');
+    });
+
+    it('fades the reveal background in proportionally to swipe distance', () => {
+        const { container } = render(
+            <ChoreTimerBar
+                chore={makeChore()}
+                day={day}
+                isSimulating={false}
+                onComplete={vi.fn()}
+                onDelete={vi.fn()}
+                onEdit={vi.fn()}
+            />
+        );
+        const bar = screen.getByTestId('chore-bar');
+        stubBarWidth(bar); // width 400 -> threshold 100px
+        // Swipe right only 50px: halfway to the 100px confirm threshold, so the
+        // red background should be half opaque, not yet fully red.
+        fireEvent.mouseDown(bar, { clientX: 50, clientY: 50 });
+        fireEvent.mouseMove(bar, { clientX: 100, clientY: 50 });
+        const bg = container.querySelector('.bg-red-600') as HTMLElement;
+        expect(bg).toBeTruthy();
+        expect(Number(bg.style.opacity)).toBeCloseTo(0.5, 5);
     });
 
     it('is shorter than the old fixed height', () => {

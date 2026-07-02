@@ -85,22 +85,34 @@ export default function ChoreTimerBar({ chore, day, isSimulating, onComplete, on
     const revealingEdit = offset < 0;
     const revealingDelete = offset > 0;
 
+    // How far the swipe has progressed toward the confirm threshold, clamped to
+    // [0, 1]. Drives the reveal-layer opacity so the coloured background (and its
+    // icon) fade in as the user swipes and reach full strength exactly when the
+    // action would fire.
+    const revealDistance = barWidthPx() * CONFIRM_THRESHOLD;
+    const revealProgress = revealDistance > 0 ? Math.min(1, Math.abs(offset) / revealDistance) : 0;
+
     return (
         <div ref={barRef} className="relative w-full rounded-full overflow-hidden">
-            {/* Action-reveal layer sits BEHIND the bar so the resting bar fully covers it. */}
+            {/* Reveal layers sit BEHIND the bar so the resting bar fully covers them.
+                Order matters: the colour fill is painted first, the icons on top of it,
+                and the (later-in-DOM) bar paints above both. No negative z-index — that
+                would push the fill behind opaque ancestor backgrounds and hide it. */}
+            {/* Background colour follows the active direction and fades from transparent
+                to fully opaque as the swipe nears the threshold. */}
+            <div
+                className={`absolute inset-0 rounded-full ${revealingDelete ? 'bg-red-600' : revealingEdit ? 'bg-yellow-400' : 'bg-transparent'}`}
+                style={{ opacity: revealProgress }}
+                aria-hidden="true"
+            />
             <div className="absolute inset-0 flex items-center justify-between px-6 rounded-full" aria-hidden="true">
-                <span className={revealingDelete ? 'opacity-100' : 'opacity-0'}>
+                <span style={{ opacity: revealingDelete ? revealProgress : 0 }}>
                     <Trash2 className="h-6 w-6 text-white" strokeWidth={2} />
                 </span>
-                <span className={revealingEdit ? 'opacity-100' : 'opacity-0'}>
+                <span style={{ opacity: revealingEdit ? revealProgress : 0 }}>
                     <Pencil className="h-6 w-6 text-white" strokeWidth={2} />
                 </span>
             </div>
-            {/* Background colour of the reveal layer follows the active direction. */}
-            <div
-                className={`absolute inset-0 rounded-full -z-10 ${revealingDelete ? 'bg-red-600' : revealingEdit ? 'bg-yellow-400' : 'bg-transparent'}`}
-                aria-hidden="true"
-            />
 
             <div
                 {...swipeHandlers}
