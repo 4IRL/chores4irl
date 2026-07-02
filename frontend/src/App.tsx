@@ -8,6 +8,7 @@ import NavBar from './components/nav/NavBar';
 import DateNavigationBanner from './components/nav/DateNavigationBanner';
 import ReturnToTodayButton from './components/nav/ReturnToTodayButton';
 import ChoreList from './components/chore/ChoreList';
+import ChoreSearchInput from './components/chore/ChoreSearchInput';
 import AddChoreButton from './components/form/AddChoreButton';
 import ChoreFormModal from './components/form/ChoreFormModal';
 import ConfirmDialog from './components/common/ConfirmDialog';
@@ -20,6 +21,7 @@ export default function App() {
     const simulatedDate = useMemo(() => addDays(realToday, dayOffset), [realToday, dayOffset]);
     const isSimulating = dayOffset > 0;
     const [selectedRoom, setSelectedRoom] = useState<string>('all');
+    const [searchQuery, setSearchQuery] = useState<string>('');
     const [showForm, setShowForm] = useState<boolean>(false);
     const [choreData, setChoreData] = useState<Chore[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -126,12 +128,19 @@ export default function App() {
     const editingChore = editingId !== null ? choreData.find(c => c.id === editingId) : undefined;
 
     const filteredChores = useRoomFilter(choreData, selectedRoom);
+    // View-only substring filter on chore name, composed with the room filter (AND).
+    // Derived from filteredChores; never mutates choreData or sortedIds.
+    const searchFilteredChores = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        if (query === '') return filteredChores;
+        return filteredChores.filter(c => c.name.toLowerCase().includes(query));
+    }, [filteredChores, searchQuery]);
     const orderedChores = useMemo(() => {
-        const choreMap = new Map(filteredChores.map(c => [c.id, c]));
+        const choreMap = new Map(searchFilteredChores.map(c => [c.id, c]));
         return sortedIds
             .map(id => choreMap.get(id))
             .filter((c): c is Chore => c !== undefined);
-    }, [sortedIds, filteredChores]);
+    }, [sortedIds, searchFilteredChores]);
 
     async function handleAddChore(newChore: Omit<Chore, 'id'>) {
         isMutatingRef.current = true;
@@ -255,6 +264,7 @@ export default function App() {
                     onNext={() => setDayOffset(o => o + 1)}
                 />
                 <ReturnToTodayButton dayOffset={dayOffset} onReset={() => setDayOffset(0)} />
+                <ChoreSearchInput value={searchQuery} onChange={setSearchQuery} />
                 <div className="flex-1 overflow-y-auto min-h-0">
                     <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} onEdit={handleRequestEdit} />
                 </div>
