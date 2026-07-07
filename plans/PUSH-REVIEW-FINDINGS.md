@@ -22,8 +22,8 @@ backlog is visible and actionable instead of scattered.
   format those skills expect.
 
 ## Quick batch view (by theme)
-- `[test]`     — ~12 items: assertion hardening, missing-branch coverage, brittle-selector fixes
-- `[style]`/`[dx]` — ~12 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, META-PLAN dual-table reminder, SSE mutation-gate/open-refetch tidies
+- `[test]`     — ~13 items: assertion hardening, missing-branch coverage, brittle-selector fixes
+- `[style]`/`[dx]` — ~13 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, META-PLAN dual-table reminder, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup
 - `[a11y]`     — 2 items: `focus-visible:` reveal, focus-ring clipping (bar-redesign)
 - `[security]` — 3 items: server-side `urgency` enum validation (edit-task); SSE connection cap + host-specifics redaction (both opt)
 - `[design]`   — 2 items: both had a blocking dependency that **has since merged** — now decidable (see ⚠ below)
@@ -66,6 +66,12 @@ Source: `plans/completed/bar-redesign/reviews/push-review-feature-bar-redesign.m
 - [ ] `[dx]` opt — Reduce focus-utility duplication — `frontend/src/components/chore/ChoreTimerBar.tsx` — extract a `FrequencyInfo` component and/or shared focus-reveal `@apply` class for symmetry with `ChoreInfo`/`CompletionInfo`.
 - [ ] `[style]` opt — Remove redundant `text-white` — `frontend/src/components/chore/CompletionInfo.tsx` — drop from the inner `<div>` (inherited from outer).
 - [ ] `[style]` opt — Comment the e2e `dispatchEvent('click')` cleanup sites — `e2e/smoke.spec.ts` — brief inline note at each of the three sites that it fires the sr-only button's React `onClick` (force click is occluded).
+
+## F10-L — swipe-direction-swap  (`4b6028f`, #23)
+Source: `plans/completed/swipe-direction-swap/reviews/push-review-feature-swipe-direction-swap.md`
+
+- [ ] `[dx]` minor — Deduplicate the confirm-threshold distance calc — `frontend/src/components/chore/ChoreTimerBar.tsx` — extract `barWidthPx() * CONFIRM_THRESHOLD` into a single helper used by both the render-time `revealDistance` and `pastThreshold()`, optionally capturing the width once per swipe (e.g. on swipe start) to avoid a layout read on every `onSwiping` re-render.
+- [ ] `[test]` minor — Assert icon proportional fade at a non-boundary value — `frontend/src/__tests__/components/ChoreTimerBar.test.tsx` — in the "fades ... proportionally" test, also assert the trash icon's containing `<span>` has opacity ≈ 0.5 at the half-threshold swipe.
 
 ## reconfig/viewport  (portrait viewport, #9 `ece4fe6`)
 Source: `plans/completed/reconfig-viewport/viewport/reviews/push-review-reconfig-viewport.md`
