@@ -1,5 +1,12 @@
 # Task: Parallelize independent META-PLAN features across git worktrees
 
+> **⚠ F-numbering note (2026-07-07).** The worked example below (`FEATURES = F10, F7, F8`)
+> and any other bare F-numbers in this file's body use the **pre-2026-07-07 numbering** —
+> under the current `plans/META-PLAN.md` scheme those digits mean different features (e.g.
+> current `F8` is a device-control placeholder, not the old LAN-alias item). This template's
+> *mechanism* is numbering-scheme-agnostic — always pull live F-IDs from the current
+> `plans/META-PLAN.md` when filling in `FEATURES`, not from the example below.
+
 > Reusable prompt template. Set `FEATURES` below to the F-IDs you want to run
 > concurrently, paste the body into a fresh Claude Code session, and run. This
 > file is the *dispatcher's instructions* — it sets up isolated worktrees and

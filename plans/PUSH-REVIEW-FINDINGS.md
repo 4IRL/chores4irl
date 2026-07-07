@@ -7,6 +7,16 @@ findings (all PASS, none blocking). Those findings would otherwise stay buried i
 feature's `reviews/push-review-*.md`. This file is the one place they're collected so the
 backlog is visible and actionable instead of scattered.
 
+> **⚠ F-numbering note (2026-07-07).** The section headers below (`F2`, `F4`, `F5`, `F6`)
+> predate the 2026-07-07 META-PLAN reconcile and use the **old (260630-era) numbering** —
+> e.g. this file's bare `F4` means confirm-delete, **not** `plans/META-PLAN.md`'s current
+> `F4` (remove Details/Long-term fields). The new `F10-L` entry added in the same reconcile
+> uses the reconcile's `-L` (legacy) suffix convention to disambiguate going forward, but the
+> four older sections were left as-is (not renamed) since they're stable historical labels
+> a reader might already have cited elsewhere. **When in doubt, match by PR number/SHA in the
+> section heading, not by the bare F-number.** See `plans/META-PLAN.md`'s "Legacy → current ID
+> map" for the authoritative translation.
+
 ## How this file works
 - **This ledger is canonical for status.** The per-feature `reviews/push-review-*.md`
   files are frozen at review time — their `- [ ]` boxes are *not* maintained; check items

@@ -12,34 +12,22 @@
 > with **260707**, 260707 wins.
 >
 > **⚠ F-ID renumbering (2026-07-07 reconcile).** The 260707 ledger introduces **its own
-> `F#` labels**, and per explicit instruction for this reconcile, **those labels are now
-> authoritative** — they supersede the old META-PLAN's F1–F17 audit trail for every
-> *remaining/new* feature. Concretely:
+> `F#` labels** — six clean, sequential top-level items (`F1`–`F6`), plus a settings-panel
+> sub-section whose seven control bullets are unnumbered. Per explicit instruction for this
+> reconcile, **those labels are now authoritative** — they supersede the old META-PLAN's
+> F1–F17 audit trail for every *remaining/new* feature:
 > - **Completed features keep their old (260630-era) `F#`** as a pure historical record —
 >   tagged with an `-L` (legacy) suffix below to prevent collision, since several legacy
 >   numbers are now reused for unrelated new features (e.g. legacy `F4-L` = confirm-delete,
 >   but current `F4` = remove Details/Long-term fields).
-> - **Every remaining/new feature uses the bare `F#` from the 260707 ledger** (or, for the
->   settings-panel sub-controls the ledger leaves unnumbered, the next integer continuing
->   that same 260707 sequence — F8 onward).
+> - **Every remaining/new feature uses the bare `F#` from the 260707 ledger's six top-level
+>   items**, or, for the settings-panel's seven unnumbered sub-controls, the next integers
+>   continuing that same sequence: `F7`–`F13`, in the order they're listed in the ledger.
 > - A full **Legacy → Current ID map** is given just below the status ledger.
->
-> **⚠ Source-ledger anomaly — flag for the user.** `260707_feature_ledger.md` labels
-> **two consecutive top-level items `F4`** (line 4, "Remove Details/Long-term fields", and
-> line 5, "Room type-as-you-search dropdown") — and the following two items are then
-> labelled `F5`/`F6` (not `F6`/`F7`), i.e. every item from line 5 onward is off-by-one low.
-> This reconcile assumes a copy/paste typo (item 5 should read `F5`, item 6 `F6`, item 7
-> `F7`) and numbers accordingly — **verify this against the user's intent**; if item 5 was
-> meant to stay folded into `F4` (i.e. "remove Details/Long-term" and "Room datalist" were
-> meant as one combined item), the numbering below needs a correction pass.
->
-> **⚠ Second source-ledger anomaly.** Line 5 of 260707 ("Room type-as-you-search dropdown")
-> describes work that **already shipped** to `main` on 2026-07-06 (PR #24, legacy `F3-L`).
-> The 260707 ledger still lists it as an open checkbox — it was not struck when the other
-> two shipped items (chore search, swipe-swap) were correctly dropped from the list. This
-> reconcile treats it as **done** (verified against the live repo, not the checkbox) and
-> records it as `F5` in the Completed table. **Flag this to the user** so the source ledger
-> can be corrected.
+> - **This renumbering also means other `plans/` files that still cite old F-numbers
+>   (`F17` for rotate, `F8` for the URL alias, etc.) are now stale.** `plans/PUSH-REVIEW-FINDINGS.md`,
+>   `plans/WORKTREE-PARALLELIZE-PROMPT.md`, and `plans/completed/docker-raspberry-pi/docker-raspberry-pi.md`
+>   each got a short note added pointing back here — see their own files; not reproduced here.
 >
 > **Execution model.** Each feature is implemented in its own dedicated session that
 > ends with a committed, pushed checkpoint. The **git repository — not conversation
@@ -55,7 +43,9 @@
 ## Where the rollout stands
 
 **Three more features shipped since the last reconcile (260630 basis).** All three were
-in the previous "frontend chore-list track" and are now fully merged to `main`:
+in the previous "frontend chore-list track" and are now fully merged to `main`, and —
+consistent with the 260630→260707 diff pattern — all three were correctly **dropped from
+the 260707 ledger** rather than left as stale open checkboxes:
 
 - **#23 — F10-L: swap swipe directions + 25% action-reveal** (`4b6028f`). Swipe-left now
   edits, swipe-right deletes; progressive colour reveal fading in toward the 25% threshold;
@@ -63,8 +53,7 @@ in the previous "frontend chore-list track" and are now fully merged to `main`:
   F5-L swipe contract is now fully superseded by this direction mapping.
 - **#24 — F3-L: Room field becomes a type-as-you-search `<datalist>`** (`a585d8f`). Native
   `<datalist>` sourced from `uniqueRooms`, threaded through `ChoreFormModal` into the shared
-  `ChoreForm`, on both Add and Edit. *(Still listed as open in the 260707 ledger — see the
-  anomaly note above; treated as done here.)*
+  `ChoreForm`, on both Add and Edit.
 - **#25 — F9-L: persistent chore-name search filter** (`8144da4`). **This was the previous
   reconcile's ★FOCUS feature — it is now done.** A `Search`-icon input pinned above the
   scroll region, view-only substring filter composed with the room filter, survives SSE
@@ -81,34 +70,39 @@ lock** with a padlock-icon overlay animation. Neither has any code on `main` yet
 `F2` is the most architecturally invasive item in the whole backlog (see its section) and is
 flagged for careful scoping at its own planning time, not decided here.
 
-**Branch hygiene — action needed.** Verified against `git log`/`git branch -a`; **none of
-these were pruned by the 260630 sweep** because they postdate it:
+**Branch hygiene — done.** Verified against `git log`/`git branch -a`:
 
 - `feature/chore-search-filter`, `feature/room-typeahead`, `feature/swipe-direction-swap`
   were **fully superseded** — every commit on each branch was an ancestor of `main`'s
   squash-merge commits (`8144da4`/`a585d8f`/`4b6028f`). **Deleted 2026-07-07** (local
   `git branch -D`; the remote refs were already gone — GitHub auto-deletes on squash-merge
-  in this repo, confirmed via `gh api ... DELETE` returning 422 "Reference does not exist"
-  for all four branches below; stale local remote-tracking refs dropped via
-  `git update-ref -d`).
+  in this repo, confirmed via `gh api ... DELETE` returning 422 "Reference does not exist";
+  stale local remote-tracking refs dropped via `git update-ref -d`).
 - `origin/claude/validate-feature-independence-et7uyy` (remote-only, one commit,
   `2b7f706`, based on pre-#23/#24/#25 `main`) provisioned parallel worktrees to validate
   F9-L/F3-L/F10-L's mutual independence. Since all three shipped **individually** (not via
   that worktree flow) and its premise is now moot, this branch was **also already gone
   remotely — deleted 2026-07-07.**
-- `plans/feature/swipe-direction-swap/` (plan dir; only `reviews/` + `tmp/` remain, no root
-  plan file) is left over from the now-shipped F10-L. Per the existing convention (see
-  `plans/completed/swipe-actions/`, `plans/completed/bar-redesign/`, etc.), it should be
-  archived under `plans/completed/`. **Not done in this reconcile** (docs-only in scope);
-  flagging for a housekeeping pass.
-- `plans/WORKTREE-PARALLELIZE-PROMPT.md` is now historical — its worked example
-  (parallelizing F9-L/F3-L/F10-L) has entirely shipped. The template itself is still
-  reusable for a future parallel batch; no action needed, just noting it's not describing
-  live work.
+- `chore/compact-plans-260630` (local + remote) — its substantial content shipped via #22
+  (`7f0edb2`), but the branch had two more unpushed commits on top. **Verified byte-identical**
+  against what's already on `main` (the small `.vscode/`-gitignore + prompt-wording fix had
+  been re-applied to `main` through a different, non-ancestor commit path) — nothing to
+  cherry-pick. **Deleted 2026-07-07**, local + remote.
+- `deploy/pi-rotation-autostart-script` (local only, no PR ever opened) proposed an
+  alternate, kanshi-free Pi-rotation approach. **User confirmed 2026-07-07 this was an
+  abandoned experiment** — the shipped/live approach is #19's kanshi config, which `F13`
+  (rotate-screen-button, below) builds on. **Deleted 2026-07-07.**
+- `plans/feature/swipe-direction-swap/` (plan dir; only had `reviews/` + `tmp/`, no root
+  plan file) was left over from the now-shipped F10-L. **Archived 2026-07-07** into
+  `plans/completed/swipe-direction-swap/` with a freeze header (per the existing
+  `plans/completed/swipe-actions/`-style convention); its two open push-review findings were
+  harvested into `plans/PUSH-REVIEW-FINDINGS.md`.
+- `plans/WORKTREE-PARALLELIZE-PROMPT.md` is now historical for its original worked example
+  (parallelizing F9-L/F3-L/F10-L, all shipped) — the template itself is still reusable, and
+  got a short stale-numbering note (see the renumbering callout above).
 
-No plan directories exist for F9-L or F3-L under `plans/feature/` or `plans/completed/` —
-both shipped without leaving plan artifacts behind (likely cleaned up as part of their own
-PRs). Nothing to reconcile there.
+No plan directories ever existed for F9-L or F3-L under `plans/feature/` — both shipped
+without leaving plan artifacts behind. Nothing to reconcile there.
 
 **Already-resolved cleanup (carried forward, unchanged).** `feature/progress-bar-decay` and
 all pre-260630 merged branches (`feature/confirm-delete`, `feature/edit-task`,
@@ -121,7 +115,7 @@ pruned. Recorded only so a cold survey doesn't resurrect them.
 
 ```
 Chore-list track (small; disjoint surfaces, soft order):
-    F4 (remove Details/Long-term fields, M) ── F6 (blur Add-Task deck, S)
+    F4 (remove Details/Long-term fields, M) ── F5 (blur Add-Task deck, S)
     (F3-L room datalist and F9-L search filter — this track's other members — are now done)
 
 Kiosk power & input-safety track (NEW track; contains the focus feature):
@@ -131,25 +125,25 @@ Kiosk power & input-safety track (NEW track; contains the focus feature):
      exist; see "Cross-feature couplings" below. Neither blocks the other.)
 
 Device-control panel track (F3 gates the rest):
-    F3 (settings panel container, M) ─→ { F14 rotate (L, plan exists) · F12 undo · F13 redo ·
-                                           F8 brightness · F9 screen-blank toggle ·
-                                           F10 auto-blank settings-UI (needs F1 too) ·
-                                           F11 restart }
-                                          (F8/F9/F11/F12/F13 ship as inert placeholders first)
+    F3 (settings panel container, M) ─→ { F13 rotate (L, plan exists) · F11 undo · F12 redo ·
+                                           F7 brightness · F8 screen-blank toggle ·
+                                           F9 auto-blank settings-UI (needs F1 too) ·
+                                           F10 restart }
+                                          (F7/F8/F10/F11/F12 ship as inert placeholders first)
 
 Infra track:
-    F7 (local URL alias, M–L · research-first) ── independent; different surface entirely
+    F6 (local URL alias, M–L · research-first) ── independent; different surface entirely
 ```
 
-- **Chore-list track:** only `F4` and `F6` remain (the other two members, room datalist and
+- **Chore-list track:** only `F4` and `F5` remain (the other two members, room datalist and
   chore search, shipped). Independent of each other.
 - **Kiosk power & input-safety track:** both `F1` and `F2` are new, full-viewport overlay
   behaviors layered over the whole app — thematically distinct from simple list-surface
   edits, so broken out as their own track. `F1` is the current **focus**.
 - **Device-control panel track:** unchanged shape from the prior reconcile, renumbered.
-  `F3` (the panel) still gates everything else in the track. One new member, `F10`
+  `F3` (the panel) still gates everything else in the track. One new member, `F9`
   (a settings-panel control to configure `F1`'s schedule), depends on **both** `F3` and `F1`.
-- **Infra track:** `F7` (renumbered from legacy `F8-L`) is unchanged — LAN name resolution,
+- **Infra track:** `F6` (renumbered from legacy `F8-L`) is unchanged — LAN name resolution,
   shares no files with app code.
 
 ### Shortest path to the focus feature (current `F1` — auto screen-blank 9pm–6am)
@@ -166,7 +160,7 @@ host-side screen blanking (verified — no `dpms`/`screen-blank`/`xset`/idle-inh
 exists there today), so there is nothing to disable. The shortest path is therefore **a
 single hop — implement F1 directly as the next session.**
 
-- **Do not** route `F4`/`F6` (chore-list track) or `F3`'s device-control track ahead of it:
+- **Do not** route `F4`/`F5` (chore-list track) or `F3`'s device-control track ahead of it:
   disjoint surfaces, unlocks nothing F1 needs.
 - **Do not** pull `F2` (double-tap lock) in ahead of `F1` — no dependency either direction,
   and `F2` is materially larger/riskier; sequencing it first would be pure churn against the
@@ -192,7 +186,7 @@ single hop — implement F1 directly as the next session.**
 | F5-L | Swipe left=delete / right=edit *(superseded by F10-L's direction swap, below)* | **XL** | [#17](https://github.com/4IRL/chores4irl/pull/17) | `0d05453` |
 | F6-L | Reduce bar height / spread details | **M** | [#18](https://github.com/4IRL/chores4irl/pull/18) | `3a30a42` |
 | F9-L | Persistent chore-name search filter *(was prior reconcile's ★FOCUS)* | **M** | [#25](https://github.com/4IRL/chores4irl/pull/25) | `8144da4` |
-| F3-L | Type-as-you-search Room dropdown *(current-ledger `F5`; still shown open in 260707 — see anomaly note)* | **S** | [#24](https://github.com/4IRL/chores4irl/pull/24) | `a585d8f` |
+| F3-L | Type-as-you-search Room dropdown | **S** | [#24](https://github.com/4IRL/chores4irl/pull/24) | `a585d8f` |
 | F10-L | Swap swipe directions + 25% action-reveal | **M** | [#23](https://github.com/4IRL/chores4irl/pull/23) | `4b6028f` |
 
 ### Merged since original baseline (non-F — infra/parallel, no backlog F-ID)
@@ -200,7 +194,7 @@ single hop — implement F1 directly as the next session.**
 | Feature | Effort | PR | Merge SHA | Notes |
 |---|---|---|---|---|
 | Multi-device sync via SSE | **M** | [#21](https://github.com/4IRL/chores4irl/pull/21) | `42040cc` | New `GET /api/events`; `useChoreEvents` + `reconcileChores` in `App.tsx`. Part of the baseline. |
-| Pi display rotation + touch calibration | **M** | [#19](https://github.com/4IRL/chores4irl/pull/19) | `c4153a9` | Host-side rotation config; current `F14` (rotate button) builds on it. |
+| Pi display rotation + touch calibration | **M** | [#19](https://github.com/4IRL/chores4irl/pull/19) | `c4153a9` | Host-side rotation config; current `F13` (rotate button) builds on it. |
 | plans/ archive housekeeping | **S** | [#20](https://github.com/4IRL/chores4irl/pull/20) | `b823ad4` | Docs/process only. |
 | plans/ compact sweep #2 | **S** | [#22](https://github.com/4IRL/chores4irl/pull/22) | `7f0edb2` | Docs/process only; pruned the 260630-era merged branches. |
 
@@ -210,50 +204,47 @@ single hop — implement F1 directly as the next session.**
 |---|---|---|---|---|
 | ★ | **F1** — Auto screen-blank 9pm–6am, tap-to-wake, 5-min re-blank **[FOCUS]** | **M** | — | Kiosk power & safety |
 | 1 | **F2** — Double-tap accidental-touch lock + padlock overlay | **L** *(scope TBD at planning — see risks)* | — *(SSE bus if cross-device sync is chosen)* | Kiosk power & safety |
-| 2 | **F4** — Remove *Details* & *Long-term task* fields | **M** | none blocking *(F3-L/F5 already merged)* | Chore-list |
-| 3 | **F6** — Translucent/blur *Add Task* deck | **S** | — | Chore-list |
-| 4 | **F3** — Settings / device-control panel container | **M** | — *(gates F8–F14)* | Device-control panel |
-| 5 | **F14** — Rotate screen button (functional, host-bridge) | **L** | **F3**; Pi rotation config (#19, merged) | Device-control panel |
-| 6 | **F12** — Undo (placeholder→functional) | **S→M–L** | **F3** | Device-control panel |
-| 7 | **F13** — Redo (placeholder→functional) | **S→M** | **F3**, F12 | Device-control panel |
-| 8 | **F8** — Brightness control (placeholder→functional) | **S→M** | **F3**; host-bridge | Device-control panel |
-| 9 | **F9** — Screen blank/wake manual toggle (placeholder→functional) | **S→M** | **F3**; host-bridge | Device-control panel |
-| 10 | **F10** — Auto screen-blank/wake settings-UI (configure F1's schedule) | **S** | **F3**, **F1** | Device-control panel |
-| 11 | **F11** — Restart (placeholder→functional) | **S→M** | **F3**; host-bridge + confirm | Device-control panel |
-| — | **F7** — Local URL alias instead of IP:port | **M–L** *(research spike)* | deployment stack (Pi/Docker); independent | Infra (parallel) |
+| 2 | **F4** — Remove *Details* & *Long-term task* fields | **M** | none blocking *(F3-L already merged)* | Chore-list |
+| 3 | **F5** — Translucent/blur *Add Task* deck | **S** | — | Chore-list |
+| 4 | **F3** — Settings / device-control panel container | **M** | — *(gates F7–F13)* | Device-control panel |
+| 5 | **F13** — Rotate screen button (functional, host-bridge) | **L** | **F3**; Pi rotation config (#19, merged) | Device-control panel |
+| 6 | **F11** — Undo (placeholder→functional) | **S→M–L** | **F3** | Device-control panel |
+| 7 | **F12** — Redo (placeholder→functional) | **S→M** | **F3**, F11 | Device-control panel |
+| 8 | **F7** — Brightness control (placeholder→functional) | **S→M** | **F3**; host-bridge | Device-control panel |
+| 9 | **F8** — Screen blank/wake manual toggle (placeholder→functional) | **S→M** | **F3**; host-bridge | Device-control panel |
+| 10 | **F9** — Auto screen-blank/wake settings-UI (configure F1's schedule) | **S** | **F3**, **F1** | Device-control panel |
+| 11 | **F10** — Restart (placeholder→functional) | **S→M** | **F3**; host-bridge + confirm | Device-control panel |
+| — | **F6** — Local URL alias instead of IP:port | **M–L** *(research spike)* | deployment stack (Pi/Docker); independent | Infra (parallel) |
 
-**Effort tally (remaining).** Chore-list track: F4 (M) + F6 (S) ≈ **3 pts**. Kiosk
+**Effort tally (remaining).** Chore-list track: F4 (M) + F5 (S) ≈ **3 pts**. Kiosk
 power/safety track: F1 (M) + F2 (L) ≈ **5 pts** — the **focus path is just F1 (M, ≈2 pts)**.
-Device-control track (placeholder ship): F3 (M) + F14 (L) + F10 (S) + 4×placeholder (S) ≈
-**11 pts**, growing as each placeholder is connected (each +M). Infra: F7 ≈ **2–3 pts**.
-(S=1 / M=2 / L=3 / XL=5.)
+Device-control track (placeholder ship): F3 (M=2) + F13 (L=3) + F9 (S=1) + 5×placeholder
+(F7/F8/F10/F11/F12, S=1 each=5) ≈ **11 pts**, growing as each placeholder is connected
+(each +M). Infra: F6 ≈ **2–3 pts**. (S=1 / M=2 / L=3 / XL=5.)
 
 ---
 
 ## Legacy → current ID map
 
-| Legacy (260630 META-PLAN) | Status | Current (260707 ledger) |
-|---|---|---|
-| F4-L confirm-delete | merged | *(historical only — not in current backlog)* |
-| F2-L edit task | merged | *(historical only)* |
-| F5-L swipe left=delete/right=edit | merged, superseded by F10-L | *(historical only)* |
-| F6-L bar redesign | merged | *(historical only)* |
-| F9-L chore search filter | merged | *(historical only — was prior ★FOCUS)* |
-| F3-L room typeahead | merged | *(historical only — shown open in 260707; see anomaly note)* |
-| F10-L swap swipe directions | merged | *(historical only)* |
-| F1-L remove Details/Long-term | pending | → **F4** |
-| F7-L blur Add-Task deck | pending | → **F6** |
-| F8-L local URL alias | pending | → **F7** |
-| F11-L settings panel container | pending | → **F3** |
-| F12-L brightness | pending | → **F8** |
-| F13-L screen-blank/wake toggle | pending | → **F9** |
-| F14-L restart | pending | → **F11** |
-| F15-L undo | pending | → **F12** |
-| F16-L redo | pending | → **F13** |
-| F17-L rotate | pending | → **F14** |
-| *(none)* | new | **F1** — auto screen-blank 9pm–6am (NEW) |
-| *(none)* | new | **F2** — double-tap accidental-touch lock (NEW) |
-| *(none)* | new | **F10** — auto-blank settings-UI sub-control (NEW) |
+> Only **pending** legacy IDs are mapped here — the seven **completed** legacy features
+> (`F4-L`, `F2-L`, `F5-L`, `F6-L`, `F9-L`, `F3-L`, `F10-L`) don't map onto any current ID;
+> they're retired history, fully covered by the Completed table above.
+
+| Legacy (260630 META-PLAN) | Current (260707 ledger) |
+|---|---|
+| F1-L remove Details/Long-term | → **F4** |
+| F7-L blur Add-Task deck | → **F5** |
+| F8-L local URL alias | → **F6** |
+| F11-L settings panel container | → **F3** |
+| F12-L brightness | → **F7** |
+| F13-L screen-blank/wake toggle | → **F8** |
+| F14-L restart | → **F10** |
+| F15-L undo | → **F11** |
+| F16-L redo | → **F12** |
+| F17-L rotate | → **F13** |
+| *(none — new)* | **F1** — auto screen-blank 9pm–6am |
+| *(none — new)* | **F2** — double-tap accidental-touch lock |
+| *(none — new)* | **F9** — auto-blank settings-UI sub-control |
 
 ---
 
@@ -274,7 +265,7 @@ Device-control track (placeholder ship): F3 (M) + F14 (L) + F10 (S) + 4×placeho
 | F5-L — swipe actions | **merged** | *(pruned)* | [#17](https://github.com/4IRL/chores4irl/pull/17) | `0d05453` |
 | F6-L — bar redesign | **merged** | *(pruned)* | [#18](https://github.com/4IRL/chores4irl/pull/18) | `3a30a42` |
 | F10-L — swap swipe directions | **merged** | *(pruned 2026-07-07)* | [#23](https://github.com/4IRL/chores4irl/pull/23) | `4b6028f` |
-| F3-L — room typeahead *(= current `F5`)* | **merged** | *(pruned 2026-07-07)* | [#24](https://github.com/4IRL/chores4irl/pull/24) | `a585d8f` |
+| F3-L — room typeahead | **merged** | *(pruned 2026-07-07)* | [#24](https://github.com/4IRL/chores4irl/pull/24) | `a585d8f` |
 | F9-L — chore search filter | **merged** | *(pruned 2026-07-07)* | [#25](https://github.com/4IRL/chores4irl/pull/25) | `8144da4` |
 | *(non-F)* SSE multi-device sync | **merged** | *(pruned)* | [#21](https://github.com/4IRL/chores4irl/pull/21) | `42040cc` |
 | *(non-F)* Pi rotation/touch config | **merged** | *(pruned)* | [#19](https://github.com/4IRL/chores4irl/pull/19) | `c4153a9` |
@@ -283,22 +274,24 @@ Device-control track (placeholder ship): F3 (M) + F14 (L) + F10 (S) + 4×placeho
 | **F1 — auto screen-blank** ★FOCUS | pending | `feature/auto-screen-blank` | — | — |
 | F2 — double-tap accidental-touch lock | pending | `feature/touch-lock` | — | — |
 | F4 — remove Details/Long-term | pending | `feature/remove-details-longterm` | — | — |
-| F6 — translucent Add-Task deck | pending | `feature/translucent-add-deck` | — | — |
+| F5 — translucent Add-Task deck | pending | `feature/translucent-add-deck` | — | — |
 | F3 — device-control panel | pending | `feature/settings-panel` | — | — |
-| F14 — rotate screen button | pending | `feature/rotate-screen-button` *(plan exists)* | — | — |
-| F12 — undo | pending | `feature/undo` | — | — |
-| F13 — redo | pending | `feature/redo` | — | — |
-| F8 — brightness control | pending | `feature/brightness-control` | — | — |
-| F9 — screen blank/wake manual toggle | pending | `feature/screen-blank-toggle` | — | — |
-| F10 — auto-blank settings-UI | pending | `feature/auto-blank-settings-ui` | — | — |
-| F11 — restart control | pending | `feature/restart-control` | — | — |
-| F7 — local URL alias | pending | `feature/local-url-alias` | — | — |
+| F13 — rotate screen button | pending | `feature/rotate-screen-button` *(plan exists)* | — | — |
+| F11 — undo | pending | `feature/undo` | — | — |
+| F12 — redo | pending | `feature/redo` | — | — |
+| F7 — brightness control | pending | `feature/brightness-control` | — | — |
+| F8 — screen blank/wake manual toggle | pending | `feature/screen-blank-toggle` | — | — |
+| F9 — auto-blank settings-UI | pending | `feature/auto-blank-settings-ui` | — | — |
+| F10 — restart control | pending | `feature/restart-control` | — | — |
+| F6 — local URL alias | pending | `feature/local-url-alias` | — | — |
 | ~~progress-bar-decay~~ | **deleted** (superseded; functionality on `main`) | *(branch gone)* | — | — |
 
-**Branch/dir cleanup:**
-1. ~~Delete `feature/chore-search-filter`, `feature/room-typeahead`, `feature/swipe-direction-swap`~~ — **done 2026-07-07** (local + remote; remote refs were already gone).
-2. ~~Delete remote-only `claude/validate-feature-independence-et7uyy`~~ — **done 2026-07-07** (already gone remotely).
-3. ~~Archive `plans/feature/swipe-direction-swap/` under `plans/completed/`~~ — **done 2026-07-07** (`/compact-plans` sweep): moved to `plans/completed/swipe-direction-swap/` with a freeze header (no original plan body existed to preserve — noted in the frozen file); its two open push-review findings harvested into `plans/PUSH-REVIEW-FINDINGS.md`.
+**Branch/dir cleanup — all done 2026-07-07:**
+1. ~~Delete `feature/chore-search-filter`, `feature/room-typeahead`, `feature/swipe-direction-swap`~~ — done (local + remote; remote refs were already gone).
+2. ~~Delete remote-only `claude/validate-feature-independence-et7uyy`~~ — done (already gone remotely).
+3. ~~Archive `plans/feature/swipe-direction-swap/` under `plans/completed/`~~ — done (`/compact-plans` sweep): moved to `plans/completed/swipe-direction-swap/` with a freeze header (no original plan body existed to preserve — noted in the frozen file); its two open push-review findings harvested into `plans/PUSH-REVIEW-FINDINGS.md`.
+4. ~~Delete `chore/compact-plans-260630`~~ — done, local + remote (verified byte-identical against `main` first — nothing lost).
+5. ~~Delete `deploy/pi-rotation-autostart-script`~~ — done (confirmed abandoned experiment by user).
 
 **Ledger update protocol (per session):** unchanged from prior revisions — see the four
 numbered steps that were here previously: set `in-progress` on start, `in-review` + PR link
@@ -329,13 +322,13 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 **Frontend API** (`frontend/src/services/choreApi.ts`): `fetchAllChores`, `addChore`, `updateChore(id, chore)`, `completeChore`, `removeChore`.
 
 **Key UI**
-- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (new since last reconcile — `searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`). Footer deck (`flex-shrink-0 py-4 flex justify-center border-t border-gray-700`, **still opaque** — `F6`'s target — `App.tsx:271`) holds `AddChoreButton`; scroll area directly above is `flex-1 overflow-y-auto min-h-0`. `NavBar` renders room chips **and now the persistent search input** above the list. **There is no settings/device-control panel, no auto screen-blank overlay, and no double-tap lock overlay yet** — `F1`/`F2`/`F3` all target net-new UI surfaces.
+- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (new since last reconcile — `searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`). Footer deck (`flex-shrink-0 py-4 flex justify-center border-t border-gray-700`, **still opaque** — `F5`'s target — `App.tsx:271`) holds `AddChoreButton`; scroll area directly above is `flex-1 overflow-y-auto min-h-0`. `NavBar` renders room chips **and now the persistent search input** above the list. **There is no settings/device-control panel, no auto screen-blank overlay, and no double-tap lock overlay yet** — `F1`/`F2`/`F3` all target net-new UI surfaces.
   - **SSE sync — unchanged contract:** subscribes via `useChoreEvents(onChange)` (`hooks/useChoreEvents.ts`; `new EventSource('/api/events')` + `visibilitychange→visible` re-fire). Re-pulls are gated by `isRepullGated()` (`isMutatingRef` || `showForm` || `editingId` || `pendingDeleteId`); deferred via `pendingRefreshRef`. **Any new frontend feature holding uncommitted user input in `App.tsx` state must be added to this gate.**
   - **Visible-list pipeline (now three-stage):** `filteredChores = useRoomFilter(choreData, selectedRoom)` → `searchFilteredChores` (substring on `name`, from `F9-L`) → `orderedChores` (maps `sortedIds` over a `Map` of `searchFilteredChores`).
   - **Real-clock precedent for `F1`:** `frontend/src/hooks/useMidnightClock.ts` — a single `setTimeout` to the next `date-fns` `startOfDay` boundary, re-arming on fire. `F1`'s 9pm/6am scheduling should follow this same pattern (two alternating timeouts instead of one daily one), driven by `realToday`, **not** `simulatedDate`.
 - `components/chore/ChoreTimerBar.tsx` — **F10-L's current shape**: `useSwipeable` with **swipe-left → `onEdit`**, **swipe-right → `onDelete`** (reversed from the original F5-L mapping), a controlled swipe offset revealing a behind-the-bar action layer (yellow+pencil for edit, red+trash for delete) with a **25%-of-bar-width threshold** and spring-back below it; colour fades in progressively toward the threshold (added in F10-L's third commit). `delta: 50` remains the swipeable trigger threshold (distinct from the 25%-width confirm threshold). Spread-before-explicit-props order, `touch-pan-y`, `isSimulating` guard, `swipingRef` click-suppression all preserved. Bar math from `@utils/choreBarMath` `computeBar(daysSince, frequency)` unchanged (`h-20 sm:h-16` grid layout from F6-L).
-- `components/common/ConfirmDialog.tsx` (F4-L) — unchanged; reused by the swipe-delete path and slated for reuse by `F11` (restart confirm).
-- `components/form/` — `ChoreFormModal` → **`ChoreForm`** → `FormField`. **Room field is now a `<datalist>` input** (`F3-L`, current-ledger `F5`) sourced from `uniqueRooms`, threaded through both Add and Edit. Still renders a Details `FormField` and a Long-term-task checkbox — **`F4`'s target**, unchanged from before.
+- `components/common/ConfirmDialog.tsx` (F4-L) — unchanged; reused by the swipe-delete path and slated for reuse by `F10` (restart confirm).
+- `components/form/` — `ChoreFormModal` → **`ChoreForm`** → `FormField`. **Room field is now a `<datalist>` input** (`F3-L`) sourced from `uniqueRooms`, threaded through both Add and Edit. Still renders a Details `FormField` and a Long-term-task checkbox — **`F4`'s target**, unchanged from before.
 - **New since last reconcile:** `components/.../ChoreSearchInput` (or equivalent — the `F9-L` search box; `Search` icon, `placeholder="Search for a chore"`), pinned above the scroll region.
 
 **Tests**
@@ -356,8 +349,8 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 1. `better-sqlite3` bundles SQLite ≥ 3.35 (needed by **F4**'s `DROP COLUMN`). Verify at F4 planning, else fall back to a table-rebuild migration. *(Unchanged from prior reconcile — still unverified.)*
 2. Tap-to-complete + the simulation pointer-events guard + the SSE re-pull gate are primary; no new feature may regress them. **`F1` and `F2` both add full-viewport overlays that intercept taps — extra care needed here.**
 3. `details` is not rendered anywhere in the UI, so `F4`'s removal is display-safe.
-4. **`F7`, `F14`, and the host-bridge controls (`F8`/`F9`/`F11`) have end states partly outside the repo** (Pi/LAN/host config). Capture outcomes as deployment docs in the feature's own `plans/feature/<slug>/` dir. The frozen Dockerization plan lives at `plans/completed/docker-raspberry-pi/`.
-5. **`F3`–`F14` (device-control track) are kiosk-only** (the wall-mounted Pi); design to degrade gracefully off-kiosk.
+4. **`F6`, `F13`, and the host-bridge controls (`F7`/`F8`/`F10`) have end states partly outside the repo** (Pi/LAN/host config). Capture outcomes as deployment docs in the feature's own `plans/feature/<slug>/` dir. The frozen Dockerization plan lives at `plans/completed/docker-raspberry-pi/`.
+5. **`F3`–`F13` (device-control track) are kiosk-only** (the wall-mounted Pi); design to degrade gracefully off-kiosk.
 6. **`deploy/pi/` currently has no screen-blank/DPMS/idle config** (verified — no `dpms`/`screen-blank`/`xset`/idle-inhibit files exist there). `F1` needs none; if host-side auto-blank is later found enabled, disabling it is a deploy-doc note for `F1`'s session, not a blocker.
 7. **`F1` and `F2` both claim the "first tap after an overlay is showing" gesture** (wake vs. unlock) — no conflict today since neither exists, but once both ship, their planning/implementation must agree on precedence if a device is simultaneously blanked *and* locked. Documented as a cross-feature coupling below; not resolved here.
 
@@ -418,7 +411,9 @@ implemented concurrently in **git worktrees**, one session per worktree. Use
 `plans/WORKTREE-PARALLELIZE-PROMPT.md` to verify the chosen F-IDs cannot merge-conflict and
 to provision the worktrees; implementation still runs each feature's own Per-Feature Session
 Contract, and the merge gate stays serial. **Use the current (260707) F-IDs when filling in
-`FEATURES` — that file is numbering-scheme-agnostic, it just needs valid slugs.**
+`FEATURES`** — that template's own worked example still cites old F-numbers (see its stale-
+numbering note), but the mechanism itself is numbering-scheme-agnostic, it just needs valid
+slugs.
 
 **Why a human gate exists between sessions.** `main` is branch-protected (PR + review + CI
 required), so a session can only reach "PR pushed." **You merge the PR**; that merge is the
@@ -496,13 +491,12 @@ rest on release. F5-L's infra (spread order, `touch-pan-y`, `isSimulating` guard
 `swipingRef` click-suppression, tap-to-complete) is preserved. `e2e/smoke.spec.ts`'s
 `swipeBar` helper direction expectations were flipped to match.
 
-## F3-L — Type-as-you-search Room dropdown  ·  merged (#24, `a585d8f`)  ·  = current ledger's `F5`
+## F3-L — Type-as-you-search Room dropdown  ·  merged (#24, `a585d8f`)
 **Implemented contract (as built — current `F4` must not disturb this):** Room field is a
 native `<input list=...>` + `<datalist>`, sourced from `App.tsx`'s `uniqueRooms`, threaded
 through `ChoreFormModal` into the shared `ChoreForm` on **both** Add and Edit. Typing
 filters suggestions; the user may still type a brand-new room. No schema change — `room`
-remains a free string. *(Still shown as an open checkbox in the 260707 ledger — see the
-anomaly note at the top of this file; treated as shipped here based on verified repo state.)*
+remains a free string.
 
 **Known follow-up (confirmed by user, 2026-07-07 — not yet scheduled as its own feature):**
 suggestion dropdown does not appear on mobile even after tapping the `<datalist>` arrow.
@@ -535,8 +529,10 @@ fix; not currently assigned an F-ID.
 
 # REMAINING FEATURES (current 260707 numbering)
 
-> Every remaining feature's **Assumed starting state is the Baseline above**. The **focus
-> feature is F1** — its session can run next with no prerequisites.
+> Every remaining feature's **Assumed starting state is the Baseline above**. They map
+> onto the ledger's six top-level items (`F1`–`F6`) plus the settings-panel's seven
+> unnumbered sub-controls, continued as `F7`–`F13` in ledger order. The **focus feature is
+> F1** — its session can run next with no prerequisites.
 
 ## F1 — Auto screen-blank 9pm–6am  ·  ★ FOCUS  ·  Effort M  ·  (260707 item 1)
 
@@ -674,8 +670,8 @@ propagate the removal through the shared type, the API layer (both create and th
 update path), backend data access, and the SQLite schema/seed — including a migration of the
 already-populated `data.db` on the live Pi.
 
-**Rank rationale.** No longer gated by ordering relative to the room field — `F3-L`/current
-`F5` (room datalist) already shipped, so this can run anytime; the "run after room datalist"
+**Rank rationale.** No longer gated by ordering relative to the room field — `F3-L` (room
+datalist) already shipped, so this can run anytime; the "run after room datalist"
 convention from the prior reconcile is now moot (satisfied by history, not by scheduling).
 
 **Effort: M.** Unchanged from the prior reconcile's estimate: spans type → API (`POST` and
@@ -713,7 +709,7 @@ sandbox). (d) Confirm the `PUT`/`updateChore` path is fully de-referenced.
 
 ---
 
-## F6 — Translucent / blur *Add Task* button deck  ·  Effort S  ·  (260707 item 6)
+## F5 — Translucent / blur *Add Task* button deck  ·  Effort S  ·  (260707 item 5)
 
 **Goal.** Bottom *Add Task* deck uses a transparent, blurred background so the chore list is
 faintly visible beneath it; the button stays locked at the bottom and opaque while the list
@@ -746,23 +742,23 @@ fully opaque button. Confirm `backdrop-blur` performs acceptably on the Pi/mobil
 
 ---
 
-## F3 — Settings / device-control panel (container)  ·  Effort M  ·  (260707 — gates F8–F14)
+## F3 — Settings / device-control panel (container)  ·  Effort M  ·  (260707 — gates F7–F13)
 
 **Goal.** A collapsible device-control panel: a `NavBar` toggle (gear/settings icon that
 swaps to an X when open, co-located at the upper-right) expanding into a single-row overlaid
-banner of kiosk/device-control icons. Container for `F8`–`F14`; ships with rotate (`F14`)
+banner of kiosk/device-control icons. Container for `F7`–`F13`; ships with rotate (`F13`)
 functional and the rest as disconnected, optimistic, inert icon placeholders.
 
 **Rank rationale.** Unchanged in shape from the prior reconcile's `F11-L` — net-new UI
 surface gating the entire device-control track, independent of the other tracks.
 
 **Effort: M.** New panel component + `NavBar` toggle (gear↔X) + open/close state + overlaid
-single-row banner + a control-registration shape for `F8`–`F14` to plug into. No backend in
+single-row banner + a control-registration shape for `F7`–`F13` to plug into. No backend in
 this feature.
 
-**Dependencies.** None (gates `F8`–`F14`). Coordinate with `F14`, which has a detailed
+**Dependencies.** None (gates `F7`–`F13`). Coordinate with `F13`, which has a detailed
 existing plan (`plans/feature/rotate-screen-button/rotate-screen-button.md`) assuming this
-panel houses the rotate control — `F3` and `F14` may be planned together, but `F3` must land
+panel houses the rotate control — `F3` and `F13` may be planned together, but `F3` must land
 first or in the same PR.
 
 **Assumed starting state** = **Baseline**. Verify:
@@ -772,18 +768,18 @@ first or in the same PR.
 **Expected end state** (repo-checkable):
 - A `NavBar` toggle renders `Settings` (gear), swapping to `X` when open.
 - Toggling opens a single-row overlaid banner of device-control icons.
-- `F14` (rotate) functional if implemented with/after this feature; the rest (`Sun`
-  brightness, `MonitorOff` screen-blank, a control for `F10`'s auto-blank settings,
+- `F13` (rotate) functional if implemented with/after this feature; the rest (`Sun`
+  brightness, `MonitorOff` screen-blank, a control for `F9`'s auto-blank settings,
   `Power` restart, `Undo2` undo, `Redo2` redo) render as inert placeholders.
-- A documented control-registration shape persisted in code/tests so `F8`–`F14` can each
+- A documented control-registration shape persisted in code/tests so `F7`–`F13` can each
   wire a handler without re-architecting the panel.
 
 **Test-suite deltas.** Component test: toggle opens/closes; gear↔X swap; placeholder icons
 render/inert; rotate invokes its handler if wired here.
 
-**Open risks / decisions.** (a) Panel-vs-`F14` sequencing — recommended: plan together, keep
-the placeholder-only path viable if `F14` slips. (b) Icon set per the ledger
-(`Sun`/`MonitorOff`/`Power`/`Undo2`/`Redo2`, gear `Settings`) — `F10`'s icon TBD at its own
+**Open risks / decisions.** (a) Panel-vs-`F13` sequencing — recommended: plan together, keep
+the placeholder-only path viable if `F13` slips. (b) Icon set per the ledger
+(`Sun`/`MonitorOff`/`Power`/`Undo2`/`Redo2`, gear `Settings`) — `F9`'s icon TBD at its own
 planning. (c) Overlay must not permanently obstruct the chore list (single-row, dismissible).
 (d) Kiosk-only: degrade gracefully off-kiosk.
 
@@ -791,7 +787,7 @@ planning. (c) Overlay must not permanently obstruct the chore list (single-row, 
 
 ---
 
-## F14 — Rotate screen button (functional, host-bridge)  ·  Effort L  ·  (260707 — plan exists)
+## F13 — Rotate screen button (functional, host-bridge)  ·  Effort L  ·  (260707 — plan exists)
 
 **Goal.** In-app rotate control (housed in the `F3` panel) flipping the Pi kiosk's display +
 touch orientation between the two portrait orientations (`90 ↔ 270`) without host SSH.
@@ -811,9 +807,9 @@ LAN/Pi verification must run unsandboxed.
 **Assumed starting state** = **Baseline** + `F3` panel present + the Pi deployment (#19's
 kanshi/labwc config under version control). Detailed assumed-start/decisions live in
 `plans/feature/rotate-screen-button/rotate-screen-button.md` — read that plan; do not
-re-derive it. **That plan predates this reconcile's F-number swap; its internal references
-to "F17" mean this section (current `F14`) — no content changes needed, just note the
-numbering when reading it.**
+re-derive it. **That plan (unchanged by this reconcile) contains no F-number self-reference
+at all — it was never called "F17" internally, so there's nothing stale to reinterpret inside
+it. It's simply this section, `F13`, under the current scheme.**
 
 **Expected end state** (repo-checkable **+ deploy-doc-anchored**):
 - A rotate control in the `F3` panel toggles portrait `90 ↔ 270`; landscape unreachable from the button.
@@ -832,48 +828,48 @@ for the non-root user service; portrait-only toggle; host-bridge file-watch mech
 
 ---
 
-## F8, F9, F10, F11, F12, F13 — Device-control placeholders (connect later)  ·  housed in F3
+## F7, F8, F9, F10, F11, F12 — Device-control placeholders (connect later)  ·  housed in F3
 
 > Ships as disconnected, optimistic icon placeholders first (via `F3`), then each connects
 > as its own feature. Effort is **S as a placeholder** (lands with `F3`) and **M (or M–L for
 > undo) when connected**.
 
-- **F8 — Brightness control** *(= legacy `F12-L`)*. Adjust kiosk backlight. **Functional
-  effort M** — host-bridge mirroring `F14` (frontend → backend writes a brightness state
+- **F7 — Brightness control** *(= legacy `F12-L`)*. Adjust kiosk backlight. **Functional
+  effort M** — host-bridge mirroring `F13` (frontend → backend writes a brightness state
   file → host agent applies via backlight sysfs or `ddcutil`). Placeholder icon `Sun`. Pi
   verification unsandboxed. Branch `feature/brightness-control`.
-- **F9 — Screen blank/wake manual toggle** *(= legacy `F13-L`)*. Manually blank/wake the
+- **F8 — Screen blank/wake manual toggle** *(= legacy `F13-L`)*. Manually blank/wake the
   display on demand, complementing `F1`'s auto schedule. **Functional effort M**
   (host-bridge). Placeholder icon `MonitorOff`. Pi verification unsandboxed. Branch
-  `feature/screen-blank-toggle`. **Note the naming collision risk with `F1`/`F10` — this is
-  the *manual, on-demand* toggle; `F1` is the *automatic schedule*; `F10` is the settings-UI
+  `feature/screen-blank-toggle`. **Note the naming collision risk with `F1`/`F9` — this is
+  the *manual, on-demand* toggle; `F1` is the *automatic schedule*; `F9` is the settings-UI
   to *configure* F1's schedule. All three are distinct.**
-- **F10 — Auto screen-blank/wake settings-UI** *(NEW — no legacy equivalent)*. Lets the user
+- **F9 — Auto screen-blank/wake settings-UI** *(NEW — no legacy equivalent)*. Lets the user
   set the sleep/wake times that `F1` currently hardcodes at 9pm/6am, from the `F3` panel.
   **Functional effort S** — a time-picker control wired to `F1`'s schedule state (no new
   host-bridge; `F1` is already pure-frontend). **Depends on both `F3` and `F1`** — `F1` must
   expose its schedule as configurable state before this can wire a UI to it. Branch
   `feature/auto-blank-settings-ui`.
-- **F11 — Restart** *(= legacy `F14-L`)*. Controlled restart (`docker compose restart`
+- **F10 — Restart** *(= legacy `F14-L`)*. Controlled restart (`docker compose restart`
   and/or Pi host) behind a confirmation dialog (reuse `ConfirmDialog`). **Functional effort
   M** (host-bridge + confirm). Placeholder icon `Power`. Pi verification unsandboxed. Branch
   `feature/restart-control`.
-- **F12 — Undo** *(= legacy `F15-L`)*. Recover from accidental touch/completion.
+- **F11 — Undo** *(= legacy `F15-L`)*. Recover from accidental touch/completion.
   **Functional effort M–L** (bounded action/undo cache; 1–2 levels deep acceptable). Must
   reconcile with the SSE re-pull (an undo is itself a write that should emit on the bus).
   Placeholder icon `Undo2`. Branch `feature/undo`.
-- **F13 — Redo** *(= legacy `F16-L`)*. Re-apply an undone action; pairs with `F12`'s cache.
-  **Functional effort M.** Depends on `F3` + `F12`. Placeholder icon `Redo2`. Branch
+- **F12 — Redo** *(= legacy `F16-L`)*. Re-apply an undone action; pairs with `F11`'s cache.
+  **Functional effort M.** Depends on `F3` + `F11`. Placeholder icon `Redo2`. Branch
   `feature/redo`.
 
 **Shared expected-end pattern (per control, when connected):** the placeholder icon in the
-`F3` panel gains a working handler; host-bridge controls (`F8`/`F9`/`F11`) write a state file
+`F3` panel gains a working handler; host-bridge controls (`F7`/`F8`/`F10`) write a state file
 consumed by a host-side agent, captured as deploy docs/config; existing IP:port/kiosk
 behavior never breaks; writes emit on the SSE bus where relevant.
 
 ---
 
-## F7 — Local URL alias instead of IP:port  ·  Infra track (parallel)  ·  Effort M–L (research spike)  ·  (260707 item 7, = legacy `F8-L`)
+## F6 — Local URL alias instead of IP:port  ·  Infra track (parallel)  ·  Effort M–L (research spike)  ·  (260707 item 6, = legacy `F8-L`)
 
 **Goal.** Let LAN users reach the app by a memorable name instead of the raw IP — e.g. `c4i`
 instead of `[local_IP_address]:[port]`. Explore viable options; implement the best fit for
@@ -920,7 +916,7 @@ unsandboxed; keep additive; deploy-doc capture is mandatory.
 ```
 CHORE-LIST TRACK (disjoint surfaces; independent of each other)
   Baseline ─F4 (remove Details/Long-term)
-  Baseline ─F6 (blur Add-Task deck)
+  Baseline ─F5 (blur Add-Task deck)
 
 KIOSK POWER & INPUT-SAFETY TRACK (NEW; ★ = focus)
   Baseline ─★F1★ (auto screen-blank 9pm–6am)
@@ -929,43 +925,43 @@ KIOSK POWER & INPUT-SAFETY TRACK (NEW; ★ = focus)
    unlock precedence once both exist)
 
 DEVICE-CONTROL PANEL TRACK (F3 gates the rest)
-  Baseline ─F3 (panel) ─┬→ F14 (rotate, functional · plan exists)
-                        ├→ F12 (undo) ─→ F13 (redo)
-                        ├→ F8  (brightness)         ┐
-                        ├→ F9  (screen-blank toggle)├ host-bridge, placeholder→functional
-                        ├→ F11 (restart)            ┘
-                        └→ F10 (auto-blank settings-UI) ── also needs F1
+  Baseline ─F3 (panel) ─┬→ F13 (rotate, functional · plan exists)
+                        ├→ F11 (undo) ─→ F12 (redo)
+                        ├→ F7  (brightness)        ┐
+                        ├→ F8  (screen-blank toggle)├ host-bridge, placeholder→functional
+                        ├→ F10 (restart)           ┘
+                        └→ F9  (auto-blank settings-UI) ── also needs F1
 
 INFRA TRACK
-  Baseline ─F7 (LAN alias; independent)
+  Baseline ─F6 (LAN alias; independent)
 ```
 
 - **No single hard chain remains.** The device-control track has the one real edge: `F3`
-  gates `F8`/`F9`/`F10`/`F11`/`F12`/`F13`/`F14` (housed in the panel; `F13` also follows
-  `F12`; `F10` additionally follows `F1`). `F7` is fully parallel. Chore-list and
+  gates `F7`/`F8`/`F9`/`F10`/`F11`/`F12`/`F13` (housed in the panel; `F12` also follows
+  `F11`; `F9` additionally follows `F1`). `F6` is fully parallel. Chore-list and
   kiosk-power tracks are flat/independent internally.
 - **Focus path:** `F1` is a single hop from Baseline — implement it next, ahead of
   everything else, with zero prerequisite churn.
 - **Cross-feature couplings to honor:**
   - **F1 ↔ F2:** both are full-viewport tap-intercepting overlays. No live conflict until
     both exist; `F2`'s planning session must decide precedence with `F1`'s tap-to-wake.
-  - **F1 → F10:** `F10` (settings-UI for the schedule) needs `F1` to expose its 9pm/6am
+  - **F1 → F9:** `F9` (settings-UI for the schedule) needs `F1` to expose its 9pm/6am
     times as configurable state, not hardcoded constants — `F1`'s session should keep this
-    in mind even though `F10` isn't scheduled next.
+    in mind even though `F9` isn't scheduled next.
   - **F4 ↔ F3-L (already shipped):** `F4` must edit the shared `ChoreForm` without
     disturbing the now-merged Room `<datalist>`.
-  - **F3 → F8–F14:** the panel's control-registration shape is the interface; persist it so
+  - **F3 → F7–F13:** the panel's control-registration shape is the interface; persist it so
     each control session plugs in without re-architecting.
-  - **F14 / F8 / F9 / F11** are host-bridges — end states partly outside the repo; capture
+  - **F13 / F7 / F8 / F10** are host-bridges — end states partly outside the repo; capture
     as deploy docs.
-  - **F7** shares no files with any of them.
+  - **F6** shares no files with any of them.
 - Cumulative invariants that must hold from each feature onward:
   - From **F1**: a real-wall-clock 9pm–6am blank overlay, tap-to-wake, 5-min re-blank; must not react to `simulatedDate`.
   - From **F4**: no `details`/`longTermTask`/`long_term_task` anywhere (incl. `PUT`/`updateChore`); idempotent column-drop migration in `db.ts`.
-  - From **F6**: translucent/blurred Add-Task deck, opaque button.
+  - From **F5**: translucent/blurred Add-Task deck, opaque button.
   - From **F3**: a NavBar gear↔X toggle opening a single-row device-control banner; control-registration shape in place.
-  - From **F14**: in-app portrait rotate via host-bridge; display+touch in sync.
-  - From **F7**: a documented LAN name-alias to the app; IP:port still works.
+  - From **F13**: in-app portrait rotate via host-bridge; display+touch in sync.
+  - From **F6**: a documented LAN name-alias to the app; IP:port still works.
   - **Already holding (legacy, unchanged):** delete-confirm, `PUT`/edit, swipe infra
     (now edit-left/delete-right + 25% reveal), shorter grid bar, SSE re-pull gate, Room
     `<datalist>`, persistent name-search filter.
