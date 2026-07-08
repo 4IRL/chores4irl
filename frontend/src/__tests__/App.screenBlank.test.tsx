@@ -25,6 +25,10 @@ const mockUseScreenBlank = vi.hoisted(() => vi.fn(() => ({ isBlanked: false, wak
 vi.mock('../hooks/useScreenBlank', () => ({
     useScreenBlank: mockUseScreenBlank,
 }));
+const mockUseTouchLock = vi.hoisted(() => vi.fn(() => ({ isLocked: false, arm: () => {} })));
+vi.mock('../hooks/useTouchLock', () => ({
+    useTouchLock: mockUseTouchLock,
+}));
 
 function swipe(bar: HTMLElement, fromX: number, toX: number) {
     fireEvent.mouseDown(bar, { clientX: fromX, clientY: 50 });
@@ -44,6 +48,7 @@ function stubBarWidth(bar: HTMLElement, width = 400) {
 beforeEach(() => {
     vi.clearAllMocks();
     mockUseScreenBlank.mockReturnValue({ isBlanked: false, wake: mockWake });
+    mockUseTouchLock.mockReturnValue({ isLocked: false, arm: () => {} });
     FakeEventSource.instances = [];
     vi.stubGlobal('EventSource', FakeEventSource as unknown as typeof EventSource);
     vi.mocked(addChore).mockResolvedValue(makeChore());

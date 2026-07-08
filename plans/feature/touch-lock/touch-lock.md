@@ -325,7 +325,7 @@ in Step 4), it swallows taps, detects a qualifying "close-enough" double-tap, an
 ### 4. Wire into `App.tsx` + coordinate with F1's `useScreenBlank`
 
 **To-do:**
-- [ ] Red: create `frontend/src/__tests__/App.touchLock.test.tsx` mirroring
+- [x] Red: create `frontend/src/__tests__/App.touchLock.test.tsx` mirroring
   `App.screenBlank.test.tsx`'s structure exactly: `vi.mock('../hooks/useTouchLock', () => ({
   useTouchLock: mockUseTouchLock }))` with `mockUseTouchLock = vi.hoisted(() => vi.fn(() => ({
   isLocked: false, arm: mockArm })))`, plus the same `choreApi`/`useMidnightClock`/`FakeEventSource`
@@ -405,7 +405,7 @@ in Step 4), it swallows taps, detects a qualifying "close-enough" double-tap, an
   rather than tested, since the coverage is generic to anything rendered inside `.App` and
   not specific to this feature. Run `cd frontend && npx vitest run
   src/__tests__/App.touchLock.test.tsx`, confirm it fails (no wiring yet).
-- [ ] Green — edit `frontend/src/App.tsx`: import `useTouchLock` from
+- [x] Green — edit `frontend/src/App.tsx`: import `useTouchLock` from
   `'./hooks/useTouchLock'`, `TouchLockIndicator` and `TouchLockOverlay` (also importing its
   exported `CLOSING_SETTLE_MS` constant) from `'./components/common/TouchLockIndicator'` /
   `'./components/common/TouchLockOverlay'`. Add `const { isLocked, arm } = useTouchLock();`
@@ -439,7 +439,7 @@ in Step 4), it swallows taps, detects a qualifying "close-enough" double-tap, an
   setPendingDeleteId(null); } }, [isLocked]);` immediately following the existing
   `isBlanked`-driven dialog-closing effect (lines 121-127), matching its structure. Re-run
   `npx vitest run src/__tests__/App.touchLock.test.tsx`, confirm all cases pass.
-- [ ] Green (regression guard) — this to-do must be applied together with the "Green — edit
+- [x] Green (regression guard) — this to-do must be applied together with the "Green — edit
   App.tsx" to-do above, as a single unit, since it exists specifically to contain that
   to-do's blast radius: once `App.tsx` calls `useTouchLock()` unconditionally, **all five**
   test files that render `<App />` need a mock, or they'll invoke the real hook. Edit
@@ -454,7 +454,7 @@ in Step 4), it swallows taps, detects a qualifying "close-enough" double-tap, an
   separate hook under separate test — mocking it here doesn't compromise this file's
   real-clock intent for screen-blank). Run `cd frontend && npx vitest run` (full suite) and
   confirm no regressions across all five files or elsewhere.
-- [ ] Refactor: double check `TouchLockIndicator`'s `z-[80]` truly sits beneath
+- [x] Refactor: double check `TouchLockIndicator`'s `z-[80]` truly sits beneath
   `ScreenBlankOverlay`'s `z-[100]` (visual confirmation is out of scope for this automated
   step, but re-read both files together to confirm the class values are as specified). Re-run
   the full `npx vitest run` suite, confirm still green.
@@ -544,7 +544,13 @@ Run the full test suites to confirm nothing is broken:
   - ✅ Refactor: extracted `clearPendingPhaseTimer()` helper to de-duplicate the clear-then-schedule pattern
   - ✅ Subagent review found a real bug: once `phase === 'opening'`, `pointer-events-none` blocked pointer input but not keyboard, so a stray Enter/Space during the `CLOSING_SETTLE_MS` grace window could regress `phase` and re-invoke `onArm()`. Fixed with an early-return guard in `registerTap` when `phase === 'opening'`, plus a regression test (11 tests total)
   - ✅ Full frontend suite (25 files, 208 tests), `tsc --noEmit`, `eslint`, and `vite build` all clean
-- [ ] Step 4: Wire into `App.tsx` + coordinate with F1's `useScreenBlank`
+- [x] **Step 4: Wire into `App.tsx` + coordinate with F1's `useScreenBlank`** - COMPLETE (2026-07-08)
+  - ✅ Red: `frontend/src/__tests__/App.touchLock.test.tsx` created (14 cases: a, b, b2, c, six d-gestures, two e-dismissals, f, g), confirmed failing (no wiring yet)
+  - ✅ Green: `frontend/src/App.tsx` wired — `useTouchLock()` alongside `useScreenBlank()`; `isClosing`/`closingTimerRef` local state; `handleArm` wraps `arm()` with the `CLOSING_SETTLE_MS` close hand-off; both `.App` occurrences now `inert={isBlanked || isLocked}`; `TouchLockIndicator` rendered unconditionally in both branches; `TouchLockOverlay` rendered via `(isLocked || isClosing) && !isBlanked`; `wasLockedRef`/`justRelocked` computed directly in the render body (read-then-mutate, in that order); new `isLocked`-driven dialog-close effect mirroring the existing `isBlanked` one. All 14 tests pass
+  - ✅ Green (regression guard) — added a `useTouchLock` mock (defaulting to `{ isLocked: false, arm: () => {} }`) to all five App-level test files: `App.test.tsx`, `App.sync.test.tsx`, `App.search.test.tsx` (inline style), `App.screenBlank.test.tsx` (`vi.hoisted` style), `App.screenBlank.realClock.test.tsx` (inline style)
+  - ✅ Refactor: confirmed `TouchLockIndicator`'s `z-[80]` sits beneath `ScreenBlankOverlay`'s `z-[100]`
+  - ✅ Subagent review (3 parallel: Correctness, Security & Edge Cases, Quality & Completeness) — Correctness and Security both PASS; Quality found 1 minor finding (the `isClosing`-excluded-from-`inert` invariant wasn't documented at the `inert` prop lines themselves). Fixed by adding an inline comment above both `inert={isBlanked || isLocked}` occurrences
+  - ✅ Full frontend suite (26 files, 222 tests), `tsc --noEmit`, `eslint`, and `vite build` all clean
 - [ ] Step 5: Playwright e2e coverage
 - [ ] Step 6: Verify All Tests Pass
 
