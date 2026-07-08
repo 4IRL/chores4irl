@@ -462,7 +462,7 @@ in Step 4), it swallows taps, detects a qualifying "close-enough" double-tap, an
 ### 5. Playwright e2e coverage
 
 **To-do:**
-- [ ] Add a new `test.describe('F2: touch lock')` block to `e2e/smoke.spec.ts` (or a sibling
+- [x] Add a new `test.describe('F2: touch lock')` block to `e2e/smoke.spec.ts` (or a sibling
   spec file if the existing file's `beforeEach` structure makes a shared block awkward —
   match whatever the F1 screen-blank e2e tests did, since research found F1 added its
   dedicated tests directly into `smoke.spec.ts` at lines 36-94 using `page.clock.setFixedTime`
@@ -489,7 +489,7 @@ in Step 4), it swallows taps, detects a qualifying "close-enough" double-tap, an
   calls at the same coordinates in quick succession to simulate the qualifying double-tap, and
   assert the overlay disappears and a subsequent tap-to-complete/swipe/add-task action now
   succeeds.
-- [ ] Confirm the existing (unmodified) `beforeEach`/tests in `smoke.spec.ts` still pass
+- [x] Confirm the existing (unmodified) `beforeEach`/tests in `smoke.spec.ts` still pass
   unmodified — they never advance the clock by 5 minutes of idle time within a single test,
   so the lock should never engage during those flows given decision #2 (armed on load).
   Run `npm run test:e2e` from the repo root and confirm the full suite (existing + new)
@@ -551,7 +551,39 @@ Run the full test suites to confirm nothing is broken:
   - ✅ Refactor: confirmed `TouchLockIndicator`'s `z-[80]` sits beneath `ScreenBlankOverlay`'s `z-[100]`
   - ✅ Subagent review (3 parallel: Correctness, Security & Edge Cases, Quality & Completeness) — Correctness and Security both PASS; Quality found 1 minor finding (the `isClosing`-excluded-from-`inert` invariant wasn't documented at the `inert` prop lines themselves). Fixed by adding an inline comment above both `inert={isBlanked || isLocked}` occurrences
   - ✅ Full frontend suite (26 files, 222 tests), `tsc --noEmit`, `eslint`, and `vite build` all clean
-- [ ] Step 5: Playwright e2e coverage
+- [x] **Step 5: Playwright e2e coverage** - COMPLETE (2026-07-08)
+  - ✅ Added a `test('F2: locks after 5 minutes of inactivity, blocks a real pointer tap, and
+    unlocks via a qualifying double-tap', ...)` to `e2e/smoke.spec.ts`, as a flat test under the
+    existing top-level describe (matching F1's own precedent — see Quality finding below)
+  - ✅ Clock-sequencing followed exactly per the critical to-do detail: `page.clock.install()`
+    then `page.reload()` (re-registering `useTouchLock`'s mount-time timer under the
+    now-installed fake clock) before `page.clock.fastForward('05:01')` — found and fixed one
+    bug during validation: Playwright's clock parser requires zero-padded `'mm:ss'`
+    (`'05:01'`, not `'5:01'`)
+  - ✅ Proved the overlay blocks a real pointer tap using `page.mouse.click(x, y)` at the chore
+    bar's bounding-box center (not locator `.click()`, avoiding an actionability-timeout/
+    `force: true` false positive)
+  - ✅ Proved the qualifying double-tap unlocks: two `page.mouse.click` calls at identical
+    coordinates in quick succession, asserted `handleArm`'s real `isClosing`/`CLOSING_SETTLE_MS`
+    hand-off via a further `fastForward(500)` before the overlay actually unmounts, then
+    confirmed a real tap-to-complete PATCH succeeds afterward
+  - ✅ Subagent review (3 parallel: Correctness, Security & Edge Cases, Quality & Completeness)
+    — Security: PASS (only minor notes: `waitForTimeout(250)` mirrors an established file-wide
+    convention; same-position double-tap doesn't independently re-prove the distance/window
+    boundaries, already covered at the unit level in `TouchLockOverlay.test.tsx`). Correctness:
+    PASS (minor: two inline comments mischaracterized `page.clock.install()`'s real-vs-fake
+    timer semantics — reworded). **Quality found 1 critical bug**: an argument-less
+    `page.clock.install()` seeds the fake clock to the real wall-clock time, silently
+    discarding the shared `beforeEach`'s noon pin — had the suite run during the 21:00-06:00
+    window, F1's `isBlanked` would suppress `TouchLockOverlay` entirely, failing the test
+    nondeterministically. **Fixed** by passing `{ time: new Date(2025, 0, 15, 12, 0, 0) }`
+    explicitly to `install()`. Quality also flagged the test as the file's only nested
+    `test.describe` wrapper, inconsistent with every other section (including F1's own DD-7
+    tests) — **fixed** by un-nesting into a flat `test(...)`
+  - ✅ New test run in isolation (`-g "F2: touch lock"`): 1 passed (both before and after the
+    critical fix)
+  - ✅ Full `npm run test:e2e` suite re-run after all fixes: 14 passed, 0 failed (13
+    pre-existing + 1 new), no regressions to the unmodified `beforeEach`/tests
 - [ ] Step 6: Verify All Tests Pass
 
 ## Status
