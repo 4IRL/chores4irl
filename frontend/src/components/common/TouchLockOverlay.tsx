@@ -24,26 +24,23 @@ export default function TouchLockOverlay({ onArm, justRelocked = false }: TouchL
     const firstTapRef = useRef<FirstTap | null>(null);
     const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Entrance animation hand-off: mask the one-commit gap before App.tsx's
-    // isLocked-driven dialog-close effect runs by briefly showing a centered
-    // closed padlock + backdrop, then settling to 'idle'.
-    useEffect(() => {
-        if (!justRelocked) return;
-        phaseTimerRef.current = setTimeout(() => {
-            setPhase('idle');
-        }, 600);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    useEffect(() => {
-        return () => {
-            if (phaseTimerRef.current !== null) clearTimeout(phaseTimerRef.current);
-        };
-    }, []);
-
     const clearPendingPhaseTimer = () => {
         if (phaseTimerRef.current !== null) clearTimeout(phaseTimerRef.current);
     };
+
+    // Entrance animation hand-off: mask the one-commit gap before App.tsx's
+    // isLocked-driven dialog-close effect runs by briefly showing a centered
+    // closed padlock + backdrop, then settling to 'idle'. Also clears the
+    // timer on unmount.
+    useEffect(() => {
+        if (justRelocked) {
+            phaseTimerRef.current = setTimeout(() => {
+                setPhase('idle');
+            }, 600);
+        }
+        return clearPendingPhaseTimer;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const registerTap = (tapX: number, tapY: number) => {
         // Once a qualifying second tap has fired, onArm() has already been
@@ -91,7 +88,7 @@ export default function TouchLockOverlay({ onArm, justRelocked = false }: TouchL
     };
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-        if (event.key === 'Enter' || event.key === ' ') {
+        if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
             event.preventDefault();
             // Keyboard activation has no meaningful position — using a fixed
             // (0, 0) for both taps means two keyboard activations are always

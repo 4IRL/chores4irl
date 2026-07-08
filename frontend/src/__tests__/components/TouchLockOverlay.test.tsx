@@ -86,6 +86,28 @@ describe('TouchLockOverlay', () => {
         expect(onArm).toHaveBeenCalledOnce();
     });
 
+    it('qualifies two Space presses within the timing window as a double-tap', () => {
+        const onArm = vi.fn();
+        render(<TouchLockOverlay onArm={onArm} />);
+        const overlay = screen.getByTestId('touch-lock-overlay');
+
+        fireEvent.keyDown(overlay, { key: ' ' });
+        fireEvent.keyDown(overlay, { key: ' ' });
+
+        expect(onArm).toHaveBeenCalledOnce();
+    });
+
+    it('qualifies a mixed Enter-then-Space pair within the timing window as a double-tap', () => {
+        const onArm = vi.fn();
+        render(<TouchLockOverlay onArm={onArm} />);
+        const overlay = screen.getByTestId('touch-lock-overlay');
+
+        fireEvent.keyDown(overlay, { key: 'Enter' });
+        fireEvent.keyDown(overlay, { key: ' ' });
+
+        expect(onArm).toHaveBeenCalledOnce();
+    });
+
     it('qualifies a second tap at exactly the max distance boundary (60px)', () => {
         const onArm = vi.fn();
         render(<TouchLockOverlay onArm={onArm} />);
@@ -143,6 +165,31 @@ describe('TouchLockOverlay', () => {
         // re-invoke onArm.
         fireEvent.keyDown(overlay, { key: 'Enter' });
         fireEvent.keyDown(overlay, { key: 'Enter' });
+
+        expect(onArm).toHaveBeenCalledOnce();
+        const centered = screen.getByTestId('touch-lock-padlock-centered');
+        expect(within(centered).getByTestId('touch-lock-icon-open')).toBeInTheDocument();
+    });
+
+    it('ignores further clicks once phase is opening, so onArm is not re-invoked and phase does not regress', () => {
+        const onArm = vi.fn();
+        render(<TouchLockOverlay onArm={onArm} />);
+        const overlay = screen.getByTestId('touch-lock-overlay');
+
+        fireEvent.click(overlay, { clientX: 100, clientY: 100 });
+        fireEvent.click(overlay, { clientX: 110, clientY: 105 });
+        expect(onArm).toHaveBeenCalledOnce();
+
+        // jsdom doesn't implement pointer-events-none behaviorally, so unlike a
+        // real browser these clicks actually reach the onClick handler. The
+        // qualifying second click above already nulled firstTapRef, so a
+        // single follow-up click would harmlessly re-arm as a fresh "first
+        // tap" even without the guard — it takes a second follow-up click,
+        // mirroring the keydown regression test above, to prove the internal
+        // `phase === 'opening'` guard (not firstTapRef state) is what's
+        // actually preventing a second onArm() call here.
+        fireEvent.click(overlay, { clientX: 100, clientY: 100 });
+        fireEvent.click(overlay, { clientX: 110, clientY: 105 });
 
         expect(onArm).toHaveBeenCalledOnce();
         const centered = screen.getByTestId('touch-lock-padlock-centered');

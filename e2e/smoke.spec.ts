@@ -391,6 +391,95 @@ test.describe('Chores App Smoke Tests', () => {
             page.locator('[data-testid="touch-lock-indicator"] [data-testid="touch-lock-icon-closed"]')
         ).toBeVisible();
 
+        const firstChoreBar = page.locator('.bg-gray-800.rounded-full').first();
+
+        // Companion assertions: prove the lock blocks more than just
+        // tap-to-complete (asserted below). Same raw-coordinate technique as
+        // the tap-to-complete check below (reusing the existing swipeBar
+        // helper, which already drives react-swipeable via
+        // page.mouse.move/down/up rather than locator.click()) plus a raw
+        // page.mouse.click on the "+ Add Task" button's own bounding-box
+        // coordinates — never bar.click()/button.click(), since Playwright's
+        // actionability check would detect the overlay intercepting the
+        // gesture and either time out or tempt a `{ force: true }`
+        // workaround that would prove nothing about real hit-testing. As
+        // with the tap-to-complete case below, the blocking mechanism being
+        // exercised here is real-browser hit-testing/z-index (the overlay is
+        // a full-viewport `fixed inset-0 z-[90]` div sitting on top of
+        // everything, so the click/gesture lands on IT, not on the
+        // react-swipeable/button handlers underneath) — `inert` on the
+        // `.App` subtree is defense-in-depth, not what's actually caught
+        // here.
+        //
+        // This must run *before* the tap-to-complete click immediately below:
+        // the touch-lock overlay is a full-viewport `fixed inset-0` div, so
+        // every click anywhere on the page while locked lands on the overlay
+        // itself and feeds its own tap-tracking (registerTap), regardless of
+        // what's rendered underneath. The tap-to-complete click's coordinates
+        // deliberately become the "first tap" of the qualifying double-tap
+        // pair at the end of this test — inserting extra taps at different
+        // (far-apart) screen coordinates *after* it would desynchronize that
+        // pairing. Running them first instead just means each of these taps
+        // gets superseded as a non-qualifying "first tap" of its own, leaving
+        // the pairing below untouched.
+        let deleteRequestFired = false;
+        const deleteListener = (request: import('@playwright/test').Request) => {
+            if (request.method() === 'DELETE' && request.url().includes('/api/chores')) {
+                deleteRequestFired = true;
+            }
+        };
+        page.on('request', deleteListener);
+
+        // Swipe-right on the chore bar would normally open the delete
+        // confirmation dialog (see 'swipe-right opens delete confirmation...'
+        // below); while locked, the overlay sitting on top should suppress
+        // the mouse sequence entirely before react-swipeable ever sees it.
+        await swipeBar(page, firstChoreBar, 'right');
+        await page.waitForTimeout(250);
+        expect(deleteRequestFired).toBe(false);
+        page.off('request', deleteListener);
+        await expect(page.getByTestId('confirm-dialog-confirm')).not.toBeVisible();
+        // Assert the lock is still fully engaged (closed-icon phase), not
+        // merely that the overlay element is present — the overlay also
+        // stays mounted (just pointer-events-none) for CLOSING_SETTLE_MS
+        // after a genuine unlock, so "visible" alone wouldn't catch the
+        // overlay's own click handler having accidentally paired this
+        // swipe's terminal click with a later tap as a qualifying
+        // double-tap (see registerTap in TouchLockOverlay.tsx).
+        await expect(
+            page.locator('[data-testid="touch-lock-indicator"] [data-testid="touch-lock-icon-closed"]')
+        ).toBeVisible();
+
+        let createRequestFired = false;
+        const createListener = (request: import('@playwright/test').Request) => {
+            if (request.method() === 'POST' && request.url().includes('/api/chores')) {
+                createRequestFired = true;
+            }
+        };
+        page.on('request', createListener);
+
+        // "+ Add Task" would normally open the create-chore form modal (see
+        // 'adds a new chore via the form' above); while locked, a real click
+        // at its own bounding-box coordinates should be swallowed the same
+        // way the chore-bar tap is below.
+        const addTaskBtn = page.locator('button', { hasText: /\+ Add Task/i });
+        const addTaskBox = await addTaskBtn.boundingBox();
+        if (!addTaskBox) throw new Error('Could not get bounding box for + Add Task button');
+        await page.mouse.click(addTaskBox.x + addTaskBox.width / 2, addTaskBox.y + addTaskBox.height / 2);
+        await page.waitForTimeout(250);
+        expect(createRequestFired).toBe(false);
+        page.off('request', createListener);
+        // Note: the touch-lock overlay itself is also a `.fixed.inset-0` div
+        // (see its `data-testid="touch-lock-overlay"` element above), so the
+        // form modal must be identified by its own unambiguous test id here.
+        await expect(page.getByTestId('chore-modal-backdrop')).not.toBeVisible();
+        // Same still-fully-locked check as after the swipe above — guards
+        // against this click having accidentally paired with the swipe's
+        // click (or a later one) as a qualifying double-tap.
+        await expect(
+            page.locator('[data-testid="touch-lock-indicator"] [data-testid="touch-lock-icon-closed"]')
+        ).toBeVisible();
+
         // Companion to DD-7's own technique: prove the overlay blocks a real
         // pointer tap on the chore bar underneath it, not just that it's
         // present. Use page.mouse.click at the bar's own bounding-box center
@@ -410,7 +499,6 @@ test.describe('Chores App Smoke Tests', () => {
         };
         page.on('request', completeListener);
 
-        const firstChoreBar = page.locator('.bg-gray-800.rounded-full').first();
         const box = await firstChoreBar.boundingBox();
         if (!box) throw new Error('Could not get bounding box for chore bar');
         const tapX = box.x + box.width / 2;

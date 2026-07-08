@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from '../services/choreApi';
 import { makeChore } from './fixtures/chore';
-import { FakeEventSource } from './fixtures/fakeEventSource';
+import { FakeEventSource, lastFakeSource } from './fixtures/fakeEventSource';
 import { CLOSING_SETTLE_MS } from '../components/common/TouchLockOverlay';
 
 vi.mock('../services/choreApi', () => ({
@@ -288,5 +288,61 @@ describe('touch lock wiring', () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+
+    it('(h) SSE-driven re-pull keeps flowing while isLocked is true', async () => {
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' })]);
+
+        render(<App />);
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        expect(fetchAllChores).toHaveBeenCalledTimes(1);
+        // Confirm the app is actually locked while this re-pull happens, so
+        // "despite the lock being engaged" is exercised, not just configured.
+        expect(screen.getByTestId('touch-lock-overlay')).toBeInTheDocument();
+        expect(screen.queryByText('Mop')).not.toBeInTheDocument();
+
+        // Another device added "Mop" while this kiosk sits locked (the default
+        // idle state); the doorbell must still trigger a re-pull.
+        vi.mocked(fetchAllChores).mockResolvedValue([
+            makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' }),
+            makeChore({ id: 2, name: 'Mop', room: 'Kitchen' }),
+        ]);
+        lastFakeSource().emit('message');
+
+        await waitFor(() => expect(screen.getByText('Mop')).toBeInTheDocument());
+        expect(screen.getByText('Sweep')).toBeInTheDocument();
+        expect(fetchAllChores).toHaveBeenCalledTimes(2);
+    });
+
+    it('(i) shows the just-relocked backdrop on the genuine false->true edge, but not on a later remount while isLocked never went false', async () => {
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' })]);
+
+        const { rerender } = render(<App />);
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        // The false->true edge mounts a fresh TouchLockOverlay in its
+        // 'just-relocked' phase, showing the entrance backdrop immediately.
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        rerender(<App />);
+        expect(screen.getByTestId('touch-lock-backdrop')).toBeInTheDocument();
+
+        // TouchLockOverlay only reads `justRelocked` at mount time, so a
+        // second rerender with isLocked still true wouldn't touch the
+        // already-mounted instance's phase either way — that alone wouldn't
+        // catch a regression. Force a genuine remount instead, without
+        // isLocked ever going false in between: the screen blanking hides
+        // the overlay outright (F1 precedence, see test (f)), then waking
+        // remounts it. If `justRelocked` ever regressed to plain `isLocked`
+        // (instead of a one-shot false->true flag backed by wasLockedRef),
+        // this fresh mount would incorrectly show the backdrop again.
+        mockUseScreenBlank.mockReturnValue({ isBlanked: true, wake: mockWake });
+        rerender(<App />);
+        expect(screen.queryByTestId('touch-lock-overlay')).not.toBeInTheDocument();
+
+        mockUseScreenBlank.mockReturnValue({ isBlanked: false, wake: mockWake });
+        rerender(<App />);
+        expect(screen.getByTestId('touch-lock-overlay')).toBeInTheDocument();
+        expect(screen.queryByTestId('touch-lock-backdrop')).not.toBeInTheDocument();
     });
 });

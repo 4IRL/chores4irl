@@ -127,26 +127,16 @@ export default function App() {
         flushPendingRefresh();
     }, [showForm, editingId, pendingDeleteId, flushPendingRefresh]);
 
-    // Blanking begins: close any open confirm-dialog/form so nothing stays
-    // keyboard-reachable in a createPortal layer behind the (inert) app content.
+    // Blanking or locking begins: close any open confirm-dialog/form so nothing
+    // stays keyboard-reachable in a createPortal layer behind the (inert) app
+    // content.
     useEffect(() => {
-        if (isBlanked) {
+        if (isBlanked || isLocked) {
             setPendingDeleteId(null);
             setEditingId(null);
             setShowForm(false);
         }
-    }, [isBlanked]);
-
-    // Locking begins: same rationale as the isBlanked effect above — close any
-    // open confirm-dialog/form so nothing stays keyboard-reachable behind the
-    // (inert) app content.
-    useEffect(() => {
-        if (isLocked) {
-            setPendingDeleteId(null);
-            setEditingId(null);
-            setShowForm(false);
-        }
-    }, [isLocked]);
+    }, [isBlanked, isLocked]);
 
     // Clear any pending close-animation hand-off timer on unmount.
     useEffect(() => {
@@ -291,10 +281,15 @@ export default function App() {
 
     // Computed directly in the render body (not a useEffect) so the flag
     // reflects the isLocked transition on the same render it occurs, rather
-    // than lagging a render behind. Order matters: read the ref before
-    // mutating it.
+    // than lagging a render behind. The ref's own update is deferred to a
+    // useEffect (below) instead of being mutated here, so StrictMode's
+    // dev-mode double-invocation of the render body can't advance the ref
+    // before the committed render reads its previous value.
     const justRelocked = isLocked && !wasLockedRef.current;
-    wasLockedRef.current = isLocked;
+
+    useEffect(() => {
+        wasLockedRef.current = isLocked;
+    }, [isLocked]);
 
     if (loading) {
         return (

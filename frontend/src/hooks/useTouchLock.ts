@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-export const INACTIVITY_MS = 5 * 60 * 1000;
+const INACTIVITY_MS = 5 * 60 * 1000;
 
 export function useTouchLock(): { isLocked: boolean; arm: () => void } {
     const [isLocked, setIsLocked] = useState(false);
