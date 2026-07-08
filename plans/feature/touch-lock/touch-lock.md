@@ -217,7 +217,7 @@ in Step 4), it swallows taps, detects a qualifying "close-enough" double-tap, an
 `phase` state machine described in Design decision #7.
 
 **To-do:**
-- [ ] Red: create `frontend/src/__tests__/components/TouchLockOverlay.test.tsx` mirroring
+- [x] Red: create `frontend/src/__tests__/components/TouchLockOverlay.test.tsx` mirroring
   `ScreenBlankOverlay.test.tsx` (render in isolation with `onArm={vi.fn()}`, plus
   `vi.useFakeTimers()` for the timing-window assertions). Assert: (a) the overlay renders a
   `data-testid="touch-lock-overlay"` full-viewport element with `role="button"`; (b) a single
@@ -255,7 +255,7 @@ in Step 4), it swallows taps, detects a qualifying "close-enough" double-tap, an
   unmount/settle timing itself (that responsibility belongs to `App.tsx`, per Step 4 — see
   resolved Design decision #7). Run `npx vitest run
   src/__tests__/components/TouchLockOverlay.test.tsx`, confirm failure.
-- [ ] Green: create `frontend/src/components/common/TouchLockOverlay.tsx`, exported as
+- [x] Green: create `frontend/src/components/common/TouchLockOverlay.tsx`, exported as
   `export default function TouchLockOverlay(...)` (matching the project's 100%-consistent
   default-export convention for `components/common/`), also exporting the named constants
   `SECOND_TAP_WINDOW_MS = 1500`, `SECOND_TAP_MAX_DISTANCE_PX = 60`, and
@@ -318,7 +318,7 @@ in Step 4), it swallows taps, detects a qualifying "close-enough" double-tap, an
   as before this feature." The centered padlock's own shrink/fade visual is unaffected by
   `pointer-events-none` (it's purely a CSS property, not a visibility change). Clear all
   pending timers on unmount. Re-run the test file, confirm all cases pass.
-- [ ] Refactor: extract the shrink/settle timeout scheduling into one small local helper if
+- [x] Refactor: extract the shrink/settle timeout scheduling into one small local helper if
   the click/keydown paths duplicate too much of the same clear-then-schedule logic. Re-run
   `npx vitest run src/__tests__/components/TouchLockOverlay.test.tsx`, confirm still green.
 
@@ -500,17 +500,17 @@ in Step 4), it swallows taps, detects a qualifying "close-enough" double-tap, an
 Run the full test suites to confirm nothing is broken:
 
 **To-do:**
-- [ ] Run `cd frontend && npx vitest run` and confirm all frontend unit tests pass
+- [x] Run `cd frontend && npx vitest run` and confirm all frontend unit tests pass
   (including the new `useTouchLock.test.ts`, `TouchLockIndicator.test.tsx`,
   `TouchLockOverlay.test.tsx`, `App.touchLock.test.tsx`, and the five updated existing
   App-level test files).
-- [ ] Run `cd backend && npm test` (equivalently, `npm test --workspace backend` from the
+- [x] Run `cd backend && npm test` (equivalently, `npm test --workspace backend` from the
   repo root) and confirm backend tests are unaffected (this feature makes no backend changes,
   but the full suite must still be green).
-- [ ] Run `npm run test:e2e` from the repo root and confirm all Playwright tests pass,
+- [x] Run `npm run test:e2e` from the repo root and confirm all Playwright tests pass,
   including the new touch-lock e2e coverage from Step 5.
-- [ ] Investigate and fix any failures before marking this plan finished.
-- [ ] Edit `plans/META-PLAN.md`'s F2 section (mirroring F1's own precedent of doing this
+- [x] Investigate and fix any failures before marking this plan finished.
+- [x] Edit `plans/META-PLAN.md`'s F2 section (mirroring F1's own precedent of doing this
   edit as the last to-do in its final "Verify All Tests Pass" step, per
   `plans/feature/auto-screen-blank/auto-screen-blank.md`): replace Open risk (a) with a note
   that the local-only-vs-cross-device scope was resolved to **local-only** (user decision,
@@ -584,7 +584,19 @@ Run the full test suites to confirm nothing is broken:
     critical fix)
   - ✅ Full `npm run test:e2e` suite re-run after all fixes: 14 passed, 0 failed (13
     pre-existing + 1 new), no regressions to the unmodified `beforeEach`/tests
-- [ ] Step 6: Verify All Tests Pass
+- [x] **Step 6: Verify All Tests Pass** - COMPLETE (2026-07-08)
+  - ✅ `cd frontend && npx vitest run`: 26 files, 222 tests passed
+  - ✅ `cd backend && npm test`: 7 files, 62 tests passed (no backend changes; suite unaffected)
+  - ✅ `npm run test:e2e`: 14 passed (13 pre-existing + 1 new F2 test), no regressions
+  - ✅ No failures to investigate
+  - ✅ `plans/META-PLAN.md`'s F2 section updated: Open risks (a)-(d) replaced with their
+    resolutions (local-only scope, transport moot, F1/F2 precedence, CSS-only animation); the
+    cross-device-consistency "Expected end state" bullet rewritten to state local-only/
+    per-browser-tab scope with cross-device sync as an explicit out-of-scope fast-follow; the
+    adjacent "(any device)" re-lock bullet corrected to "on that browser tab" for consistency.
+    Edited as a targeted hunk scoped strictly to the F2 section — an unrelated concurrent
+    process's edits elsewhere in the file (F2-L's "Known follow-up" note,
+    `plans/REFRESH-META-PLAN-PROMPT.md`) were left untouched.
 
 ## Status
-finished: false
+finished: true

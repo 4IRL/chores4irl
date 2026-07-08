@@ -593,36 +593,38 @@ overlay.
 
 ---
 
-## F2 — Double-tap accidental-touch lock  ·  Effort L (scope TBD at planning)  ·  (260707 item 2)
+## F2 — Double-tap accidental-touch lock  ·  Effort L  ·  scope resolved: local-only  ·  (260707 item 2)
 
-**Goal.** Inhibit accidental chore-state changes: require a double-tap to "arm" interaction
-after a period of inactivity, **regardless of which device accesses the app**. Once armed,
-any subsequent user interacts normally. The lock re-engages 5 minutes after the last
-interaction. A lock icon in the top-left communicates state; an overlay toast animates a
-padlock opening/closing and minimizing to the icon location (single tap → padlock appears
-centered, shrinks to the corner if no follow-up; a close-enough second tap → padlock opens
-and immediately minimizes to the corner; 5 minutes after last interaction → the corner icon's
-padlock animates centered-and-closed, then re-minimizes).
+**Goal (ledger-original framing; see Resolved scope below).** Inhibit accidental chore-state
+changes: require a double-tap to "arm" interaction after a period of inactivity, **regardless
+of which device accesses the app**. Once armed, any subsequent user interacts normally. The
+lock re-engages 5 minutes after the last interaction. A lock icon in the top-left
+communicates state; an overlay toast animates a padlock opening/closing and minimizing to the
+icon location (single tap → padlock appears centered, shrinks to the corner if no follow-up;
+a close-enough second tap → padlock opens and immediately minimizes to the corner; 5 minutes
+after last interaction → the corner icon's padlock animates centered-and-closed, then
+re-minimizes). **As implemented, "regardless of which device" was resolved to local-only /
+per-browser-tab — see Open risk (a) and the Expected-end-state bullets below.**
 
-**Rank rationale.** Entirely new — no equivalent in any prior ledger. The most
-architecturally invasive remaining item: **"no matter which device accesses it"** implies
-the lock state must be **shared across all connected devices**, not merely a per-browser
-gate, which is a materially different (and larger) problem than a local UI overlay.
+**Rank rationale (ledger-original framing; superseded by the local-only resolution below).**
+Entirely new — no equivalent in any prior ledger. At reconcile time this was assessed as the
+most architecturally invasive remaining item, since **"no matter which device accesses it"**
+was read to imply the lock state must be **shared across all connected devices**, not merely
+a per-browser gate. That cross-device reading was explicitly not what got built — see Open
+risk (a).
 
-**Effort: L**, flagged as possibly **XL** depending on the scope decision below — do not
-treat the L estimate as firm; the feature's own planning session should re-assess once the
-local-vs-cross-device question is settled. Cost drivers: (a) a full-viewport intercepting
+**Effort: L (actual, as implemented; the scope question below is resolved, not TBD).** Cost
+drivers actually incurred: (a) a full-viewport intercepting
 overlay + a top-left persistent lock icon + padlock open/close/minimize CSS animation
 sequence; (b) a global "armed" gate that every existing interactive surface must route
 through (tap-to-complete, swipe-edit/delete, `+ Add Task`, room chips, the search input, and
-whatever `F3`'s settings panel adds later) without breaking any of their existing tests; (c)
-**if cross-device sync is chosen**, new backend state (a lock/last-interaction timestamp) and
-either a new lightweight "touch" signal broadcast over the existing SSE bus or a dedicated
-endpoint — the existing SSE bus only emits on **writes**, and a bare tap that doesn't mutate
-a chore currently produces no signal, so this needs new plumbing, not a piggyback.
+whatever `F3`'s settings panel adds later) without breaking any of their existing tests. Cost
+driver (c) anticipated at reconcile time — new backend state plus new SSE/endpoint plumbing
+**if cross-device sync had been chosen** — was **not incurred**: see Open risk (a)/(b).
 
-**Dependencies.** None to start planning, but the SSE bus (`GET /api/events`, merged) is the
-natural transport if cross-device sync is chosen — see Open risks.
+**Dependencies.** None. (The SSE bus, `GET /api/events`, was flagged at reconcile time as the
+natural transport had cross-device sync been chosen — moot per the local-only resolution,
+see Open risk (b).)
 
 **Assumed starting state** = **Baseline**. Verify:
 - No lock/padlock/overlay component exists (`grep -rli "padlock\|touch-lock" frontend/src` — a broad `lock` grep will false-positive on `useMidnightClock`/`unlock`-adjacent words; confirm no true match).
@@ -635,35 +637,41 @@ natural transport if cross-device sync is chosen — see Open risks.
   immediately minimizes to the corner (now armed).
 - While armed, all existing interactions (tap-to-complete, swipe edit/delete, add task,
   room/search filters) behave exactly as before this feature.
-- 5 minutes after the last interaction (any device), the lock re-engages: the corner icon's
-  padlock animates centered-and-closed, then re-minimizes.
-- The armed/locked state is consistent **across all connected devices** per the goal — the
-  chosen mechanism (see Open risks) is documented in this feature's own plan and, once
-  decided, back-ported into this section.
+- 5 minutes after the last interaction **on that browser tab**, the lock re-engages: the
+  corner icon's padlock animates centered-and-closed, then re-minimizes. (The original
+  "(any device)" framing assumed cross-device sync, which was not delivered — see the
+  resolved bullet below.)
+- **Resolved (2026-07-08): this feature is local-only / per-browser-tab**, not synced across
+  devices. The ledger's original "consistent across all connected devices" framing was the
+  single biggest open scope question in this section (Open risk (a)) and was explicitly
+  decided otherwise: `useTouchLock`'s lock state lives entirely in React state within one
+  browser tab, with no backend endpoint, no new SSE event type, and no persisted state.
+  Cross-device sync remains a plausible fast-follow but is explicitly out of scope for this
+  plan.
 
 **Test-suite deltas.** New component tests for the lock icon + overlay + double-tap
 detection + 5-minute re-lock timer. If cross-device: backend test for the new lock-state
 endpoint/signal. Regression coverage that every existing gesture still fires once armed.
 
-**Open risks / decisions — explicitly NOT decided in this reconcile:**
-(a) **Local-only MVP vs. true cross-device sync** — the ledger text says "no matter which
-device," but a local-only per-browser lock is far cheaper and may be an acceptable first cut
-with cross-device as a fast-follow. This is the single biggest scope call in the whole
-backlog; make it explicitly at `F2`'s own planning session, not by default.
-(b) If cross-device: what transport carries the "someone just interacted" signal — extend
-the SSE bus with a new event type, or a separate lightweight endpoint/poll.
-(c) Precedence with `F1`'s tap-to-wake if a device is ever simultaneously blanked and locked
-— resolve once both exist (see `F1`'s Open risks). **F1 merged** (`feature/auto-screen-blank`):
-it ships a single unmodified tap/click (`ScreenBlankOverlay`'s `onClick`) as its wake gesture,
-and that tap is consumed/swallowed (it does not also reach whatever is underneath). `F2`'s own
-planning must decide precedence between this single-tap wake and its own double-tap-to-unlock
-gesture when both features are active simultaneously on the same device.
-(d) Exact animation implementation (CSS keyframes vs. a small transition library) —
-`lucide-react` is already installed and likely supplies a lock icon.
+**Open risks / decisions — resolved during this feature's implementation (2026-07-08):**
+(a) **Resolved: local-only, not cross-device.** The ledger's "no matter which device"
+framing was explicitly decided otherwise (user decision, 2026-07-08): the lock is a
+per-browser-tab `useTouchLock` React hook with no backend state. Cross-device sync is an
+explicit out-of-scope fast-follow, not part of this plan.
+(b) **Moot**, given (a)'s local-only resolution — there is no cross-device state to sync, so
+no transport (a new SSE event type or a dedicated endpoint) was needed.
+(c) **Resolved.** `TouchLockOverlay` renders only when `(isLocked || isClosing) && !isBlanked`
+— F1's `ScreenBlankOverlay` always wins when both a screen-blank and a touch-lock would
+otherwise be simultaneously active, via a lower z-index (`z-[90]` vs. `ScreenBlankOverlay`'s
+`z-[100]`).
+(d) **Resolved: CSS-only, no animation library.** Tailwind `transition-*`/`duration-*`
+utility classes sequenced with `setTimeout`, mirroring `useScreenBlank`/`ChoreTimerBar`'s
+existing convention. `lucide-react`'s `LockKeyhole`/`LockKeyholeOpen` icons are used for the
+closed/open padlock states.
 
-**Session loop.** Run the Per-Feature Session Contract on branch `feature/touch-lock`.
-**Recommend the planning session (`/plan-creator`) resolve (a) before implementation begins**
-— this is exactly the kind of open risk the contract's step 3 exists to close.
+**Session loop.** Ran the Per-Feature Session Contract on branch `feature/touch-lock`; scope
+risk (a) was resolved at the planning session before implementation began, per the contract's
+step 3, and the feature has since been implemented and its tests verified green.
 
 ---
 
