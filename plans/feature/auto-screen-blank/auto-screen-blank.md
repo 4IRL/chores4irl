@@ -129,11 +129,11 @@ an `inWindow` boolean, following `useMidnightClock`'s re-arming pattern exactly.
   tests again — the step-2 assertions should now pass (wake/inactivity tests from step 3
   don't exist yet).
 
-### 3. Tap-to-wake and 5-minute inactivity re-blank (Red → Green)
+### 3. Tap-to-wake and 5-minute inactivity re-blank (Red → Green) — COMPLETE (2026-07-08)
 Layer the manual wake + auto-re-blank behavior on top of the window state from step 2.
 
 **To-do:**
-- [ ] In `useScreenBlank.test.ts`, add tests:
+- [x] In `useScreenBlank.test.ts`, add tests:
   - While `inWindow` (e.g. `now = 23:00`), calling the returned `wake()` (via
     `act(() => result.current.wake())`) flips `isBlanked` to `false` immediately.
   - After `wake()`, advancing fake timers by `5 * 60 * 1000` ms with no intervening
@@ -165,7 +165,7 @@ Layer the manual wake + auto-re-blank behavior on top of the window state from s
     rather than waiting for the still-pending stale timer to eventually fire.
   - Run `cd frontend && npm test -- useScreenBlank` and confirm these fail (no `wake`/
     inactivity behavior implemented yet).
-- [ ] Extend `useScreenBlank.ts`: add `awake` state (`useState<boolean>(false)`) and an
+- [x] Extend `useScreenBlank.ts`: add `awake` state (`useState<boolean>(false)`) and an
   `inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)`. Add
   `armInactivityTimer` (clears any existing ref timer, sets a new 5-minute
   `setTimeout(() => setAwake(false), 5 * 60 * 1000)`) and `wake` (`setAwake(true)` then

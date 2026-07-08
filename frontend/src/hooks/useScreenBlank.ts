@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { set, addDays, isBefore } from 'date-fns';
+
+const INACTIVITY_MS = 5 * 60 * 1000;
 
 export const BLANK_START_HOUR = 21;
 export const BLANK_END_HOUR = 6;
@@ -20,6 +22,8 @@ export function nextBoundary(date: Date): Date {
 export function useScreenBlank(): { isBlanked: boolean; wake: () => void } {
     const [inWindow, setInWindow] = useState<boolean>(() => isWithinBlankWindow(new Date()));
     const [rearmTick, setRearmTick] = useState<number>(0);
+    const [awake, setAwake] = useState<boolean>(false);
+    const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         const boundary = nextBoundary(new Date());
@@ -31,5 +35,50 @@ export function useScreenBlank(): { isBlanked: boolean; wake: () => void } {
         return () => clearTimeout(timer);
     }, [inWindow, rearmTick]);
 
-    return { isBlanked: inWindow, wake: () => {} };
+    const armInactivityTimer = useCallback(() => {
+        if (inactivityTimerRef.current !== null) clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = setTimeout(() => setAwake(false), INACTIVITY_MS);
+    }, []);
+
+    const wake = useCallback(() => {
+        setAwake(true);
+        armInactivityTimer();
+    }, [armInactivityTimer]);
+
+    useEffect(() => {
+        if (inWindow) return;
+        setAwake(false);
+        if (inactivityTimerRef.current !== null) {
+            clearTimeout(inactivityTimerRef.current);
+            inactivityTimerRef.current = null;
+        }
+    }, [inWindow]);
+
+    useEffect(() => {
+        if (!inWindow || !awake) return;
+        const onActivity = () => armInactivityTimer();
+        document.addEventListener('pointerdown', onActivity);
+        document.addEventListener('keydown', onActivity);
+        return () => {
+            document.removeEventListener('pointerdown', onActivity);
+            document.removeEventListener('keydown', onActivity);
+        };
+    }, [inWindow, awake, armInactivityTimer]);
+
+    useEffect(() => {
+        return () => {
+            if (inactivityTimerRef.current !== null) clearTimeout(inactivityTimerRef.current);
+        };
+    }, []);
+
+    useEffect(() => {
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') setInWindow(isWithinBlankWindow(new Date()));
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => document.removeEventListener('visibilitychange', onVisible);
+    }, []);
+
+    const isBlanked = inWindow && !awake;
+    return { isBlanked, wake };
 }
