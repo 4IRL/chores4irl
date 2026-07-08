@@ -271,8 +271,8 @@ Device-control track (placeholder ship): F3 (M=2) + F13 (L=3) + F9 (S=1) + 5×pl
 | *(non-F)* Pi rotation/touch config | **merged** | *(pruned)* | [#19](https://github.com/4IRL/chores4irl/pull/19) | `c4153a9` |
 | *(non-F)* plans housekeeping | **merged** | *(pruned)* | [#20](https://github.com/4IRL/chores4irl/pull/20) | `b823ad4` |
 | *(non-F)* plans compact sweep #2 | **merged** | *(pruned)* | [#22](https://github.com/4IRL/chores4irl/pull/22) | `7f0edb2` |
-| **F1 — auto screen-blank** ★FOCUS | **in-review** | `feature/auto-screen-blank` | [#27](https://github.com/4IRL/chores4irl/pull/27) | — |
-| F2 — double-tap accidental-touch lock | pending | `feature/touch-lock` | — | — |
+| F1 — auto screen-blank | **merged** | *(pruned)* | [#27](https://github.com/4IRL/chores4irl/pull/27) | `a633a2a` |
+| **F2 — double-tap accidental-touch lock** ★FOCUS | **in-progress** | `feature/touch-lock` | — | — |
 | F4 — remove Details/Long-term | pending | `feature/remove-details-longterm` | — | — |
 | F5 — translucent Add-Task deck | pending | `feature/translucent-add-deck` | — | — |
 | F3 — device-control panel | pending | `feature/settings-panel` | — | — |
