@@ -184,7 +184,7 @@ activity-driven, always active).
 Presentational component: fixed top-left icon reflecting current lock state.
 
 **To-do:**
-- [ ] Red: create `frontend/src/__tests__/components/TouchLockIndicator.test.tsx` mirroring
+- [x] Red: create `frontend/src/__tests__/components/TouchLockIndicator.test.tsx` mirroring
   `ScreenBlankOverlay.test.tsx`'s isolated-render style (`render`/`screen` from
   `@testing-library/react`, no App/providers). Assert: rendering
   `<TouchLockIndicator isLocked={true} />` shows a `data-testid="touch-lock-indicator"`
@@ -196,7 +196,7 @@ Presentational component: fixed top-left icon reflecting current lock state.
   `toHaveClass('pointer-events-none')` or equivalent). Run `npx vitest run
   src/__tests__/components/TouchLockIndicator.test.tsx`, confirm it fails (component doesn't
   exist).
-- [ ] Green: create `frontend/src/components/common/TouchLockIndicator.tsx`, exported as
+- [x] Green: create `frontend/src/components/common/TouchLockIndicator.tsx`, exported as
   `export default function TouchLockIndicator(...)` (matching every existing file under
   `components/common/`/`components/chore/`, all of which use a default export with no
   named-export exceptions) — a plain (non-portal — this one lives inside the normal render
@@ -205,7 +205,7 @@ Presentational component: fixed top-left icon reflecting current lock state.
   data-testid="touch-lock-icon-closed" .../>` when `isLocked` else `<LockKeyholeOpen
   data-testid="touch-lock-icon-open" .../>` from `lucide-react`. Re-run the test file, confirm
   green.
-- [ ] Refactor: match sizing/color conventions used elsewhere for small persistent icons
+- [x] Refactor: match sizing/color conventions used elsewhere for small persistent icons
   (check `ChoreSearchInput.tsx`'s `Search` icon classes — `w-4 h-4 text-gray-400` — and pick a
   visually-appropriate top-left size/color, e.g. `w-5 h-5 text-gray-300`). Re-run tests,
   confirm still green.
@@ -534,7 +534,10 @@ Run the full test suites to confirm nothing is broken:
   - ✅ Red: `frontend/src/__tests__/hooks/useTouchLock.test.ts` created, confirmed failing (module didn't exist)
   - ✅ Green: `frontend/src/hooks/useTouchLock.ts` created, all 6 tests pass
   - ✅ Refactor: naming/structure confirmed consistent with `useScreenBlank.ts`; full frontend suite (23 files, 194 tests), `tsc --noEmit`, `eslint`, and `vite build` all clean
-- [ ] Step 2: `TouchLockIndicator` — always-visible corner icon
+- [x] **Step 2: `TouchLockIndicator` — always-visible corner icon** - COMPLETE (2026-07-08)
+  - ✅ Red: `frontend/src/__tests__/components/TouchLockIndicator.test.tsx` created, confirmed failing (module didn't exist)
+  - ✅ Green: `frontend/src/components/common/TouchLockIndicator.tsx` created, all 3 tests pass
+  - ✅ Refactor: sizing/color (`w-5 h-5 text-gray-300`) matches `ChoreSearchInput.tsx`'s icon convention; full frontend suite (24 files, 197 tests), `tsc --noEmit`, `eslint`, and `vite build` all clean
 - [ ] Step 3: `TouchLockOverlay` — tap-catching overlay + double-tap detection + animation phases
 - [ ] Step 4: Wire into `App.tsx` + coordinate with F1's `useScreenBlank`
 - [ ] Step 5: Playwright e2e coverage
