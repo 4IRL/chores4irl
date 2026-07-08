@@ -19,6 +19,9 @@ const mockDay = vi.hoisted(() => new Date(2025, 0, 15, 12, 0, 0));
 vi.mock('../hooks/useMidnightClock', () => ({
     useMidnightClock: () => mockDay,
 }));
+vi.mock('../hooks/useScreenBlank', () => ({
+    useScreenBlank: () => ({ isBlanked: false, wake: () => {} }),
+}));
 
 const renderedNames = () =>
     screen.getAllByTestId('chore-bar').map(el => el.textContent?.match(/Chore [A-Z]/)?.[0] ?? '');

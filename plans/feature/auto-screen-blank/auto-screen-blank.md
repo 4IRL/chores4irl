@@ -232,7 +232,7 @@ The visual full-viewport blank layer, structurally modeled on `ConfirmDialog.tsx
   ```
   Run the test again and confirm it passes.
 
-### 5. Wire into `App.tsx` and fix cross-cutting App-level test flakiness
+### 5. Wire into `App.tsx` and fix cross-cutting App-level test flakiness — COMPLETE (2026-07-08)
 Integrate the hook + overlay into the app shell, and update the three existing
 App-level test files so they don't inherit real-clock nondeterminism (see Research
 Findings) — this must land in the same step as the `App.tsx` change, not deferred.
@@ -240,7 +240,7 @@ The `App.tsx` edit below and the three existing-test-file mock updates must be
 committed together as a single unit — do not stop or commit between them.
 
 **To-do:**
-- [ ] Write `frontend/src/__tests__/App.screenBlank.test.tsx` (new file, mirroring the
+- [x] Write `frontend/src/__tests__/App.screenBlank.test.tsx` (new file, mirroring the
   `App.search.test.tsx`/`App.sync.test.tsx` naming/mocking convention: mock
   `../services/choreApi`, mock `../hooks/useMidnightClock` to a fixed noon `Date`, stub
   `EventSource` via `FakeEventSource`). Additionally mock `../hooks/useScreenBlank` with
@@ -321,7 +321,7 @@ committed together as a single unit — do not stop or commit between them.
       room's tab, and assert only that room's chore(s) remain visible.
   - Run `cd frontend && npm test -- App.screenBlank` and confirm it fails (no wiring in
     `App.tsx` yet).
-- [ ] Edit `frontend/src/App.tsx`: add
+- [x] Edit `frontend/src/App.tsx`: add
   `import { useScreenBlank } from './hooks/useScreenBlank';` and
   `import ScreenBlankOverlay from './components/common/ScreenBlankOverlay';` near the
   other hook/component imports (after the `useChoreEvents` import). Call
@@ -352,7 +352,7 @@ committed together as a single unit — do not stop or commit between them.
   there is nothing left open in either portal to protect, so no separate per-dialog
   `inert` prop is needed. Run `cd frontend && npm test -- App.screenBlank` and confirm it
   now passes.
-- [ ] Write `frontend/src/__tests__/App.screenBlank.realClock.test.tsx` (new file,
+- [x] Write `frontend/src/__tests__/App.screenBlank.realClock.test.tsx` (new file,
   separate from `App.screenBlank.test.tsx`). This is a distinct file, not an added case
   in `App.screenBlank.test.tsx`, because that file's `vi.mock('../hooks/useScreenBlank',
   ...)` is hoisted to module scope and applies to every test in it — there is no clean
@@ -394,18 +394,25 @@ committed together as a single unit — do not stop or commit between them.
   `'calls completeChore with the chore id and current day'` test already pairs
   `vi.useFakeTimers`/`vi.useRealTimers` around a single assertion. Run
   `cd frontend && npm test -- App.screenBlank.realClock` and confirm it passes.
-- [ ] Update `frontend/src/__tests__/App.test.tsx`: add, next to the existing
+  **Implementation deviation:** pairing plain `vi.useFakeTimers` with `await waitFor`
+  deadlocked (waitFor's internal polling interval is itself faked and never advances),
+  so `shouldAdvanceTime: true` was added to the `vi.useFakeTimers` call instead of the
+  originally-planned "no global jest" inline comment — this keeps the faked clock
+  ticking in step with real elapsed time so `waitFor`'s interval still fires. Verified
+  passing; no flake risk (the only pending timer, `nextBoundary`'s ~7h-out boundary
+  `setTimeout`, cannot fire from the sub-second real time the test actually consumes).
+- [x] Update `frontend/src/__tests__/App.test.tsx`: add, next to the existing
   `vi.mock('../hooks/useMidnightClock', ...)` block, a
   `vi.mock('../hooks/useScreenBlank', () => ({ useScreenBlank: () => ({ isBlanked: false, wake: () => {} }) }));`
   so this suite's real-time-independent swipe/gesture tests can't be spuriously broken
   by the overlay engaging at real-clock night hours.
-- [ ] Update `frontend/src/__tests__/App.search.test.tsx`: add the identical
+- [x] Update `frontend/src/__tests__/App.search.test.tsx`: add the identical
   `vi.mock('../hooks/useScreenBlank', ...)` stub next to its existing
   `useMidnightClock` mock, for the same reason.
-- [ ] Update `frontend/src/__tests__/App.sync.test.tsx`: add the identical
+- [x] Update `frontend/src/__tests__/App.sync.test.tsx`: add the identical
   `vi.mock('../hooks/useScreenBlank', ...)` stub next to its existing
   `useMidnightClock` mock, for the same reason.
-- [ ] Run `cd frontend && npm test` (full Vitest suite) and confirm every suite
+- [x] Run `cd frontend && npm test` (full Vitest suite) and confirm every suite
   (existing + new) passes — this specifically re-verifies `App.test.tsx`,
   `App.search.test.tsx`, and `App.sync.test.tsx` are no longer subject to real-clock
   flakiness.
