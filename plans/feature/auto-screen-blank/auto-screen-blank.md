@@ -95,12 +95,12 @@ and is cheapest to verify in isolation.
   ```
   Run the test file again and confirm these specific tests now pass.
 
-### 2. `useScreenBlank` stateful hook — window scheduling (Red → Green)
+### 2. `useScreenBlank` stateful hook — window scheduling (Red → Green) — COMPLETE (2026-07-08)
 Add the React state/effect layer that re-arms a `setTimeout` to `nextBoundary` and flips
 an `inWindow` boolean, following `useMidnightClock`'s re-arming pattern exactly.
 
 **To-do:**
-- [ ] In `useScreenBlank.test.ts`, add `describe('useScreenBlank')` tests using
+- [x] In `useScreenBlank.test.ts`, add `describe('useScreenBlank')` tests using
   `renderHook`/`act` from `@testing-library/react` and `vi.useFakeTimers({ now })`
   (mirror `useMidnightClock.test.ts`'s exact style, including `afterEach(() =>
   vi.useRealTimers())`):
@@ -114,7 +114,7 @@ an `inWindow` boolean, following `useMidnightClock`'s re-arming pattern exactly.
     mirroring `useMidnightClock.test.ts`'s unmount test).
   - Run `cd frontend && npm test -- useScreenBlank` and confirm the new `isBlanked`-only
     (no wake/inactivity yet) assertions fail.
-- [ ] Extend `frontend/src/hooks/useScreenBlank.ts`: add
+- [x] Extend `frontend/src/hooks/useScreenBlank.ts`: add
   `export function useScreenBlank(): { isBlanked: boolean; wake: () => void }`. Internal
   `inWindow` state (`useState<boolean>(() => isWithinBlankWindow(new Date()))`) with a
   `useEffect` that computes `nextBoundary(new Date())`, arms a `setTimeout` for the
