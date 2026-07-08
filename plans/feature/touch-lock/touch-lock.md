@@ -538,7 +538,12 @@ Run the full test suites to confirm nothing is broken:
   - ✅ Red: `frontend/src/__tests__/components/TouchLockIndicator.test.tsx` created, confirmed failing (module didn't exist)
   - ✅ Green: `frontend/src/components/common/TouchLockIndicator.tsx` created, all 3 tests pass
   - ✅ Refactor: sizing/color (`w-5 h-5 text-gray-300`) matches `ChoreSearchInput.tsx`'s icon convention; full frontend suite (24 files, 197 tests), `tsc --noEmit`, `eslint`, and `vite build` all clean
-- [ ] Step 3: `TouchLockOverlay` — tap-catching overlay + double-tap detection + animation phases
+- [x] **Step 3: `TouchLockOverlay` — tap-catching overlay + double-tap detection + animation phases** - COMPLETE (2026-07-08)
+  - ✅ Red: `frontend/src/__tests__/components/TouchLockOverlay.test.tsx` created, confirmed failing (module didn't exist)
+  - ✅ Green: `frontend/src/components/common/TouchLockOverlay.tsx` created, all 10 tests pass; exports `SECOND_TAP_WINDOW_MS`, `SECOND_TAP_MAX_DISTANCE_PX`, `CLOSING_SETTLE_MS`
+  - ✅ Refactor: extracted `clearPendingPhaseTimer()` helper to de-duplicate the clear-then-schedule pattern
+  - ✅ Subagent review found a real bug: once `phase === 'opening'`, `pointer-events-none` blocked pointer input but not keyboard, so a stray Enter/Space during the `CLOSING_SETTLE_MS` grace window could regress `phase` and re-invoke `onArm()`. Fixed with an early-return guard in `registerTap` when `phase === 'opening'`, plus a regression test (11 tests total)
+  - ✅ Full frontend suite (25 files, 208 tests), `tsc --noEmit`, `eslint`, and `vite build` all clean
 - [ ] Step 4: Wire into `App.tsx` + coordinate with F1's `useScreenBlank`
 - [ ] Step 5: Playwright e2e coverage
 - [ ] Step 6: Verify All Tests Pass
