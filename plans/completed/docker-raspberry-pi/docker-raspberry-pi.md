@@ -2,9 +2,15 @@
 > **Outcome:** chores4irl dockerized and deployed to the Pi 4 (ARM64); this dir is the
 > deployment stack of record. Two later deploy PRs build on it: **#19** (`c4153a9`,
 > version-controlled kanshi/labwc display-rotation + touch calibration) and the pending
-> **F17** in-app rotate button. Per META-PLAN Baseline Assumption 4, future host-bridge
-> deploy docs (F8 LAN alias, F17 rotate, F12–F14) may be anchored here **or** in the
-> feature's own plan dir — F17's already lives in `plans/feature/rotate-screen-button/`.
+> in-app rotate button. Per META-PLAN Baseline Assumption 4, future host-bridge
+> deploy docs (LAN alias, rotate, brightness/screen-blank/restart) may be anchored here
+> **or** in the feature's own plan dir — the rotate plan already lives in
+> `plans/feature/rotate-screen-button/`.
+> **⚠ F-numbering note (2026-07-07):** this paragraph originally cited legacy F-numbers
+> (`F8`/`F17`/`F12`–`F14`) which are now stale — see `plans/META-PLAN.md`'s "Legacy → current
+> ID map" for the live IDs (rotate is now `F13`, LAN alias is `F6`, the device-control
+> placeholders are `F7`/`F8`/`F10`). Written as a forward-pointer note rather than editing the
+> frozen outcome text above.
 
 # Docker Deployment to Raspberry Pi 4 (ARM64)
 

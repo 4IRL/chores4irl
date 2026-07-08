@@ -1,3 +1,12 @@
+> **PREDECESSOR — superseded by `260707_feature_ledger.md`.** This was the META-PLAN's
+> previous basis. Since then: items 5/6 (chore search filter, swipe-direction swap) and item 2
+> (room typeahead) **shipped to `main`** (PRs #25, #23, #24) and were removed from the current
+> list; two net-new features were added (auto screen-blank schedule, double-tap accidental-touch
+> lock) and given their own numbers; the settings panel gained an "Auto screen blank / wake"
+> sub-control. **The 260707 ledger also renumbers everything with its own `F#` labels — those
+> numbers do not correspond to this file's items or to the old META-PLAN `F#`s.** See
+> `plans/META-PLAN.md` for the live rollout. Kept for history only — **do not plan from this file.**
+
 - [ ] Remove 'Details' and 'Long-term task' toggle from the Add Task form. Propagate the removal from the database and other associated schema related to these fields.
 - [ ] Include a type-as-you-search dropdown box for 'Room' on Add Task and Edit Task forms. native <datalist> is acceptable
 - [ ] Make 'Add Task' button deck transparent blur background, allowing the chores list visible slightly visible beneath for a more modern, fluid feel. The button will remain locked at the bottom and opaque as the chores list scrolls, but you should be able to see the chore bars on the sides of the button.
