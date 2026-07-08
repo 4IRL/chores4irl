@@ -417,14 +417,14 @@ committed together as a single unit — do not stop or commit between them.
   `App.search.test.tsx`, and `App.sync.test.tsx` are no longer subject to real-clock
   flakiness.
 
-### 6. Verify All Tests Pass
+### 6. Verify All Tests Pass — COMPLETE (2026-07-08)
 
 Run the full test suites to confirm nothing is broken.
 
 **To-do:**
-- [ ] Run `cd frontend && npm test` and confirm all Vitest unit/component/integration
+- [x] Run `cd frontend && npm test` and confirm all Vitest unit/component/integration
   tests pass (backend is untouched by this feature; no backend test run needed).
-- [ ] Update `e2e/smoke.spec.ts`'s existing `test.beforeEach` (currently just
+- [x] Update `e2e/smoke.spec.ts`'s existing `test.beforeEach` (currently just
   `page.goto('/')` + `waitForSelector`) to pin the browser clock to a fixed daytime
   instant *before* `page.goto('/')`, using Playwright's built-in Clock API (available in
   the pinned `@playwright/test@^1.59.1`):
@@ -434,7 +434,7 @@ Run the full test suites to confirm nothing is broken.
   countdown behavior exercised elsewhere in the spec is unaffected). This removes the
   real-wall-clock nondeterminism the new unconditional `useScreenBlank()` call in
   `App.tsx` would otherwise introduce into the smoke suite.
-- [ ] Add a new, separate Playwright test in `e2e/smoke.spec.ts` (DD-7) — this is a
+- [x] Add a new, separate Playwright test in `e2e/smoke.spec.ts` (DD-7) — this is a
   distinct test case with its own fixed time, not a change to the `test.beforeEach`
   noon pin added above (that pin stays at noon, outside the blank window, for every
   *other* test in the file; this new test needs a fixed time *inside* the 21:00–06:00
@@ -462,7 +462,7 @@ Run the full test suites to confirm nothing is broken.
   document). Add an inline comment noting this test
   specifically exercises real-browser `inert` behavior, which jsdom (used by the Vitest
   suite in Step 5) does not implement, per DD-7.
-- [ ] Run `npm run test:e2e` (root `playwright test`, `e2e/smoke.spec.ts`) and confirm it
+- [x] Run `npm run test:e2e` (root `playwright test`, `e2e/smoke.spec.ts`) and confirm it
   passes deterministically — beyond the clock pin above and the new DD-7 keyboard test,
   this feature adds no other new e2e coverage (the overlay's time-window behavior is
   covered by the Vitest fake-timer suite in step 2/3, the App-level integration by step
@@ -471,11 +471,11 @@ Run the full test suites to confirm nothing is broken.
   guarantee needed the new e2e test, per DD-7). Confirm the existing smoke spec's
   tap-to-complete/add-task flows aren't affected by the new unconditional
   `useScreenBlank()` call in `App.tsx` now that the clock is pinned to daytime.
-- [ ] Investigate and fix any failures before marking the plan finished.
-- [ ] Note as a known follow-up in the PR description: confirming no host-level
+- [x] Investigate and fix any failures before marking the plan finished.
+- [x] Note as a known follow-up in the PR description: confirming no host-level
   DPMS/idle-blank fights this overlay requires the physical Pi and is out of scope for
   this frontend-only session.
-- [ ] Edit `plans/META-PLAN.md`'s F2 section (the "Double-tap accidental-touch lock"
+- [x] Edit `plans/META-PLAN.md`'s F2 section (the "Double-tap accidental-touch lock"
   feature, currently around lines 596-663) to add a note under its Open risks /
   decisions part (c): "F1 (merged) ships a single unmodified tap/click
   (`ScreenBlankOverlay`'s `onClick`) as its wake gesture, consuming that tap; F2's
@@ -485,4 +485,4 @@ Run the full test suites to confirm nothing is broken.
   own Cross-session persistence rule.
 
 ## Status
-finished: false
+finished: true

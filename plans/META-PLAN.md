@@ -653,7 +653,11 @@ backlog; make it explicitly at `F2`'s own planning session, not by default.
 (b) If cross-device: what transport carries the "someone just interacted" signal — extend
 the SSE bus with a new event type, or a separate lightweight endpoint/poll.
 (c) Precedence with `F1`'s tap-to-wake if a device is ever simultaneously blanked and locked
-— resolve once both exist (see `F1`'s Open risks).
+— resolve once both exist (see `F1`'s Open risks). **F1 merged** (`feature/auto-screen-blank`):
+it ships a single unmodified tap/click (`ScreenBlankOverlay`'s `onClick`) as its wake gesture,
+and that tap is consumed/swallowed (it does not also reach whatever is underneath). `F2`'s own
+planning must decide precedence between this single-tap wake and its own double-tap-to-unlock
+gesture when both features are active simultaneously on the same device.
 (d) Exact animation implementation (CSS keyframes vs. a small transition library) —
 `lucide-react` is already installed and likely supplies a lock icon.
 

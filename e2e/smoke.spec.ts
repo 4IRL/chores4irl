@@ -12,11 +12,40 @@ test.describe('Chores App Smoke Tests', () => {
     // the delete dialog.
 
     test.beforeEach(async ({ page }) => {
+        // F1: App.tsx now calls useScreenBlank() unconditionally, which reads the
+        // real wall clock. Pin the clock to a fixed daytime instant (noon), outside
+        // the 21:00-06:00 blank window, before navigating, so this suite isn't
+        // subject to real-clock nondeterminism. setFixedTime only freezes Date/
+        // Date.now() for the page — it does not pause setTimeout/setInterval, so
+        // the existing timer-bar/countdown behavior exercised elsewhere is unaffected.
+        await page.clock.setFixedTime(new Date(2025, 0, 15, 12, 0, 0));
         await page.goto('/');
         await page.waitForSelector(
             'text=Vacuum Bedroom Floor',
             { timeout: 10_000 }
         );
+    });
+
+    // DD-7: real-browser `inert` behavioral guarantee. jsdom (used by the Vitest
+    // suite, see App.screenBlank.test.tsx) does not implement `inert`, so this test
+    // proves in a real browser that once the screen is blanked, Tab never lands
+    // focus on anything but the portaled overlay itself. Overrides the shared
+    // beforeEach's noon pin with a fixed time inside the 21:00-06:00 blank window,
+    // then reloads so the app re-mounts and the real useScreenBlank re-evaluates
+    // isWithinBlankWindow against the new fixed time.
+    test('screen-blank overlay makes the rest of the app unreachable via Tab (DD-7)', async ({ page }) => {
+        await page.clock.setFixedTime(new Date(2025, 0, 15, 23, 0, 0));
+        await page.reload();
+
+        await expect(page.getByTestId('screen-blank-overlay')).toBeVisible();
+
+        for (let i = 0; i < 5; i++) {
+            await page.keyboard.press('Tab');
+            const activeTestId = await page.evaluate(
+                () => document.activeElement?.getAttribute('data-testid')
+            );
+            expect(activeTestId === null || activeTestId === 'screen-blank-overlay').toBe(true);
+        }
     });
 
     test('loads chores from /api/chores on page open', async ({ page }) => {
