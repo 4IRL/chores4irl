@@ -186,11 +186,11 @@ Layer the manual wake + auto-re-blank behavior on top of the window state from s
   `const isBlanked = inWindow && !awake;` and return `{ isBlanked, wake }`. Run tests
   again and confirm all `useScreenBlank.test.ts` cases pass.
 
-### 4. `ScreenBlankOverlay` component (Red → Green)
+### 4. `ScreenBlankOverlay` component (Red → Green) — COMPLETE (2026-07-08)
 The visual full-viewport blank layer, structurally modeled on `ConfirmDialog.tsx`.
 
 **To-do:**
-- [ ] Write `frontend/src/__tests__/components/ScreenBlankOverlay.test.tsx` (new file,
+- [x] Write `frontend/src/__tests__/components/ScreenBlankOverlay.test.tsx` (new file,
   same directory as `ConfirmDialog.test.tsx`). Cover:
   - Renders a full-viewport element with `data-testid="screen-blank-overlay"`,
     `role="button"`, and an `aria-label` (e.g. `"Tap to wake screen"`).
@@ -202,7 +202,7 @@ The visual full-viewport blank layer, structurally modeled on `ConfirmDialog.tsx
     since `inert` removes everything else from the tab order/click surface.
   - Run `cd frontend && npm test -- ScreenBlankOverlay` and confirm it fails (component
     doesn't exist).
-- [ ] Create `frontend/src/components/common/ScreenBlankOverlay.tsx`:
+- [x] Create `frontend/src/components/common/ScreenBlankOverlay.tsx`:
   ```tsx
   import { createPortal } from 'react-dom';
 
