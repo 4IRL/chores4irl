@@ -23,6 +23,9 @@ const mockUseMidnightClock = vi.hoisted(() => {
 vi.mock('../hooks/useMidnightClock', () => ({
     useMidnightClock: mockUseMidnightClock,
 }));
+vi.mock('../hooks/useScreenBlank', () => ({
+    useScreenBlank: () => ({ isBlanked: false, wake: () => {} }),
+}));
 
 function swipe(bar: HTMLElement, fromX: number, toX: number) {
     fireEvent.mouseDown(bar, { clientX: fromX, clientY: 50 });

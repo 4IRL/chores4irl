@@ -3,6 +3,7 @@ import { addDays } from 'date-fns';
 import { useMidnightClock } from './hooks/useMidnightClock';
 import { useRoomFilter } from './hooks/useRoomFilter';
 import { useChoreEvents } from './hooks/useChoreEvents';
+import { useScreenBlank } from './hooks/useScreenBlank';
 import { orderChores } from './utils/choreSort';
 import NavBar from './components/nav/NavBar';
 import DateNavigationBanner from './components/nav/DateNavigationBanner';
@@ -12,11 +13,13 @@ import ChoreSearchInput from './components/chore/ChoreSearchInput';
 import AddChoreButton from './components/form/AddChoreButton';
 import ChoreFormModal from './components/form/ChoreFormModal';
 import ConfirmDialog from './components/common/ConfirmDialog';
+import ScreenBlankOverlay from './components/common/ScreenBlankOverlay';
 import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from './services/choreApi';
 import type { Chore } from '@customTypes/SharedTypes';
 
 export default function App() {
     const realToday = useMidnightClock();
+    const { isBlanked, wake } = useScreenBlank();
     const [dayOffset, setDayOffset] = useState<number>(0);
     const simulatedDate = useMemo(() => addDays(realToday, dayOffset), [realToday, dayOffset]);
     const isSimulating = dayOffset > 0;
@@ -112,6 +115,16 @@ export default function App() {
     useEffect(() => {
         flushPendingRefresh();
     }, [showForm, editingId, pendingDeleteId, flushPendingRefresh]);
+
+    // Blanking begins: close any open confirm-dialog/form so nothing stays
+    // keyboard-reachable in a createPortal layer behind the (inert) app content.
+    useEffect(() => {
+        if (isBlanked) {
+            setPendingDeleteId(null);
+            setEditingId(null);
+            setShowForm(false);
+        }
+    }, [isBlanked]);
 
     useEffect(() => {
         if (choreDataRef.current.length > 0) {
@@ -239,16 +252,17 @@ export default function App() {
 
     if (loading) {
         return (
-            <div className="App">
+            <div className="App" inert={isBlanked}>
                 <div className="mx-auto px-4 bg-gray-900 h-screen flex items-center justify-center">
                     <div className="text-white text-lg">Loading chores...</div>
                 </div>
+                {isBlanked && <ScreenBlankOverlay onWake={wake} />}
             </div>
         );
     }
 
     return (
-        <div className="App h-full flex flex-col overflow-hidden">
+        <div className="App h-full flex flex-col overflow-hidden" inert={isBlanked}>
             <div className="flex flex-col h-full overflow-hidden bg-gray-900 px-4 pt-4">
                 {error && (
                     <div className="mb-4 p-3 bg-red-700 text-white rounded-lg text-sm flex justify-between items-center flex-shrink-0">
@@ -289,6 +303,7 @@ export default function App() {
                     onCancel={handleCancelDelete}
                 />
             )}
+            {isBlanked && <ScreenBlankOverlay onWake={wake} />}
         </div>
     );
 }

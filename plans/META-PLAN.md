@@ -271,7 +271,7 @@ Device-control track (placeholder ship): F3 (M=2) + F13 (L=3) + F9 (S=1) + 5×pl
 | *(non-F)* Pi rotation/touch config | **merged** | *(pruned)* | [#19](https://github.com/4IRL/chores4irl/pull/19) | `c4153a9` |
 | *(non-F)* plans housekeeping | **merged** | *(pruned)* | [#20](https://github.com/4IRL/chores4irl/pull/20) | `b823ad4` |
 | *(non-F)* plans compact sweep #2 | **merged** | *(pruned)* | [#22](https://github.com/4IRL/chores4irl/pull/22) | `7f0edb2` |
-| **F1 — auto screen-blank** ★FOCUS | pending | `feature/auto-screen-blank` | — | — |
+| **F1 — auto screen-blank** ★FOCUS | **in-review** | `feature/auto-screen-blank` | [#27](https://github.com/4IRL/chores4irl/pull/27) | — |
 | F2 — double-tap accidental-touch lock | pending | `feature/touch-lock` | — | — |
 | F4 — remove Details/Long-term | pending | `feature/remove-details-longterm` | — | — |
 | F5 — translucent Add-Task deck | pending | `feature/translucent-add-deck` | — | — |
@@ -653,7 +653,11 @@ backlog; make it explicitly at `F2`'s own planning session, not by default.
 (b) If cross-device: what transport carries the "someone just interacted" signal — extend
 the SSE bus with a new event type, or a separate lightweight endpoint/poll.
 (c) Precedence with `F1`'s tap-to-wake if a device is ever simultaneously blanked and locked
-— resolve once both exist (see `F1`'s Open risks).
+— resolve once both exist (see `F1`'s Open risks). **F1 merged** (`feature/auto-screen-blank`):
+it ships a single unmodified tap/click (`ScreenBlankOverlay`'s `onClick`) as its wake gesture,
+and that tap is consumed/swallowed (it does not also reach whatever is underneath). `F2`'s own
+planning must decide precedence between this single-tap wake and its own double-tap-to-unlock
+gesture when both features are active simultaneously on the same device.
 (d) Exact animation implementation (CSS keyframes vs. a small transition library) —
 `lucide-react` is already installed and likely supplies a lock icon.
 
