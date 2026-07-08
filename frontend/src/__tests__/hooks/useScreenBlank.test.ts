@@ -90,6 +90,21 @@ describe('useScreenBlank', () => {
         expect(result.current.isBlanked).toBe(false);
     });
 
+    it('flips isBlanked correctly across two full day/night cycles within one hook lifetime', async () => {
+        vi.useFakeTimers({ now: new Date(2025, 0, 15, 20, 59, 59) });
+        const { result } = renderHook(() => useScreenBlank());
+        expect(result.current.isBlanked).toBe(false);
+
+        await act(async () => { vi.advanceTimersByTime(1000); }); // -> 21:00:00, blank window opens
+        expect(result.current.isBlanked).toBe(true);
+
+        await act(async () => { vi.advanceTimersByTime(9 * 60 * 60 * 1000); }); // -> 06:00:00 next day, window closes
+        expect(result.current.isBlanked).toBe(false);
+
+        await act(async () => { vi.advanceTimersByTime(15 * 60 * 60 * 1000); }); // -> 21:00:00, window opens again
+        expect(result.current.isBlanked).toBe(true);
+    });
+
     it('clears the pending timer on unmount', () => {
         vi.useFakeTimers({ now: new Date(2025, 0, 15, 12, 0, 0) });
         const clearSpy = vi.spyOn(globalThis, 'clearTimeout');
@@ -135,6 +150,32 @@ describe('useScreenBlank', () => {
         expect(result.current.isBlanked).toBe(false);
     });
 
+    it('stays awake through successive activity events spaced under 5 minutes apart, then blanks 5 minutes after the last one', () => {
+        vi.useFakeTimers({ now: new Date(2025, 0, 15, 23, 0, 0) });
+        const { result } = renderHook(() => useScreenBlank());
+        act(() => result.current.wake());
+        expect(result.current.isBlanked).toBe(false);
+
+        act(() => { vi.advanceTimersByTime(4 * 60 * 1000); });
+        act(() => { document.dispatchEvent(new Event('pointerdown')); });
+        expect(result.current.isBlanked).toBe(false);
+
+        act(() => { vi.advanceTimersByTime(4 * 60 * 1000); });
+        act(() => { document.dispatchEvent(new Event('keydown')); });
+        expect(result.current.isBlanked).toBe(false);
+
+        act(() => { vi.advanceTimersByTime(4 * 60 * 1000); });
+        act(() => { document.dispatchEvent(new Event('pointerdown')); });
+        expect(result.current.isBlanked).toBe(false);
+
+        // No further activity after the last event — isBlanked should stay false
+        // until a full 5 minutes have passed since that last event, not the first.
+        act(() => { vi.advanceTimersByTime(4 * 60 * 1000); });
+        expect(result.current.isBlanked).toBe(false);
+        act(() => { vi.advanceTimersByTime(60 * 1000); });
+        expect(result.current.isBlanked).toBe(true);
+    });
+
     it('outside the window, isBlanked stays false regardless of wake() or inactivity', () => {
         vi.useFakeTimers({ now: new Date(2025, 0, 15, 12, 0, 0) });
         const { result } = renderHook(() => useScreenBlank());
@@ -163,5 +204,15 @@ describe('useScreenBlank', () => {
         Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
         act(() => { document.dispatchEvent(new Event('visibilitychange')); });
         expect(result.current.isBlanked).toBe(false);
+    });
+
+    it('resyncs on visibilitychange to re-blank when the clock crosses 21:00 while hidden', () => {
+        vi.useFakeTimers({ now: new Date(2025, 0, 15, 12, 0, 0) });
+        const { result } = renderHook(() => useScreenBlank());
+        expect(result.current.isBlanked).toBe(false);
+        vi.setSystemTime(new Date(2025, 0, 15, 23, 0, 0));
+        Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+        act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+        expect(result.current.isBlanked).toBe(true);
     });
 });

@@ -21,6 +21,11 @@ export function nextBoundary(date: Date): Date {
 
 export function useScreenBlank(): { isBlanked: boolean; wake: () => void } {
     const [inWindow, setInWindow] = useState<boolean>(() => isWithinBlankWindow(new Date()));
+    // `inWindow` only ever takes one of two values, unlike `useMidnightClock`'s
+    // always-distinct `Date` — so recomputing it via `setInWindow` doesn't
+    // guarantee the boundary-scheduling effect below re-runs (React bails out
+    // of an identical `setState`). `rearmTick` is bumped on every recompute so
+    // the effect always has a changed dependency to reschedule against.
     const [rearmTick, setRearmTick] = useState<number>(0);
     const [awake, setAwake] = useState<boolean>(false);
     const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,7 +78,10 @@ export function useScreenBlank(): { isBlanked: boolean; wake: () => void } {
 
     useEffect(() => {
         const onVisible = () => {
-            if (document.visibilityState === 'visible') setInWindow(isWithinBlankWindow(new Date()));
+            if (document.visibilityState === 'visible') {
+                setInWindow(isWithinBlankWindow(new Date()));
+                setRearmTick((tick) => tick + 1);
+            }
         };
         document.addEventListener('visibilitychange', onVisible);
         return () => document.removeEventListener('visibilitychange', onVisible);

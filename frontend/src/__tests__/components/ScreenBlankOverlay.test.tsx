@@ -40,4 +40,13 @@ describe('ScreenBlankOverlay', () => {
 
         expect(onWake).toHaveBeenCalledOnce();
     });
+
+    it('does not call onWake when a non-activation key is pressed', () => {
+        const onWake = vi.fn();
+        render(<ScreenBlankOverlay onWake={onWake} />);
+
+        fireEvent.keyDown(screen.getByTestId('screen-blank-overlay'), { key: 'a' });
+
+        expect(onWake).not.toHaveBeenCalled();
+    });
 });

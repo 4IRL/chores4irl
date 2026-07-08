@@ -48,6 +48,51 @@ test.describe('Chores App Smoke Tests', () => {
         }
     });
 
+    // Companion to DD-7: proves the overlay blocks real pointer input, not just
+    // keyboard focus. jsdom (used by the Vitest "swallows the tap" unit test)
+    // only clicks the overlay's own DOM element directly, so it can't catch a
+    // regression in real-browser stacking/hit-testing (wrong z-index, missing
+    // `fixed inset-0`, a CSS build issue). Same clock-pin + reload technique as
+    // DD-7, then a real `page.mouse.click` at the on-screen coordinates of the
+    // first chore bar underneath the overlay.
+    test('screen-blank overlay blocks a real pointer click on an underlying chore bar', async ({ page }) => {
+        await page.clock.setFixedTime(new Date(2025, 0, 15, 23, 0, 0));
+        await page.reload();
+
+        await expect(page.getByTestId('screen-blank-overlay')).toBeVisible();
+
+        let completePatchFired = false;
+        const completeListener = (request: import('@playwright/test').Request) => {
+            if (
+                request.method() === 'PATCH' &&
+                request.url().includes('/api/chores') &&
+                request.url().includes('/complete')
+            ) {
+                completePatchFired = true;
+            }
+        };
+        page.on('request', completeListener);
+
+        const firstChoreBar = page.locator('.bg-gray-800.rounded-full').first();
+        const box = await firstChoreBar.boundingBox();
+        if (!box) throw new Error('Could not get bounding box for chore bar');
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+
+        // Give the click a chance to propagate; confirm no completion request fired.
+        await page.waitForTimeout(250);
+        expect(completePatchFired).toBe(false);
+        page.off('request', completeListener);
+
+        await expect(page.locator('.bg-red-700')).not.toBeVisible();
+        // The overlay's own tap-to-wake handler fires because the click landed on
+        // the overlay, not the chore bar underneath — this is the positive signal
+        // that real-browser stacking/hit-testing routed the click to the overlay.
+        // If a regression let the click fall through instead (broken z-index or
+        // missing `fixed inset-0`), the overlay would stay untouched here while
+        // the chore-completion PATCH above would have fired.
+        await expect(page.getByTestId('screen-blank-overlay')).not.toBeVisible();
+    });
+
     test('loads chores from /api/chores on page open', async ({ page }) => {
         // Seed chores from db.ts are visible on load
         await expect(page.locator('text=Vacuum Bedroom Floor')).toBeVisible();
