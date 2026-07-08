@@ -49,3 +49,46 @@ Two minor documentation-only findings: the `Phase` union doesn't structurally ca
 - [x] **Merge the duplicate dialog-close effects** — `frontend/src/App.tsx` (~line 132) — Combine the `isBlanked`-keyed and `isLocked`-keyed effects (both doing the same three `setState(null/false)` calls) into one: `useEffect(() => { if (isBlanked || isLocked) { setPendingDeleteId(null); setEditingId(null); setShowForm(false); } }, [isBlanked, isLocked]);`
 - [x] **Combine TouchLockOverlay's two mount-only effects** — `frontend/src/components/common/TouchLockOverlay.tsx` (~line 30) — Merge the entrance-timer-scheduling effect and the cleanup-only effect into one `useEffect(..., [])`, returning `clearPendingPhaseTimer` (reusing the existing helper instead of duplicating its logic inline).
 - [x] **Drop the unused `INACTIVITY_MS` export or use it** — `frontend/src/hooks/useTouchLock.ts` (line 3) — Either remove `export` to match `useScreenBlank.ts`'s module-private convention, or have `frontend/src/__tests__/hooks/useTouchLock.test.ts` import and use it instead of hardcoding the literal `5 * 60 * 1000`.
+
+## Review 2
+Generated: 2026-07-08 15:30
+Comparison: origin/main...HEAD (includes commit d5fe530, Review 1's fixes)
+Verdict: **PUSHED WITH MINOR FINDINGS**
+
+All 9 reviewers re-ran against the updated diff to verify Review 1's fixes actually landed correctly. All 9 confirmed **PASS** (each fix independently re-derived and verified against current source, not just trusted from commit messages). A few new minor findings surfaced — none blocking, recorded here for optional follow-up.
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+No findings.
+
+#### 2. Correctness — PASS
+Both Review 1 fixes (StrictMode-safe `justRelocked`, `!event.repeat` guard) independently re-derived and confirmed correct. One new minor: `handleKeyDown` only calls `preventDefault()` on non-repeat Enter/Space, so held-Space's default browser scroll behavior isn't suppressed on repeats — cosmetic only (overlay is a full-viewport fixed layer with nothing scrollable behind it).
+
+#### 3. Simplicity & Conciseness — PASS
+Both effect-merges confirmed landed cleanly with no new duplication. No findings.
+
+#### 4. Test Coverage — PASS
+All 5 previously-identified coverage gaps confirmed genuinely closed (read each new assertion, not just its presence). One new minor: the `!event.repeat` fix itself (a separate Correctness finding from the same review cycle) has no dedicated regression test.
+
+#### 5. Completeness & Cleanup — PASS
+No debug artifacts or leftover verification scaffolding from the fix process. One new minor: `plans/feature/touch-lock/touch-lock.md`'s Step 4/DD-2 text still describes the pre-fix (StrictMode-buggy) render-body ref mutation rather than the shipped `useEffect`-based fix — documentation drift in a plan artifact, not a runtime defect.
+
+#### 6. Consistency & Style — PASS
+`INACTIVITY_MS` export fix confirmed landed correctly. One new minor: three comments in `TouchLockOverlay.tsx` reference an internal plan step number ("Step 4") not used as a comment convention elsewhere in the codebase.
+
+#### 7. Integration Risk — PASS
+No findings. Merged dialog-close effect confirmed to be a pure OR-extension with no behavior change for any existing consumer.
+
+#### 8. Error Handling & Silent Failures — PASS
+No findings.
+
+#### 9. Type Design — PASS
+No findings. Confirmed the two previously-noted documentation-only gaps (Phase/firstTapRef, isLocked/isClosing) remain intentionally unaddressed as fail-safe, non-blocking observations.
+
+### To-Do: Optional Follow-ups (non-blocking, recorded for later)
+
+- [ ] **Suppress default browser behavior on repeated Enter/Space too** — `frontend/src/components/common/TouchLockOverlay.tsx` (`handleKeyDown`, ~line 91) — Move `event.preventDefault()` outside the `!event.repeat` check (or add a second unconditional `preventDefault()` call) so default browser behavior stays suppressed even on key-repeat, purely for polish.
+- [ ] **Add a regression test for the `!event.repeat` guard** — `frontend/src/__tests__/components/TouchLockOverlay.test.tsx` — Fire two `fireEvent.keyDown(overlay, { key: 'Enter', repeat: true })` events and assert `onArm` is never called, alongside a companion case showing a genuine non-repeat second Enter still qualifies.
+- [ ] **Update `touch-lock.md`'s Step 4/DD-2 text to match the shipped fix** — `plans/feature/touch-lock/touch-lock.md` — Describe the actual approach: `justRelocked` computed in the render body, but `wasLockedRef.current` updated in a separate `useEffect` keyed on `[isLocked]`, per the push-review fix in commit `d5fe530`.
+- [ ] **Remove internal plan-step references from source comments** — `frontend/src/components/common/TouchLockOverlay.tsx` (lines ~7, 47, 64) — Reword the three comments mentioning "App.tsx (Step 4)" to describe the relationship directly (e.g. "Imported by App.tsx so its own isClosing unmount-delay timer stays numerically in sync...") without the plan-step parenthetical, since no other file in the codebase uses this comment convention.
