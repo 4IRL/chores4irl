@@ -1,13 +1,9 @@
-> **PREDECESSOR — superseded by `plans/ledger/260708_feature_ledger.md`.** F1 shipped
-> (PR #27, `a633a2a`) since this file was written; F14 (clear-✕ affordance on free-text
-> inputs) was added 2026-07-08. Read the 260708 ledger, not this one.
-
-- [ ] F1: To conserve energy, automatically screen blank after 9 pm, and wake it at 6 am, local time. Screen is recoverable during this time by tap-to-wake, then sleeps again if inactive after 5 minutes. (consider enabling 'auto screen-blank-disable' already configured on the Pi)
 - [ ] F2: To inhibit accidental chore reset, require double-tap activation before accepting the first interaction in a while, no matter which device accesses it. Once active, allow any subsequent user to interact with UI normally. The two-touch lock is reapplied 5 minutes after last interaction. Display a lock icon in the top-left-hand corner to communicate the current state to the user. Show an overlay toast as feedback that includes an animation of a padlock opening and closing, then minimizing down to the icon location. In other words, after one touch a padlock icon shows overlaid and centered in the screen. If no other interaction is experienced, the icon shrinks to the upper-left-hand corner. If a second touch is seen sufficiently close to the first, the padlock animates opens and immediately minimizes to the upper left. Then, 5 minutes after last interaction, an open padlock overlaid and centered in the screen animates closed, then minimizes to the upper left.
 - [ ] F3: Settings control panel. See details in corresponding section below
 - [ ] F4: Remove 'Details' and 'Long-term task' toggle from the Add Task form. Propagate the removal from the database and other associated schema related to these fields.
 - [ ] F5: Make 'Add Task' button deck transparent blur background, allowing the chores list visible slightly visible beneath for a more modern, fluid feel. The button will remain locked at the bottom and opaque as the chores list scrolls, but you should be able to see the chore bars on the sides of the button.
 - [ ] F6: Explore options by which local users can access a URL alias rather than an IP address and port. e.g. users connected to the local network can type 'C4I' in their browser, instead of [local_IP_address]:[port]
+- [ ] F14 (added 2026-07-08): All text input fields should have an 'x' to clear any typed substring. Applies to every free-text input currently in the app: the persistent chore-search bar, and the Add/Edit chore form's Name and Room fields. Does not apply to the Details field (already slated for removal by F4), the Duration/Frequency fields (numeric), or Last Completed (date). Absorbs and supersedes the prior unscheduled follow-up note under F9-L (search-bar-only clear button).
 
 ## Settings / device-control panel (added 2026-06-28)
 

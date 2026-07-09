@@ -1,5 +1,11 @@
 # Task: Reconcile META-PLAN.md with the latest backlog + true main-branch state
 
+> **PREDECESSOR — superseded by the global `/new-feature` skill** (`~/.claude/skills/new-feature/SKILL.md`, added 2026-07-08).
+> That skill generalizes this template into a repeatable, standardized workflow (fixed F-ID
+> scheme, fixed ledger location, mandatory git-verified baseline, plus pause-and-ask checkpoints
+> for ambiguous wording/duplicates/focus changes). Prefer `/new-feature` going forward; this file
+> is kept only as the historical basis it was generalized from.
+
 > Reusable prompt template. Fill in the two `<...>` date placeholders, and one `<...>` critical feature placeholder below, paste
 > the body into a fresh Claude Code session, and run. This file is the *instructions*,
 > not a backlog — do not plan features from it.
