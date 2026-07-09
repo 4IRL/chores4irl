@@ -1,15 +1,17 @@
 # META-PLAN — chores4irl future-feature rollout
 
 > **What this file is.** An orchestration manifest, not a script. It sequences the
-> features in `plans/ledger/260707_feature_ledger.md` and defines, for each one,
+> features in `plans/ledger/260708_feature_ledger.md` and defines, for each one,
 > a *self-contained* per-feature session that a fresh agent (with no memory of prior
 > sessions) can run end-to-end using **only this file and the repository**. This file
 > is never run top-to-bottom. It is the index; each feature is a separate session.
 >
-> **Source list lineage.** `plans/ledger/260707_feature_ledger.md` is the **current**
-> source of truth for the backlog. Its predecessors are `260630` → `260627` → `260628`
-> (deleted, folded into 260630) → the earlier `260625`. When any older list disagrees
-> with **260707**, 260707 wins.
+> **Source list lineage.** `plans/ledger/260708_feature_ledger.md` is the **current**
+> source of truth for the backlog. Its predecessors are `260707` → `260630` → `260627` →
+> `260628` (deleted, folded into 260630) → the earlier `260625`. When any older list
+> disagrees with **260708**, 260708 wins. The 260708 update (via the `/new-feature` skill)
+> only *added* `F14` and dropped shipped `F1` — it did not renumber anything, so the F-ID
+> scheme established at the 260707 reconcile (below) remains authoritative.
 >
 > **⚠ F-ID renumbering (2026-07-07 reconcile).** The 260707 ledger introduces **its own
 > `F#` labels** — six clean, sequential top-level items (`F1`–`F6`), plus a settings-panel
@@ -70,6 +72,16 @@ lock** with a padlock-icon overlay animation. Neither has any code on `main` yet
 `F2` is the most architecturally invasive item in the whole backlog (see its section) and is
 flagged for careful scoping at its own planning time, not decided here.
 
+**Update (2026-07-08 — `/new-feature` reconcile).** `F1` has since shipped (**#27**,
+`a633a2a`) and moves to Completed below — it is no longer in the Kiosk power & input-safety
+track. `F2` (★FOCUS) is implemented on `feature/touch-lock` (scope resolved local-only per
+its own section) and just needs its final push/PR; ★FOCUS stays on `F2` until that merges.
+A new feature, **`F14`** — a single-click "✕" to clear typed text in every free-text input
+(search bar, and the Add/Edit form's Name and Room fields) — was added to the chore-list
+track, ordered **ahead of `F4`/`F5`** (avoids needing an opt-in prop on the shared
+`FormField` to exclude the soon-to-be-removed Details field). `F14` absorbs and supersedes
+the previously-unscheduled follow-up note under `F9-L` (which only covered the search bar).
+
 **Branch hygiene — done.** Verified against `git log`/`git branch -a`:
 
 - `feature/chore-search-filter`, `feature/room-typeahead`, `feature/swipe-direction-swap`
@@ -100,6 +112,14 @@ flagged for careful scoping at its own planning time, not decided here.
 - `plans/WORKTREE-PARALLELIZE-PROMPT.md` is now historical for its original worked example
   (parallelizing F9-L/F3-L/F10-L, all shipped) — the template itself is still reusable, and
   got a short stale-numbering note (see the renumbering callout above).
+- `feature/auto-screen-blank` (local + remote) — `F1` shipped as **#27** (`a633a2a`); the
+  branch's only remaining diff against that merge commit was two leftover review-doc files
+  (`reviews/auto-screen-blank-review.md`, `reviews/push-review-feature-auto-screen-blank.md`),
+  no app code. **Deleted 2026-07-08**, local + remote (remote ref was already gone —
+  auto-deleted on squash-merge, confirmed via `gh api ... DELETE` returning 422).
+- `chore/compact-plans-260707` (local + remote) — zero diff against its merge commit
+  `020765a` (#26). **Deleted 2026-07-08**, local + remote (remote ref already gone, same
+  pattern).
 
 No plan directories ever existed for F9-L or F3-L under `plans/feature/` — both shipped
 without leaving plan artifacts behind. Nothing to reconcile there.
@@ -111,18 +131,20 @@ all pre-260630 merged branches (`feature/confirm-delete`, `feature/edit-task`,
 `claude/mobile-pi-device-sync-is0teg`, `claude/dependabot-vulnerabilities-kk09n2`) remain
 pruned. Recorded only so a cold survey doesn't resurrect them.
 
-### Remaining work — four tracks (current 260707 numbering)
+### Remaining work — four tracks (current numbering, incl. `F14`)
 
 ```
 Chore-list track (small; disjoint surfaces, soft order):
-    F4 (remove Details/Long-term fields, M) ── F5 (blur Add-Task deck, S)
-    (F3-L room datalist and F9-L search filter — this track's other members — are now done)
+    F14 (clear-✕ on free-text inputs, S) ── F4 (remove Details/Long-term fields, M) ── F5 (blur Add-Task deck, S)
+    (F3-L room datalist and F9-L search filter — this track's other members — are now done;
+     F14 ordered first per user preference — see its section for why)
 
-Kiosk power & input-safety track (NEW track; contains the focus feature):
-    F1 (auto screen-blank 9pm–6am, M ★FOCUS)     ── independent, full-viewport overlay
-    F2 (double-tap accidental-touch lock, L)      ── independent, full-viewport overlay
-    (F1 and F2 are both full-screen overlays gating taps — coordinate designs once both
-     exist; see "Cross-feature couplings" below. Neither blocks the other.)
+Kiosk power & input-safety track (F1 shipped; F2 is the focus, nearly done):
+    F1 (auto screen-blank 9pm–6am) ── SHIPPED (#27, a633a2a)
+    F2 (double-tap accidental-touch lock, L ★FOCUS) ── implemented on feature/touch-lock,
+        scope resolved local-only; awaiting push/PR
+    (F1/F2 precedence — resolved: ScreenBlankOverlay always wins via higher z-index; see F2's
+     Open risks (c).)
 
 Device-control panel track (F3 gates the rest):
     F3 (settings panel container, M) ─→ { F13 rotate (L, plan exists) · F11 undo · F12 redo ·
@@ -135,51 +157,50 @@ Infra track:
     F6 (local URL alias, M–L · research-first) ── independent; different surface entirely
 ```
 
-- **Chore-list track:** only `F4` and `F5` remain (the other two members, room datalist and
-  chore search, shipped). Independent of each other.
-- **Kiosk power & input-safety track:** both `F1` and `F2` are new, full-viewport overlay
-  behaviors layered over the whole app — thematically distinct from simple list-surface
-  edits, so broken out as their own track. `F1` is the current **focus**.
+- **Chore-list track:** `F14`, `F4`, and `F5` remain (room datalist and chore search, the
+  other two original members, shipped). Disjoint surfaces; `F14` ordered first per explicit
+  user preference (2026-07-08) — this accepts that `F14`'s shared-`FormField` clear-
+  affordance work must exclude the still-present Details field via an opt-in prop (rather
+  than sequencing `F14` after `F4` to avoid that cost — see `F14`'s section).
+- **Kiosk power & input-safety track:** `F1` shipped (#27); `F2` is the current **focus**,
+  implemented on `feature/touch-lock` and awaiting its final push/PR.
 - **Device-control panel track:** unchanged shape from the prior reconcile, renumbered.
   `F3` (the panel) still gates everything else in the track. One new member, `F9`
   (a settings-panel control to configure `F1`'s schedule), depends on **both** `F3` and `F1`.
 - **Infra track:** `F6` (renumbered from legacy `F8-L`) is unchanged — LAN name resolution,
   shares no files with app code.
 
-### Shortest path to the focus feature (current `F1` — auto screen-blank 9pm–6am)
+### Shortest path to the focus feature (current `F1` shipped; current focus is `F2`, then `F14`)
 
-**F1 has no prerequisites.** It is implementable **entirely in the frontend**: a
-full-viewport overlay component, wall-clock scheduling to the next 9pm/6am transition
-(the codebase already has a directly-reusable pattern — `useMidnightClock.ts` schedules a
-single `setTimeout` to the next `startOfDay` boundary via `date-fns`), a tap-to-wake
-listener, and a 5-minute inactivity re-blank timer. No backend/schema change, no host-bridge
-dependency — the ledger's parenthetical ("consider enabling 'auto screen-blank-disable'
-already configured on the Pi") just means the **host's own** DPMS/idle-blank must stay off so
-this app-level overlay is the sole driver; nothing in `deploy/pi/` currently configures
-host-side screen blanking (verified — no `dpms`/`screen-blank`/`xset`/idle-inhibit config
-exists there today), so there is nothing to disable. The shortest path is therefore **a
-single hop — implement F1 directly as the next session.**
+**`F1` shipped 2026-07-08** (#27, `a633a2a`) — the section that used to justify it as the
+single-hop focus is now historical; its implemented contract lives under Completed below.
 
-- **Do not** route `F4`/`F5` (chore-list track) or `F3`'s device-control track ahead of it:
-  disjoint surfaces, unlocks nothing F1 needs.
-- **Do not** pull `F2` (double-tap lock) in ahead of `F1` — no dependency either direction,
-  and `F2` is materially larger/riskier; sequencing it first would be pure churn against the
-  focus goal.
-- **Must use real wall-clock time** (`new Date()` / `realToday`), **not** the existing
-  day-simulation's `simulatedDate` — screen power state must track the physical clock, not a
-  user-previewed future day. This is the one integration note F1 must honor against the
-  existing `App.tsx` simulation state.
-- **Must swallow the waking tap** — the overlay needs to fully capture the first
-  post-blank interaction (as "wake") rather than letting it fall through to whatever chore
-  bar or button happens to be underneath.
+**`F2` is the current ★FOCUS and is essentially done.** It is implemented on
+`feature/touch-lock` (scope resolved local-only — see its section's Open risks), tests
+green per that session's own record; what remains is finishing the working tree and running
+the Per-Feature Session Contract's remaining steps (commit → verify end state → `/git-push`).
+No re-planning needed.
+
+**After `F2` merges, the shortest next hop is `F14`** (clear-✕ affordance on free-text
+inputs) — zero prerequisites and the smallest remaining estimate (S). The user explicitly
+ordered it ahead of `F4`/`F5` in the chore-list track (2026-07-08), accepting that `F14`'s
+shared-`FormField` clear-affordance work must be scoped as an opt-in prop (not a blanket
+default) so it doesn't touch the Details field, which `F4` removes later. See `F14`'s own
+section for the exact reasoning.
+
+- **Do not** pull `F4`/`F5` or `F3`'s device-control track ahead of `F14` — the user's
+  ordering choice (2026-07-08) put `F14` first in the chore-list track.
+- **Do not** resurrect `F1`'s "must use real wall-clock time" / "must swallow the waking tap"
+  constraints as open items — both are now verified-shipped facts, not open risks; see
+  Standing invariant 8 below.
 
 ---
 
 ## Summary table
 
-### Completed (merged to `main` — history; effort recorded as built; legacy `F#-L` IDs, never reused)
+### Completed (merged to `main` — history; effort recorded as built; legacy items keep their retired `F#-L` id, current-numbering items keep their bare `F#`)
 
-| Legacy ID | Feature | Effort | PR | Merge SHA |
+| ID | Feature | Effort | PR | Merge SHA |
 |---|---|---|---|---|
 | F4-L | Confirm intent before delete | **S** | [#14](https://github.com/4IRL/chores4irl/pull/14) | `e30c2b2` |
 | F2-L | Edit Task functionality | **L** | [#15](https://github.com/4IRL/chores4irl/pull/15) | `06e0b00` |
@@ -188,6 +209,7 @@ single hop — implement F1 directly as the next session.**
 | F9-L | Persistent chore-name search filter *(was prior reconcile's ★FOCUS)* | **M** | [#25](https://github.com/4IRL/chores4irl/pull/25) | `8144da4` |
 | F3-L | Type-as-you-search Room dropdown | **S** | [#24](https://github.com/4IRL/chores4irl/pull/24) | `a585d8f` |
 | F10-L | Swap swipe directions + 25% action-reveal | **M** | [#23](https://github.com/4IRL/chores4irl/pull/23) | `4b6028f` |
+| F1 | Auto screen-blank 9pm–6am, tap-to-wake, 5-min re-blank *(current-numbering, not legacy — was prior ★FOCUS)* | **M** | [#27](https://github.com/4IRL/chores4irl/pull/27) | `a633a2a` |
 
 ### Merged since original baseline (non-F — infra/parallel, no backlog F-ID)
 
@@ -198,12 +220,12 @@ single hop — implement F1 directly as the next session.**
 | plans/ archive housekeeping | **S** | [#20](https://github.com/4IRL/chores4irl/pull/20) | `b823ad4` | Docs/process only. |
 | plans/ compact sweep #2 | **S** | [#22](https://github.com/4IRL/chores4irl/pull/22) | `7f0edb2` | Docs/process only; pruned the 260630-era merged branches. |
 
-### Remaining (current 260707 numbering; reassessed against current `main`)
+### Remaining (current numbering incl. `F14`, added 2026-07-08; reassessed against current `main`)
 
-| Order | Feature (260707 ledger item) | Effort | Depends on | Track |
+| Order | Feature | Effort | Depends on | Track |
 |---|---|---|---|---|
-| ★ | **F1** — Auto screen-blank 9pm–6am, tap-to-wake, 5-min re-blank **[FOCUS]** | **M** | — | Kiosk power & safety |
-| 1 | **F2** — Double-tap accidental-touch lock + padlock overlay | **L** *(scope TBD at planning — see risks)* | — *(SSE bus if cross-device sync is chosen)* | Kiosk power & safety |
+| ★ | **F2** — Double-tap accidental-touch lock + padlock overlay **[FOCUS]** | **L** *(scope resolved: local-only — see its section)* | none | Kiosk power & safety |
+| 1 | **F14** — Clear-✕ affordance on every free-text input *(added 2026-07-08)* | **S** | — | Chore-list |
 | 2 | **F4** — Remove *Details* & *Long-term task* fields | **M** | none blocking *(F3-L already merged)* | Chore-list |
 | 3 | **F5** — Translucent/blur *Add Task* deck | **S** | — | Chore-list |
 | 4 | **F3** — Settings / device-control panel container | **M** | — *(gates F7–F13)* | Device-control panel |
@@ -212,12 +234,13 @@ single hop — implement F1 directly as the next session.**
 | 7 | **F12** — Redo (placeholder→functional) | **S→M** | **F3**, F11 | Device-control panel |
 | 8 | **F7** — Brightness control (placeholder→functional) | **S→M** | **F3**; host-bridge | Device-control panel |
 | 9 | **F8** — Screen blank/wake manual toggle (placeholder→functional) | **S→M** | **F3**; host-bridge | Device-control panel |
-| 10 | **F9** — Auto screen-blank/wake settings-UI (configure F1's schedule) | **S** | **F3**, **F1** | Device-control panel |
+| 10 | **F9** — Auto screen-blank/wake settings-UI (configure F1's schedule) | **S** | **F3**, F1 *(shipped)* | Device-control panel |
 | 11 | **F10** — Restart (placeholder→functional) | **S→M** | **F3**; host-bridge + confirm | Device-control panel |
 | — | **F6** — Local URL alias instead of IP:port | **M–L** *(research spike)* | deployment stack (Pi/Docker); independent | Infra (parallel) |
 
-**Effort tally (remaining).** Chore-list track: F4 (M) + F5 (S) ≈ **3 pts**. Kiosk
-power/safety track: F1 (M) + F2 (L) ≈ **5 pts** — the **focus path is just F1 (M, ≈2 pts)**.
+**Effort tally (remaining).** Chore-list track: F14 (S) + F4 (M) + F5 (S) ≈ **4 pts**. Kiosk
+power/safety track: F1 shipped; only **F2 (L, ≈3 pts) remains — it's already implemented,
+awaiting push/PR, so its remaining cost is near-zero.**
 Device-control track (placeholder ship): F3 (M=2) + F13 (L=3) + F9 (S=1) + 5×placeholder
 (F7/F8/F10/F11/F12, S=1 each=5) ≈ **11 pts**, growing as each placeholder is connected
 (each +M). Infra: F6 ≈ **2–3 pts**. (S=1 / M=2 / L=3 / XL=5.)
@@ -242,9 +265,10 @@ Device-control track (placeholder ship): F3 (M=2) + F13 (L=3) + F9 (S=1) + 5×pl
 | F15-L undo | → **F11** |
 | F16-L redo | → **F12** |
 | F17-L rotate | → **F13** |
-| *(none — new)* | **F1** — auto screen-blank 9pm–6am |
+| *(none — new)* | **F1** — auto screen-blank 9pm–6am *(shipped — see Completed table)* |
 | *(none — new)* | **F2** — double-tap accidental-touch lock |
 | *(none — new)* | **F9** — auto-blank settings-UI sub-control |
+| *(none — new, added 2026-07-08)* | **F14** — clear-✕ affordance on free-text inputs |
 
 ---
 
@@ -284,6 +308,7 @@ Device-control track (placeholder ship): F3 (M=2) + F13 (L=3) + F9 (S=1) + 5×pl
 | F9 — auto-blank settings-UI | pending | `feature/auto-blank-settings-ui` | — | — |
 | F10 — restart control | pending | `feature/restart-control` | — | — |
 | F6 — local URL alias | pending | `feature/local-url-alias` | — | — |
+| F14 — clear-✕ affordance on free-text inputs *(added 2026-07-08)* | pending | `feature/clear-input-buttons` | — | — |
 | ~~progress-bar-decay~~ | **deleted** (superseded; functionality on `main`) | *(branch gone)* | — | — |
 
 **Branch/dir cleanup — all done 2026-07-07:**
@@ -293,6 +318,10 @@ Device-control track (placeholder ship): F3 (M=2) + F13 (L=3) + F9 (S=1) + 5×pl
 4. ~~Delete `chore/compact-plans-260630`~~ — done, local + remote (verified byte-identical against `main` first — nothing lost).
 5. ~~Delete `deploy/pi-rotation-autostart-script`~~ — done (confirmed abandoned experiment by user).
 
+**Branch cleanup — done 2026-07-08 (`/new-feature` provisional-check spot-check):**
+1. ~~Delete `feature/auto-screen-blank`~~ — done, local + remote (F1 shipped as #27; only leftover diff was two review-doc files, no app code; remote ref already gone).
+2. ~~Delete `chore/compact-plans-260707`~~ — done, local + remote (zero diff against its merge commit `020765a`, #26; remote ref already gone).
+
 **Ledger update protocol (per session):** unchanged from prior revisions — see the four
 numbered steps that were here previously: set `in-progress` on start, `in-review` + PR link
 after `git-push`, `merged` + SHA only once actually merged (never self-mark), ledger edits
@@ -300,11 +329,14 @@ ride in the feature's own commits/PR.
 
 ---
 
-## Baseline: the codebase as it exists today (`main` after F4-L/F2-L/F5-L/F6-L + SSE #21 + Pi-config #19 + F10-L/F3-L/F9-L)
+## Baseline: the codebase as it exists today (`main` after F4-L/F2-L/F5-L/F6-L + SSE #21 + Pi-config #19 + F10-L/F3-L/F9-L + F1 #27)
 
-> **This Baseline reflects `main` after all seven legacy-numbered merges above.** It is the
-> literal current state and the **assumed starting state for every remaining (current-numbered)
-> feature.** Earlier revisions described a pre-#23/#24/#25 baseline — that is now historical.
+> **This Baseline reflects `main` after all seven legacy-numbered merges above, plus `F1`
+> (#27, `a633a2a`).** It is the literal current state and the **assumed starting state for
+> every remaining feature.** Earlier revisions described a pre-#23/#24/#25 baseline, and
+> later a pre-#27 baseline — both are now historical. **`F2` (touch-lock) is implemented on
+> `feature/touch-lock` but not yet merged — it is not yet part of this Baseline**; treat its
+> code as not-yet-existing on `main` until its PR merges.
 
 Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at the repo root.
 
@@ -322,14 +354,14 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 **Frontend API** (`frontend/src/services/choreApi.ts`): `fetchAllChores`, `addChore`, `updateChore(id, chore)`, `completeChore`, `removeChore`.
 
 **Key UI**
-- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (new since last reconcile — `searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`). Footer deck (`flex-shrink-0 py-4 flex justify-center border-t border-gray-700`, **still opaque** — `F5`'s target — `App.tsx:271`) holds `AddChoreButton`; scroll area directly above is `flex-1 overflow-y-auto min-h-0`. `NavBar` renders room chips **and now the persistent search input** above the list. **There is no settings/device-control panel, no auto screen-blank overlay, and no double-tap lock overlay yet** — `F1`/`F2`/`F3` all target net-new UI surfaces.
+- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (`searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`), and **`useScreenBlank()` → `{ isBlanked, wake }`, rendering `<ScreenBlankOverlay onWake={wake} />` when `isBlanked`** (`F1`, shipped #27). Footer deck (`flex-shrink-0 py-4 flex justify-center border-t border-gray-700`, **still opaque** — `F5`'s target — `App.tsx:271`) holds `AddChoreButton`; scroll area directly above is `flex-1 overflow-y-auto min-h-0`. `NavBar` renders room chips **and the persistent search input** above the list. **There is no settings/device-control panel and no double-tap lock overlay on `main` yet** (`F3`/`F2` respectively — `F2` is implemented on `feature/touch-lock`, not yet merged) — the auto screen-blank overlay (`F1`) is the one of the three that has shipped.
   - **SSE sync — unchanged contract:** subscribes via `useChoreEvents(onChange)` (`hooks/useChoreEvents.ts`; `new EventSource('/api/events')` + `visibilitychange→visible` re-fire). Re-pulls are gated by `isRepullGated()` (`isMutatingRef` || `showForm` || `editingId` || `pendingDeleteId`); deferred via `pendingRefreshRef`. **Any new frontend feature holding uncommitted user input in `App.tsx` state must be added to this gate.**
-  - **Visible-list pipeline (now three-stage):** `filteredChores = useRoomFilter(choreData, selectedRoom)` → `searchFilteredChores` (substring on `name`, from `F9-L`) → `orderedChores` (maps `sortedIds` over a `Map` of `searchFilteredChores`).
-  - **Real-clock precedent for `F1`:** `frontend/src/hooks/useMidnightClock.ts` — a single `setTimeout` to the next `date-fns` `startOfDay` boundary, re-arming on fire. `F1`'s 9pm/6am scheduling should follow this same pattern (two alternating timeouts instead of one daily one), driven by `realToday`, **not** `simulatedDate`.
+  - **Visible-list pipeline (three-stage):** `filteredChores = useRoomFilter(choreData, selectedRoom)` → `searchFilteredChores` (substring on `name`, from `F9-L`) → `orderedChores` (maps `sortedIds` over a `Map` of `searchFilteredChores`).
+  - **`F1`'s real-clock scheduling (shipped):** `frontend/src/hooks/useScreenBlank.ts` — window-boundary re-arming timeouts driven by `realToday`, **not** `simulatedDate` (adapted from the `useMidnightClock.ts` single-`setTimeout`-to-boundary pattern, which remains available as a precedent for any future real-clock feature).
 - `components/chore/ChoreTimerBar.tsx` — **F10-L's current shape**: `useSwipeable` with **swipe-left → `onEdit`**, **swipe-right → `onDelete`** (reversed from the original F5-L mapping), a controlled swipe offset revealing a behind-the-bar action layer (yellow+pencil for edit, red+trash for delete) with a **25%-of-bar-width threshold** and spring-back below it; colour fades in progressively toward the threshold (added in F10-L's third commit). `delta: 50` remains the swipeable trigger threshold (distinct from the 25%-width confirm threshold). Spread-before-explicit-props order, `touch-pan-y`, `isSimulating` guard, `swipingRef` click-suppression all preserved. Bar math from `@utils/choreBarMath` `computeBar(daysSince, frequency)` unchanged (`h-20 sm:h-16` grid layout from F6-L).
 - `components/common/ConfirmDialog.tsx` (F4-L) — unchanged; reused by the swipe-delete path and slated for reuse by `F10` (restart confirm).
-- `components/form/` — `ChoreFormModal` → **`ChoreForm`** → `FormField`. **Room field is now a `<datalist>` input** (`F3-L`) sourced from `uniqueRooms`, threaded through both Add and Edit. Still renders a Details `FormField` and a Long-term-task checkbox — **`F4`'s target**, unchanged from before.
-- **New since last reconcile:** `components/.../ChoreSearchInput` (or equivalent — the `F9-L` search box; `Search` icon, `placeholder="Search for a chore"`), pinned above the scroll region.
+- `components/form/` — `ChoreFormModal` → **`ChoreForm`** → `FormField`. **Room field is now a `<datalist>` input** (`F3-L`) sourced from `uniqueRooms`, threaded through both Add and Edit — a raw `<input type="text" list="room-options">`, not `FormField`. `Name` renders via `FormField` (`name="name"`); `Details` also renders via `FormField` (`name="details"`) — **`F4`'s target**, unchanged from before. **None of Name/Room/the search bar currently has a clear-✕ affordance — `F14`'s target.**
+- `components/chore/ChoreSearchInput.tsx` — the `F9-L` search box (`Search` icon, `placeholder="Search for a chore"`), pinned above the scroll region. **No clear-✕ button yet — `F14`'s target** (absorbs the prior unscheduled follow-up note under `F9-L`).
 
 **Tests**
 - **Vitest** unit tests both sides, now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`) and the reversed swipe mapping + threshold (`F10-L`).
@@ -344,15 +376,16 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 5. SSE re-pull: `GET /api/events` + `useChoreEvents` + gated `reconcileChores`. New writes must emit on the backend bus; new `App.tsx` state must not break `isRepullGated()` or the reconcile.
 6. **Room field is a `<datalist>`** sourced from `uniqueRooms`, on both Add and Edit (F3-L).
 7. **Persistent name-search filter**, view-only, ANDs with the room filter, survives SSE re-pulls, sits above the scroll region (F9-L).
+8. **Auto screen-blank overlay**: `useScreenBlank()` + `ScreenBlankOverlay`, driven by real wall-clock time (`realToday`, never `simulatedDate`), blanks 21:00–06:00 local, tap-to-wake swallows the waking tap, re-blanks after 5 minutes' inactivity inside the window (F1, shipped #27).
 
 **Assumptions to revisit at planning time**
 1. `better-sqlite3` bundles SQLite ≥ 3.35 (needed by **F4**'s `DROP COLUMN`). Verify at F4 planning, else fall back to a table-rebuild migration. *(Unchanged from prior reconcile — still unverified.)*
-2. Tap-to-complete + the simulation pointer-events guard + the SSE re-pull gate are primary; no new feature may regress them. **`F1` and `F2` both add full-viewport overlays that intercept taps — extra care needed here.**
+2. Tap-to-complete + the simulation pointer-events guard + the SSE re-pull gate are primary; no new feature may regress them. `F1` (shipped) already coordinates this; `F2`'s implementation resolved the same concern for its own overlay (see item 7 below).
 3. `details` is not rendered anywhere in the UI, so `F4`'s removal is display-safe.
 4. **`F6`, `F13`, and the host-bridge controls (`F7`/`F8`/`F10`) have end states partly outside the repo** (Pi/LAN/host config). Capture outcomes as deployment docs in the feature's own `plans/feature/<slug>/` dir. The frozen Dockerization plan lives at `plans/completed/docker-raspberry-pi/`.
 5. **`F3`–`F13` (device-control track) are kiosk-only** (the wall-mounted Pi); design to degrade gracefully off-kiosk.
-6. **`deploy/pi/` currently has no screen-blank/DPMS/idle config** (verified — no `dpms`/`screen-blank`/`xset`/idle-inhibit files exist there). `F1` needs none; if host-side auto-blank is later found enabled, disabling it is a deploy-doc note for `F1`'s session, not a blocker.
-7. **`F1` and `F2` both claim the "first tap after an overlay is showing" gesture** (wake vs. unlock) — no conflict today since neither exists, but once both ship, their planning/implementation must agree on precedence if a device is simultaneously blanked *and* locked. Documented as a cross-feature coupling below; not resolved here.
+6. **`deploy/pi/` currently has no screen-blank/DPMS/idle config** (verified — no `dpms`/`screen-blank`/`xset`/idle-inhibit files exist there). `F1` shipped without needing to touch this; if host-side auto-blank is later found enabled, disabling it is a deploy-doc note, not a blocker.
+7. **Resolved (2026-07-08, in `F2`'s own implementation):** `F1`'s wake gesture and `F2`'s unlock gesture don't conflict — `TouchLockOverlay` only renders when `!isBlanked`, and `ScreenBlankOverlay` sits at a higher z-index (`z-[100]` vs. `z-[90]`), so screen-blank always wins if both would otherwise be simultaneously active. See `F2`'s Open risks (c).
 
 ---
 
@@ -421,7 +454,7 @@ durable signal that lets the next session's cold survey pass.
 
 **Kickoff prompt — explicit (recommended):**
 ```
-Read META-PLAN.md. Run feature <F-id> (current 260707 numbering, e.g. F1) and only that
+Read META-PLAN.md. Run feature <F-id> (current numbering, e.g. F14) and only that
 feature. Follow its Per-Feature Session Contract: cold-survey and verify the repo matches
 the Baseline / that feature's "Assumed starting state" (STOP and report if it diverges), set
 its Status ledger row to in-progress, then create-plan → review-plan → run-plan (once) →
@@ -429,13 +462,13 @@ git-commit → verify "Expected end state" → update the ledger row to in-revie
 link → git-push. End the session after the PR is pushed. Do not start any other feature.
 ```
 
-**Kickoff prompt — focus feature (recommended next session):**
+**Kickoff prompt — focus feature (recommended next session, once `F2` merges):**
 ```
-Read META-PLAN.md. Run feature F1 (auto screen-blank 9pm-6am) and only F1. It has no
-prerequisites — implement it directly. Per its Per-Feature Session Contract: cold-survey
-against the Baseline (confirm no screen-blank overlay exists yet and useMidnightClock's
-real-wall-clock timeout pattern is available to reuse), then create-plan → review-plan →
-run-plan (once) → git-commit → verify "Expected end state" → git-push. End after the PR.
+Read META-PLAN.md. Run feature F14 (clear-✕ affordance on free-text inputs) and only F14. It
+has no prerequisites — implement it directly. Per its Per-Feature Session Contract: cold-survey
+against the Baseline (confirm no clear-✕ button exists yet on the search bar, Name, or Room
+fields), then create-plan → review-plan → run-plan (once) → git-commit → verify "Expected end
+state" → git-push. End after the PR.
 ```
 
 **Skill mapping:** create-plan → `/plan-creator`; review-plan → `/plan-reviewer`; run-plan →
@@ -449,9 +482,11 @@ run-plan (once) → git-commit → verify "Expected end state" → git-push. End
 
 # COMPLETED FEATURES (merged to `main` — recorded for the contracts later features depend on)
 
-> These are **done**, under their **legacy (260630) IDs** — kept for history; do not re-run
-> them, and do not reuse these numbers for anything new (the current 260707 ledger reuses
-> some of these digits for unrelated features — see the Legacy → current map above).
+> These are **done**. The seven `F#-L` entries carry their **legacy (260630) IDs** — kept for
+> history; do not re-run them, and do not reuse these numbers for anything new (the current
+> 260707 ledger reuses some of these digits for unrelated features — see the Legacy → current
+> map above). `F1` is **current-numbering, not legacy** — it shipped within the 260707 era, so
+> it keeps its bare ID rather than getting an `-L` suffix.
 
 ## F4-L — Require confirmation before deleting a chore  ·  merged (#14, `e30c2b2`)
 Delete routes through `ConfirmDialog` (`frontend/src/components/common/ConfirmDialog.tsx`,
@@ -465,6 +500,26 @@ delete + rollback preserved after confirm. Reused by the swipe-delete path.
 - **Backend:** `PUT /api/chores/:id` (full replace, 200 / 400 `Invalid id` / 400 `Missing required fields` / 404 `Chore not found` / 500); `backend/src/chores.ts` exports `updateChore(id, input): ChoreWire | null`; CORS includes `PUT`. **Current `F4` must de-reference `details`/`longTermTask` from both `createChore` and `updateChore`, and both `POST` and `PUT` handlers.**
 - **API client:** `choreApi.ts` exports `updateChore(id, chore): Promise<Chore>`.
 - **App:** `editingId` state + derived `editingChore`; optimistic update + rollback. Add/edit modals mutually exclusive.
+
+**Known follow-up (confirmed by user, 2026-07-08 — not yet scheduled as its own feature),
+UI polish on the shared add/edit/delete flow:**
+1. No toast/confirmation feedback is shown after a chore is successfully added, edited, or
+   deleted — success is currently silent.
+2. The **Add New Chore** form modal does not close itself after a successful add; the user
+   must dismiss it manually.
+3. The **Add New Chore** form's `dateLastCompleted` field (`ChoreForm.tsx`) has no default —
+   should default to today's date.
+4. **Date-math bug:** a chore created with `dateLastCompleted` = today currently renders as
+   "1 day ago" instead of "0 days ago" (displays as if completed the day prior). Likely
+   cause: `ChoreForm.tsx`'s submit builds `new Date(formData.dateLastCompleted)` from a bare
+   `yyyy-mm-dd` string, which `Date` parses as **UTC midnight**; `choreSort.ts`'s
+   `differenceInDays(startOfDay(today), startOfDay(chore.dateLastCompleted))` then compares
+   against **local** midnight — in timezones behind UTC this shifts the parsed date back a
+   day before the diff is taken. Same root cause likely affects `ChoreTimerBar.tsx`'s
+   `daysSince` (feeds `computeBar`) and `CompletionInfo.tsx`'s displayed "days ago" text.
+5. The **Add New Chore** form's `room` field always defaults to `''` regardless of the
+   currently-selected room filter — should default to the currently-selected room if one is
+   active; when the room filter is `'All'`, keep the current blank-default behavior.
 
 ## F5-L — Swipe behaviors (left = delete, right = edit)  ·  merged (#17, `0d05453`)  ·  superseded by F10-L
 **Implemented contract (as built, then reversed by F10-L):** `react-swipeable@^7.0.2` via
@@ -513,11 +568,10 @@ new `searchFilteredChores` derived stage feeding `orderedChores`. View-only — 
 mutate `choreData`/`sortedIds`; survives SSE re-pulls; clearing restores the room-filtered
 list.
 
-**Known follow-up (confirmed by user, 2026-07-07 — not yet scheduled as its own feature):**
-no single-click "✕" to clear the search substring — currently requires manually deleting
-typed characters. Small addition (a clear button inside/adjacent to the `Search` input,
-mirroring the icon-affordance pattern already used elsewhere). Revisit as a small follow-up
-fix; not currently assigned an F-ID.
+**Known follow-up — superseded 2026-07-08.** ~~No single-click "✕" to clear the search
+substring.~~ **Absorbed into `F14`** (clear-✕ affordance on every free-text input), which
+broadens this same ask to the chore-name and room fields too. See `F14`'s section under
+Remaining Features; this note is kept only as a historical pointer.
 
 ## (non-F) Multi-device sync via SSE  ·  merged (#21, `42040cc`)
 **Implemented contract (every `App.tsx` feature inherits this):**
@@ -525,75 +579,31 @@ fix; not currently assigned an F-ID.
 - **Frontend:** `frontend/src/hooks/useChoreEvents.ts` (`EventSource('/api/events')`; ref-held callback; re-fires on `visibilitychange → visible`). `App.tsx` runs `reconcileChores(fetched)` on signal — order-preserving; gated by `isRepullGated()`; deferred via `pendingRefreshRef`.
 - **Obligation for later features:** any new write path must emit on the bus; any new `App.tsx` state holding uncommitted/optimistic input must be added to `isRepullGated()`.
 
----
+## F1 — Auto screen-blank 9pm–6am  ·  merged (#27, `a633a2a`)  ·  was prior ★FOCUS  ·  current-numbering, not legacy
 
-# REMAINING FEATURES (current 260707 numbering)
+**Implemented contract (as built):** `frontend/src/hooks/useScreenBlank.ts` — a stateful
+hook exposing `{ isBlanked, wake }`, window-boundary re-arming timeouts (21:00 blank / 06:00
+wake) driven by real wall-clock time (`realToday`, **never** `simulatedDate`), a 5-minute
+inactivity re-blank once woken inside the window, and `visibilitychange` resync.
+`frontend/src/components/common/ScreenBlankOverlay.tsx` — a full-viewport overlay rendered
+by `App.tsx` when `isBlanked`, taking `onWake={wake}`; the app content becomes `inert` while
+blanked (any open dialogs auto-dismiss on blank, per the plan's DD-6); the overlay swallows
+the first waking tap rather than letting it fall through to whatever's underneath. Sits at
+`z-[100]`, the highest z-index of any overlay in the app — `F2`'s `TouchLockOverlay` (`z-[90]`)
+explicitly defers to it (see `F2`'s Open risks (c)).
 
-> Every remaining feature's **Assumed starting state is the Baseline above**. They map
-> onto the ledger's six top-level items (`F1`–`F6`) plus the settings-panel's seven
-> unnumbered sub-controls, continued as `F7`–`F13` in ledger order. The **focus feature is
-> F1** — its session can run next with no prerequisites.
-
-## F1 — Auto screen-blank 9pm–6am  ·  ★ FOCUS  ·  Effort M  ·  (260707 item 1)
-
-**Goal.** To conserve energy, automatically blank the screen after 9pm and wake it at 6am
-local time. During the blanked window, a tap recovers the screen (tap-to-wake), then it
-re-blanks if inactive for 5 minutes.
-
-**Rank rationale.** The user's new primary focus, replacing the now-shipped F9-L. Fully
-self-contained frontend feature — no dependency on any other remaining feature, no
-backend/host change required.
-
-**Effort: M.** Cost drivers: a full-viewport overlay component; wall-clock scheduling to
-the next 9pm/6am boundary (reuse the `useMidnightClock.ts` single-`setTimeout`-to-next-
-boundary pattern, adapted to two alternating targets); a tap-to-wake listener that fully
-captures/swallows the waking tap; a 5-minute inactivity timer that re-arms the blank once
-woken inside the window; must derive from **real** wall-clock time (`realToday`), not
-`simulatedDate`; tests (Vitest fake timers).
-
-**Dependencies.** None. `deploy/pi/` has no existing screen-blank/DPMS config to reconcile
-against (verified).
-
-**Assumed starting state** = **Baseline**. Verify:
-- No screen-blank/overlay component exists under `frontend/src/components/`.
-- `frontend/src/hooks/useMidnightClock.ts` exists and demonstrates the real-clock
-  `setTimeout`-to-boundary pattern to follow.
-- `App.tsx` exposes `realToday` distinct from `simulatedDate`/`isSimulating`.
-- `deploy/pi/` contains no `dpms`/`screen-blank`/`xset`/idle-inhibit configuration.
-
-**Expected end state** (repo-checkable):
-- A full-viewport overlay renders (dark/blank) automatically between 21:00 and 06:00 local
-  time, driven by real wall-clock time.
-- A tap anywhere while blanked wakes the screen immediately and consumes that tap (it does
-  not also trigger whatever is underneath, e.g. tap-to-complete).
-- If no further interaction occurs for 5 minutes while inside the 21:00–06:00 window, the
-  overlay re-engages.
-- Outside the 21:00–06:00 window, the overlay never engages, regardless of inactivity.
-- The day-simulation feature (`simulatedDate`/`isSimulating`) is unaffected — screen-blank
-  timing tracks the real clock only.
-- Existing invariants preserved: tap-to-complete, swipe gestures, SSE re-pull gate, search
-  filter, room filter all continue to function outside the blanked window.
-
-**Test-suite deltas.** New component test for the overlay (renders/hides at boundary times
-via fake timers; tap-to-wake; 5-min re-blank). App-level test that the overlay uses real
-time and ignores `simulatedDate`. No backend test change (no backend involvement).
-
-**Open risks / decisions.** (a) Exact overlay mechanism — a fixed, full-viewport `<div>`
-above all other content (z-index) is the simplest; confirm it can capture the wake tap
-without a global pointer-event listener workaround. (b) Two-timeout scheduling (9pm, then
-6am, then repeat) vs. a single recurring interval — prefer the `useMidnightClock` style
-paired `setTimeout`s for consistency with existing code. (c) Interaction with a future `F2`
-(double-tap lock) — if a device is later both blanked and locked, precedence between
-"tap-to-wake" and "double-tap-to-unlock" must be decided at `F2`'s planning time (not here);
-document whatever `F1` ships as the wake gesture so `F2`'s planning can react to it.
-(d) Confirm on the physical Pi (unsandboxed) that no host-level DPMS/idle-blank fights the
-overlay.
-
-**Session loop.** Run the Per-Feature Session Contract on branch `feature/auto-screen-blank`.
+**Known follow-up:** none recorded yet.
 
 ---
 
-## F2 — Double-tap accidental-touch lock  ·  Effort L  ·  scope resolved: local-only  ·  (260707 item 2)
+# REMAINING FEATURES (current numbering, incl. `F14` added 2026-07-08)
+
+> Every remaining feature's **Assumed starting state is the Baseline above**. `F1` shipped
+> (#27) and its implemented contract now lives under Completed Features. The **focus feature
+> is `F2`** — implemented on `feature/touch-lock`, just needs its final push/PR. After `F2`
+> merges, the shortest next hop is `F14` (see "Shortest path" above).
+
+## F2 — Double-tap accidental-touch lock  ·  ★ FOCUS  ·  Effort L  ·  scope resolved: local-only  ·  (260707 item 2)
 
 **Goal (ledger-original framing; see Resolved scope below).** Inhibit accidental chore-state
 changes: require a double-tap to "arm" interaction after a period of inactivity, **regardless
@@ -672,6 +682,74 @@ closed/open padlock states.
 **Session loop.** Ran the Per-Feature Session Contract on branch `feature/touch-lock`; scope
 risk (a) was resolved at the planning session before implementation began, per the contract's
 step 3, and the feature has since been implemented and its tests verified green.
+
+---
+
+## F14 — Clear-✕ affordance on every free-text input  ·  Effort S  ·  (added 2026-07-08)
+
+**Goal.** Add a single-click "✕" to every free-text input field so a user can clear typed
+content without manually deleting characters: the persistent chore-search bar
+(`ChoreSearchInput`), and the Add/Edit chore form's Name and Room fields. The "✕" appears
+only when the field has content, and empties it on click, mirroring the icon-affordance
+pattern already used elsewhere in the app (e.g. the search bar's `Search` icon).
+
+**Scope, resolved 2026-07-08 (was the day's design decision):**
+- **In scope:** search bar, chore-name field (`ChoreForm`'s `name`), room field (`ChoreForm`'s
+  `room`, the `<datalist>` input).
+- **Out of scope:** the Details field (`FormField` `name="details"`) — `F4` removes it
+  entirely, so building a clear-affordance for it would be wasted work; Duration/Frequency
+  (numeric inputs) and Last Completed (date input) — clearing a typed substring doesn't fit
+  those input types the same way.
+- **Absorbs and supersedes** the previously-unscheduled follow-up note under `F9-L`, which
+  only covered the search bar.
+
+**Rank rationale.** Ordered **ahead of `F4`/`F5`** in the chore-list track per explicit user
+choice (2026-07-08) — smallest remaining estimate, zero prerequisites. This ordering accepts
+a cost: since `F4` hasn't removed the Details field yet when `F14` runs, `F14`'s change to the
+shared `FormField` component must be **opt-in per-field** (e.g. a `clearable` prop defaulted
+off), not a blanket default-on — otherwise Details would transiently gain a clear-✕ button
+that `F4` then deletes along with the whole field. `ChoreSearchInput` and the raw `room`
+`<input>` aren't shared with Details, so no equivalent care is needed there.
+
+**Effort: S.** Three call sites (search bar, `FormField` for Name — opt-in prop, raw Room
+`<input>`), each needing: track "has content" state (already available via each field's
+existing `value`), a positioned "✕" button visible only when non-empty, and an `onClick`
+that clears the field's state. No backend/schema change.
+
+**Dependencies.** None. Independent of `F4`/`F5` (disjoint change within shared components,
+scoped via the opt-in prop above) and of every other track.
+
+**Assumed starting state** = **Baseline**. Verify:
+- `frontend/src/components/chore/ChoreSearchInput.tsx` renders a text input with no clear
+  button.
+- `frontend/src/components/form/FormField.tsx` renders a plain labeled input with no clear
+  button; `ChoreForm.tsx` uses it for `name` (and `details`, until `F4` removes it).
+- `ChoreForm.tsx`'s raw `room` `<input type="text" list="room-options">` has no clear button.
+
+**Expected end state** (repo-checkable):
+- Typing into the search bar, or the Add/Edit form's Name or Room fields, reveals a "✕"
+  once the field is non-empty; clicking it clears that field's value and the "✕"
+  disappears again.
+- Clearing the search bar restores the room-filtered (unsearched) chore list, unchanged from
+  today's behavior when manually deleting the text.
+- Clearing Name/Room in the form does not submit or close the form — it only clears that
+  field's local state.
+- `FormField`'s new clear-affordance is **opt-in** (e.g. a `clearable` prop) — the Details
+  field usage in `ChoreForm.tsx` does **not** pass it, so Details is unaffected.
+- No regression to existing search/room-filter/add/edit behavior or tests.
+
+**Test-suite deltas.** Component tests for each of the three call sites: "✕" hidden when
+empty, visible when non-empty, clears on click. App-level test that clearing the search bar
+still restores the room-filtered list (existing `F9-L` behavior, unchanged).
+
+**Open risks / decisions.** (a) Exact "✕" placement/icon — likely `lucide-react`'s `X`,
+absolutely positioned inside the input's padding, consistent with the app's existing
+icon-affordance style. (b) Confirm the opt-in prop approach on `FormField` doesn't leak into
+any other current or planned `FormField` usage (checked: only `name` and `details` currently
+use `FormField`; `dateLastCompleted`/`duration`/`frequency` also use it but are excluded per
+the resolved scope above — the prop must default to *off* for those too, not just Details).
+
+**Session loop.** Run the Per-Feature Session Contract on branch `feature/clear-input-buttons`.
 
 ---
 
@@ -923,18 +1001,17 @@ unsandboxed; keep additive; deploy-doc capture is mandatory.
 
 ---
 
-## Chain integrity (remaining work, current 260707 numbering)
+## Chain integrity (remaining work, current numbering incl. `F14`)
 
 ```
-CHORE-LIST TRACK (disjoint surfaces; independent of each other)
-  Baseline ─F4 (remove Details/Long-term)
+CHORE-LIST TRACK (disjoint surfaces; soft order — F14 before F4 before F5, per 2026-07-08 pref)
+  Baseline ─F14 (clear-✕ on free-text inputs) ─(soft: precedes)→ F4 (remove Details/Long-term)
   Baseline ─F5 (blur Add-Task deck)
 
-KIOSK POWER & INPUT-SAFETY TRACK (NEW; ★ = focus)
-  Baseline ─★F1★ (auto screen-blank 9pm–6am)
-  Baseline ─F2 (double-tap accidental-touch lock — scope decided at its own planning)
-  (F1, F2 independent of each other; both are full-viewport overlays — coordinate wake vs.
-   unlock precedence once both exist)
+KIOSK POWER & INPUT-SAFETY TRACK (F1 shipped; ★ = focus)
+  Baseline ─F1 (auto screen-blank 9pm–6am) ── SHIPPED (#27, a633a2a)
+  Baseline ─★F2★ (double-tap accidental-touch lock) ── implemented, awaiting push/PR
+  (F1/F2 precedence resolved during F2's implementation — see F2's Open risks (c))
 
 DEVICE-CONTROL PANEL TRACK (F3 gates the rest)
   Baseline ─F3 (panel) ─┬→ F13 (rotate, functional · plan exists)
@@ -950,16 +1027,22 @@ INFRA TRACK
 
 - **No single hard chain remains.** The device-control track has the one real edge: `F3`
   gates `F7`/`F8`/`F9`/`F10`/`F11`/`F12`/`F13` (housed in the panel; `F12` also follows
-  `F11`; `F9` additionally follows `F1`). `F6` is fully parallel. Chore-list and
-  kiosk-power tracks are flat/independent internally.
-- **Focus path:** `F1` is a single hop from Baseline — implement it next, ahead of
-  everything else, with zero prerequisite churn.
+  `F11`; `F9` additionally follows `F1`). `F6` is fully parallel. Chore-list track has one
+  **soft** ordering preference (`F14` before `F4`, user choice — see `F14`'s Rank rationale);
+  kiosk-power track is now single-item (`F2`) since `F1` shipped.
+- **Focus path:** `F2` is essentially done (implemented, awaiting push/PR) — finish it first.
+  After it merges, `F14` is the shortest next hop: zero prerequisites, smallest remaining
+  estimate, and explicitly prioritized by the user (2026-07-08) ahead of `F4`/`F5`.
 - **Cross-feature couplings to honor:**
-  - **F1 ↔ F2:** both are full-viewport tap-intercepting overlays. No live conflict until
-    both exist; `F2`'s planning session must decide precedence with `F1`'s tap-to-wake.
+  - **F1 ↔ F2 — resolved.** `F2`'s implementation confirmed `ScreenBlankOverlay` (`z-[100]`)
+    always wins over `TouchLockOverlay` (`z-[90]`) when both would otherwise be active; see
+    `F2`'s Open risks (c).
   - **F1 → F9:** `F9` (settings-UI for the schedule) needs `F1` to expose its 9pm/6am
-    times as configurable state, not hardcoded constants — `F1`'s session should keep this
-    in mind even though `F9` isn't scheduled next.
+    times as configurable state, not hardcoded constants — check this before `F9`'s planning
+    session, since `F1` (now shipped) may need a small follow-up if it hardcoded the times.
+  - **F14 ↔ F4:** `F14` runs first per user choice, so its `FormField` clear-affordance
+    change must be an opt-in prop (not default-on) to avoid transiently touching the Details
+    field that `F4` later removes. See `F14`'s Rank rationale.
   - **F4 ↔ F3-L (already shipped):** `F4` must edit the shared `ChoreForm` without
     disturbing the now-merged Room `<datalist>`.
   - **F3 → F7–F13:** the panel's control-registration shape is the interface; persist it so
@@ -968,12 +1051,13 @@ INFRA TRACK
     as deploy docs.
   - **F6** shares no files with any of them.
 - Cumulative invariants that must hold from each feature onward:
-  - From **F1**: a real-wall-clock 9pm–6am blank overlay, tap-to-wake, 5-min re-blank; must not react to `simulatedDate`.
+  - From **F1**: a real-wall-clock 9pm–6am blank overlay, tap-to-wake, 5-min re-blank; must not react to `simulatedDate`. **(Shipped — now Standing invariant 8.)**
   - From **F4**: no `details`/`longTermTask`/`long_term_task` anywhere (incl. `PUT`/`updateChore`); idempotent column-drop migration in `db.ts`.
   - From **F5**: translucent/blurred Add-Task deck, opaque button.
   - From **F3**: a NavBar gear↔X toggle opening a single-row device-control banner; control-registration shape in place.
   - From **F13**: in-app portrait rotate via host-bridge; display+touch in sync.
   - From **F6**: a documented LAN name-alias to the app; IP:port still works.
+  - From **F14**: single-click "✕" clear affordance on search/Name/Room, opt-in per-field on `FormField`.
   - **Already holding (legacy, unchanged):** delete-confirm, `PUT`/edit, swipe infra
     (now edit-left/delete-right + 25% reveal), shorter grid bar, SSE re-pull gate, Room
     `<datalist>`, persistent name-search filter.
