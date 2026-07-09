@@ -368,4 +368,178 @@ test.describe('Chores App Smoke Tests', () => {
         await expect(page.getByRole('button', { name: 'Previous day' })).not.toBeVisible();
         await expect(page.getByRole('button', { name: 'Return to today' })).not.toBeVisible();
     });
+
+    // --- F2: touch lock (5-minute inactivity lock + close-enough double-tap unlock) ---
+    // Clock-sequencing note: useTouchLock's 5-minute inactivity setTimeout is
+    // registered at mount time, during the shared beforeEach's page.goto('/'), so
+    // it is already tracked by whatever clock is installed at that point (the
+    // beforeEach's own setFixedTime call). Mirroring this file's own DD-7
+    // technique, re-install the clock at the same noon instant (so the
+    // beforeEach's pin isn't silently discarded — an argument-less install()
+    // would instead seed to the real current wall-clock time) and reload so
+    // useTouchLock's timer is (re-)registered under a clean, known tick
+    // baseline before fast-forwarding.
+    test('F2: locks after 5 minutes of inactivity, blocks a real pointer tap, and unlocks via a qualifying double-tap', async ({ page }) => {
+        await page.clock.install({ time: new Date(2025, 0, 15, 12, 0, 0) });
+        await page.reload();
+        await page.waitForSelector('text=Vacuum Bedroom Floor', { timeout: 10_000 });
+
+        await page.clock.fastForward('05:01');
+
+        await expect(page.getByTestId('touch-lock-overlay')).toBeVisible();
+        await expect(
+            page.locator('[data-testid="touch-lock-indicator"] [data-testid="touch-lock-icon-closed"]')
+        ).toBeVisible();
+
+        const firstChoreBar = page.locator('.bg-gray-800.rounded-full').first();
+
+        // Companion assertions: prove the lock blocks more than just
+        // tap-to-complete (asserted below). Same raw-coordinate technique as
+        // the tap-to-complete check below (reusing the existing swipeBar
+        // helper, which already drives react-swipeable via
+        // page.mouse.move/down/up rather than locator.click()) plus a raw
+        // page.mouse.click on the "+ Add Task" button's own bounding-box
+        // coordinates — never bar.click()/button.click(), since Playwright's
+        // actionability check would detect the overlay intercepting the
+        // gesture and either time out or tempt a `{ force: true }`
+        // workaround that would prove nothing about real hit-testing. As
+        // with the tap-to-complete case below, the blocking mechanism being
+        // exercised here is real-browser hit-testing/z-index (the overlay is
+        // a full-viewport `fixed inset-0 z-[90]` div sitting on top of
+        // everything, so the click/gesture lands on IT, not on the
+        // react-swipeable/button handlers underneath) — `inert` on the
+        // `.App` subtree is defense-in-depth, not what's actually caught
+        // here.
+        //
+        // This must run *before* the tap-to-complete click immediately below:
+        // the touch-lock overlay is a full-viewport `fixed inset-0` div, so
+        // every click anywhere on the page while locked lands on the overlay
+        // itself and feeds its own tap-tracking (registerTap), regardless of
+        // what's rendered underneath. The tap-to-complete click's coordinates
+        // deliberately become the "first tap" of the qualifying double-tap
+        // pair at the end of this test — inserting extra taps at different
+        // (far-apart) screen coordinates *after* it would desynchronize that
+        // pairing. Running them first instead just means each of these taps
+        // gets superseded as a non-qualifying "first tap" of its own, leaving
+        // the pairing below untouched.
+        let deleteRequestFired = false;
+        const deleteListener = (request: import('@playwright/test').Request) => {
+            if (request.method() === 'DELETE' && request.url().includes('/api/chores')) {
+                deleteRequestFired = true;
+            }
+        };
+        page.on('request', deleteListener);
+
+        // Swipe-right on the chore bar would normally open the delete
+        // confirmation dialog (see 'swipe-right opens delete confirmation...'
+        // below); while locked, the overlay sitting on top should suppress
+        // the mouse sequence entirely before react-swipeable ever sees it.
+        await swipeBar(page, firstChoreBar, 'right');
+        await page.waitForTimeout(250);
+        expect(deleteRequestFired).toBe(false);
+        page.off('request', deleteListener);
+        await expect(page.getByTestId('confirm-dialog-confirm')).not.toBeVisible();
+        // Assert the lock is still fully engaged (closed-icon phase), not
+        // merely that the overlay element is present — the overlay also
+        // stays mounted (just pointer-events-none) for CLOSING_SETTLE_MS
+        // after a genuine unlock, so "visible" alone wouldn't catch the
+        // overlay's own click handler having accidentally paired this
+        // swipe's terminal click with a later tap as a qualifying
+        // double-tap (see registerTap in TouchLockOverlay.tsx).
+        await expect(
+            page.locator('[data-testid="touch-lock-indicator"] [data-testid="touch-lock-icon-closed"]')
+        ).toBeVisible();
+
+        let createRequestFired = false;
+        const createListener = (request: import('@playwright/test').Request) => {
+            if (request.method() === 'POST' && request.url().includes('/api/chores')) {
+                createRequestFired = true;
+            }
+        };
+        page.on('request', createListener);
+
+        // "+ Add Task" would normally open the create-chore form modal (see
+        // 'adds a new chore via the form' above); while locked, a real click
+        // at its own bounding-box coordinates should be swallowed the same
+        // way the chore-bar tap is below.
+        const addTaskBtn = page.locator('button', { hasText: /\+ Add Task/i });
+        const addTaskBox = await addTaskBtn.boundingBox();
+        if (!addTaskBox) throw new Error('Could not get bounding box for + Add Task button');
+        await page.mouse.click(addTaskBox.x + addTaskBox.width / 2, addTaskBox.y + addTaskBox.height / 2);
+        await page.waitForTimeout(250);
+        expect(createRequestFired).toBe(false);
+        page.off('request', createListener);
+        // Note: the touch-lock overlay itself is also a `.fixed.inset-0` div
+        // (see its `data-testid="touch-lock-overlay"` element above), so the
+        // form modal must be identified by its own unambiguous test id here.
+        await expect(page.getByTestId('chore-modal-backdrop')).not.toBeVisible();
+        // Same still-fully-locked check as after the swipe above — guards
+        // against this click having accidentally paired with the swipe's
+        // click (or a later one) as a qualifying double-tap.
+        await expect(
+            page.locator('[data-testid="touch-lock-indicator"] [data-testid="touch-lock-icon-closed"]')
+        ).toBeVisible();
+
+        // Companion to DD-7's own technique: prove the overlay blocks a real
+        // pointer tap on the chore bar underneath it, not just that it's
+        // present. Use page.mouse.click at the bar's own bounding-box center
+        // rather than locator.click() — Playwright's actionability check
+        // would detect the overlay intercepting the click and time out (or
+        // tempt a `{ force: true }` workaround that would prove nothing
+        // about real hit-testing/z-index).
+        let completePatchFired = false;
+        const completeListener = (request: import('@playwright/test').Request) => {
+            if (
+                request.method() === 'PATCH' &&
+                request.url().includes('/api/chores') &&
+                request.url().includes('/complete')
+            ) {
+                completePatchFired = true;
+            }
+        };
+        page.on('request', completeListener);
+
+        const box = await firstChoreBar.boundingBox();
+        if (!box) throw new Error('Could not get bounding box for chore bar');
+        const tapX = box.x + box.width / 2;
+        const tapY = box.y + box.height / 2;
+        await page.mouse.click(tapX, tapY);
+
+        // Give the click a chance to propagate; confirm no completion request fired.
+        await page.waitForTimeout(250);
+        expect(completePatchFired).toBe(false);
+        page.off('request', completeListener);
+        await expect(page.locator('.bg-red-700')).not.toBeVisible();
+        await expect(page.getByTestId('touch-lock-overlay')).toBeVisible();
+
+        // Qualifying double-tap: same coordinates, fired in quick succession —
+        // well within SECOND_TAP_WINDOW_MS/SECOND_TAP_MAX_DISTANCE_PX regardless
+        // of the small amount of genuine wall-clock time two back-to-back
+        // page.mouse.click() calls take to execute (install() leaves real-time
+        // syncing active between explicit fastForward/tick calls, it does not
+        // freeze Date.now()).
+        await page.mouse.click(tapX, tapY);
+
+        // handleArm() has now fired: the real useTouchLock's arm() flips
+        // isLocked to false immediately (a state update, not a timer), but
+        // App.tsx's isClosing hand-off keeps TouchLockOverlay mounted (now
+        // pointer-events-none, per its 'opening' phase) for CLOSING_SETTLE_MS
+        // so its own shrink/open animation can finish. Advance the fake clock
+        // past that window so the overlay actually unmounts.
+        await page.clock.fastForward(500);
+        await expect(page.getByTestId('touch-lock-overlay')).not.toBeVisible();
+        await expect(
+            page.locator('[data-testid="touch-lock-indicator"] [data-testid="touch-lock-icon-open"]')
+        ).toBeVisible();
+
+        // A subsequent tap-to-complete action now succeeds for real — the
+        // overlay is gone and the app root is no longer inert.
+        const patchDone = page.waitForResponse(
+            resp => resp.url().includes('/api/chores') && resp.url().includes('/complete') && resp.request().method() === 'PATCH',
+            { timeout: 10_000 }
+        );
+        await firstChoreBar.click();
+        await patchDone;
+        await expect(page.locator('.bg-red-700')).not.toBeVisible();
+    });
 });

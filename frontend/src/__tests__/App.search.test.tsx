@@ -22,6 +22,9 @@ vi.mock('../hooks/useMidnightClock', () => ({
 vi.mock('../hooks/useScreenBlank', () => ({
     useScreenBlank: () => ({ isBlanked: false, wake: () => {} }),
 }));
+vi.mock('../hooks/useTouchLock', () => ({
+    useTouchLock: () => ({ isLocked: false, arm: () => {} }),
+}));
 
 const renderedNames = () =>
     screen.getAllByTestId('chore-bar').map(el => el.textContent?.match(/Chore [A-Z]/)?.[0] ?? '');

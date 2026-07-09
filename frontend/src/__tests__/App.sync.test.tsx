@@ -24,6 +24,9 @@ vi.mock('../hooks/useMidnightClock', () => ({
 vi.mock('../hooks/useScreenBlank', () => ({
     useScreenBlank: () => ({ isBlanked: false, wake: () => {} }),
 }));
+vi.mock('../hooks/useTouchLock', () => ({
+    useTouchLock: () => ({ isLocked: false, arm: () => {} }),
+}));
 
 beforeEach(() => {
     vi.clearAllMocks();

@@ -26,6 +26,9 @@ vi.mock('../hooks/useMidnightClock', () => ({
 vi.mock('../hooks/useScreenBlank', () => ({
     useScreenBlank: () => ({ isBlanked: false, wake: () => {} }),
 }));
+vi.mock('../hooks/useTouchLock', () => ({
+    useTouchLock: () => ({ isLocked: false, arm: () => {} }),
+}));
 
 function swipe(bar: HTMLElement, fromX: number, toX: number) {
     fireEvent.mouseDown(bar, { clientX: fromX, clientY: 50 });

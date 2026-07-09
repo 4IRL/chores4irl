@@ -23,6 +23,11 @@ vi.mock('../hooks/useMidnightClock', () => ({
 // hook against a fake-timers-pinned wall clock, proving the overlay tracks real
 // time independently of simulatedDate/dayOffset (see App.screenBlank.test.tsx
 // for the mocked-hook wiring cases).
+// useTouchLock is a separate hook under separate test — mocking it here
+// doesn't compromise this file's real-clock intent for screen-blank.
+vi.mock('../hooks/useTouchLock', () => ({
+    useTouchLock: () => ({ isLocked: false, arm: () => {} }),
+}));
 
 beforeEach(() => {
     vi.clearAllMocks();

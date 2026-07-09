@@ -4,6 +4,7 @@ import { useMidnightClock } from './hooks/useMidnightClock';
 import { useRoomFilter } from './hooks/useRoomFilter';
 import { useChoreEvents } from './hooks/useChoreEvents';
 import { useScreenBlank } from './hooks/useScreenBlank';
+import { useTouchLock } from './hooks/useTouchLock';
 import { orderChores } from './utils/choreSort';
 import NavBar from './components/nav/NavBar';
 import DateNavigationBanner from './components/nav/DateNavigationBanner';
@@ -14,12 +15,22 @@ import AddChoreButton from './components/form/AddChoreButton';
 import ChoreFormModal from './components/form/ChoreFormModal';
 import ConfirmDialog from './components/common/ConfirmDialog';
 import ScreenBlankOverlay from './components/common/ScreenBlankOverlay';
+import TouchLockIndicator from './components/common/TouchLockIndicator';
+import TouchLockOverlay, { CLOSING_SETTLE_MS } from './components/common/TouchLockOverlay';
 import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from './services/choreApi';
 import type { Chore } from '@customTypes/SharedTypes';
 
 export default function App() {
     const realToday = useMidnightClock();
     const { isBlanked, wake } = useScreenBlank();
+    const { isLocked, arm } = useTouchLock();
+    const [isClosing, setIsClosing] = useState(false);
+    const closingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Tracks the previous isLocked value across renders so justRelocked (below,
+    // computed directly in the render body) can detect the false->true edge —
+    // i.e. the overlay just mounted because a fresh lock engaged, not because
+    // it was already locked when this component first mounted.
+    const wasLockedRef = useRef(isLocked);
     const [dayOffset, setDayOffset] = useState<number>(0);
     const simulatedDate = useMemo(() => addDays(realToday, dayOffset), [realToday, dayOffset]);
     const isSimulating = dayOffset > 0;
@@ -116,15 +127,23 @@ export default function App() {
         flushPendingRefresh();
     }, [showForm, editingId, pendingDeleteId, flushPendingRefresh]);
 
-    // Blanking begins: close any open confirm-dialog/form so nothing stays
-    // keyboard-reachable in a createPortal layer behind the (inert) app content.
+    // Blanking or locking begins: close any open confirm-dialog/form so nothing
+    // stays keyboard-reachable in a createPortal layer behind the (inert) app
+    // content.
     useEffect(() => {
-        if (isBlanked) {
+        if (isBlanked || isLocked) {
             setPendingDeleteId(null);
             setEditingId(null);
             setShowForm(false);
         }
-    }, [isBlanked]);
+    }, [isBlanked, isLocked]);
+
+    // Clear any pending close-animation hand-off timer on unmount.
+    useEffect(() => {
+        return () => {
+            if (closingTimerRef.current) clearTimeout(closingTimerRef.current);
+        };
+    }, []);
 
     useEffect(() => {
         if (choreDataRef.current.length > 0) {
@@ -250,19 +269,52 @@ export default function App() {
         }
     }
 
+    // Re-arming re-locks the app immediately (inert gate clears via isLocked),
+    // but the overlay's own 'opening'-phase shrink animation still needs to
+    // finish visually — isClosing keeps TouchLockOverlay mounted for that.
+    const handleArm = () => {
+        arm();
+        setIsClosing(true);
+        if (closingTimerRef.current) clearTimeout(closingTimerRef.current);
+        closingTimerRef.current = setTimeout(() => setIsClosing(false), CLOSING_SETTLE_MS);
+    };
+
+    // Computed directly in the render body (not a useEffect) so the flag
+    // reflects the isLocked transition on the same render it occurs, rather
+    // than lagging a render behind. The ref's own update is deferred to a
+    // useEffect (below) instead of being mutated here, so StrictMode's
+    // dev-mode double-invocation of the render body can't advance the ref
+    // before the committed render reads its previous value.
+    const justRelocked = isLocked && !wasLockedRef.current;
+
+    useEffect(() => {
+        wasLockedRef.current = isLocked;
+    }, [isLocked]);
+
     if (loading) {
         return (
-            <div className="App" inert={isBlanked}>
+            // isClosing deliberately not included here — once arm() fires the
+            // app should already be interactive again; isClosing only keeps
+            // TouchLockOverlay's own visual mounted, not this gate.
+            <div className="App" inert={isBlanked || isLocked}>
+                <TouchLockIndicator isLocked={isLocked} />
                 <div className="mx-auto px-4 bg-gray-900 h-screen flex items-center justify-center">
                     <div className="text-white text-lg">Loading chores...</div>
                 </div>
                 {isBlanked && <ScreenBlankOverlay onWake={wake} />}
+                {(isLocked || isClosing) && !isBlanked && (
+                    <TouchLockOverlay onArm={handleArm} justRelocked={justRelocked} />
+                )}
             </div>
         );
     }
 
     return (
-        <div className="App h-full flex flex-col overflow-hidden" inert={isBlanked}>
+        // isClosing deliberately not included here — once arm() fires the app
+        // should already be interactive again; isClosing only keeps
+        // TouchLockOverlay's own visual mounted, not this gate.
+        <div className="App h-full flex flex-col overflow-hidden" inert={isBlanked || isLocked}>
+            <TouchLockIndicator isLocked={isLocked} />
             <div className="flex flex-col h-full overflow-hidden bg-gray-900 px-4 pt-4">
                 {error && (
                     <div className="mb-4 p-3 bg-red-700 text-white rounded-lg text-sm flex justify-between items-center flex-shrink-0">
@@ -304,6 +356,9 @@ export default function App() {
                 />
             )}
             {isBlanked && <ScreenBlankOverlay onWake={wake} />}
+            {(isLocked || isClosing) && !isBlanked && (
+                <TouchLockOverlay onArm={handleArm} justRelocked={justRelocked} />
+            )}
         </div>
     );
 }
