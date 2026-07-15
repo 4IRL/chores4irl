@@ -6,12 +6,17 @@
 > sessions) can run end-to-end using **only this file and the repository**. This file
 > is never run top-to-bottom. It is the index; each feature is a separate session.
 >
-> **Source list lineage.** `plans/ledger/260708_feature_ledger.md` is the **current**
-> source of truth for the backlog. Its predecessors are `260707` → `260630` → `260627` →
-> `260628` (deleted, folded into 260630) → the earlier `260625`. When any older list
-> disagrees with **260708**, 260708 wins. The 260708 update (via the `/new-feature` skill)
-> only *added* `F14` and dropped shipped `F1` — it did not renumber anything, so the F-ID
-> scheme established at the 260707 reconcile (below) remains authoritative.
+> **Source list lineage.** `plans/ledger/260715_feature_ledger.md` is the **current**
+> source of truth for the backlog. Its predecessors are `260708` → `260707` → `260630` →
+> `260627` → `260628` (deleted, folded into 260630) → the earlier `260625`. When any older
+> list disagrees with **260715**, 260715 wins. The 260715 update (the **kiosk-layer
+> extraction reconcile** — see `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`)
+> dropped shipped `F2`, marked the device-control panel track (`F3`, `F7`–`F10`, `F13`)
+> **superseded — migrated to the standalone `rmilarachi/pi-kiosk` repo**, re-scoped
+> `F11`/`F12` onto the `kiosk/v1` postMessage contract, and added `F15` (adopt
+> kiosk-shell). It did not renumber anything, so the F-ID scheme established at the 260707
+> reconcile (below) remains authoritative. (The prior 260708 update had only *added* `F14`
+> and dropped shipped `F1`.)
 >
 > **⚠ F-ID renumbering (2026-07-07 reconcile).** The 260707 ledger introduces **its own
 > `F#` labels** — six clean, sequential top-level items (`F1`–`F6`), plus a settings-panel
@@ -72,10 +77,33 @@ lock** with a padlock-icon overlay animation. Neither has any code on `main` yet
 `F2` is the most architecturally invasive item in the whole backlog (see its section) and is
 flagged for careful scoping at its own planning time, not decided here.
 
+**Update (2026-07-15 — kiosk-layer extraction reconcile).** Two things happened at once:
+
+1. **Drift fix — `F2` shipped.** `F2` merged as **#28** (`3160dfc`) — the prior
+   reconcile's "awaiting push/PR" framing is stale. It moves to Completed below;
+   **★FOCUS moves to `F14`.**
+2. **Extraction decision.** The user decided (2026-07-15) that the kiosk/screen features —
+   shipped `F1`/`F2` behavior and the entire unbuilt device-control panel track — are
+   properties of the **screen**, not this app, and must run on the Pi **independent of
+   whatever web app is displayed**. They move to a standalone repo on the user's personal
+   GitHub account, **`rmilarachi/pi-kiosk`**: a *kiosk-shell* web page (Chromium's new
+   kiosk target; embeds the displayed app in a full-viewport iframe and renders the
+   overlays + console above it) plus a *kiosk-agent* host service (localhost HTTP + SSE:
+   global evdev input-activity feed, hardware control, config). The full architecture,
+   design decisions, and migration phases live in
+   **`plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`** — the cross-repo
+   contract. Consequences here: `F3`/`F7`/`F8`/`F9`/`F10`/`F13` are **superseded
+   (migrated)**; `F11`/`F12` remain chores4irl features re-scoped onto the `kiosk/v1`
+   postMessage contract (deferred until pi-kiosk Phase 4); a new **`F15`** (adopt
+   kiosk-shell: remove the `F1`/`F2` overlays, commit the embeddability guarantee) is
+   added, gated on pi-kiosk Phase 2 parity.
+
 **Update (2026-07-08 — `/new-feature` reconcile).** `F1` has since shipped (**#27**,
 `a633a2a`) and moves to Completed below — it is no longer in the Kiosk power & input-safety
 track. `F2` (★FOCUS) is implemented on `feature/touch-lock` (scope resolved local-only per
 its own section) and just needs its final push/PR; ★FOCUS stays on `F2` until that merges.
+*(Superseded on both counts by the 2026-07-15 update above: `F2` has merged, and the
+device-control track has migrated.)*
 A new feature, **`F14`** — a single-click "✕" to clear typed text in every free-text input
 (search bar, and the Add/Edit form's Name and Room fields) — was added to the chore-list
 track, ordered **ahead of `F4`/`F5`** (avoids needing an opt-in prop on the shared
@@ -131,27 +159,24 @@ all pre-260630 merged branches (`feature/confirm-delete`, `feature/edit-task`,
 `claude/mobile-pi-device-sync-is0teg`, `claude/dependabot-vulnerabilities-kk09n2`) remain
 pruned. Recorded only so a cold survey doesn't resurrect them.
 
-### Remaining work — four tracks (current numbering, incl. `F14`)
+### Remaining work — four tracks (current numbering, incl. `F14`/`F15`)
 
 ```
 Chore-list track (small; disjoint surfaces, soft order):
-    F14 (clear-✕ on free-text inputs, S) ── F4 (remove Details/Long-term fields, M) ── F5 (blur Add-Task deck, S)
+    F14 (clear-✕ on free-text inputs, S ★FOCUS) ── F4 (remove Details/Long-term fields, M) ── F5 (blur Add-Task deck, S)
     (F3-L room datalist and F9-L search filter — this track's other members — are now done;
      F14 ordered first per user preference — see its section for why)
 
-Kiosk power & input-safety track (F1 shipped; F2 is the focus, nearly done):
+Kiosk power & input-safety track (both shipped; slated for relocation):
     F1 (auto screen-blank 9pm–6am) ── SHIPPED (#27, a633a2a)
-    F2 (double-tap accidental-touch lock, L ★FOCUS) ── implemented on feature/touch-lock,
-        scope resolved local-only; awaiting push/PR
-    (F1/F2 precedence — resolved: ScreenBlankOverlay always wins via higher z-index; see F2's
-     Open risks (c).)
+    F2 (double-tap accidental-touch lock) ── SHIPPED (#28, 3160dfc)
+    (Behavior relocates to pi-kiosk at its Phase 2; the in-app code is then removed by F15.)
 
-Device-control panel track (F3 gates the rest):
-    F3 (settings panel container, M) ─→ { F13 rotate (L, plan exists) · F11 undo · F12 redo ·
-                                           F7 brightness · F8 screen-blank toggle ·
-                                           F9 auto-blank settings-UI (needs F1 too) ·
-                                           F10 restart }
-                                          (F7/F8/F10/F11/F12 ship as inert placeholders first)
+Kiosk extraction track (NEW 2026-07-15 — see plans/feature/kiosk-shell-extraction/):
+    [external] rmilarachi/pi-kiosk Phases 1–4 ──► F15 (adopt kiosk-shell, M) after Phase 2 parity
+    F3 · F7 · F8 · F9 · F10 · F13 ── SUPERSEDED (migrated to pi-kiosk; no chores4irl session runs them)
+    F11 (undo) ─→ F12 (redo) ── remain here, re-scoped onto the kiosk/v1 postMessage
+        contract; deferred until pi-kiosk Phase 4 delivers the contract
 
 Infra track:
     F6 (local URL alias, M–L · research-first) ── independent; different surface entirely
@@ -162,37 +187,43 @@ Infra track:
   user preference (2026-07-08) — this accepts that `F14`'s shared-`FormField` clear-
   affordance work must exclude the still-present Details field via an opt-in prop (rather
   than sequencing `F14` after `F4` to avoid that cost — see `F14`'s section).
-- **Kiosk power & input-safety track:** `F1` shipped (#27); `F2` is the current **focus**,
-  implemented on `feature/touch-lock` and awaiting its final push/PR.
-- **Device-control panel track:** unchanged shape from the prior reconcile, renumbered.
-  `F3` (the panel) still gates everything else in the track. One new member, `F9`
-  (a settings-panel control to configure `F1`'s schedule), depends on **both** `F3` and `F1`.
+- **Kiosk power & input-safety track:** complete — `F1` shipped (#27), `F2` shipped (#28).
+  Both behaviors are slated for relocation to pi-kiosk; their in-app code is removed by
+  `F15` once shell parity is verified on the Pi (until then, Standing invariants 8–9 hold
+  unchanged).
+- **Kiosk extraction track (replaces the device-control panel track):** the console and
+  its hardware controls (`F3`, `F7`, `F8`, `F9`, `F10`, `F13`) migrated to
+  `rmilarachi/pi-kiosk` — no chores4irl session runs them; the sequencing now lives in the
+  design doc's Migration Phases. What stays here: `F15` (adopt kiosk-shell — an ordinary
+  chores4irl feature, gated on the **external** pi-kiosk Phase 2), and `F11`/`F12`
+  (app-data undo/redo, re-scoped onto the `kiosk/v1` contract, gated on the external
+  Phase 4).
 - **Infra track:** `F6` (renumbered from legacy `F8-L`) is unchanged — LAN name resolution,
-  shares no files with app code.
+  shares no files with app code. If `F6` lands, its alias becomes the natural
+  `target_url` in the pi-kiosk config.
 
-### Shortest path to the focus feature (current `F1` shipped; current focus is `F2`, then `F14`)
+### Shortest path to the focus feature (`F1`/`F2` shipped; current focus is `F14`)
 
-**`F1` shipped 2026-07-08** (#27, `a633a2a`) — the section that used to justify it as the
-single-hop focus is now historical; its implemented contract lives under Completed below.
+**`F1` shipped 2026-07-08** (#27, `a633a2a`) and **`F2` shipped** (#28, `3160dfc`) — the
+sections that used to justify them as focus are historical; their implemented contracts
+live under Completed below.
 
-**`F2` is the current ★FOCUS and is essentially done.** It is implemented on
-`feature/touch-lock` (scope resolved local-only — see its section's Open risks), tests
-green per that session's own record; what remains is finishing the working tree and running
-the Per-Feature Session Contract's remaining steps (commit → verify end state → `/git-push`).
-No re-planning needed.
-
-**After `F2` merges, the shortest next hop is `F14`** (clear-✕ affordance on free-text
+**`F14` is the current ★FOCUS and the shortest hop** (clear-✕ affordance on free-text
 inputs) — zero prerequisites and the smallest remaining estimate (S). The user explicitly
 ordered it ahead of `F4`/`F5` in the chore-list track (2026-07-08), accepting that `F14`'s
 shared-`FormField` clear-affordance work must be scoped as an opt-in prop (not a blanket
 default) so it doesn't touch the Details field, which `F4` removes later. See `F14`'s own
 section for the exact reasoning.
 
-- **Do not** pull `F4`/`F5` or `F3`'s device-control track ahead of `F14` — the user's
-  ordering choice (2026-07-08) put `F14` first in the chore-list track.
+- **Do not** pull `F4`/`F5` ahead of `F14` — the user's ordering choice (2026-07-08) put
+  `F14` first in the chore-list track.
+- **Do not** start `F3`/`F7`/`F8`/`F9`/`F10`/`F13` in this repo at all — they are
+  superseded (migrated to pi-kiosk, 2026-07-15). `F15` cannot start until pi-kiosk
+  Phase 2 parity is verified on the Pi; `F11`/`F12` cannot start until pi-kiosk Phase 4
+  delivers the `kiosk/v1` contract.
 - **Do not** resurrect `F1`'s "must use real wall-clock time" / "must swallow the waking tap"
-  constraints as open items — both are now verified-shipped facts, not open risks; see
-  Standing invariant 8 below.
+  constraints, or `F2`'s lock contract, as open items — they are verified-shipped facts;
+  see Standing invariants 8–9 below (held until `F15` relocates the behavior).
 
 ---
 
@@ -210,40 +241,38 @@ section for the exact reasoning.
 | F3-L | Type-as-you-search Room dropdown | **S** | [#24](https://github.com/4IRL/chores4irl/pull/24) | `a585d8f` |
 | F10-L | Swap swipe directions + 25% action-reveal | **M** | [#23](https://github.com/4IRL/chores4irl/pull/23) | `4b6028f` |
 | F1 | Auto screen-blank 9pm–6am, tap-to-wake, 5-min re-blank *(current-numbering, not legacy — was prior ★FOCUS)* | **M** | [#27](https://github.com/4IRL/chores4irl/pull/27) | `a633a2a` |
+| F2 | Double-tap accidental-touch lock, local-only *(current-numbering, not legacy — was prior ★FOCUS)* | **L** | [#28](https://github.com/4IRL/chores4irl/pull/28) | `3160dfc` |
 
 ### Merged since original baseline (non-F — infra/parallel, no backlog F-ID)
 
 | Feature | Effort | PR | Merge SHA | Notes |
 |---|---|---|---|---|
 | Multi-device sync via SSE | **M** | [#21](https://github.com/4IRL/chores4irl/pull/21) | `42040cc` | New `GET /api/events`; `useChoreEvents` + `reconcileChores` in `App.tsx`. Part of the baseline. |
-| Pi display rotation + touch calibration | **M** | [#19](https://github.com/4IRL/chores4irl/pull/19) | `c4153a9` | Host-side rotation config; current `F13` (rotate button) builds on it. |
+| Pi display rotation + touch calibration | **M** | [#19](https://github.com/4IRL/chores4irl/pull/19) | `c4153a9` | Host-side rotation config; the pi-kiosk agent's rotate control (formerly `F13`, superseded 2026-07-15) builds on it. |
 | plans/ archive housekeeping | **S** | [#20](https://github.com/4IRL/chores4irl/pull/20) | `b823ad4` | Docs/process only. |
 | plans/ compact sweep #2 | **S** | [#22](https://github.com/4IRL/chores4irl/pull/22) | `7f0edb2` | Docs/process only; pruned the 260630-era merged branches. |
 
-### Remaining (current numbering incl. `F14`, added 2026-07-08; reassessed against current `main`)
+### Remaining (current numbering incl. `F14`/`F15`; reassessed against current `main` after the 2026-07-15 extraction reconcile)
 
 | Order | Feature | Effort | Depends on | Track |
 |---|---|---|---|---|
-| ★ | **F2** — Double-tap accidental-touch lock + padlock overlay **[FOCUS]** | **L** *(scope resolved: local-only — see its section)* | none | Kiosk power & safety |
-| 1 | **F14** — Clear-✕ affordance on every free-text input *(added 2026-07-08)* | **S** | — | Chore-list |
-| 2 | **F4** — Remove *Details* & *Long-term task* fields | **M** | none blocking *(F3-L already merged)* | Chore-list |
-| 3 | **F5** — Translucent/blur *Add Task* deck | **S** | — | Chore-list |
-| 4 | **F3** — Settings / device-control panel container | **M** | — *(gates F7–F13)* | Device-control panel |
-| 5 | **F13** — Rotate screen button (functional, host-bridge) | **L** | **F3**; Pi rotation config (#19, merged) | Device-control panel |
-| 6 | **F11** — Undo (placeholder→functional) | **S→M–L** | **F3** | Device-control panel |
-| 7 | **F12** — Redo (placeholder→functional) | **S→M** | **F3**, F11 | Device-control panel |
-| 8 | **F7** — Brightness control (placeholder→functional) | **S→M** | **F3**; host-bridge | Device-control panel |
-| 9 | **F8** — Screen blank/wake manual toggle (placeholder→functional) | **S→M** | **F3**; host-bridge | Device-control panel |
-| 10 | **F9** — Auto screen-blank/wake settings-UI (configure F1's schedule) | **S** | **F3**, F1 *(shipped)* | Device-control panel |
-| 11 | **F10** — Restart (placeholder→functional) | **S→M** | **F3**; host-bridge + confirm | Device-control panel |
+| ★ | **F14** — Clear-✕ affordance on every free-text input *(added 2026-07-08)* **[FOCUS]** | **S** | — | Chore-list |
+| 1 | **F4** — Remove *Details* & *Long-term task* fields | **M** | none blocking *(F3-L already merged)* | Chore-list |
+| 2 | **F5** — Translucent/blur *Add Task* deck | **S** | — | Chore-list |
+| 3 | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee *(added 2026-07-15)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi | Kiosk extraction |
+| 4 | **F11** — Undo *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* | **M–L** | **external:** pi-kiosk Phase 4 (`kiosk/v1` contract) | Kiosk extraction |
+| 5 | **F12** — Redo *(re-scoped 2026-07-15)* | **M** | F11 + same external gate | Kiosk extraction |
 | — | **F6** — Local URL alias instead of IP:port | **M–L** *(research spike)* | deployment stack (Pi/Docker); independent | Infra (parallel) |
+| ~~—~~ | ~~**F3** — Settings / device-control panel container~~ | — | **superseded 2026-07-15** — migrated to pi-kiosk (shell console) | *(migrated)* |
+| ~~—~~ | ~~**F13** — Rotate screen button (functional, host-bridge)~~ | — | **superseded 2026-07-15** — migrated to pi-kiosk (agent; plan harvested, see its banner) | *(migrated)* |
+| ~~—~~ | ~~**F7** — Brightness · **F8** — manual blank/wake · **F10** — Restart~~ | — | **superseded 2026-07-15** — migrated to pi-kiosk (agent controls) | *(migrated)* |
+| ~~—~~ | ~~**F9** — Auto screen-blank/wake settings-UI~~ | — | **superseded 2026-07-15** — migrated to pi-kiosk (settings on `PATCH /api/config`) | *(migrated)* |
 
-**Effort tally (remaining).** Chore-list track: F14 (S) + F4 (M) + F5 (S) ≈ **4 pts**. Kiosk
-power/safety track: F1 shipped; only **F2 (L, ≈3 pts) remains — it's already implemented,
-awaiting push/PR, so its remaining cost is near-zero.**
-Device-control track (placeholder ship): F3 (M=2) + F13 (L=3) + F9 (S=1) + 5×placeholder
-(F7/F8/F10/F11/F12, S=1 each=5) ≈ **11 pts**, growing as each placeholder is connected
-(each +M). Infra: F6 ≈ **2–3 pts**. (S=1 / M=2 / L=3 / XL=5.)
+**Effort tally (remaining, in this repo).** Chore-list track: F14 (S) + F4 (M) + F5 (S) ≈
+**4 pts**. Kiosk extraction track: F15 (M=2) + F11 (M–L≈2–3) + F12 (M=2) ≈ **6–7 pts**,
+all gated on external pi-kiosk phases. Infra: F6 ≈ **2–3 pts**. (S=1 / M=2 / L=3 / XL=5.)
+The former device-control tally (~11 pts placeholder-ship + connections) now lives in the
+pi-kiosk repo's own planning, not here.
 
 ---
 
@@ -258,17 +287,18 @@ Device-control track (placeholder ship): F3 (M=2) + F13 (L=3) + F9 (S=1) + 5×pl
 | F1-L remove Details/Long-term | → **F4** |
 | F7-L blur Add-Task deck | → **F5** |
 | F8-L local URL alias | → **F6** |
-| F11-L settings panel container | → **F3** |
-| F12-L brightness | → **F7** |
-| F13-L screen-blank/wake toggle | → **F8** |
-| F14-L restart | → **F10** |
-| F15-L undo | → **F11** |
-| F16-L redo | → **F12** |
-| F17-L rotate | → **F13** |
+| F11-L settings panel container | → **F3** *(superseded 2026-07-15 — migrated to pi-kiosk)* |
+| F12-L brightness | → **F7** *(superseded 2026-07-15 — migrated to pi-kiosk)* |
+| F13-L screen-blank/wake toggle | → **F8** *(superseded 2026-07-15 — migrated to pi-kiosk)* |
+| F14-L restart | → **F10** *(superseded 2026-07-15 — migrated to pi-kiosk)* |
+| F15-L undo | → **F11** *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* |
+| F16-L redo | → **F12** *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* |
+| F17-L rotate | → **F13** *(superseded 2026-07-15 — migrated to pi-kiosk)* |
 | *(none — new)* | **F1** — auto screen-blank 9pm–6am *(shipped — see Completed table)* |
-| *(none — new)* | **F2** — double-tap accidental-touch lock |
-| *(none — new)* | **F9** — auto-blank settings-UI sub-control |
+| *(none — new)* | **F2** — double-tap accidental-touch lock *(shipped — see Completed table)* |
+| *(none — new)* | **F9** — auto-blank settings-UI sub-control *(superseded 2026-07-15 — migrated to pi-kiosk)* |
 | *(none — new, added 2026-07-08)* | **F14** — clear-✕ affordance on free-text inputs |
+| *(none — new, added 2026-07-15)* | **F15** — adopt kiosk-shell (remove F1/F2 overlays + embeddability guarantee) |
 
 ---
 
@@ -296,19 +326,20 @@ Device-control track (placeholder ship): F3 (M=2) + F13 (L=3) + F9 (S=1) + 5×pl
 | *(non-F)* plans housekeeping | **merged** | *(pruned)* | [#20](https://github.com/4IRL/chores4irl/pull/20) | `b823ad4` |
 | *(non-F)* plans compact sweep #2 | **merged** | *(pruned)* | [#22](https://github.com/4IRL/chores4irl/pull/22) | `7f0edb2` |
 | F1 — auto screen-blank | **merged** | *(pruned)* | [#27](https://github.com/4IRL/chores4irl/pull/27) | `a633a2a` |
-| **F2 — double-tap accidental-touch lock** ★FOCUS | **in-progress** | `feature/touch-lock` | — | — |
+| F2 — double-tap accidental-touch lock | **merged** | *(pruned — `feature/touch-lock` gone local+remote, auto-deleted on squash-merge; verified 2026-07-15)* | [#28](https://github.com/4IRL/chores4irl/pull/28) | `3160dfc` |
 | F4 — remove Details/Long-term | pending | `feature/remove-details-longterm` | — | — |
 | F5 — translucent Add-Task deck | pending | `feature/translucent-add-deck` | — | — |
-| F3 — device-control panel | pending | `feature/settings-panel` | — | — |
-| F13 — rotate screen button | pending | `feature/rotate-screen-button` *(plan exists)* | — | — |
-| F11 — undo | pending | `feature/undo` | — | — |
-| F12 — redo | pending | `feature/redo` | — | — |
-| F7 — brightness control | pending | `feature/brightness-control` | — | — |
-| F8 — screen blank/wake manual toggle | pending | `feature/screen-blank-toggle` | — | — |
-| F9 — auto-blank settings-UI | pending | `feature/auto-blank-settings-ui` | — | — |
-| F10 — restart control | pending | `feature/restart-control` | — | — |
+| F3 — device-control panel | **superseded** *(2026-07-15 — migrated to pi-kiosk)* | *(never created)* | — | — |
+| F13 — rotate screen button | **superseded** *(2026-07-15 — migrated to pi-kiosk; plan harvested, see its banner)* | *(never created)* | — | — |
+| F11 — undo *(re-scoped 2026-07-15: `kiosk/v1` contract)* | pending *(gated on external pi-kiosk Phase 4)* | `feature/undo` | — | — |
+| F12 — redo *(re-scoped 2026-07-15)* | pending *(gated on F11 + external pi-kiosk Phase 4)* | `feature/redo` | — | — |
+| F7 — brightness control | **superseded** *(2026-07-15 — migrated to pi-kiosk)* | *(never created)* | — | — |
+| F8 — screen blank/wake manual toggle | **superseded** *(2026-07-15 — migrated to pi-kiosk)* | *(never created)* | — | — |
+| F9 — auto-blank settings-UI | **superseded** *(2026-07-15 — migrated to pi-kiosk)* | *(never created)* | — | — |
+| F10 — restart control | **superseded** *(2026-07-15 — migrated to pi-kiosk)* | *(never created)* | — | — |
 | F6 — local URL alias | pending | `feature/local-url-alias` | — | — |
-| F14 — clear-✕ affordance on free-text inputs *(added 2026-07-08)* | pending | `feature/clear-input-buttons` | — | — |
+| **F14 — clear-✕ affordance on free-text inputs** *(added 2026-07-08)* ★FOCUS | pending | `feature/clear-input-buttons` | — | — |
+| F15 — adopt kiosk-shell *(added 2026-07-15)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — | — |
 | ~~progress-bar-decay~~ | **deleted** (superseded; functionality on `main`) | *(branch gone)* | — | — |
 
 **Branch/dir cleanup — all done 2026-07-07:**
@@ -329,14 +360,16 @@ ride in the feature's own commits/PR.
 
 ---
 
-## Baseline: the codebase as it exists today (`main` after F4-L/F2-L/F5-L/F6-L + SSE #21 + Pi-config #19 + F10-L/F3-L/F9-L + F1 #27)
+## Baseline: the codebase as it exists today (`main` after F4-L/F2-L/F5-L/F6-L + SSE #21 + Pi-config #19 + F10-L/F3-L/F9-L + F1 #27 + F2 #28)
 
 > **This Baseline reflects `main` after all seven legacy-numbered merges above, plus `F1`
-> (#27, `a633a2a`).** It is the literal current state and the **assumed starting state for
-> every remaining feature.** Earlier revisions described a pre-#23/#24/#25 baseline, and
-> later a pre-#27 baseline — both are now historical. **`F2` (touch-lock) is implemented on
-> `feature/touch-lock` but not yet merged — it is not yet part of this Baseline**; treat its
-> code as not-yet-existing on `main` until its PR merges.
+> (#27, `a633a2a`) and `F2` (#28, `3160dfc`).** It is the literal current state and the
+> **assumed starting state for every remaining feature.** Earlier revisions described a
+> pre-#23/#24/#25 baseline, then a pre-#27 baseline, then (stale, fixed 2026-07-15) a
+> "F2 not yet merged" baseline — all historical. Touch-lock is fully on `main`:
+> `frontend/src/hooks/useTouchLock.ts`, `components/common/TouchLockOverlay.tsx` (with the
+> exported `CLOSING_SETTLE_MS` / `App.tsx` `isClosing` unmount handshake), and
+> `TouchLockIndicator.tsx`, wired via `inert={isBlanked || isLocked}` on the app root.
 
 Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at the repo root.
 
@@ -354,7 +387,7 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 **Frontend API** (`frontend/src/services/choreApi.ts`): `fetchAllChores`, `addChore`, `updateChore(id, chore)`, `completeChore`, `removeChore`.
 
 **Key UI**
-- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (`searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`), and **`useScreenBlank()` → `{ isBlanked, wake }`, rendering `<ScreenBlankOverlay onWake={wake} />` when `isBlanked`** (`F1`, shipped #27). Footer deck (`flex-shrink-0 py-4 flex justify-center border-t border-gray-700`, **still opaque** — `F5`'s target — `App.tsx:271`) holds `AddChoreButton`; scroll area directly above is `flex-1 overflow-y-auto min-h-0`. `NavBar` renders room chips **and the persistent search input** above the list. **There is no settings/device-control panel and no double-tap lock overlay on `main` yet** (`F3`/`F2` respectively — `F2` is implemented on `feature/touch-lock`, not yet merged) — the auto screen-blank overlay (`F1`) is the one of the three that has shipped.
+- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (`searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`), and the **two kiosk overlays**: `useScreenBlank()` → `{ isBlanked, wake }` rendering `<ScreenBlankOverlay onWake={wake} />` when `isBlanked` (`F1`, shipped #27), and `useTouchLock()` → `{ isLocked, arm }` rendering `TouchLockIndicator` always plus `TouchLockOverlay` when `(isLocked || isClosing) && !isBlanked` (`F2`, shipped #28), the app root `inert` while either is active, with a force-close-dialogs effect on blank/lock. **Both overlays are slated for removal by `F15`** (kiosk-layer extraction — their behavior moves to the pi-kiosk shell). Footer deck (`flex-shrink-0 py-4 flex justify-center border-t border-gray-700`, **still opaque** — `F5`'s target — `App.tsx:271`) holds `AddChoreButton`; scroll area directly above is `flex-1 overflow-y-auto min-h-0`. `NavBar` renders room chips **and the persistent search input** above the list. **There is no settings/device-control panel on `main`, and there never will be** — `F3` was superseded 2026-07-15 (migrated to pi-kiosk).
   - **SSE sync — unchanged contract:** subscribes via `useChoreEvents(onChange)` (`hooks/useChoreEvents.ts`; `new EventSource('/api/events')` + `visibilitychange→visible` re-fire). Re-pulls are gated by `isRepullGated()` (`isMutatingRef` || `showForm` || `editingId` || `pendingDeleteId`); deferred via `pendingRefreshRef`. **Any new frontend feature holding uncommitted user input in `App.tsx` state must be added to this gate.**
   - **Visible-list pipeline (three-stage):** `filteredChores = useRoomFilter(choreData, selectedRoom)` → `searchFilteredChores` (substring on `name`, from `F9-L`) → `orderedChores` (maps `sortedIds` over a `Map` of `searchFilteredChores`).
   - **`F1`'s real-clock scheduling (shipped):** `frontend/src/hooks/useScreenBlank.ts` — window-boundary re-arming timeouts driven by `realToday`, **not** `simulatedDate` (adapted from the `useMidnightClock.ts` single-`setTimeout`-to-boundary pattern, which remains available as a precedent for any future real-clock feature).
@@ -376,14 +409,16 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 5. SSE re-pull: `GET /api/events` + `useChoreEvents` + gated `reconcileChores`. New writes must emit on the backend bus; new `App.tsx` state must not break `isRepullGated()` or the reconcile.
 6. **Room field is a `<datalist>`** sourced from `uniqueRooms`, on both Add and Edit (F3-L).
 7. **Persistent name-search filter**, view-only, ANDs with the room filter, survives SSE re-pulls, sits above the scroll region (F9-L).
-8. **Auto screen-blank overlay**: `useScreenBlank()` + `ScreenBlankOverlay`, driven by real wall-clock time (`realToday`, never `simulatedDate`), blanks 21:00–06:00 local, tap-to-wake swallows the waking tap, re-blanks after 5 minutes' inactivity inside the window (F1, shipped #27).
+8. **Auto screen-blank overlay**: `useScreenBlank()` + `ScreenBlankOverlay`, driven by real wall-clock time (`realToday`, never `simulatedDate`), blanks 21:00–06:00 local, tap-to-wake swallows the waking tap, re-blanks after 5 minutes' inactivity inside the window (F1, shipped #27). *Holds until `F15` relocates this behavior to pi-kiosk and removes the in-app code.*
+9. **Double-tap touch lock**: `useTouchLock()` + `TouchLockOverlay`/`TouchLockIndicator` — local-only/per-tab, arms after 5 minutes' inactivity, unlocks on a second tap within 1500 ms and 60 px, 400 ms `CLOSING_SETTLE_MS` closing handshake, `z-[90]` always defers to the blank overlay's `z-[100]` (F2, shipped #28). *Holds until `F15` relocates this behavior to pi-kiosk and removes the in-app code.*
 
 **Assumptions to revisit at planning time**
 1. `better-sqlite3` bundles SQLite ≥ 3.35 (needed by **F4**'s `DROP COLUMN`). Verify at F4 planning, else fall back to a table-rebuild migration. *(Unchanged from prior reconcile — still unverified.)*
 2. Tap-to-complete + the simulation pointer-events guard + the SSE re-pull gate are primary; no new feature may regress them. `F1` (shipped) already coordinates this; `F2`'s implementation resolved the same concern for its own overlay (see item 7 below).
 3. `details` is not rendered anywhere in the UI, so `F4`'s removal is display-safe.
-4. **`F6`, `F13`, and the host-bridge controls (`F7`/`F8`/`F10`) have end states partly outside the repo** (Pi/LAN/host config). Capture outcomes as deployment docs in the feature's own `plans/feature/<slug>/` dir. The frozen Dockerization plan lives at `plans/completed/docker-raspberry-pi/`.
-5. **`F3`–`F13` (device-control track) are kiosk-only** (the wall-mounted Pi); design to degrade gracefully off-kiosk.
+4. **`F6` has an end state partly outside the repo** (Pi/LAN config) — capture outcomes as deployment docs in `plans/feature/local-url-alias/`. The frozen Dockerization plan lives at `plans/completed/docker-raspberry-pi/`. *(The former host-bridge controls `F13`/`F7`/`F8`/`F10` migrated to pi-kiosk 2026-07-15 — their host-side end states are now that repo's concern; `F15`'s external gate — "pi-kiosk Phase 2 parity verified on the Pi" — is likewise verified outside this repo and recorded in `F15`'s own plan docs.)*
+5. **Kiosk-only concerns now live in pi-kiosk** (2026-07-15): the device-control track migrated there, so no remaining chores4irl feature is kiosk-only — the app must simply stay embeddable (`F15`'s guarantee) and keep working standalone at `IP:port` off-kiosk. *(The old "F3–F13 degrade gracefully off-kiosk" note is retired with the migration.)*
+5b. **The compose `name:` pin question survives `F13`'s supersession** as an optional, detached infra hardening (DB-volume path determinism) — re-raise it on its own merits if ever needed; nothing depends on it now.
 6. **`deploy/pi/` currently has no screen-blank/DPMS/idle config** (verified — no `dpms`/`screen-blank`/`xset`/idle-inhibit files exist there). `F1` shipped without needing to touch this; if host-side auto-blank is later found enabled, disabling it is a deploy-doc note, not a blocker.
 7. **Resolved (2026-07-08, in `F2`'s own implementation):** `F1`'s wake gesture and `F2`'s unlock gesture don't conflict — `TouchLockOverlay` only renders when `!isBlanked`, and `ScreenBlankOverlay` sits at a higher z-index (`z-[100]` vs. `z-[90]`), so screen-blank always wins if both would otherwise be simultaneously active. See `F2`'s Open risks (c).
 
@@ -462,7 +497,7 @@ git-commit → verify "Expected end state" → update the ledger row to in-revie
 link → git-push. End the session after the PR is pushed. Do not start any other feature.
 ```
 
-**Kickoff prompt — focus feature (recommended next session, once `F2` merges):**
+**Kickoff prompt — focus feature (recommended next session; `F2` merged #28, so `F14` is up):**
 ```
 Read META-PLAN.md. Run feature F14 (clear-✕ affordance on free-text inputs) and only F14. It
 has no prerequisites — implement it directly. Per its Per-Feature Session Contract: cold-survey
@@ -594,98 +629,41 @@ explicitly defers to it (see `F2`'s Open risks (c)).
 
 **Known follow-up:** none recorded yet.
 
----
+## F2 — Double-tap accidental-touch lock  ·  merged (#28, `3160dfc`)  ·  was prior ★FOCUS  ·  current-numbering, not legacy
 
-# REMAINING FEATURES (current numbering, incl. `F14` added 2026-07-08)
+**Implemented contract (as built — this is what `F15` must remove and pi-kiosk must
+reproduce):** `frontend/src/hooks/useTouchLock.ts` — a stateful hook exposing
+`{ isLocked, arm }`; a 5-minute inactivity timer (armed on mount so a fresh load starts
+unlocked) re-armed by `document`-level `pointerdown`/`keydown` while unlocked; `arm()`
+unlocks and restarts the countdown. `frontend/src/components/common/TouchLockOverlay.tsx` —
+full-viewport intercepting portal at `z-[90]`; a second tap qualifies within
+`SECOND_TAP_WINDOW_MS = 1500` and `SECOND_TAP_MAX_DISTANCE_PX = 60` (Euclidean, keyboard
+activation always qualifies); padlock open/close/minimize CSS animation; exports
+`CLOSING_SETTLE_MS = 400`, which `App.tsx`'s `isClosing` state consumes to keep the
+overlay mounted through the closing animation. `TouchLockIndicator.tsx` — persistent
+top-left `z-[80]` `pointer-events-none` state icon. `App.tsx` wiring: app root
+`inert={isBlanked || isLocked}`; overlay rendered when `(isLocked || isClosing) &&
+!isBlanked` — **blank always wins** (`z-[100]` vs `z-[90]`); open dialogs force-close on
+lock/blank. **Scope as resolved (2026-07-08): local-only / per-browser-tab** — no backend
+state, no SSE event, no cross-device sync (the ledger's original "no matter which device"
+framing was explicitly decided otherwise; a shell-side lock in pi-kiosk carries the same
+local-to-the-kiosk semantics forward).
 
-> Every remaining feature's **Assumed starting state is the Baseline above**. `F1` shipped
-> (#27) and its implemented contract now lives under Completed Features. The **focus feature
-> is `F2`** — implemented on `feature/touch-lock`, just needs its final push/PR. After `F2`
-> merges, the shortest next hop is `F14` (see "Shortest path" above).
-
-## F2 — Double-tap accidental-touch lock  ·  ★ FOCUS  ·  Effort L  ·  scope resolved: local-only  ·  (260707 item 2)
-
-**Goal (ledger-original framing; see Resolved scope below).** Inhibit accidental chore-state
-changes: require a double-tap to "arm" interaction after a period of inactivity, **regardless
-of which device accesses the app**. Once armed, any subsequent user interacts normally. The
-lock re-engages 5 minutes after the last interaction. A lock icon in the top-left
-communicates state; an overlay toast animates a padlock opening/closing and minimizing to the
-icon location (single tap → padlock appears centered, shrinks to the corner if no follow-up;
-a close-enough second tap → padlock opens and immediately minimizes to the corner; 5 minutes
-after last interaction → the corner icon's padlock animates centered-and-closed, then
-re-minimizes). **As implemented, "regardless of which device" was resolved to local-only /
-per-browser-tab — see Open risk (a) and the Expected-end-state bullets below.**
-
-**Rank rationale (ledger-original framing; superseded by the local-only resolution below).**
-Entirely new — no equivalent in any prior ledger. At reconcile time this was assessed as the
-most architecturally invasive remaining item, since **"no matter which device accesses it"**
-was read to imply the lock state must be **shared across all connected devices**, not merely
-a per-browser gate. That cross-device reading was explicitly not what got built — see Open
-risk (a).
-
-**Effort: L (actual, as implemented; the scope question below is resolved, not TBD).** Cost
-drivers actually incurred: (a) a full-viewport intercepting
-overlay + a top-left persistent lock icon + padlock open/close/minimize CSS animation
-sequence; (b) a global "armed" gate that every existing interactive surface must route
-through (tap-to-complete, swipe-edit/delete, `+ Add Task`, room chips, the search input, and
-whatever `F3`'s settings panel adds later) without breaking any of their existing tests. Cost
-driver (c) anticipated at reconcile time — new backend state plus new SSE/endpoint plumbing
-**if cross-device sync had been chosen** — was **not incurred**: see Open risk (a)/(b).
-
-**Dependencies.** None. (The SSE bus, `GET /api/events`, was flagged at reconcile time as the
-natural transport had cross-device sync been chosen — moot per the local-only resolution,
-see Open risk (b).)
-
-**Assumed starting state** = **Baseline**. Verify:
-- No lock/padlock/overlay component exists (`grep -rli "padlock\|touch-lock" frontend/src` — a broad `lock` grep will false-positive on `useMidnightClock`/`unlock`-adjacent words; confirm no true match).
-- No global interaction-gating wrapper exists around `App.tsx`'s handlers.
-
-**Expected end state** (repo-checkable):
-- A lock icon renders top-left at all times, reflecting current armed/locked state.
-- While locked, the first tap anywhere shows a centered padlock overlay that either
-  shrinks to the corner (no follow-up) or, on a close-enough second tap, animates open and
-  immediately minimizes to the corner (now armed).
-- While armed, all existing interactions (tap-to-complete, swipe edit/delete, add task,
-  room/search filters) behave exactly as before this feature.
-- 5 minutes after the last interaction **on that browser tab**, the lock re-engages: the
-  corner icon's padlock animates centered-and-closed, then re-minimizes. (The original
-  "(any device)" framing assumed cross-device sync, which was not delivered — see the
-  resolved bullet below.)
-- **Resolved (2026-07-08): this feature is local-only / per-browser-tab**, not synced across
-  devices. The ledger's original "consistent across all connected devices" framing was the
-  single biggest open scope question in this section (Open risk (a)) and was explicitly
-  decided otherwise: `useTouchLock`'s lock state lives entirely in React state within one
-  browser tab, with no backend endpoint, no new SSE event type, and no persisted state.
-  Cross-device sync remains a plausible fast-follow but is explicitly out of scope for this
-  plan.
-
-**Test-suite deltas.** New component tests for the lock icon + overlay + double-tap
-detection + 5-minute re-lock timer. If cross-device: backend test for the new lock-state
-endpoint/signal. Regression coverage that every existing gesture still fires once armed.
-
-**Open risks / decisions — resolved during this feature's implementation (2026-07-08):**
-(a) **Resolved: local-only, not cross-device.** The ledger's "no matter which device"
-framing was explicitly decided otherwise (user decision, 2026-07-08): the lock is a
-per-browser-tab `useTouchLock` React hook with no backend state. Cross-device sync is an
-explicit out-of-scope fast-follow, not part of this plan.
-(b) **Moot**, given (a)'s local-only resolution — there is no cross-device state to sync, so
-no transport (a new SSE event type or a dedicated endpoint) was needed.
-(c) **Resolved.** `TouchLockOverlay` renders only when `(isLocked || isClosing) && !isBlanked`
-— F1's `ScreenBlankOverlay` always wins when both a screen-blank and a touch-lock would
-otherwise be simultaneously active, via a lower z-index (`z-[90]` vs. `ScreenBlankOverlay`'s
-`z-[100]`).
-(d) **Resolved: CSS-only, no animation library.** Tailwind `transition-*`/`duration-*`
-utility classes sequenced with `setTimeout`, mirroring `useScreenBlank`/`ChoreTimerBar`'s
-existing convention. `lucide-react`'s `LockKeyhole`/`LockKeyholeOpen` icons are used for the
-closed/open padlock states.
-
-**Session loop.** Ran the Per-Feature Session Contract on branch `feature/touch-lock`; scope
-risk (a) was resolved at the planning session before implementation began, per the contract's
-step 3, and the feature has since been implemented and its tests verified green.
+**Known follow-up:** relocation to the pi-kiosk shell (Phase 2), then removal here via
+`F15` — see `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`.
 
 ---
 
-## F14 — Clear-✕ affordance on every free-text input  ·  Effort S  ·  (added 2026-07-08)
+# REMAINING FEATURES (current numbering, incl. `F14`/`F15`)
+
+> Every remaining feature's **Assumed starting state is the Baseline above**. `F1` (#27)
+> and `F2` (#28) shipped — their implemented contracts live under Completed Features. The
+> **focus feature is `F14`** (see "Shortest path" above). `F3`/`F7`/`F8`/`F9`/`F10`/`F13`
+> are **superseded — migrated to `rmilarachi/pi-kiosk`** (2026-07-15, see
+> `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`); their sections below
+> are retained as banners + history only. `F11`/`F12` remain here, re-scoped; `F15` is new.
+
+## F14 — Clear-✕ affordance on every free-text input  ·  ★ FOCUS  ·  Effort S  ·  (added 2026-07-08)
 
 **Goal.** Add a single-click "✕" to every free-text input field so a user can clear typed
 content without manually deleting characters: the persistent chore-search bar
@@ -832,7 +810,16 @@ fully opaque button. Confirm `backdrop-blur` performs acceptably on the Pi/mobil
 
 ---
 
-## F3 — Settings / device-control panel (container)  ·  Effort M  ·  (260707 — gates F7–F13)
+## F3 — Settings / device-control panel (container)  ·  SUPERSEDED 2026-07-15 (migrated to pi-kiosk)
+
+> **SUPERSEDED — do not run this feature in this repo.** The console migrated to the
+> `rmilarachi/pi-kiosk` shell per the kiosk-layer extraction decision
+> (`plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`). The design below
+> (gear↔X NavBar toggle, single-row overlaid banner, control-registration shape,
+> placeholder-first rollout) **carries over as the shell console's spec** — it just renders
+> in the shell above the app iframe instead of in chores4irl's NavBar, and its controls
+> call the kiosk-agent's localhost API instead of gating on an in-app backend. The section
+> is retained as the spec source and audit trail.
 
 **Goal.** A collapsible device-control panel: a `NavBar` toggle (gear/settings icon that
 swaps to an X when open, co-located at the upper-right) expanding into a single-row overlaid
@@ -877,7 +864,18 @@ planning. (c) Overlay must not permanently obstruct the chore list (single-row, 
 
 ---
 
-## F13 — Rotate screen button (functional, host-bridge)  ·  Effort L  ·  (260707 — plan exists)
+## F13 — Rotate screen button  ·  SUPERSEDED 2026-07-15 (migrated to pi-kiosk)
+
+> **SUPERSEDED — do not run this feature in this repo.** Rotate migrated to the pi-kiosk
+> **agent** (`plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`, DD-8): the
+> shell console's rotate button calls the agent's localhost HTTP API directly, replacing
+> this section's chores-backend host-bridge (Express endpoint → `rotation.json` →
+> bind mount → `inotifywait` watcher — all dropped). The existing detailed plan at
+> `plans/feature/rotate-screen-button/rotate-screen-button.md` carries its own
+> supersession banner listing exactly which of its host-side decisions are harvested
+> (connector discovery, transform↔matrix table, sed-anchored persistence, injection
+> guard, portrait-only toggle default, user-service Wayland env). The section is retained
+> as history only.
 
 **Goal.** In-app rotate control (housed in the `F3` panel) flipping the Pi kiosk's display +
 touch orientation between the two portrait orientations (`90 ↔ 270`) without host SSH.
@@ -918,44 +916,86 @@ for the non-root user service; portrait-only toggle; host-bridge file-watch mech
 
 ---
 
-## F7, F8, F9, F10, F11, F12 — Device-control placeholders (connect later)  ·  housed in F3
+## F7, F8, F9, F10 — Device controls  ·  SUPERSEDED 2026-07-15 (migrated to pi-kiosk)  ·  F11, F12 — re-scoped, remain here
 
-> Ships as disconnected, optimistic icon placeholders first (via `F3`), then each connects
-> as its own feature. Effort is **S as a placeholder** (lands with `F3`) and **M (or M–L for
-> undo) when connected**.
+> **F7 (brightness), F8 (manual blank/wake), F9 (auto-blank settings-UI), and F10
+> (restart) are superseded — migrated to pi-kiosk** per
+> `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`. In the new design they
+> are agent-backed console controls: the shell console calls the kiosk-agent's localhost
+> HTTP API directly (no chores-backend state files, no host-bridge). `F9` becomes the
+> shell settings UI editing agent-owned config (`PATCH /api/config`), which now owns the
+> blank schedule `F1` used to hardcode — the old "F1 must expose its schedule as
+> configurable state" prerequisite is retired (the schedule leaves this app entirely at
+> `F15`). `F8`-vs-`F1`-vs-`F9` naming distinction (manual toggle vs auto schedule vs
+> settings for the schedule) carries over to the pi-kiosk backlog verbatim. `F7`'s
+> hardware feasibility question (HDMI panel, likely no backlight sysfs; `ddcutil` or
+> software gamma) is deliberately left to pi-kiosk planning (design doc DD-10).
 
-- **F7 — Brightness control** *(= legacy `F12-L`)*. Adjust kiosk backlight. **Functional
-  effort M** — host-bridge mirroring `F13` (frontend → backend writes a brightness state
-  file → host agent applies via backlight sysfs or `ddcutil`). Placeholder icon `Sun`. Pi
-  verification unsandboxed. Branch `feature/brightness-control`.
-- **F8 — Screen blank/wake manual toggle** *(= legacy `F13-L`)*. Manually blank/wake the
-  display on demand, complementing `F1`'s auto schedule. **Functional effort M**
-  (host-bridge). Placeholder icon `MonitorOff`. Pi verification unsandboxed. Branch
-  `feature/screen-blank-toggle`. **Note the naming collision risk with `F1`/`F9` — this is
-  the *manual, on-demand* toggle; `F1` is the *automatic schedule*; `F9` is the settings-UI
-  to *configure* F1's schedule. All three are distinct.**
-- **F9 — Auto screen-blank/wake settings-UI** *(NEW — no legacy equivalent)*. Lets the user
-  set the sleep/wake times that `F1` currently hardcodes at 9pm/6am, from the `F3` panel.
-  **Functional effort S** — a time-picker control wired to `F1`'s schedule state (no new
-  host-bridge; `F1` is already pure-frontend). **Depends on both `F3` and `F1`** — `F1` must
-  expose its schedule as configurable state before this can wire a UI to it. Branch
-  `feature/auto-blank-settings-ui`.
-- **F10 — Restart** *(= legacy `F14-L`)*. Controlled restart (`docker compose restart`
-  and/or Pi host) behind a confirmation dialog (reuse `ConfirmDialog`). **Functional effort
-  M** (host-bridge + confirm). Placeholder icon `Power`. Pi verification unsandboxed. Branch
-  `feature/restart-control`.
-- **F11 — Undo** *(= legacy `F15-L`)*. Recover from accidental touch/completion.
-  **Functional effort M–L** (bounded action/undo cache; 1–2 levels deep acceptable). Must
-  reconcile with the SSE re-pull (an undo is itself a write that should emit on the bus).
-  Placeholder icon `Undo2`. Branch `feature/undo`.
-- **F12 — Redo** *(= legacy `F16-L`)*. Re-apply an undone action; pairs with `F11`'s cache.
-  **Functional effort M.** Depends on `F3` + `F11`. Placeholder icon `Redo2`. Branch
-  `feature/redo`.
+- **F11 — Undo** *(= legacy `F15-L`; re-scoped 2026-07-15)*. Recover from accidental
+  touch/completion. **Effort M–L** (bounded action/undo cache; 1–2 levels deep
+  acceptable). Must reconcile with the SSE re-pull (an undo is itself a write that must
+  emit on the bus). **Remains a chores4irl feature** — undo/redo act on chore data the
+  shell can't see. Surfaced through the pi-kiosk console via the **`kiosk/v1` postMessage
+  contract** (app registers controls with the shell; shell renders them in the console
+  banner and posts `console-action` back) — chores4irl is the contract's first app-side
+  client. **Deferred until pi-kiosk Phase 4 delivers the contract.** Branch `feature/undo`.
+- **F12 — Redo** *(= legacy `F16-L`; re-scoped 2026-07-15)*. Re-apply an undone action;
+  pairs with `F11`'s cache. **Effort M.** Depends on `F11` + the same external Phase 4
+  gate. Branch `feature/redo`.
 
-**Shared expected-end pattern (per control, when connected):** the placeholder icon in the
-`F3` panel gains a working handler; host-bridge controls (`F7`/`F8`/`F10`) write a state file
-consumed by a host-side agent, captured as deploy docs/config; existing IP:port/kiosk
-behavior never breaks; writes emit on the SSE bus where relevant.
+---
+
+## F15 — Adopt kiosk-shell (remove F1/F2 overlays + embeddability guarantee)  ·  Effort M  ·  (added 2026-07-15)
+
+**Goal.** Complete chores4irl's side of the kiosk-layer extraction: once the pi-kiosk
+shell reproduces the blank/lock behavior in front of the iframe-embedded app, remove the
+now-redundant in-app implementations and make the app's embeddability a documented
+guarantee instead of an accident. See
+`plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md` (the cross-repo
+contract, incl. DD-9's no-feature-flag decision and the double-overlay interim window).
+
+**Rank rationale.** The only chores4irl code change the extraction requires. Gated
+externally, so it floats independent of the chore-list track.
+
+**Effort: M.** Deletion-heavy but wide: two hooks, three components, the `App.tsx`
+`inert`/`isClosing`/force-close wiring, and their test suites; plus the nginx/README
+embeddability notes; plus verifying no e2e spec depends on the overlays.
+
+**Dependencies.** **External:** pi-kiosk Phase 2 parity verified on the wall Pi (blank
+window, wake-tap swallow, 5-min re-blank, lock re-arm, double-tap unlock — checked
+against the shipped `F1`/`F2` contracts recorded under Completed Features). Record the
+verification (date + what was checked) in `plans/feature/kiosk-shell-adoption/` when this
+feature runs. No in-repo dependency.
+
+**Assumed starting state** = **Baseline** (F1/F2 code present on `main`). Verify:
+- `grep -rln "useScreenBlank\|useTouchLock" frontend/src` hits the two hooks, `App.tsx`,
+  and their tests.
+- `nginx.conf` has no `X-Frame-Options`/`frame-ancestors` header (embeddable by accident).
+- The kiosk Chromium autostart already points at the shell (pi-kiosk Phase 1 done).
+
+**Expected end state** (repo-checkable):
+- `grep -rn "useScreenBlank\|useTouchLock\|ScreenBlankOverlay\|TouchLockOverlay\|TouchLockIndicator" frontend/src`
+  → no matches; no `inert` kiosk gate or `isClosing` handshake remains in `App.tsx`.
+- Standing invariants 8–9 are retired from the Baseline (annotated as relocated, not
+  regressed — the behavior lives in pi-kiosk).
+- `nginx.conf` carries a comment guaranteeing embeddability (no frame-blocking headers;
+  cite the shell origin); root README points at pi-kiosk for screen concerns.
+- All suites green with the F1/F2 test files deleted; invariants 1–7 untouched.
+
+**Test-suite deltas.** Delete the F1/F2 hook/component/App-level suites
+(`useScreenBlank`, `useTouchLock`, `App.screenBlank.*`, `App.touchLock`,
+`ScreenBlankOverlay`, `TouchLockOverlay`, `TouchLockIndicator`). Check
+`e2e/smoke.spec.ts` for overlay references (none expected). No new tests beyond a
+possible trivial nginx-config assertion.
+
+**Open risks / decisions.** (a) Double-overlay interim: between pi-kiosk Phase 2 deploy
+and this PR, both overlay layers run (shell + in-app) — functional but annoying; keep the
+window to one deploy cycle (design doc DD-9). (b) Do **not** carry the removal into a
+feature flag — outright deletion per DD-9. (c) If parity verification finds gaps, fix
+them in pi-kiosk first; this feature never starts on partial parity.
+
+**Session loop.** Run the Per-Feature Session Contract on branch
+`feature/kiosk-shell-adoption`.
 
 ---
 
@@ -1001,63 +1041,68 @@ unsandboxed; keep additive; deploy-doc capture is mandatory.
 
 ---
 
-## Chain integrity (remaining work, current numbering incl. `F14`)
+## Chain integrity (remaining work, current numbering incl. `F14`/`F15`)
 
 ```
 CHORE-LIST TRACK (disjoint surfaces; soft order — F14 before F4 before F5, per 2026-07-08 pref)
-  Baseline ─F14 (clear-✕ on free-text inputs) ─(soft: precedes)→ F4 (remove Details/Long-term)
+  Baseline ─★F14★ (clear-✕ on free-text inputs) ─(soft: precedes)→ F4 (remove Details/Long-term)
   Baseline ─F5 (blur Add-Task deck)
 
-KIOSK POWER & INPUT-SAFETY TRACK (F1 shipped; ★ = focus)
-  Baseline ─F1 (auto screen-blank 9pm–6am) ── SHIPPED (#27, a633a2a)
-  Baseline ─★F2★ (double-tap accidental-touch lock) ── implemented, awaiting push/PR
-  (F1/F2 precedence resolved during F2's implementation — see F2's Open risks (c))
+KIOSK POWER & INPUT-SAFETY TRACK — complete
+  Baseline ─F1 (auto screen-blank) ── SHIPPED (#27, a633a2a)
+  Baseline ─F2 (double-tap touch lock) ── SHIPPED (#28, 3160dfc)
+  (Both relocate to pi-kiosk at its Phase 2; in-app code then removed by F15.)
 
-DEVICE-CONTROL PANEL TRACK (F3 gates the rest)
-  Baseline ─F3 (panel) ─┬→ F13 (rotate, functional · plan exists)
-                        ├→ F11 (undo) ─→ F12 (redo)
-                        ├→ F7  (brightness)        ┐
-                        ├→ F8  (screen-blank toggle)├ host-bridge, placeholder→functional
-                        ├→ F10 (restart)           ┘
-                        └→ F9  (auto-blank settings-UI) ── also needs F1
+KIOSK EXTRACTION TRACK (2026-07-15 — external gates; see plans/feature/kiosk-shell-extraction/)
+  [pi-kiosk Phase 1: shell scaffold + iframe passthrough]
+  [pi-kiosk Phase 2: agent activity feed + overlay port, parity on the Pi] ──► F15 (adopt kiosk-shell)
+  [pi-kiosk Phase 3: console + agent controls  ·  absorbs F3/F7/F8/F10/F13 — superseded here]
+  [pi-kiosk Phase 4: settings (absorbs F9) + kiosk/v1 contract] ──► F11 (undo) ─→ F12 (redo)
 
 INFRA TRACK
-  Baseline ─F6 (LAN alias; independent)
+  Baseline ─F6 (LAN alias; independent — if it lands, it becomes pi-kiosk's target_url)
 ```
 
-- **No single hard chain remains.** The device-control track has the one real edge: `F3`
-  gates `F7`/`F8`/`F9`/`F10`/`F11`/`F12`/`F13` (housed in the panel; `F12` also follows
-  `F11`; `F9` additionally follows `F1`). `F6` is fully parallel. Chore-list track has one
-  **soft** ordering preference (`F14` before `F4`, user choice — see `F14`'s Rank rationale);
-  kiosk-power track is now single-item (`F2`) since `F1` shipped.
-- **Focus path:** `F2` is essentially done (implemented, awaiting push/PR) — finish it first.
-  After it merges, `F14` is the shortest next hop: zero prerequisites, smallest remaining
-  estimate, and explicitly prioritized by the user (2026-07-08) ahead of `F4`/`F5`.
+- **No hard chain remains inside this repo.** The old device-control edge (`F3` gates
+  `F7`–`F13`) left the repo with the migration — pi-kiosk's Migration Phases carry that
+  sequencing now. What remains here: the chore-list track's one **soft** ordering
+  preference (`F14` before `F4`, user choice — see `F14`'s Rank rationale), and two
+  **external** gates (`F15` on pi-kiosk Phase 2 parity; `F11`/`F12` on Phase 4's
+  `kiosk/v1` contract, with `F12` also following `F11`). `F6` is fully parallel.
+- **Focus path:** `F14` — zero prerequisites, smallest estimate, explicitly prioritized by
+  the user (2026-07-08) ahead of `F4`/`F5`. The kiosk-extraction features cannot start
+  until their external gates open, regardless of local appetite.
 - **Cross-feature couplings to honor:**
-  - **F1 ↔ F2 — resolved.** `F2`'s implementation confirmed `ScreenBlankOverlay` (`z-[100]`)
-    always wins over `TouchLockOverlay` (`z-[90]`) when both would otherwise be active; see
-    `F2`'s Open risks (c).
-  - **F1 → F9:** `F9` (settings-UI for the schedule) needs `F1` to expose its 9pm/6am
-    times as configurable state, not hardcoded constants — check this before `F9`'s planning
-    session, since `F1` (now shipped) may need a small follow-up if it hardcoded the times.
+  - **F1 ↔ F2 — shipped and resolved.** `ScreenBlankOverlay` (`z-[100]`) always wins over
+    `TouchLockOverlay` (`z-[90]`); the pi-kiosk port must preserve this precedence, and
+    `F15` removes both sides of it here at once (never one overlay without the other).
+  - **F1 → F9 — retired.** `F9` migrated to pi-kiosk, where the schedule lives in agent
+    config; `F1` no longer needs to expose configurable state (the hardcoded 21:00/06:00
+    constants leave with `F15`).
   - **F14 ↔ F4:** `F14` runs first per user choice, so its `FormField` clear-affordance
     change must be an opt-in prop (not default-on) to avoid transiently touching the Details
     field that `F4` later removes. See `F14`'s Rank rationale.
   - **F4 ↔ F3-L (already shipped):** `F4` must edit the shared `ChoreForm` without
     disturbing the now-merged Room `<datalist>`.
-  - **F3 → F7–F13:** the panel's control-registration shape is the interface; persist it so
-    each control session plugs in without re-architecting.
-  - **F13 / F7 / F8 / F10** are host-bridges — end states partly outside the repo; capture
-    as deploy docs.
+  - **F11/F12 ↔ SSE:** undo/redo are writes — they must emit on the bus and respect the
+    re-pull gate, exactly like any other mutation (`kiosk/v1` changes how they're
+    *triggered*, not what they *are*).
+  - **F15 ↔ e2e:** check `e2e/smoke.spec.ts` for overlay dependencies before deleting the
+    F1/F2 suites.
   - **F6** shares no files with any of them.
 - Cumulative invariants that must hold from each feature onward:
-  - From **F1**: a real-wall-clock 9pm–6am blank overlay, tap-to-wake, 5-min re-blank; must not react to `simulatedDate`. **(Shipped — now Standing invariant 8.)**
+  - From **F1**/**F2** *(shipped — Standing invariants 8–9)*: blank + lock contracts as
+    recorded under Completed Features; **held until `F15` relocates the behavior to
+    pi-kiosk**, at which point they are retired-as-relocated, not regressed.
   - From **F4**: no `details`/`longTermTask`/`long_term_task` anywhere (incl. `PUT`/`updateChore`); idempotent column-drop migration in `db.ts`.
   - From **F5**: translucent/blurred Add-Task deck, opaque button.
-  - From **F3**: a NavBar gear↔X toggle opening a single-row device-control banner; control-registration shape in place.
-  - From **F13**: in-app portrait rotate via host-bridge; display+touch in sync.
-  - From **F6**: a documented LAN name-alias to the app; IP:port still works.
   - From **F14**: single-click "✕" clear affordance on search/Name/Room, opt-in per-field on `FormField`.
+  - From **F15**: the app is embeddable (no frame-blocking headers — documented in
+    `nginx.conf` + README) and contains no kiosk/screen code; it works identically
+    standalone at `IP:port` and inside the pi-kiosk shell.
+  - From **F11**: bounded undo cache; undo emits on the SSE bus. From **F12**: redo pairs
+    with F11's cache.
+  - From **F6**: a documented LAN name-alias to the app; IP:port still works.
   - **Already holding (legacy, unchanged):** delete-confirm, `PUT`/edit, swipe infra
     (now edit-left/delete-right + 25% reveal), shorter grid bar, SSE re-pull gate, Room
     `<datalist>`, persistent name-search filter.
