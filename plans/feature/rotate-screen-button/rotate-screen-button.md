@@ -1,7 +1,7 @@
 # In-App Rotate-Screen Button (Pi Kiosk)
 
 > **SUPERSEDED IN PART (2026-07-15) — do not implement this plan as written.** `F13`
-> migrated to the standalone `rmilarachi/pi-kiosk` repo per the kiosk-layer extraction
+> migrated to the standalone `rehankalu/pi-kiosk` repo per the kiosk-layer extraction
 > decision (`plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md` — read that
 > doc first). The chores-backend host-bridge in this plan — the Express
 > `GET/POST /api/display/rotation` endpoint, `rotation.json`, the rmilarachi-owned bind

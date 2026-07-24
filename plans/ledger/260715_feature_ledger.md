@@ -11,7 +11,7 @@
 The device-control panel ("console") and its controls no longer ship inside chores4irl.
 Per the kiosk-layer extraction decision (design doc:
 `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`), the screen belongs to a
-standalone **`rmilarachi/pi-kiosk`** repo — a kiosk-shell web page (Chromium's kiosk
+standalone **`rehankalu/pi-kiosk`** repo — a kiosk-shell web page (Chromium's kiosk
 target, embedding the displayed app in an iframe) plus a host-side kiosk-agent service —
 so the console works regardless of which application is displayed. Disposition of the
 former section's items:
