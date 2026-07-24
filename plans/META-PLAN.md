@@ -41,8 +41,9 @@ the focus feature* below.
 (`gh pr list --state merged` / `git log --oneline main`). What each merge left behind
 that still matters is captured *forward*: in the Baseline, the Standing invariants, and
 the few completed-feature contracts kept below because a remaining feature builds on or
-must remove them. **History policy:** once a feature's PR merges and the Baseline/
-invariants absorb its contract, its rows and sections are deleted from this file — the
+must remove them. **History policy:** once a feature's PR is *verified* merged (never
+self-marked) and the Baseline/invariants absorb its contract, its rows and sections are
+deleted from this file — the
 only history kept is what stops a future session from re-treading already-traveled
 design space (the Legacy → current ID map, contracts still targeted by open features,
 and confirmed-but-unscheduled follow-ups).
