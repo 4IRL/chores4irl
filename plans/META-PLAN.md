@@ -1,40 +1,25 @@
 # META-PLAN — chores4irl future-feature rollout
 
 > **What this file is.** An orchestration manifest, not a script. It sequences the
-> features in `plans/ledger/260708_feature_ledger.md` and defines, for each one,
+> features in the current ledger (see *Source list lineage* below) and defines, for each one,
 > a *self-contained* per-feature session that a fresh agent (with no memory of prior
 > sessions) can run end-to-end using **only this file and the repository**. This file
 > is never run top-to-bottom. It is the index; each feature is a separate session.
 >
 > **Source list lineage.** `plans/ledger/260715_feature_ledger.md` is the **current**
-> source of truth for the backlog. Its predecessors are `260708` → `260707` → `260630` →
-> `260627` → `260628` (deleted, folded into 260630) → the earlier `260625`. When any older
-> list disagrees with **260715**, 260715 wins. The 260715 update (the **kiosk-layer
-> extraction reconcile** — see `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`)
-> dropped shipped `F2`, marked the device-control panel track (`F3`, `F7`–`F10`, `F13`)
-> **superseded — migrated to the standalone `rmilarachi/pi-kiosk` repo**, re-scoped
-> `F11`/`F12` onto the `kiosk/v1` postMessage contract, and added `F15` (adopt
-> kiosk-shell). It did not renumber anything, so the F-ID scheme established at the 260707
-> reconcile (below) remains authoritative. (The prior 260708 update had only *added* `F14`
-> and dropped shipped `F1`.)
+> source of truth for the backlog; every older ledger carries a `PREDECESSOR` banner and
+> loses on any disagreement. Backlog changes go through the global `/new-feature` skill
+> (which appends a new dated ledger and reconciles this file); the reconcile-by-reconcile
+> narrative lives in git history (PRs #26, #29, #30), not here.
 >
-> **⚠ F-ID renumbering (2026-07-07 reconcile).** The 260707 ledger introduces **its own
-> `F#` labels** — six clean, sequential top-level items (`F1`–`F6`), plus a settings-panel
-> sub-section whose seven control bullets are unnumbered. Per explicit instruction for this
-> reconcile, **those labels are now authoritative** — they supersede the old META-PLAN's
-> F1–F17 audit trail for every *remaining/new* feature:
-> - **Completed features keep their old (260630-era) `F#`** as a pure historical record —
->   tagged with an `-L` (legacy) suffix below to prevent collision, since several legacy
->   numbers are now reused for unrelated new features (e.g. legacy `F4-L` = confirm-delete,
->   but current `F4` = remove Details/Long-term fields).
-> - **Every remaining/new feature uses the bare `F#` from the 260707 ledger's six top-level
->   items**, or, for the settings-panel's seven unnumbered sub-controls, the next integers
->   continuing that same sequence: `F7`–`F13`, in the order they're listed in the ledger.
-> - A full **Legacy → Current ID map** is given just below the status ledger.
-> - **This renumbering also means other `plans/` files that still cite old F-numbers
->   (`F17` for rotate, `F8` for the URL alias, etc.) are now stale.** `plans/PUSH-REVIEW-FINDINGS.md`,
->   `plans/WORKTREE-PARALLELIZE-PROMPT.md`, and `plans/completed/docker-raspberry-pi/docker-raspberry-pi.md`
->   each got a short note added pointing back here — see their own files; not reproduced here.
+> **F-ID scheme (fixed at the 2026-07-07 reconcile; never renumber).** Current features
+> use the bare `F#` labels from the 260707 ledger — `F1`–`F13`, extended by later adds
+> (`F14`, `F15`, …) in ledger order. Features completed *before* that reconcile keep their
+> old 260630-era number with an `-L` (legacy) suffix, because several legacy digits were
+> reused for unrelated current features (e.g. legacy `F4-L` = confirm-delete, current
+> `F4` = remove Details/Long-term). The **Legacy → current ID map** below is the full
+> audit trail; older `plans/` files that predate the renumbering carry their own
+> stale-numbering notes pointing back here.
 >
 > **Execution model.** Each feature is implemented in its own dedicated session that
 > ends with a committed, pushed checkpoint. The **git repository — not conversation
@@ -49,115 +34,37 @@
 
 ## Where the rollout stands
 
-**Three more features shipped since the last reconcile (260630 basis).** All three were
-in the previous "frontend chore-list track" and are now fully merged to `main`, and —
-consistent with the 260630→260707 diff pattern — all three were correctly **dropped from
-the 260707 ledger** rather than left as stale open checkboxes:
+**Current focus: `F14`** (clear-✕ affordance on free-text inputs) — see *Shortest path to
+the focus feature* below.
 
-- **#23 — F10-L: swap swipe directions + 25% action-reveal** (`4b6028f`). Swipe-left now
-  edits, swipe-right deletes; progressive colour reveal fading in toward the 25% threshold;
-  spring-back below threshold. **This was the last outstanding swipe-infra change** — the
-  F5-L swipe contract is now fully superseded by this direction mapping.
-- **#24 — F3-L: Room field becomes a type-as-you-search `<datalist>`** (`a585d8f`). Native
-  `<datalist>` sourced from `uniqueRooms`, threaded through `ChoreFormModal` into the shared
-  `ChoreForm`, on both Add and Edit.
-- **#25 — F9-L: persistent chore-name search filter** (`8144da4`). **This was the previous
-  reconcile's ★FOCUS feature — it is now done.** A `Search`-icon input pinned above the
-  scroll region, view-only substring filter composed with the room filter, survives SSE
-  re-pulls.
+**Shipped through PR #28** — the full list with SHAs is the Completed table below: the
+seven legacy chore-list/swipe/bar features (`F4-L`, `F2-L`, `F5-L`, `F6-L`, `F10-L`,
+`F3-L`, `F9-L`), SSE multi-device sync (#21), Pi rotation/touch config (#19), two plans/
+housekeeping sweeps (#20, #22), and both kiosk overlays: `F1` auto screen-blank (#27) and
+`F2` double-tap touch lock (#28).
 
-**The primary focus has moved.** With F9-L shipped, the user has supplied a fresh 260707
-ledger with a **new primary focus, current-numbering `F1`** — an auto screen-blank/wake
-schedule (9pm–6am local time, tap-to-wake, 5-minute re-blank). It has no prerequisites; see
-*Shortest path to the focus feature* below.
+**Kiosk-layer extraction (decided 2026-07-15).** The kiosk/screen features — shipped
+`F1`/`F2` behavior and the entire unbuilt device-control panel track — are properties of
+the **screen**, not this app, and must run on the Pi **independent of whatever web app is
+displayed**. They migrated to a standalone repo on the user's personal GitHub account,
+**`rehankalu/pi-kiosk`** *(earlier records wrote `rmilarachi/pi-kiosk`; the repo was
+actually created under the `rehankalu` account)*: a *kiosk-shell* web page (Chromium's
+kiosk target; embeds the displayed app in a full-viewport iframe and renders the
+overlays + console above it) plus a *kiosk-agent* host service (localhost HTTP + SSE:
+global evdev input-activity feed, hardware control, config). The full architecture,
+design decisions, and migration phases live in
+**`plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`** — the cross-repo
+contract. Consequences here: `F3`/`F7`/`F8`/`F9`/`F10`/`F13` are **superseded
+(migrated)**; `F11`/`F12` remain chores4irl features re-scoped onto the `kiosk/v1`
+postMessage contract (deferred until pi-kiosk Phase 4); **`F15`** (adopt kiosk-shell:
+remove the `F1`/`F2` overlays, commit the embeddability guarantee) is gated on pi-kiosk
+Phase 2 parity.
 
-**Two net-new features appear in 260707** that weren't in any prior list: current `F1`
-(auto screen-blank, above) and current `F2` — a cross-device **double-tap accidental-touch
-lock** with a padlock-icon overlay animation. Neither has any code on `main` yet.
-`F2` is the most architecturally invasive item in the whole backlog (see its section) and is
-flagged for careful scoping at its own planning time, not decided here.
-
-**Update (2026-07-15 — kiosk-layer extraction reconcile).** Two things happened at once:
-
-1. **Drift fix — `F2` shipped.** `F2` merged as **#28** (`3160dfc`) — the prior
-   reconcile's "awaiting push/PR" framing is stale. It moves to Completed below;
-   **★FOCUS moves to `F14`.**
-2. **Extraction decision.** The user decided (2026-07-15) that the kiosk/screen features —
-   shipped `F1`/`F2` behavior and the entire unbuilt device-control panel track — are
-   properties of the **screen**, not this app, and must run on the Pi **independent of
-   whatever web app is displayed**. They move to a standalone repo on the user's personal
-   GitHub account, **`rmilarachi/pi-kiosk`**: a *kiosk-shell* web page (Chromium's new
-   kiosk target; embeds the displayed app in a full-viewport iframe and renders the
-   overlays + console above it) plus a *kiosk-agent* host service (localhost HTTP + SSE:
-   global evdev input-activity feed, hardware control, config). The full architecture,
-   design decisions, and migration phases live in
-   **`plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`** — the cross-repo
-   contract. Consequences here: `F3`/`F7`/`F8`/`F9`/`F10`/`F13` are **superseded
-   (migrated)**; `F11`/`F12` remain chores4irl features re-scoped onto the `kiosk/v1`
-   postMessage contract (deferred until pi-kiosk Phase 4); a new **`F15`** (adopt
-   kiosk-shell: remove the `F1`/`F2` overlays, commit the embeddability guarantee) is
-   added, gated on pi-kiosk Phase 2 parity.
-
-**Update (2026-07-08 — `/new-feature` reconcile).** `F1` has since shipped (**#27**,
-`a633a2a`) and moves to Completed below — it is no longer in the Kiosk power & input-safety
-track. `F2` (★FOCUS) is implemented on `feature/touch-lock` (scope resolved local-only per
-its own section) and just needs its final push/PR; ★FOCUS stays on `F2` until that merges.
-*(Superseded on both counts by the 2026-07-15 update above: `F2` has merged, and the
-device-control track has migrated.)*
-A new feature, **`F14`** — a single-click "✕" to clear typed text in every free-text input
-(search bar, and the Add/Edit form's Name and Room fields) — was added to the chore-list
-track, ordered **ahead of `F4`/`F5`** (avoids needing an opt-in prop on the shared
-`FormField` to exclude the soon-to-be-removed Details field). `F14` absorbs and supersedes
-the previously-unscheduled follow-up note under `F9-L` (which only covered the search bar).
-
-**Branch hygiene — done.** Verified against `git log`/`git branch -a`:
-
-- `feature/chore-search-filter`, `feature/room-typeahead`, `feature/swipe-direction-swap`
-  were **fully superseded** — every commit on each branch was an ancestor of `main`'s
-  squash-merge commits (`8144da4`/`a585d8f`/`4b6028f`). **Deleted 2026-07-07** (local
-  `git branch -D`; the remote refs were already gone — GitHub auto-deletes on squash-merge
-  in this repo, confirmed via `gh api ... DELETE` returning 422 "Reference does not exist";
-  stale local remote-tracking refs dropped via `git update-ref -d`).
-- `origin/claude/validate-feature-independence-et7uyy` (remote-only, one commit,
-  `2b7f706`, based on pre-#23/#24/#25 `main`) provisioned parallel worktrees to validate
-  F9-L/F3-L/F10-L's mutual independence. Since all three shipped **individually** (not via
-  that worktree flow) and its premise is now moot, this branch was **also already gone
-  remotely — deleted 2026-07-07.**
-- `chore/compact-plans-260630` (local + remote) — its substantial content shipped via #22
-  (`7f0edb2`), but the branch had two more unpushed commits on top. **Verified byte-identical**
-  against what's already on `main` (the small `.vscode/`-gitignore + prompt-wording fix had
-  been re-applied to `main` through a different, non-ancestor commit path) — nothing to
-  cherry-pick. **Deleted 2026-07-07**, local + remote.
-- `deploy/pi-rotation-autostart-script` (local only, no PR ever opened) proposed an
-  alternate, kanshi-free Pi-rotation approach. **User confirmed 2026-07-07 this was an
-  abandoned experiment** — the shipped/live approach is #19's kanshi config, which `F13`
-  (rotate-screen-button, below) builds on. **Deleted 2026-07-07.**
-- `plans/feature/swipe-direction-swap/` (plan dir; only had `reviews/` + `tmp/`, no root
-  plan file) was left over from the now-shipped F10-L. **Archived 2026-07-07** into
-  `plans/completed/swipe-direction-swap/` with a freeze header (per the existing
-  `plans/completed/swipe-actions/`-style convention); its two open push-review findings were
-  harvested into `plans/PUSH-REVIEW-FINDINGS.md`.
-- `plans/WORKTREE-PARALLELIZE-PROMPT.md` is now historical for its original worked example
-  (parallelizing F9-L/F3-L/F10-L, all shipped) — the template itself is still reusable, and
-  got a short stale-numbering note (see the renumbering callout above).
-- `feature/auto-screen-blank` (local + remote) — `F1` shipped as **#27** (`a633a2a`); the
-  branch's only remaining diff against that merge commit was two leftover review-doc files
-  (`reviews/auto-screen-blank-review.md`, `reviews/push-review-feature-auto-screen-blank.md`),
-  no app code. **Deleted 2026-07-08**, local + remote (remote ref was already gone —
-  auto-deleted on squash-merge, confirmed via `gh api ... DELETE` returning 422).
-- `chore/compact-plans-260707` (local + remote) — zero diff against its merge commit
-  `020765a` (#26). **Deleted 2026-07-08**, local + remote (remote ref already gone, same
-  pattern).
-
-No plan directories ever existed for F9-L or F3-L under `plans/feature/` — both shipped
-without leaving plan artifacts behind. Nothing to reconcile there.
-
-**Already-resolved cleanup (carried forward, unchanged).** `feature/progress-bar-decay` and
-all pre-260630 merged branches (`feature/confirm-delete`, `feature/edit-task`,
-`feature/swipe-actions`, `feature/bar-redesign`, `deploy/docker-raspberry-pi`,
-`deploy/pi-display-configs`, `chore/plans-housekeeping`,
-`claude/mobile-pi-device-sync-is0teg`, `claude/dependabot-vulnerabilities-kk09n2`) remain
-pruned. Recorded only so a cold survey doesn't resurrect them.
+**Branch hygiene — clean.** Every merged/superseded/abandoned branch through #28 has been
+pruned (local + remote), each verified against `git log`/`gh` before deletion; the
+per-branch forensics live in git history (PRs #26, #29, #30). A cold survey finding only
+`main` (plus any live feature branch) is the expected state — do not resurrect pruned
+branches, and do not expect plan dirs for features that shipped without one (F9-L, F3-L).
 
 ### Remaining work — four tracks (current numbering, incl. `F14`/`F15`)
 
@@ -173,7 +80,7 @@ Kiosk power & input-safety track (both shipped; slated for relocation):
     (Behavior relocates to pi-kiosk at its Phase 2; the in-app code is then removed by F15.)
 
 Kiosk extraction track (NEW 2026-07-15 — see plans/feature/kiosk-shell-extraction/):
-    [external] rmilarachi/pi-kiosk Phases 1–4 ──► F15 (adopt kiosk-shell, M) after Phase 2 parity
+    [external] rehankalu/pi-kiosk Phases 1–4 ──► F15 (adopt kiosk-shell, M) after Phase 2 parity
     F3 · F7 · F8 · F9 · F10 · F13 ── SUPERSEDED (migrated to pi-kiosk; no chores4irl session runs them)
     F11 (undo) ─→ F12 (redo) ── remain here, re-scoped onto the kiosk/v1 postMessage
         contract; deferred until pi-kiosk Phase 4 delivers the contract
@@ -193,7 +100,7 @@ Infra track:
   unchanged).
 - **Kiosk extraction track (replaces the device-control panel track):** the console and
   its hardware controls (`F3`, `F7`, `F8`, `F9`, `F10`, `F13`) migrated to
-  `rmilarachi/pi-kiosk` — no chores4irl session runs them; the sequencing now lives in the
+  `rehankalu/pi-kiosk` — no chores4irl session runs them; the sequencing now lives in the
   design doc's Migration Phases. What stays here: `F15` (adopt kiosk-shell — an ordinary
   chores4irl feature, gated on the **external** pi-kiosk Phase 2), and `F11`/`F12`
   (app-data undo/redo, re-scoped onto the `kiosk/v1` contract, gated on the external
@@ -202,11 +109,7 @@ Infra track:
   shares no files with app code. If `F6` lands, its alias becomes the natural
   `target_url` in the pi-kiosk config.
 
-### Shortest path to the focus feature (`F1`/`F2` shipped; current focus is `F14`)
-
-**`F1` shipped 2026-07-08** (#27, `a633a2a`) and **`F2` shipped** (#28, `3160dfc`) — the
-sections that used to justify them as focus are historical; their implemented contracts
-live under Completed below.
+### Shortest path to the focus feature (`F14`)
 
 **`F14` is the current ★FOCUS and the shortest hop** (clear-✕ affordance on free-text
 inputs) — zero prerequisites and the smallest remaining estimate (S). The user explicitly
@@ -342,31 +245,21 @@ pi-kiosk repo's own planning, not here.
 | F15 — adopt kiosk-shell *(added 2026-07-15)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — | — |
 | ~~progress-bar-decay~~ | **deleted** (superseded; functionality on `main`) | *(branch gone)* | — | — |
 
-**Branch/dir cleanup — all done 2026-07-07:**
-1. ~~Delete `feature/chore-search-filter`, `feature/room-typeahead`, `feature/swipe-direction-swap`~~ — done (local + remote; remote refs were already gone).
-2. ~~Delete remote-only `claude/validate-feature-independence-et7uyy`~~ — done (already gone remotely).
-3. ~~Archive `plans/feature/swipe-direction-swap/` under `plans/completed/`~~ — done (`/compact-plans` sweep): moved to `plans/completed/swipe-direction-swap/` with a freeze header (no original plan body existed to preserve — noted in the frozen file); its two open push-review findings harvested into `plans/PUSH-REVIEW-FINDINGS.md`.
-4. ~~Delete `chore/compact-plans-260630`~~ — done, local + remote (verified byte-identical against `main` first — nothing lost).
-5. ~~Delete `deploy/pi-rotation-autostart-script`~~ — done (confirmed abandoned experiment by user).
+**Branch/dir cleanup:** all sweeps through 2026-07-08 are done — no `(prune)` markers
+outstanding; per-branch details live in git history (PRs #22, #26, #29). Future sweeps run
+`plans/COMPACT-PLANS-PROMPT.md`.
 
-**Branch cleanup — done 2026-07-08 (`/new-feature` provisional-check spot-check):**
-1. ~~Delete `feature/auto-screen-blank`~~ — done, local + remote (F1 shipped as #27; only leftover diff was two review-doc files, no app code; remote ref already gone).
-2. ~~Delete `chore/compact-plans-260707`~~ — done, local + remote (zero diff against its merge commit `020765a`, #26; remote ref already gone).
-
-**Ledger update protocol (per session):** unchanged from prior revisions — see the four
-numbered steps that were here previously: set `in-progress` on start, `in-review` + PR link
-after `git-push`, `merged` + SHA only once actually merged (never self-mark), ledger edits
-ride in the feature's own commits/PR.
+**Ledger update protocol (per session):** set `in-progress` on start; `in-review` + PR
+link after `git-push`; `merged` + SHA only once actually merged (never self-mark); ledger
+edits ride in the feature's own commits/PR.
 
 ---
 
-## Baseline: the codebase as it exists today (`main` after F4-L/F2-L/F5-L/F6-L + SSE #21 + Pi-config #19 + F10-L/F3-L/F9-L + F1 #27 + F2 #28)
+## Baseline: the codebase as it exists today (`main` at PR #28, `3160dfc`)
 
-> **This Baseline reflects `main` after all seven legacy-numbered merges above, plus `F1`
-> (#27, `a633a2a`) and `F2` (#28, `3160dfc`).** It is the literal current state and the
-> **assumed starting state for every remaining feature.** Earlier revisions described a
-> pre-#23/#24/#25 baseline, then a pre-#27 baseline, then (stale, fixed 2026-07-15) a
-> "F2 not yet merged" baseline — all historical. Touch-lock is fully on `main`:
+> **This Baseline reflects `main` after PR #28 (`3160dfc`).** It is the literal current
+> state and the **assumed starting state for every remaining feature.**
+> Touch-lock is fully on `main`:
 > `frontend/src/hooks/useTouchLock.ts`, `components/common/TouchLockOverlay.tsx` (with the
 > exported `CLOSING_SETTLE_MS` / `App.tsx` `isClosing` unmount handshake), and
 > `TouchLockIndicator.tsx`, wired via `inert={isBlanked || isLocked}` on the app root.
@@ -659,7 +552,7 @@ local-to-the-kiosk semantics forward).
 > Every remaining feature's **Assumed starting state is the Baseline above**. `F1` (#27)
 > and `F2` (#28) shipped — their implemented contracts live under Completed Features. The
 > **focus feature is `F14`** (see "Shortest path" above). `F3`/`F7`/`F8`/`F9`/`F10`/`F13`
-> are **superseded — migrated to `rmilarachi/pi-kiosk`** (2026-07-15, see
+> are **superseded — migrated to `rehankalu/pi-kiosk`** (2026-07-15, see
 > `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`); their sections below
 > are retained as banners + history only. `F11`/`F12` remain here, re-scoped; `F15` is new.
 
@@ -813,7 +706,7 @@ fully opaque button. Confirm `backdrop-blur` performs acceptably on the Pi/mobil
 ## F3 — Settings / device-control panel (container)  ·  SUPERSEDED 2026-07-15 (migrated to pi-kiosk)
 
 > **SUPERSEDED — do not run this feature in this repo.** The console migrated to the
-> `rmilarachi/pi-kiosk` shell per the kiosk-layer extraction decision
+> `rehankalu/pi-kiosk` shell per the kiosk-layer extraction decision
 > (`plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`). The design below
 > (gear↔X NavBar toggle, single-row overlaid banner, control-registration shape,
 > placeholder-first rollout) **carries over as the shell console's spec** — it just renders

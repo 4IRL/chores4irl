@@ -3,7 +3,8 @@
 > **What this file is.** A cross-repo architecture design doc, not an implementation plan
 > for a single chores4irl feature. It records the decision (2026-07-15) to extract every
 > kiosk/screen-specific concern out of chores4irl into a standalone repo on the user's
-> **personal** GitHub account (`rmilarachi/pi-kiosk`), so the Pi's 10" touchscreen features
+> **personal** GitHub account (`rehankalu/pi-kiosk` — earlier drafts wrote
+> `rmilarachi/pi-kiosk`; the repo was created under `rehankalu`), so the Pi's 10" touchscreen features
 > (touch lock, auto screen-blank, device-control console) run **in parallel with, and
 > independent of, whatever web app is displayed on the screen**. Implementation happens in
 > later sessions: most of it in the new repo (which this doc seeds), plus exactly one
@@ -16,7 +17,7 @@ chores4irl currently carries two shipped features that belong to the *screen*, n
 *app* — the auto screen-blank (`F1`, #27) and the double-tap accidental-touch lock (`F2`,
 #28) — plus a fully-specified-but-unbuilt device-control console (`F3` + `F7`–`F13`).
 All of these are portable to any future application shown on the same wall-mounted Pi.
-They move to a new two-component system in `rmilarachi/pi-kiosk`:
+They move to a new two-component system in `rehankalu/pi-kiosk`:
 
 - **kiosk-shell** — a thin, always-running web page that Chromium's kiosk mode points at
   (replacing `http://localhost/` as the kiosk URL). It embeds the displayed app
@@ -209,7 +210,7 @@ kiosk-agent (systemd user service, Python, binds 127.0.0.1:8127)
 
 ## Naming & New-Repo Layout
 
-Repo: **`rmilarachi/pi-kiosk`** (personal account, not 4IRL — alternatives considered:
+Repo: **`rehankalu/pi-kiosk`** (personal account, not 4IRL — alternatives considered:
 `kiosk-shell`, `wall-kiosk`).
 
 ```
