@@ -1,5 +1,20 @@
 # In-App Rotate-Screen Button (Pi Kiosk)
 
+> **SUPERSEDED IN PART (2026-07-15) — do not implement this plan as written.** `F13`
+> migrated to the standalone `rmilarachi/pi-kiosk` repo per the kiosk-layer extraction
+> decision (`plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md` — read that
+> doc first). The chores-backend host-bridge in this plan — the Express
+> `GET/POST /api/display/rotation` endpoint, `rotation.json`, the rmilarachi-owned bind
+> mount, the compose `name:` pin, the `inotifywait` watcher, and the `SettingsPanel` in
+> chores4irl's NavBar — is superseded by the kiosk-agent's direct localhost HTTP API.
+> The **host-side decisions survive and are harvested** by the design doc's DD-8:
+> connector discovery at apply time, the transform→token→`calibrationMatrix` case table,
+> `0 → normal`, sed-anchored kanshi edits + guarded labwc edits + `labwc --reconfigure`,
+> allowlist-before-interpolation, the systemd **user**-service Wayland-env handling, and
+> the portrait-only `90 ↔ 270` toggle default (this plan's corrected DD-8 rationale).
+> This file stays in place as the harvest source; archival to `plans/completed/` belongs
+> to a later `/compact-plans` sweep.
+
 ## Summary
 
 Add a user-facing "rotate screen" button to the chores4irl kiosk so display orientation can be changed without editing host config files over SSH. Because rotation is a **host** concern (kanshi / labwc / `wlr-randr` run in the Pi's Wayland session, outside Docker), the feature uses a host-bridge: the React button calls a new Express endpoint, the backend writes a `rotation.json` state file into a **dedicated rmilarachi-owned bind-mounted host directory** (separate from the SQLite `chores-data` named volume), and a new host-side systemd **user** service watches that file and applies the rotation live (`wlr-randr`) + persistently (kanshi config + labwc `calibrationMatrix`), keeping display and touch in sync. The bind mount is required because a non-root systemd **user** service cannot traverse the root-`0700` `/var/lib/docker/volumes/` tree where the named volume lives (DD-7). The button toggles between the two **portrait** orientations only (`90 ↔ 270`); landscape transforms (`0`/`180`) are intentionally unreachable from the button as a **deliberate portrait-first default** for the wall-mounted kiosk (DD-8 — note the overlay-lockout justification was corrected; see DD-8). The rotate control is **housed in a new collapsible settings panel** (DD-5): a NavBar toggle that expands into an overlaid single-row banner of kiosk controls. Rotate is the one functional control; brightness, screen-blank, restart, undo, and redo ship as **disconnected, optimistic icon placeholders** for future work (logged in `plans/ledger/260630_future_feature_list.md`).

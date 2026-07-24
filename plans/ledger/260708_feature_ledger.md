@@ -1,3 +1,10 @@
+> **PREDECESSOR — superseded by `plans/ledger/260715_feature_ledger.md`.** F2 shipped
+> (PR #28, `3160dfc`) since this file was written; the device-control panel track (F3,
+> F7–F13) migrated to the standalone `rmilarachi/pi-kiosk` repo per the kiosk-layer
+> extraction decision (see `plans/feature/kiosk-shell-extraction/`); F11/F12 were
+> re-scoped onto the `kiosk/v1` contract and F15 (adopt kiosk-shell) was added. Read the
+> 260715 ledger, not this one.
+
 - [ ] F2: To inhibit accidental chore reset, require double-tap activation before accepting the first interaction in a while, no matter which device accesses it. Once active, allow any subsequent user to interact with UI normally. The two-touch lock is reapplied 5 minutes after last interaction. Display a lock icon in the top-left-hand corner to communicate the current state to the user. Show an overlay toast as feedback that includes an animation of a padlock opening and closing, then minimizing down to the icon location. In other words, after one touch a padlock icon shows overlaid and centered in the screen. If no other interaction is experienced, the icon shrinks to the upper-left-hand corner. If a second touch is seen sufficiently close to the first, the padlock animates opens and immediately minimizes to the upper left. Then, 5 minutes after last interaction, an open padlock overlaid and centered in the screen animates closed, then minimizes to the upper left.
 - [ ] F3: Settings control panel. See details in corresponding section below
 - [ ] F4: Remove 'Details' and 'Long-term task' toggle from the Add Task form. Propagate the removal from the database and other associated schema related to these fields.
