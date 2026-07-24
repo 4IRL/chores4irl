@@ -101,8 +101,8 @@ When in doubt, freeze-and-archive rather than delete.
 - `plans/completed/` (and/or `plans/abandoned/`) holds frozen, headered records.
 - All deferred minor findings harvested into `plans/PUSH-REVIEW-FINDINGS.md`.
 - No `tmp/` scratch for finished plans; `plans/**/tmp/` is gitignored.
-- No lingering merged branches (local or remote); the `META-PLAN.md` ledger's `(prune)`
-  markers cleared for branches actually removed.
+- No lingering merged branches (local or remote); any Status-ledger row for a pruned
+  branch's feature deleted per META-PLAN's history policy.
 - A short summary to the user: what was frozen (with SHAs), moved, deleted, and pruned.
 
 ## Tracking decision (raise once, then respect the answer)
