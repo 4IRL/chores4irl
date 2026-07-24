@@ -69,8 +69,10 @@ After a feature's plan is frozen and relocated, its branch is dead weight.
 1. **Find merged branches by PR state, not ancestry.** This repo **squash-merges**, so a
    merged branch is *not* an ancestor of `main` — `git branch --merged main` will miss it
    (it typically shows only `main`). Drive the list from PRs instead:
-   `gh pr list --state merged --json number,title,headRefName,mergeCommit`. Cross-check each
-   against the **`META-PLAN.md` status ledger** (rows marked `merged` / `(prune)`).
+   `gh pr list --state merged --json number,title,headRefName,mergeCommit`, cross-checked
+   against `git branch -a`. (Per META-PLAN's history policy, 2026-07-24, the Status ledger
+   holds only *unmerged* work — merged rows are deleted, so there are no `merged`/`(prune)`
+   ledger rows to cross-check; git/`gh` are the sole authority on what merged.)
 2. **Prune only truly-merged branches** — local and remote:
    `git branch -d <branch>` (use `-d`, never `-D`, so git refuses to drop anything not
    actually merged/captured) and `git push origin --delete <branch>`. A branch whose
@@ -83,8 +85,9 @@ After a feature's plan is frozen and relocated, its branch is dead weight.
    to prune and get the user's go-ahead, same gate as committing. Branch deletion is recoverable
    (reflog locally, re-push from a teammate's copy remotely) but treat remote deletes as
    outward-facing.
-5. Record the pruned branches in the run summary, and clear/annotate their `(prune)` markers in
-   the `META-PLAN.md` ledger so the next sweep doesn't re-flag them.
+5. Record the pruned branches in the run summary. If any pruned branch's feature still has a
+   Status-ledger row (i.e. it merged but the row wasn't yet deleted), delete that row per
+   META-PLAN's history policy — that is what prevents the next sweep from re-flagging it.
 
 ## Step 5 — Preserve, never discard
 Before deleting anything non-`tmp/`, confirm it isn't the only record of:
@@ -98,8 +101,8 @@ When in doubt, freeze-and-archive rather than delete.
 - `plans/completed/` (and/or `plans/abandoned/`) holds frozen, headered records.
 - All deferred minor findings harvested into `plans/PUSH-REVIEW-FINDINGS.md`.
 - No `tmp/` scratch for finished plans; `plans/**/tmp/` is gitignored.
-- No lingering merged branches (local or remote); the `META-PLAN.md` ledger's `(prune)`
-  markers cleared for branches actually removed.
+- No lingering merged branches (local or remote); any Status-ledger row for a pruned
+  branch's feature deleted per META-PLAN's history policy.
 - A short summary to the user: what was frozen (with SHAs), moved, deleted, and pruned.
 
 ## Tracking decision (raise once, then respect the answer)
