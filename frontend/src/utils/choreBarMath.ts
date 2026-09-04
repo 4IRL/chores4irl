@@ -24,10 +24,10 @@ export function computeBar(daysSince: number, frequency: number): BarMathResult 
 
     let barColor: string;
     if (isOverdue) {
-        barColor = 'bg-red-500 bg-opacity-50';
+        barColor = 'bg-red-500';
     } else {
         const match = statusColors.find(s => remainingRatio > s.threshold);
-        barColor = (match ?? statusColors[statusColors.length - 1]).color + ' bg-opacity-50';
+        barColor = (match ?? statusColors[statusColors.length - 1]).color;
     }
 
     return { isOverdue, remainingRatio, barWidth, barColor };
