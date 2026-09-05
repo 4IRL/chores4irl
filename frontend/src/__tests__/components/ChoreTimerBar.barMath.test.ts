@@ -6,6 +6,7 @@ describe('ChoreTimerBar bar math', () => {
         const result = computeBar(0, 10);
         expect(result.barWidth).toBe(100);
         expect(result.barColor).toContain('green');
+        expect(result.barColor).not.toContain('bg-opacity-50');
     });
 
     it('day 3 of a 10-day chore → barWidth ≈ 70, green', () => {
@@ -36,6 +37,7 @@ describe('ChoreTimerBar bar math', () => {
         const result = computeBar(12, 10);
         expect(result.barWidth).toBe(40);
         expect(result.barColor).toContain('red');
+        expect(result.barColor).not.toContain('bg-opacity-50');
         expect(result.isOverdue).toBe(true);
     });
 

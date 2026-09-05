@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChoreTimerBar from '../../components/chore/ChoreTimerBar';
-import { makeChore } from '../fixtures/chore';
+import { makeChore, localNoon } from '../fixtures/chore';
 
 const day = new Date(2025, 0, 15, 12, 0, 0);
 
@@ -471,5 +471,40 @@ describe('ChoreTimerBar', () => {
             />
         );
         expect(screen.getByTestId('chore-bar')).toHaveClass('touch-pan-y');
+    });
+    // `day` is 2025-01-15, so these dates put the chore 2 days into a 10-day cycle
+    // (not due) and 2 days past it (overdue). Both drive the real component, so a
+    // regression that bakes an opacity utility back into computeBar's colour string
+    // fails here rather than slipping past barMath's substring assertions.
+    it('renders a translucent green fill for a chore that is not yet due', () => {
+        render(
+            <ChoreTimerBar
+                chore={makeChore({ dateLastCompleted: localNoon('2025-01-13'), frequency: 10 })}
+                day={day}
+                isSimulating={false}
+                onComplete={vi.fn()}
+                onDelete={vi.fn()}
+            />
+        );
+        const fill = screen.getByTestId('chore-bar').firstElementChild as HTMLElement;
+        expect(fill.className).toContain('bg-green-500');
+        expect(fill.className).toContain('opacity-50');
+        expect(fill.className).not.toContain('bg-opacity-50');
+    });
+
+    it('renders a translucent red fill for an overdue chore', () => {
+        render(
+            <ChoreTimerBar
+                chore={makeChore({ dateLastCompleted: localNoon('2025-01-03'), frequency: 10 })}
+                day={day}
+                isSimulating={false}
+                onComplete={vi.fn()}
+                onDelete={vi.fn()}
+            />
+        );
+        const fill = screen.getByTestId('chore-bar').firstElementChild as HTMLElement;
+        expect(fill.className).toContain('bg-red-500');
+        expect(fill.className).toContain('opacity-50');
+        expect(fill.className).not.toContain('bg-opacity-50');
     });
 });

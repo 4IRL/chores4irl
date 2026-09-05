@@ -4,6 +4,9 @@ export type BarMathResult = {
     isOverdue: boolean;
     remainingRatio: number;
     barWidth: number;
+    // Bare fill colour, with no opacity utility baked in — the renderer (ProgressBar)
+    // applies opacity-50 itself. Concatenating one here is how the dead Tailwind v3
+    // bg-opacity-50 crept in, so keep this a colour on its own.
     barColor: string;
 };
 
