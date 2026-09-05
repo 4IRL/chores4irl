@@ -472,6 +472,7 @@ describe('ChoreTimerBar', () => {
         );
         expect(screen.getByTestId('chore-bar')).toHaveClass('touch-pan-y');
     });
+
     // `day` is 2025-01-15, so these dates put the chore 2 days into a 10-day cycle
     // (not due) and 2 days past it (overdue). Both drive the real component, so a
     // regression that bakes an opacity utility back into computeBar's colour string
