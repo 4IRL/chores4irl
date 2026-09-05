@@ -6,7 +6,7 @@ type ProgressBarProps = {
 export default function ProgressBar({ width, color }: ProgressBarProps) {
     return (
         <div
-            className={`absolute left-0 top-0 h-full rounded-full transition-all duration-300 ease-in-out flex items-center justify-center ${color}`}
+            className={`absolute left-0 top-0 h-full rounded-full transition-all duration-300 ease-in-out flex items-center justify-center ${color} opacity-50`}
             style={{ width: `${width}%` }}
         >
         </div>

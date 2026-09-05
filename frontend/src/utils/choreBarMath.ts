@@ -4,6 +4,9 @@ export type BarMathResult = {
     isOverdue: boolean;
     remainingRatio: number;
     barWidth: number;
+    // Bare fill colour, with no opacity utility baked in — the renderer (ProgressBar)
+    // applies opacity-50 itself. Concatenating one here is how the dead Tailwind v3
+    // bg-opacity-50 crept in, so keep this a colour on its own.
     barColor: string;
 };
 
@@ -24,10 +27,10 @@ export function computeBar(daysSince: number, frequency: number): BarMathResult 
 
     let barColor: string;
     if (isOverdue) {
-        barColor = 'bg-red-500 bg-opacity-50';
+        barColor = 'bg-red-500';
     } else {
         const match = statusColors.find(s => remainingRatio > s.threshold);
-        barColor = (match ?? statusColors[statusColors.length - 1]).color + ' bg-opacity-50';
+        barColor = (match ?? statusColors[statusColors.length - 1]).color;
     }
 
     return { isOverdue, remainingRatio, barWidth, barColor };

@@ -9,5 +9,9 @@ describe('ProgressBar', () => {
         expect(bar).toBeInTheDocument();
         expect(bar.style.width).toBe('75%');
         expect(bar.className).toContain('bg-green-500');
+        // opacity-50, not the Tailwind v3 bg-opacity-50 — that utility was removed in v4
+        // and compiled to nothing, leaving the fill fully opaque.
+        expect(bar.className).toContain('opacity-50');
+        expect(bar.className).not.toContain('bg-opacity-50');
     });
 });
