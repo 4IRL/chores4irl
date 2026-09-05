@@ -45,3 +45,45 @@ No try/catch, async, or I/O anywhere in the changed code — pure synchronous th
 - [x] **Document the `barColor` opacity contract** *(done 2026-09-05 — 3-line comment on `BarMathResult.barColor` in `choreBarMath.ts`; kept the field name rather than renaming to `barFillClass`, since the rename would churn `ChoreTimerBar.tsx` for no added safety)* — `frontend/src/utils/choreBarMath.ts` — Add a short comment on `BarMathResult.barColor` (or rename it to `barFillClass`) noting that opacity is deliberately applied by the renderer (`ProgressBar`) and is not baked into the string, so a future second consumer doesn't render an opaque bar.
 - [x] **Fix the same dead-utility bug in the sibling button** *(done 2026-09-04 — ported to `bg-blue-500/50 hover:bg-blue-600/50`; the alpha-suffixed colour, not `opacity-50`, since v3's `bg-opacity-*` tinted only the background and `opacity-50` would fade the white label too)* — `frontend/src/components/form/AddChoreButton.tsx:8` — Replace `bg-opacity-50` with `opacity-50` (or the alpha-suffixed `bg-blue-500/50`). Tailwind is pinned at `^4.1.8`, which dropped `bg-opacity-*`, so the button currently renders fully opaque. Pre-existing, out of this diff.
 - [x] **Consider collapsing the two-entry `statusColors` table** *(considered and DECLINED 2026-09-05 by user decision — table kept as-is for extensibility: adding a tier stays a one-line array edit. The unreachable `??` fallback is retained deliberately as part of that choice. No code change.)* — `frontend/src/assets/constants.ts`, `frontend/src/utils/choreBarMath.ts` — With red moved out, the table encodes one binary decision. Optionally replace with a single exported threshold constant and `remainingRatio > threshold ? 'bg-green-500' : 'bg-orange-500'`, dropping the `StatusColor` type, the `.find()` traversal, and the now-unreachable `??` fallback together. Optional; the table is not wrong, only more machinery than a two-way split needs.
+
+## Review 2
+Generated: 2026-09-05 07:43
+Comparison: origin/main...HEAD (2 commits — `03cf944`, `12fb325`)
+Verdict: **PUSHED WITH MINOR FINDINGS**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+Diff is limited to static Tailwind class strings and pure client-side threshold math for the chore progress bar (plus tests and this review doc); no user input, secrets, network/DB/OS calls, or dangerous operations. No findings.
+
+#### 2. Correctness — PASS
+Threshold math (0.375 exclusive lower bound), the overdue-gated red branch, the `opacity-50` relocation to `ProgressBar`, and the Tailwind v4 alpha-suffix fix in `AddChoreButton` all check out against every new/changed test case, including the 0.375 boundary, `daysSince===frequency`, and the first overdue day.
+- *(minor)* `frontend/src/utils/choreBarMath.ts:33` — `(match ?? statusColors[statusColors.length - 1]).color` is unreachable: `statusColors`' last entry has threshold `-Infinity` and `remainingRatio` here is always finite, so `.find()` always matches. Not a functional bug, just redundant fallback logic (same observation as Error Handling, below).
+
+#### 3. Simplicity & Conciseness — PASS
+Tightly-scoped bug fix (dead `bg-opacity-50` replaced with `opacity-50`/alpha-suffixed colors) with matching regression tests and explanatory comments; no over-engineering or unnecessary indirection. No findings.
+
+#### 4. Test Coverage — PASS
+The Review 1 major gap is now closed and empirically verified: reverting `computeBar` to concatenate `' bg-opacity-50'` was tested live and correctly fails both `ChoreTimerBar.barMath.test.ts` unit assertions and, critically, both new `ChoreTimerBar.test.tsx` end-to-end rendering tests — which render the real component and inspect the actual fill div's `className` via `firstElementChild` of the real `ProgressBar` — so the fix now guards the true integration path, not just the isolated unit. The new `statusColors` threshold tests (0.375 exact boundary via `computeBar(5,8)`, day 9 → orange, `daysSince===frequency` → orange/not-overdue, adjacent 1-day-overdue → red/overdue) are all arithmetically correct and correctly bracket the boundaries.
+- *(minor)* `frontend/src/components/form/AddChoreButton.tsx:8` — has no test file at all. This diff fixes the identical dead-Tailwind-v3-utility bug here (`bg-opacity-50` → `bg-blue-500/50 hover:bg-blue-600/50`) that just got three layers of regression coverage in `computeBar`/`ProgressBar`/`ChoreTimerBar`, but ships with zero coverage of its own — a future revert to v3 syntax there would pass the full suite silently.
+
+#### 5. Completeness & Cleanup — PASS
+Clean of debug code, TODOs, and stubs; all new/updated comments in `constants.ts`, `choreBarMath.ts`, and the test files accurately describe the actual threshold/branch behavior; all five prior review to-do items are checked off and reflected in the code. No findings.
+
+#### 6. Consistency & Style — PASS
+- *(minor)* `frontend/src/__tests__/components/ChoreTimerBar.test.tsx:474` — the multi-line explanatory comment before the two new tests is jammed directly against the previous test's closing `});` with no blank line separating it, unlike every other test in the file (including cases with a preceding block comment, e.g. lines 16-18 before `BAR_WIDTH`).
+
+#### 7. Integration Risk — PASS
+`statusColors`, `computeBar`, `BarMathResult`, and `ProgressBar` each have exactly one production consumer (all within `ChoreTimerBar.tsx`'s render path); no schema/config/env/dependency changes; the `barColor` contract change is applied consistently at the single call site. No findings.
+
+#### 8. Error Handling & Silent Failures — PASS
+Pure synchronous UI threshold/Tailwind-class math and tests, no try/catch/async/I/O; the `bg-opacity-50` → `opacity-50` fix itself removes a real silent rendering bug.
+- *(minor)* `frontend/src/utils/choreBarMath.ts:33` — the `?? statusColors[length - 1]` fallback is currently unreachable dead-code insurance, not an active error-swallowing pattern. Residual risk is only a *future* edit removing/reordering the `-Infinity` sentinel, at which point this would silently pick whatever color is last in the array with no warning. Low-blast-radius (presentational color only), and the two-entry shape was deliberately kept per Review 1 item 5 (declined).
+
+*(Reviewer 9, Type Design, was not launched — no new or reshaped type definitions in this diff.)*
+
+### To-Do: Optional Follow-ups (non-blocking)
+
+- [ ] **Add a blank line before the new test-block comment** — `frontend/src/__tests__/components/ChoreTimerBar.test.tsx:474` — Insert a blank line between the preceding `});` and the comment starting `// \`day\` is 2025-01-15...`, matching the file's established spacing convention (every other test in the file separates from its neighbor this way).
+- [ ] **Add regression coverage for `AddChoreButton`'s opacity fix** — `frontend/src/components/form/AddChoreButton.tsx`, new `frontend/src/__tests__/components/AddChoreButton.test.tsx` — Add a small render test asserting the button's `className` contains `bg-blue-500/50` and not `bg-opacity-50`, mirroring the guard already added to `ProgressBar.test.tsx`, so a future revert to the dead v3 syntax doesn't ship silently.
+- [ ] **Optional: resolve the unreachable `??` fallback in `choreBarMath.ts`** — `frontend/src/utils/choreBarMath.ts:33` — Either drop the `?? statusColors[statusColors.length - 1]` fallback and let `.find()`'s `undefined` surface a type/runtime signal if the `-Infinity` sentinel is ever removed, or add a one-line comment next to `statusColors` in `constants.ts` noting that the last entry's `-Infinity` threshold is a required invariant this fallback relies on.
