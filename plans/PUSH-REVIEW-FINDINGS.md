@@ -105,7 +105,7 @@ Source: `plans/completed/multi-device-sync/reviews/push-review-claude-mobile-pi-
 Source: `plans/completed/plans-housekeeping/reviews/push-review-chore-plans-housekeeping.md`
 > The two doc-hygiene findings (freeze headers on older completed plans; correct progress-bar-decay's status) were **resolved in this `/compact-plans` sweep** — see Resolved/archived. The two below remain open.
 
-- [ ] `[dx]` minor — Make the META-PLAN dual-table update explicit — `plans/META-PLAN.md` — completed features live in **both** the Summary table and the Status ledger; add a one-line reminder to the ledger-update protocol to also move the row in the Summary table, so the two never drift.
+- [x] `[dx]` minor — ~~Make the META-PLAN dual-table update explicit~~ — **superseded by policy 2026-07-24**: merged features are no longer tabulated in META-PLAN at all (git is the authority; merged Status-ledger rows are deleted), so there is no Completed table to drift against the Status ledger.
 - [ ] `[security]` opt — Redact host specifics in historical deploy plans — `plans/completed/docker-raspberry-pi/docker-raspberry-pi.md` et al. — replace `192.168.1.214` / `rmilarachi` with placeholders **only if this repo ever goes public**. Non-blocking for a private repo.
 
 ---
