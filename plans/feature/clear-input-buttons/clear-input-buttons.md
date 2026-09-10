@@ -133,7 +133,7 @@ across three call sites and gives the affordance one place to test and adjust st
 Wire the shared button into the search bar, the simplest of the three call sites (no form, no sibling fields).
 
 **To-do:**
-- [ ] **Red.** Extend `frontend/src/__tests__/components/ChoreSearchInput.test.tsx` with three
+- [x] **Red.** Extend `frontend/src/__tests__/components/ChoreSearchInput.test.tsx` with three
   tests: (1) "does not render a clear button when value is empty" — render with `value=""`,
   assert `screen.queryByRole('button', { name: 'Clear Search' })` is `null`; (2) "renders
   a clear button when non-empty and clears on click" — render with `value="abc"` and an
@@ -149,7 +149,7 @@ Wire the shared button into the search bar, the simplest of the three call sites
   button when value is empty") passes trivially both before and after Green, since the
   current code never renders any clear button regardless of value — it's a forward-looking
   regression guard, not a discriminating red assertion (mirroring Step 3's tests (1)/(2)).
-- [ ] **Green.** Edit `frontend/src/components/chore/ChoreSearchInput.tsx`: add `import { useRef }
+- [x] **Green.** Edit `frontend/src/components/chore/ChoreSearchInput.tsx`: add `import { useRef }
   from 'react';` and `import ClearButton from
   '../common/ClearButton';` (this file currently has no import from `'react'` to extend).
   Add `const inputRef = useRef<HTMLInputElement>(null);` inside
@@ -163,7 +163,7 @@ Wire the shared button into the search bar, the simplest of the three call sites
   still inside the existing `<div className="relative">` wrapper, add:
   `{value !== '' && <ClearButton label="Clear Search" onClear={() => { onChange('');
   inputRef.current?.focus(); }} />}`. Re-run the test file and confirm it passes.
-- [ ] **Refactor.** None expected.
+- [x] **Refactor.** None expected.
 
 **Verification:** `cd frontend && npx vitest run src/__tests__/components/ChoreSearchInput.test.tsx`.
 
@@ -348,7 +348,12 @@ Run the full test suites to confirm nothing is broken.
   - ✅ Green: `frontend/src/components/common/ClearButton.tsx` created, all 7 tests pass
   - ✅ Refactor: className confirmed matching house style (`DateNavigationBanner.tsx` icon-button pattern, `ChoreSearchInput`'s icon color) — no changes needed
   - ✅ Subagent review pipeline: Correctness & Codebase Fit PASS, Quality & Completeness PASS; Security & Edge Cases raised 1 minor finding (empty `label` would strip `aria-label`) — fixed with a documenting JSDoc comment on the `label` prop, re-validated (7/7 tests pass)
-- [ ] Step 2: `ChoreSearchInput` clear-✕
+- [x] **Step 2: `ChoreSearchInput` clear-✕** - COMPLETE (2026-09-10)
+  - ✅ Red: `frontend/src/__tests__/components/ChoreSearchInput.test.tsx` extended with 3 tests, confirmed 2/3 failing pre-Green (empty-value test passed trivially as a forward-looking guard)
+  - ✅ Green: `frontend/src/components/chore/ChoreSearchInput.tsx` wired with `useRef`, `ClearButton` (default `anchor="center"`), `pr-3`→`pr-14`; all 7 tests pass
+  - ✅ Refactor: implementation matches plan's spec exactly — no changes needed
+  - ✅ Subagent review pipeline: Correctness & Codebase Fit PASS, Security & Edge Cases PASS, Quality & Completeness PASS — no findings, no fixes needed
+  - ✅ Full frontend suite re-verified: 242/242 tests passing (28 files)
 - [ ] Step 3: `FormField`'s opt-in `clearable` prop
 - [ ] Step 4: Wire Name + Room clear-✕ in `ChoreForm`, guard Details
 - [ ] Step 5: App-level integration check for the search-bar clear-✕
