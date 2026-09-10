@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { Chore } from '@customTypes/SharedTypes';
 import FormField from './FormField';
+import ClearButton from '../common/ClearButton';
 
 type FormState = {
     name: string;
@@ -49,6 +50,7 @@ export default function ChoreForm({ mode = 'add', initialChore, rooms = [], onSu
     const [formData, setFormData] = useState<FormState>(() =>
         initialChore ? choreToFormState(initialChore) : initialFormState,
     );
+    const roomInputRef = useRef<HTMLInputElement>(null);
 
     function handleFieldChange(name: string, value: string) {
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -73,25 +75,38 @@ export default function ChoreForm({ mode = 'add', initialChore, rooms = [], onSu
         <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md overflow-y-auto max-h-[90dvh]">
             <h3 className="text-white font-semibold text-lg mb-4">{mode === 'edit' ? 'Edit Chore' : 'Add New Chore'}</h3>
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-                <FormField name="name" label="Name" value={formData.name} onChange={handleFieldChange} required autoFocus />
+                <FormField name="name" label="Name" value={formData.name} onChange={handleFieldChange} required autoFocus clearable />
                 <FormField name="details" label="Details" value={formData.details} onChange={handleFieldChange} />
                 <div className="flex flex-col gap-1">
                     <label htmlFor="room" className="text-sm text-gray-400 capitalize">Room</label>
-                    <input
-                        id="room"
-                        name="room"
-                        type="text"
-                        list="room-options"
-                        value={formData.room}
-                        onChange={e => handleFieldChange('room', e.target.value)}
-                        required
-                        className="bg-gray-700 text-white rounded px-3 py-2 text-sm"
-                    />
-                    <datalist id="room-options">
-                        {rooms.map(room => (
-                            <option key={room} value={room} />
-                        ))}
-                    </datalist>
+                    <div className="relative">
+                        <input
+                            ref={roomInputRef}
+                            id="room"
+                            name="room"
+                            type="text"
+                            list="room-options"
+                            value={formData.room}
+                            onChange={e => handleFieldChange('room', e.target.value)}
+                            required
+                            className="bg-gray-700 text-white rounded px-3 py-2 text-sm w-full pr-14"
+                        />
+                        {formData.room !== '' && (
+                            <ClearButton
+                                label="Clear Room"
+                                onClear={() => {
+                                    handleFieldChange('room', '');
+                                    roomInputRef.current?.focus();
+                                }}
+                                anchor="top"
+                            />
+                        )}
+                        <datalist id="room-options">
+                            {rooms.map(room => (
+                                <option key={room} value={room} />
+                            ))}
+                        </datalist>
+                    </div>
                 </div>
                 <FormField name="dateLastCompleted" label="Last Completed" value={formData.dateLastCompleted} onChange={handleFieldChange} type="date" required />
                 <FormField name="duration" label="Duration (minutes)" value={formData.duration} onChange={handleFieldChange} type="number" required />

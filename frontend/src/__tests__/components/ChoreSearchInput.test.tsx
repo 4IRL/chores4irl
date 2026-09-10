@@ -30,4 +30,30 @@ describe('ChoreSearchInput', () => {
 
         expect(onChange).toHaveBeenCalledWith('a');
     });
+
+    it('does not render a clear button when value is empty', () => {
+        render(<ChoreSearchInput value="" onChange={vi.fn()} />);
+        expect(screen.queryByRole('button', { name: 'Clear Search' })).toBeNull();
+    });
+
+    it('renders a clear button when non-empty and clears on click', async () => {
+        const onChange = vi.fn();
+        const user = userEvent.setup();
+        render(<ChoreSearchInput value="abc" onChange={onChange} />);
+
+        const clearButton = screen.getByRole('button', { name: 'Clear Search' });
+        await user.click(clearButton);
+
+        expect(onChange).toHaveBeenCalledWith('');
+    });
+
+    it('clicking clear returns focus to the search input', async () => {
+        const user = userEvent.setup();
+        render(<ChoreSearchInput value="abc" onChange={vi.fn()} />);
+
+        const clearButton = screen.getByRole('button', { name: 'Clear Search' });
+        await user.click(clearButton);
+
+        expect(screen.getByPlaceholderText('Search for a chore')).toHaveFocus();
+    });
 });

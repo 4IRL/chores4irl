@@ -142,3 +142,80 @@ describe('ChoreForm room datalist', () => {
         expect(onSubmit.mock.calls[0][0].room).toBe('Bathroom');
     });
 });
+
+describe('ChoreForm clear-✕ (F14)', () => {
+    it('Name field shows a clear-✕ once typed and clears only Name on click', async () => {
+        const user = userEvent.setup();
+        const onSubmit = vi.fn();
+        const onCancel = vi.fn();
+        render(<ChoreForm onSubmit={onSubmit} onCancel={onCancel} />);
+
+        await user.type(screen.getByLabelText('Name'), 'Sweep');
+        await user.type(screen.getByLabelText('Room'), 'Kitchen');
+
+        const clearName = screen.getByRole('button', { name: 'Clear Name' });
+        expect(clearName.className).toContain('top-0');
+        expect(clearName.className).not.toContain('top-1/2');
+
+        await user.click(clearName);
+
+        expect(screen.getByLabelText('Name')).toHaveValue('');
+        expect(screen.getByLabelText('Room')).toHaveValue('Kitchen');
+        expect(onSubmit).not.toHaveBeenCalled();
+        expect(onCancel).not.toHaveBeenCalled();
+    });
+
+    it('Room field shows a clear-✕ once typed and clears only Room on click', async () => {
+        const user = userEvent.setup();
+        const onSubmit = vi.fn();
+        const onCancel = vi.fn();
+        render(<ChoreForm onSubmit={onSubmit} onCancel={onCancel} />);
+
+        await user.type(screen.getByLabelText('Room'), 'Kitchen');
+        await user.type(screen.getByLabelText('Name'), 'Sweep');
+
+        const clearRoom = screen.getByRole('button', { name: 'Clear Room' });
+        expect(clearRoom.className).toContain('top-0');
+        expect(clearRoom.className).not.toContain('top-1/2');
+
+        await user.click(clearRoom);
+
+        expect(screen.getByLabelText('Room')).toHaveValue('');
+        expect(screen.getByLabelText('Name')).toHaveValue('Sweep');
+        expect(onSubmit).not.toHaveBeenCalled();
+        expect(onCancel).not.toHaveBeenCalled();
+    });
+
+    it('Details field never renders a clear-✕', async () => {
+        const user = userEvent.setup();
+        render(<ChoreForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+        await user.type(screen.getByLabelText('Details'), 'some notes');
+
+        expect(screen.queryByRole('button', { name: 'Clear Details' })).toBeNull();
+    });
+
+    it('clear-✕ is present immediately on mount in edit mode, with no typing', () => {
+        render(
+            <ChoreForm
+                mode="edit"
+                initialChore={makeChore({ id: 7, name: 'Mop', room: 'Kitchen' })}
+                onSubmit={vi.fn()}
+                onCancel={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByRole('button', { name: 'Clear Name' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Clear Room' })).toBeInTheDocument();
+    });
+
+    it('clicking clear returns focus to the Room field', async () => {
+        const user = userEvent.setup();
+        render(<ChoreForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+        await user.type(screen.getByLabelText('Room'), 'Kitchen');
+        await user.click(screen.getByRole('button', { name: 'Clear Room' }));
+
+        expect(screen.getByLabelText('Room')).toHaveFocus();
+    });
+});
