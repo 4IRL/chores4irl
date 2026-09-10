@@ -366,7 +366,11 @@ Run the full test suites to confirm nothing is broken.
   - ✅ Refactor: implementation matches plan's spec exactly — no changes needed
   - ✅ Subagent review pipeline: Correctness & Codebase Fit PASS, Security & Edge Cases PASS, Quality & Completeness PASS — no findings, no fixes needed
   - ✅ Full frontend suite re-verified: 251/251 tests passing (29 files)
-- [ ] Step 5: App-level integration check for the search-bar clear-✕
+- [x] **Step 5: App-level integration check for the search-bar clear-✕** - COMPLETE (2026-09-10)
+  - ✅ Added `'clicking the clear-✕ button restores the room-filtered list'` test to `frontend/src/__tests__/App.search.test.tsx`'s F9 `describe` block, alongside the existing manual-clear test — types a query, waits for the filtered list via `renderedNames()`, clicks `getByRole('button', { name: 'Clear Search' })` (instead of `user.clear`), asserts the input is empty (`toHaveValue('')`) and the room-filtered list is restored
+  - ✅ No `App.tsx` production code changes needed (already fully wired via `value={searchQuery} onChange={setSearchQuery}`) — test-only step, matching the plan
+  - ✅ `cd frontend && npx vitest run src/__tests__/App.search.test.tsx` — 10/10 tests pass (9 pre-existing + 1 new)
+  - ✅ Subagent review pipeline: Correctness & Codebase Fit PASS, Security & Edge Cases PASS, Quality & Completeness PASS — no findings, no fixes needed
 - [ ] Step 6: Verify All Tests Pass
 
 ## Status

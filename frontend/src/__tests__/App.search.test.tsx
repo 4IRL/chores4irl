@@ -120,6 +120,26 @@ describe('chore-name search filter (F9)', () => {
         expect(screen.getByText('Mop')).toBeInTheDocument();
     });
 
+    it('clicking the clear-✕ button restores the room-filtered list', async () => {
+        vi.mocked(fetchAllChores).mockResolvedValue([
+            makeChore({ id: 1, name: 'Chore A Sweep', room: 'Kitchen' }),
+            makeChore({ id: 2, name: 'Chore B Mop', room: 'Kitchen' }),
+        ]);
+
+        const user = userEvent.setup();
+        render(<App />);
+        await waitFor(() => expect(screen.getAllByTestId('chore-bar')).toHaveLength(2));
+
+        const input = screen.getByPlaceholderText('Search for a chore');
+        await user.type(input, 'mop');
+        await waitFor(() => expect(renderedNames()).toEqual(['Chore B']));
+
+        await user.click(screen.getByRole('button', { name: 'Clear Search' }));
+
+        expect(input).toHaveValue('');
+        await waitFor(() => expect(renderedNames().sort()).toEqual(['Chore A', 'Chore B']));
+    });
+
     it('preserves sort order among matches', async () => {
         // choreB is more urgent → renders before choreA in the frozen sort
         const choreA = makeChore({ id: 1, name: 'Chore A scrub', dateLastCompleted: new Date(2025, 0, 14), duration: 10, frequency: 7 });
