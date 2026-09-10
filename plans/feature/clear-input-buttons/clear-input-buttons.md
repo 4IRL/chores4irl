@@ -333,13 +333,13 @@ onChange={setSearchQuery}`); this step is a regression/integration test only.
 Run the full test suites to confirm nothing is broken.
 
 **To-do:**
-- [ ] Run `cd frontend && npm test` (full Vitest suite, `vitest run`) and confirm every
+- [x] Run `cd frontend && npm test` (full Vitest suite, `vitest run`) and confirm every
   test passes, including all files touched/added above.
-- [ ] Run `npx playwright test` from the repo root (`e2e/smoke.spec.ts`) and confirm it
+- [x] Run `npx playwright test` from the repo root (`e2e/smoke.spec.ts`) and confirm it
   still passes — F14 doesn't change the Add Task flow's structure, but the Name field now
   conditionally renders an extra button once typed; confirm this doesn't interfere with
   the smoke test's existing `+ Add Task` flow or the seeded `Vacuum Bedroom Floor` chore.
-- [ ] Investigate and fix any failures before marking the plan finished.
+- [x] Investigate and fix any failures before marking the plan finished.
 
 ## Progress Tracking
 
@@ -371,7 +371,11 @@ Run the full test suites to confirm nothing is broken.
   - ✅ No `App.tsx` production code changes needed (already fully wired via `value={searchQuery} onChange={setSearchQuery}`) — test-only step, matching the plan
   - ✅ `cd frontend && npx vitest run src/__tests__/App.search.test.tsx` — 10/10 tests pass (9 pre-existing + 1 new)
   - ✅ Subagent review pipeline: Correctness & Codebase Fit PASS, Security & Edge Cases PASS, Quality & Completeness PASS — no findings, no fixes needed
-- [ ] Step 6: Verify All Tests Pass
+- [x] **Step 6: Verify All Tests Pass** - COMPLETE (2026-09-10)
+  - ✅ `cd frontend && npm test` (full Vitest suite) — 252/252 tests passing (29 files), no failures
+  - ✅ `npx playwright test` from repo root (`e2e/smoke.spec.ts`) — 14/14 tests passing, no interference from the new clear-✕ buttons with the `+ Add Task` flow or seeded `Vacuum Bedroom Floor` chore
+  - ✅ No failures encountered — nothing to investigate or fix
+  - No production code changed in this step (verification-only), so the Subagent Review Pipeline was not applicable (`git diff --name-only` confirmed empty)
 
 ## Status
-finished: false
+finished: true
