@@ -234,7 +234,7 @@ Turn on `clearable` for the Name field, hand-wire the Room field (not a `FormFie
 instance), and add a regression test proving Details never gets a clear button.
 
 **To-do:**
-- [ ] **Red.** Extend `frontend/src/__tests__/components/ChoreForm.test.tsx` with five
+- [x] **Red.** Extend `frontend/src/__tests__/components/ChoreForm.test.tsx` with five
   tests: (1) "Name field shows a clear-✕ once typed and clears only Name on click" —
   render `ChoreForm` (add mode is sufficient), `user.type(screen.getByLabelText('Name'),
   'Sweep')`, also type something into Room (e.g. `user.type(screen.getByLabelText('Room'),
@@ -272,7 +272,7 @@ instance), and add a regression test proving Details never gets a clear button.
   field never renders a clear-✕") passes trivially both before and after Green, since
   Details is never touched by this plan — it's a forward-looking regression guard, not a
   discriminating red assertion (mirroring Step 3's tests (1)/(2)).
-- [ ] **Green.** Edit `frontend/src/components/form/ChoreForm.tsx`: extend the existing
+- [x] **Green.** Edit `frontend/src/components/form/ChoreForm.tsx`: extend the existing
   `import { useState } from 'react';` to `import { useState, useRef } from 'react';` and
   add `import ClearButton from '../common/ClearButton';`. On the Name
   `FormField` call (currently line 76), add the `clearable` prop: `<FormField name="name"
@@ -301,7 +301,7 @@ instance), and add a regression test proving Details never gets a clear button.
   DD-5: same top-anchoring as `FormField`'s Name field, since Room shares the identical
   `flex flex-col gap-1` label-spacing pattern). Re-run the test
   file and confirm all tests (existing + new) pass.
-- [ ] **Refactor.** None expected.
+- [x] **Refactor.** None expected.
 
 **Verification:** `cd frontend && npx vitest run src/__tests__/components/ChoreForm.test.tsx`.
 
@@ -360,7 +360,12 @@ Run the full test suites to confirm nothing is broken.
   - ✅ Refactor: className/pattern confirmed matching house style; the plan's required documenting comment on the `clearable` prop was added as part of Green (no separate change needed)
   - ✅ Subagent review pipeline: Security & Edge Cases PASS, Quality & Completeness PASS (verified via vitest/tsc/eslint); Correctness & Codebase Fit raised 1 major finding claiming `clearable` is unused/dead since no `FormField` call site passes it yet — determined to be a false positive from the subagent lacking the plan's phase boundaries: wiring `clearable` onto the Name field is explicitly Step 4's scope (own Red/Green/Refactor cycle, not yet run), so no fix was applied
   - ✅ Full frontend suite re-verified: 246/246 tests passing (29 files)
-- [ ] Step 4: Wire Name + Room clear-✕ in `ChoreForm`, guard Details
+- [x] **Step 4: Wire Name + Room clear-✕ in `ChoreForm`, guard Details** - COMPLETE (2026-09-10)
+  - ✅ Red: `frontend/src/__tests__/components/ChoreForm.test.tsx` extended with 5 tests, confirmed 4/5 failing pre-Green (Details-never-clears test passed trivially as a forward-looking guard)
+  - ✅ Green: `frontend/src/components/form/ChoreForm.tsx` edited — Name `FormField` call gained `clearable`; Room's hand-rolled `<input>` wrapped in a new `relative` div with `useRef`, `pr-14`, and a hand-wired `ClearButton` (`anchor="top"`); `details`/`dateLastCompleted`/`duration`/`frequency` left unchanged; all 12 tests pass
+  - ✅ Refactor: implementation matches plan's spec exactly — no changes needed
+  - ✅ Subagent review pipeline: Correctness & Codebase Fit PASS, Security & Edge Cases PASS, Quality & Completeness PASS — no findings, no fixes needed
+  - ✅ Full frontend suite re-verified: 251/251 tests passing (29 files)
 - [ ] Step 5: App-level integration check for the search-bar clear-✕
 - [ ] Step 6: Verify All Tests Pass
 
