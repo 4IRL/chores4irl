@@ -207,7 +207,7 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| **F14 — clear-✕ affordance on free-text inputs** *(added 2026-07-08)* ★FOCUS | in-progress | `feature/clear-input-buttons` | — |
+| **F14 — clear-✕ affordance on free-text inputs** *(added 2026-07-08)* ★FOCUS | in-review | `feature/clear-input-buttons` | [#34](https://github.com/4IRL/chores4irl/pull/34) |
 | F4 — remove Details/Long-term | pending | `feature/remove-details-longterm` | — |
 | F5 — translucent Add-Task deck | pending | `feature/translucent-add-deck` | — |
 | F15 — adopt kiosk-shell *(added 2026-07-15)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — |
