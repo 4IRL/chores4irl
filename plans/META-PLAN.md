@@ -37,14 +37,16 @@
 **Current focus: `F14`** (clear-✕ affordance on free-text inputs) — see *Shortest path to
 the focus feature* below.
 
-**Shipped through PR #28** — merged work is recorded by git, not re-tabulated here
-(`gh pr list --state merged` / `git log --oneline main`). What each merge left behind
-that still matters is captured *forward*: in the Baseline, the Standing invariants, and
-the few completed-feature contracts kept below because a remaining feature builds on or
-must remove them. **History policy:** once a feature's PR is *verified* merged (never
-self-marked) and the Baseline/invariants absorb its contract, its rows and sections are
-deleted from this file — the
-only history kept is what stops a future session from re-treading already-traveled
+**Shipped through PR #32** — merged work is recorded by git, not re-tabulated here
+(`gh pr list --state merged` / `git log --oneline main`). PRs #30/#31 (after #28) were
+docs-only (the kiosk-extraction design doc and this file's own housekeeping); #32 is the
+one app-code merge since #28 — a progress-bar visual revision, untracked by any F-ID, now
+folded into the Baseline below. What each merge left behind that still matters is captured
+*forward*: in the Baseline, the Standing invariants, and the few completed-feature
+contracts kept below because a remaining feature builds on or must remove them. **History
+policy:** once a feature's PR is *verified* merged (never self-marked) and the
+Baseline/invariants absorb its contract, its rows and sections are deleted from this file
+— the only history kept is what stops a future session from re-treading already-traveled
 design space (the Legacy → current ID map, contracts still targeted by open features,
 and confirmed-but-unscheduled follow-ups).
 
@@ -65,10 +67,19 @@ postMessage contract (deferred until pi-kiosk Phase 4); **`F15`** (adopt kiosk-s
 remove the `F1`/`F2` overlays, commit the embeddability guarantee) is gated on pi-kiosk
 Phase 2 parity.
 
-**Branch hygiene — clean.** Every merged/superseded/abandoned branch through #28 has been
-pruned (local + remote), each verified against `git log`/`gh` before deletion; the
-per-branch forensics live in git history (PRs #26, #29, #30). A cold survey finding only
-`main` (plus any live feature branch) is the expected state — do not resurrect pruned
+**Branch hygiene — 3 local-only stale branches found (2026-09-10 reconcile), not yet
+pruned.** `chore/plan-reconciliation-260708`, `feature/touch-lock`, and
+`revision/progress-bar-decay` are fully superseded — each verified via `git diff main
+<branch>`: every file the branch touches is either identical on `main` or further evolved
+there, with no unmerged content left in the branch. They correspond to already-merged
+PRs #29, #28, and #32 respectively (squash-merged, so `git merge-base --is-ancestor` won't
+show them as ancestors — content diff is the correct check, not ancestry). **The remote
+side of all three is already gone** — GitHub's repo currently lists only `main`
+(`gh api repos/.../branches`), confirming auto-delete-on-merge already ran; only the
+**local** refs need pruning. **Recommend deleting the 3 local branches** at the next
+`plans/COMPACT-PLANS-PROMPT.md` sweep; not done automatically by this reconcile
+(planning-doc-only pass, per its own instructions). Once pruned, a cold survey finding
+only `main` (plus any live feature branch) is the expected state — do not resurrect pruned
 branches, and do not expect plan dirs for features that shipped without one (F9-L, F3-L).
 
 ### Remaining work — three tracks (current numbering, incl. `F14`/`F15`)
@@ -205,9 +216,12 @@ pi-kiosk repo's own planning, not here.
 | F6 — local URL alias | pending | `feature/local-url-alias` | — |
 | F3 · F7 · F8 · F9 · F10 · F13 — device-control console + controls | **superseded** *(2026-07-15 — migrated to pi-kiosk; branches never created)* | — | — |
 
-**Branch/dir cleanup:** all sweeps through 2026-07-08 are done — no `(prune)` markers
-outstanding; per-branch details live in git history (PRs #22, #26, #29). Future sweeps run
-`plans/COMPACT-PLANS-PROMPT.md`.
+**Branch/dir cleanup:** 3 local-only stale branches outstanding as of the 2026-09-10
+reconcile — `chore/plan-reconciliation-260708`, `feature/touch-lock`,
+`revision/progress-bar-decay` (remotes already auto-deleted on merge); see "Branch
+hygiene" under *Where the rollout stands* above for the verification and PR mapping.
+Earlier sweeps (through 2026-07-08) are recorded in git history (PRs #22, #26, #29). Run
+`plans/COMPACT-PLANS-PROMPT.md` to prune the three found here.
 
 **Ledger update protocol (per session):** set `in-progress` on start; `in-review` + PR
 link after `git-push`; once the PR is *verified* merged (never self-marked), the row is
@@ -216,10 +230,11 @@ in the feature's own commits/PR.
 
 ---
 
-## Baseline: the codebase as it exists today (`main` at PR #28, `3160dfc`)
+## Baseline: the codebase as it exists today (`main` at PR #32, `790a4ab`)
 
-> **This Baseline reflects `main` after PR #28 (`3160dfc`).** It is the literal current
-> state and the **assumed starting state for every remaining feature.**
+> **This Baseline reflects `main` after PR #32 (`790a4ab`).** It is the literal current
+> state and the **assumed starting state for every remaining feature.** (PRs #30/#31,
+> between #28 and #32, touched only `plans/` docs — no app-code delta.)
 > Touch-lock is fully on `main`:
 > `frontend/src/hooks/useTouchLock.ts`, `components/common/TouchLockOverlay.tsx` (with the
 > exported `CLOSING_SETTLE_MS` / `App.tsx` `isClosing` unmount handshake), and
@@ -241,11 +256,11 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 **Frontend API** (`frontend/src/services/choreApi.ts`): `fetchAllChores`, `addChore`, `updateChore(id, chore)`, `completeChore`, `removeChore`.
 
 **Key UI**
-- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (`searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`), and the **two kiosk overlays**: `useScreenBlank()` → `{ isBlanked, wake }` rendering `<ScreenBlankOverlay onWake={wake} />` when `isBlanked` (`F1`, shipped #27), and `useTouchLock()` → `{ isLocked, arm }` rendering `TouchLockIndicator` always plus `TouchLockOverlay` when `(isLocked || isClosing) && !isBlanked` (`F2`, shipped #28), the app root `inert` while either is active, with a force-close-dialogs effect on blank/lock. **Both overlays are slated for removal by `F15`** (kiosk-layer extraction — their behavior moves to the pi-kiosk shell). Footer deck (`flex-shrink-0 py-4 flex justify-center border-t border-gray-700`, **still opaque** — `F5`'s target — `App.tsx:271`) holds `AddChoreButton`; scroll area directly above is `flex-1 overflow-y-auto min-h-0`. `NavBar` renders room chips **and the persistent search input** above the list. **There is no settings/device-control panel on `main`, and there never will be** — `F3` was superseded 2026-07-15 (migrated to pi-kiosk).
+- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (`searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`), and the **two kiosk overlays**: `useScreenBlank()` → `{ isBlanked, wake }` rendering `<ScreenBlankOverlay onWake={wake} />` when `isBlanked` (`F1`, shipped #27), and `useTouchLock()` → `{ isLocked, arm }` rendering `TouchLockIndicator` always plus `TouchLockOverlay` when `(isLocked || isClosing) && !isBlanked` (`F2`, shipped #28), the app root `inert` while either is active, with a force-close-dialogs effect on blank/lock. **Both overlays are slated for removal by `F15`** (kiosk-layer extraction — their behavior moves to the pi-kiosk shell). Footer deck (`flex-shrink-0 py-4 flex justify-center border-t border-gray-700`, **still opaque** — `F5`'s target — `App.tsx:337`) holds `AddChoreButton`; scroll area directly above is `flex-1 overflow-y-auto min-h-0`. `NavBar` renders room chips **and the persistent search input** above the list. **There is no settings/device-control panel on `main`, and there never will be** — `F3` was superseded 2026-07-15 (migrated to pi-kiosk).
   - **SSE sync — unchanged contract:** subscribes via `useChoreEvents(onChange)` (`hooks/useChoreEvents.ts`; `new EventSource('/api/events')` + `visibilitychange→visible` re-fire). Re-pulls are gated by `isRepullGated()` (`isMutatingRef` || `showForm` || `editingId` || `pendingDeleteId`); deferred via `pendingRefreshRef`. **Any new frontend feature holding uncommitted user input in `App.tsx` state must be added to this gate.**
   - **Visible-list pipeline (three-stage):** `filteredChores = useRoomFilter(choreData, selectedRoom)` → `searchFilteredChores` (substring on `name`, from `F9-L`) → `orderedChores` (maps `sortedIds` over a `Map` of `searchFilteredChores`).
   - **`F1`'s real-clock scheduling (shipped):** `frontend/src/hooks/useScreenBlank.ts` — window-boundary re-arming timeouts driven by `realToday`, **not** `simulatedDate` (adapted from the `useMidnightClock.ts` single-`setTimeout`-to-boundary pattern, which remains available as a precedent for any future real-clock feature).
-- `components/chore/ChoreTimerBar.tsx` — **F10-L's current shape**: `useSwipeable` with **swipe-left → `onEdit`**, **swipe-right → `onDelete`** (reversed from the original F5-L mapping), a controlled swipe offset revealing a behind-the-bar action layer (yellow+pencil for edit, red+trash for delete) with a **25%-of-bar-width threshold** and spring-back below it; colour fades in progressively toward the threshold (added in F10-L's third commit). `delta: 50` remains the swipeable trigger threshold (distinct from the 25%-width confirm threshold). Spread-before-explicit-props order, `touch-pan-y`, `isSimulating` guard, `swipingRef` click-suppression all preserved. Bar math from `@utils/choreBarMath` `computeBar(daysSince, frequency)` unchanged (`h-20 sm:h-16` grid layout from F6-L).
+- `components/chore/ChoreTimerBar.tsx` — **F10-L's current shape**: `useSwipeable` with **swipe-left → `onEdit`**, **swipe-right → `onDelete`** (reversed from the original F5-L mapping), a controlled swipe offset revealing a behind-the-bar action layer (yellow+pencil for edit, red+trash for delete) with a **25%-of-bar-width threshold** and spring-back below it; colour fades in progressively toward the threshold (added in F10-L's third commit). `delta: 50` remains the swipeable trigger threshold (distinct from the 25%-width confirm threshold). Spread-before-explicit-props order, `touch-pan-y`, `isSimulating` guard, `swipingRef` click-suppression all preserved. Bar math from `@utils/choreBarMath` `computeBar(daysSince, frequency)` — **revised in PR #32** (`790a4ab`, untracked by any F-ID): `barColor` is `bg-red-500` only when `isOverdue`, never pre-due (previously red could appear before the due date); `ProgressBar`'s fill re-gained its `opacity-50` translucency, restoring a Tailwind v4 regression that had silently dropped the dead v3 `bg-opacity-50` utility. `h-20 sm:h-16` grid layout from F6-L unchanged.
 - `components/common/ConfirmDialog.tsx` (F4-L) — unchanged; reused by the swipe-delete path. *(The former "reuse for `F10` restart confirm" plan left with the migration — restart now lives in pi-kiosk.)*
 - `components/form/` — `ChoreFormModal` → **`ChoreForm`** → `FormField`. **Room field is now a `<datalist>` input** (`F3-L`) sourced from `uniqueRooms`, threaded through both Add and Edit — a raw `<input type="text" list="room-options">`, not `FormField`. `Name` renders via `FormField` (`name="name"`); `Details` also renders via `FormField` (`name="details"`) — **`F4`'s target**, unchanged from before. **None of Name/Room/the search bar currently has a clear-✕ affordance — `F14`'s target.**
 - `components/chore/ChoreSearchInput.tsx` — the `F9-L` search box (`Search` icon, `placeholder="Search for a chore"`), pinned above the scroll region. **No clear-✕ button yet — `F14`'s target** (absorbs the prior unscheduled follow-up note under `F9-L`).
@@ -597,7 +612,7 @@ beneath the blur on mobile viewports.
 **Dependencies.** None.
 
 **Assumed starting state** = **Baseline**. Verify:
-- `App.tsx` footer deck is `<div className="flex-shrink-0 py-4 flex justify-center border-t border-gray-700">` wrapping `AddChoreButton` (still opaque — verified, `App.tsx:271`).
+- `App.tsx` footer deck is `<div className="flex-shrink-0 py-4 flex justify-center border-t border-gray-700">` wrapping `AddChoreButton` (still opaque — verified, `App.tsx:337`).
 - Scroll area directly above is `<div className="flex-1 overflow-y-auto min-h-0">`.
 
 **Expected end state** (repo-checkable):
