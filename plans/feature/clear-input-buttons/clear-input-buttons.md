@@ -172,7 +172,7 @@ Wire the shared button into the search bar, the simplest of the three call sites
 Add the prop `FormField` needs for the Name field, defaulted off so the other four call sites (`details`, `dateLastCompleted`, `duration`, `frequency`) are unaffected without each needing a change.
 
 **To-do:**
-- [ ] **Red.** Create `frontend/src/__tests__/components/FormField.test.tsx` (new file;
+- [x] **Red.** Create `frontend/src/__tests__/components/FormField.test.tsx` (new file;
   none exists today). Tests: (1) "no clear button when `clearable` is omitted" — render
   `<FormField name="name" label="Name" value="abc" onChange={vi.fn()} />` (no `clearable`
   prop), assert `screen.queryByRole('button', { name: 'Clear Name' })` is `null`; (2) "no
@@ -199,7 +199,7 @@ Add the prop `FormField` needs for the Name field, defaulted off so the other fo
   type-check, so passing the not-yet-declared `clearable` prop produces no TypeScript
   error here — the runtime `getByRole` assertions are the only red signal, and they're
   sufficient.)
-- [ ] **Green.** Edit `frontend/src/components/form/FormField.tsx`: add `clearable?:
+- [x] **Green.** Edit `frontend/src/components/form/FormField.tsx`: add `clearable?:
   boolean;` to `FormFieldProps` and `clearable = false` to the destructured parameters.
   Add `import { useRef } from 'react';` and `import ClearButton from
   '../common/ClearButton';`. Add `const inputRef = useRef<HTMLInputElement>(null);` inside
@@ -219,7 +219,7 @@ Add the prop `FormField` needs for the Name field, defaulted off so the other fo
   `cd frontend && npx vitest run src/__tests__/components/ChoreForm.test.tsx` to confirm
   the pre-existing Details/dateLastCompleted/duration/frequency assertions (which use
   `getByLabelText`, unaffected by the new wrapper div) still pass unchanged.
-- [ ] **Refactor.** None expected. **Decision:** `FormField`
+- [x] **Refactor.** None expected. **Decision:** `FormField`
   does **not** internally gate `clearable` on `type === 'text'` — it trusts callers, since
   only the Name call site will ever pass `clearable={true}` (see Step 4) and no
   `clearable` + non-text usage is planned. Add a one-line comment above the `clearable`
@@ -314,7 +314,7 @@ manually clearing the input) restores the room-filtered list — mirroring the e
 onChange={setSearchQuery}`); this step is a regression/integration test only.
 
 **To-do:**
-- [ ] Add a test inside `frontend/src/__tests__/App.search.test.tsx`'s `describe('chore-name
+- [x] Add a test inside `frontend/src/__tests__/App.search.test.tsx`'s `describe('chore-name
   search filter (F9)', ...)` block (immediately alongside the existing "clearing the query
   restores the room-filtered list" test, which uses `user.clear(input)`): type a query into
   `screen.getByPlaceholderText('Search for a chore')`, `await waitFor(...)` for the filtered
