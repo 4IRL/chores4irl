@@ -354,7 +354,12 @@ Run the full test suites to confirm nothing is broken.
   - ✅ Refactor: implementation matches plan's spec exactly — no changes needed
   - ✅ Subagent review pipeline: Correctness & Codebase Fit PASS, Security & Edge Cases PASS, Quality & Completeness PASS — no findings, no fixes needed
   - ✅ Full frontend suite re-verified: 242/242 tests passing (28 files)
-- [ ] Step 3: `FormField`'s opt-in `clearable` prop
+- [x] **Step 3: `FormField`'s opt-in `clearable` prop** - COMPLETE (2026-09-10)
+  - ✅ Red: `frontend/src/__tests__/components/FormField.test.tsx` created (new file, 4 tests), confirmed 2/4 failing pre-Green (the two omitted/empty-value tests passed trivially as forward-looking guards, matching plan expectation)
+  - ✅ Green: `frontend/src/components/form/FormField.tsx` edited — added `clearable?: boolean` (default `false`) with a documenting comment scoping it to text-like fields, wrapped `<input>` in `<div className="relative">` with `w-full` added to the input, wired `ClearButton` with `anchor="top"`; all 4 new tests pass plus pre-existing `ChoreForm.test.tsx` assertions unaffected (11/11 across both files)
+  - ✅ Refactor: className/pattern confirmed matching house style; the plan's required documenting comment on the `clearable` prop was added as part of Green (no separate change needed)
+  - ✅ Subagent review pipeline: Security & Edge Cases PASS, Quality & Completeness PASS (verified via vitest/tsc/eslint); Correctness & Codebase Fit raised 1 major finding claiming `clearable` is unused/dead since no `FormField` call site passes it yet — determined to be a false positive from the subagent lacking the plan's phase boundaries: wiring `clearable` onto the Name field is explicitly Step 4's scope (own Red/Green/Refactor cycle, not yet run), so no fix was applied
+  - ✅ Full frontend suite re-verified: 246/246 tests passing (29 files)
 - [ ] Step 4: Wire Name + Room clear-✕ in `ChoreForm`, guard Details
 - [ ] Step 5: App-level integration check for the search-bar clear-✕
 - [ ] Step 6: Verify All Tests Pass
