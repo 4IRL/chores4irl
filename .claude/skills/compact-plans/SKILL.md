@@ -77,7 +77,7 @@ If a pruned branch's feature still has a Status-ledger row in `plans/META-PLAN.m
 
 Before deleting anything outside `tmp/`, confirm it isn't the only record of a design decision, a rejected alternative, an unresolved design question on a still-live plan (fold it into that plan's body first), or an implemented-contract a future feature depends on. When in doubt, freeze-and-archive rather than delete.
 
-## 7. Verify end state, then summary and commit
+## 7. Verify end state, then summary, commit, and push
 
 Before reporting, re-verify the sweep actually succeeded rather than trusting narrative memory of what happened:
 - Re-run Step 1's tracking counts (`git ls-files plans | wc -l` / `find plans -type f | wc -l`) and confirm they reflect the relocations/deletions just made.
@@ -87,7 +87,7 @@ Before reporting, re-verify the sweep actually succeeded rather than trusting na
 - Re-run Step 5's `gh pr list --state merged --json number,title,headRefName,mergeCommit` + `git branch -a` cross-check and confirm every branch confirmed for pruning is actually gone (local and remote), and no **Live** / open-PR branch was touched.
 - Confirm no plan dir was left live under `plans/feature|revision|chore` that Step 2 classified as Merged/Abandoned/Superseded.
 
-Flag any mismatch before reporting. Then report: what was frozen (with SHAs/PRs), moved, deleted (tmp/, stray dirs, old ledger files), and pruned (branches, local + remote). Then `/git-commit` on the working branch.
+Flag any mismatch before reporting. Then report: what was frozen (with SHAs/PRs), moved, deleted (tmp/, stray dirs, old ledger files), and pruned (branches, local + remote). Then `/git-commit` on the working branch, followed by `/git-push` — runs the 8-agent review and opens/updates the PR before anything from this sweep is pushed, matching `/run-feature`'s own review-and-push gate (which `/worktree` also relies on via its hand-off to `/run-feature`). If it rejects, fix per its findings and re-push; a plans-only sweep is still exactly the kind of change that gate exists for.
 
 ## Important Notes
 
