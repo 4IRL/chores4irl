@@ -57,7 +57,7 @@ Fall through to Phase B once the PR is open.
 
 Do not assume the feature shipped or merged just because a PR exists.
 
-**Pause-and-ask checkpoint — merge confirmation:**
+**Pause-and-ask checkpoint — merge confirmation:** confirm both conditions with the user before folding anything into `META-PLAN.md`:
 ```
 AskUserQuestion, multiSelect:
 "Confirm before I fold this into META-PLAN.md:"

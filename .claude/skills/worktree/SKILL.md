@@ -57,7 +57,7 @@ git worktree add ../c4i-wt-<slug> feature/<slug>
 Then, in each worktree: `npm install` (node_modules is per-worktree, not shared), and confirm it's on the right branch and clean. If either check fails for a worktree (failed `npm install`, wrong branch, dirty tree), stop and report that specific worktree as unusable — don't include it in Step 5's dispatch.
 
 ### 5. Dispatch
-**Pause-and-ask checkpoint — dispatch mode:**
+**Pause-and-ask checkpoint — dispatch mode:** ask the user whether this session should hand each worktree off for them to drive, or fan out subagents to run them itself, then follow the chosen mode:
 - **Mode A — hand-off (default).** Print, per worktree, the exact kickoff:
   ```
   cd ../c4i-wt-<slug> && claude
