@@ -77,7 +77,7 @@ show them as ancestors — content diff is the correct check, not ancestry). **T
 side of all three is already gone** — GitHub's repo currently lists only `main`
 (`gh api repos/.../branches`), confirming auto-delete-on-merge already ran; only the
 **local** refs need pruning. **Recommend deleting the 3 local branches** at the next
-`plans/COMPACT-PLANS-PROMPT.md` sweep; not done automatically by this reconcile
+`/compact-plans` sweep; not done automatically by this reconcile
 (planning-doc-only pass, per its own instructions). Once pruned, a cold survey finding
 only `main` (plus any live feature branch) is the expected state — do not resurrect pruned
 branches, and do not expect plan dirs for features that shipped without one (F9-L, F3-L).
@@ -221,7 +221,7 @@ reconcile — `chore/plan-reconciliation-260708`, `feature/touch-lock`,
 `revision/progress-bar-decay` (remotes already auto-deleted on merge); see "Branch
 hygiene" under *Where the rollout stands* above for the verification and PR mapping.
 Earlier sweeps (through 2026-07-08) are recorded in git history (PRs #22, #26, #29). Run
-`plans/COMPACT-PLANS-PROMPT.md` to prune the three found here.
+`/compact-plans` to prune the three found here.
 
 **Ledger update protocol (per session):** set `in-progress` on start; `in-review` + PR
 link after `git-push`; once the PR is *verified* merged (never self-marked), the row is
@@ -339,44 +339,32 @@ feature's section here in the same PR.
 ## How to run a session (invocation)
 
 Each feature is **one fresh Claude Code session**. Start on an up-to-date checkout of `main`
-(`git checkout main && git pull`) and paste a kickoff prompt. The session reads this file,
-runs **exactly one** feature's contract, and ends at the pushed PR. It never chains into the
-next feature — that is a new session, started by you after the prior PR is merged.
+(`git checkout main && git pull`) and invoke `/run-feature <F-id>`. The session reads this
+file, runs **exactly one** feature's Per-Feature Session Contract, and ends at the pushed PR —
+it never chains into the next feature. Re-invoking `/run-feature <F-id>` later (once you've
+verified the branch and merged the PR) resumes at the META-PLAN-update step instead of
+restarting the feature — the skill detects this from the PR's state via `gh`.
 
 **Running several features at once.** Independent features (disjoint file surfaces) can be
-implemented concurrently in **git worktrees**, one session per worktree. Use
-`plans/WORKTREE-PARALLELIZE-PROMPT.md` to verify the chosen F-IDs cannot merge-conflict and
-to provision the worktrees; implementation still runs each feature's own Per-Feature Session
-Contract, and the merge gate stays serial. **Use the current (260707) F-IDs when filling in
-`FEATURES`** — that template's own worked example still cites old F-numbers (see its stale-
-numbering note), but the mechanism itself is numbering-scheme-agnostic, it just needs valid
-slugs.
+implemented concurrently in **git worktrees**, one session per worktree. Invoke
+`/worktree <F-id> [<F-id>…]` to verify the chosen F-IDs cannot merge-conflict — computed live
+against the current codebase and the current numbering, never a cached table — and to
+provision the worktrees; implementation still runs each feature's own Per-Feature Session
+Contract via `/run-feature` inside each worktree, and the merge gate stays serial.
 
 **Why a human gate exists between sessions.** `main` is branch-protected (PR + review + CI
 required), so a session can only reach "PR pushed." **You merge the PR**; that merge is the
-durable signal that lets the next session's cold survey pass.
+durable signal that lets `/run-feature` fold the merge back into this file, and lets the next
+session's cold survey pass.
 
-**Kickoff prompt — explicit (recommended):**
+**Invocation:**
 ```
-Read META-PLAN.md. Run feature <F-id> (current numbering, e.g. F14) and only that
-feature. Follow its Per-Feature Session Contract: cold-survey and verify the repo matches
-the Baseline / that feature's "Assumed starting state" (STOP and report if it diverges), set
-its Status ledger row to in-progress, then create-plan → review-plan → run-plan (once) →
-git-commit → verify "Expected end state" → update the ledger row to in-review with the PR
-link → git-push. End the session after the PR is pushed. Do not start any other feature.
+/run-feature <F-id>
 ```
-
-**Kickoff prompt — focus feature (recommended next session; `F2` merged #28, so `F14` is up):**
-```
-Read META-PLAN.md. Run feature F14 (clear-✕ affordance on free-text inputs) and only F14. It
-has no prerequisites — implement it directly. Per its Per-Feature Session Contract: cold-survey
-against the Baseline (confirm no clear-✕ button exists yet on the search bar, Name, or Room
-fields), then create-plan → review-plan → run-plan (once) → git-commit → verify "Expected end
-state" → git-push. End after the PR.
-```
-
-**Skill mapping:** create-plan → `/plan-creator`; review-plan → `/plan-reviewer`; run-plan →
-`/run-plan` (once, on this feature's plan only); then `/git-commit` and `/git-push`.
+`/run-feature` runs cold-survey → `/plan-creator` → `/plan-reviewer` → `/run-plan` (once) →
+`/git-commit` → verify "Expected end state" → `/git-push`, then — once you confirm the PR is
+merged — folds the merge back into this file's Status ledger, ID map, Baseline, and Standing
+invariants on its own small follow-up PR. It never starts a second feature.
 
 **Between sessions — monitoring:** `gh pr list` / `gh pr view <n>`; `gh pr checks <n>`;
 `reviews/push-review-<branch>.md` (written by `/git-push` if its review *rejects*);
