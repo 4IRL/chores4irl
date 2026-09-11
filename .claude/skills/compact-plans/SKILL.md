@@ -53,27 +53,34 @@ This repo **squash-merges**, so `git branch --merged main` misses merged feature
 ```bash
 gh pr list --state merged --json number,title,headRefName,mergeCommit
 ```
-cross-checked against `git branch -a`. A branch whose functionality shipped via a *different* path (squashed elsewhere, or superseded per Step 2) is also a candidate — confirm its work is genuinely on `main` first.
+cross-checked against `git branch -a`. A branch whose functionality shipped via a *different* path (squashed elsewhere, or superseded per Step 2) is also a candidate — confirm its work is genuinely on `main` first. No PR merged from it, so the per-branch gate below will refuse it — delete it only outside that snippet, after the on-`main` spot-check and its own explicit confirmation.
 
 **Pause-and-ask checkpoint — branch deletion:** present the exact branch list (local + remote) before deleting anything — branch deletion is recoverable (reflog / re-push from elsewhere) but a remote delete is outward-facing, same gate as a commit.
 
-For each confirmed branch:
+For each confirmed branch, re-verify its PR immediately before deleting — that verification plus the checkpoint above is the gate, not the local delete's exit status. `<number>` / `<branch>` are copied verbatim from the `gh pr list` result's `number` / `headRefName`. Run `git fetch origin` once first so `origin/main` is current (the Branch Guard only syncs `main` when the sweep starts there), then per branch:
 ```bash
-if git branch -d <branch>; then   # -d only — refuses anything not actually merged
-  if ref_check=$(gh api repos/4IRL/chores4irl/git/ref/heads/<branch> 2>&1); then   # singular /ref/ = exact match; plural /refs/ prefix-matches
-    if ! gh api -X DELETE repos/4IRL/chores4irl/git/refs/heads/<branch>; then   # only reached if -d succeeded and the ref was confirmed present
-      echo "STOP: remote delete failed for <branch> — report and do not continue to the next branch"
+read -r merged_sha head_oid < <(gh pr view <number> --json state,mergedAt,mergeCommit,headRefName,headRefOid --jq 'select(.state == "MERGED" and .mergedAt != null and .headRefName == "<branch>") | "\(.mergeCommit.oid) \(.headRefOid)"')   # both empty unless the PR really merged from this branch
+if [[ -n "$merged_sha" ]] && git merge-base --is-ancestor "$merged_sha" origin/main && git merge-base --is-ancestor "<branch>" "$head_oid"; then   # the gate: PR merged from this branch, its merge commit is on main, and the local tip has nothing beyond what the PR merged
+  if git branch -D "<branch>"; then   # -D on purpose — -d judges against the branch's upstream, not main, so its verdict is not diagnostic; recoverable from the "(was <sha>)" line / reflog until gc
+    if remote_tip=$(gh api "repos/4IRL/chores4irl/git/ref/heads/<branch>" --jq .object.sha 2>&1); then   # singular /ref/ = exact match; plural /refs/ prefix-matches
+      if [[ "$remote_tip" != "$head_oid" ]]; then
+        echo "SKIP: remote <branch> tip $remote_tip is not PR #<number>'s head — pushed to after the merge; leave the remote ref, investigate, then continue to the next branch"
+      elif ! gh api -X DELETE "repos/4IRL/chores4irl/git/refs/heads/<branch>"; then   # only reached if the local delete succeeded and the remote ref was confirmed present at the PR's head
+        echo "STOP: remote delete failed for <branch> — report and do not continue to the next branch"
+      fi
+    elif [[ "$remote_tip" == *"HTTP 404"* ]]; then
+      echo "remote ref for <branch> already gone — skipping DELETE (benign no-op)"
+    else   # 403/5xx/rate-limit/network — not a 404, so not evidence the ref is gone
+      echo "STOP: existence check failed for <branch> — $remote_tip"
     fi
-  elif [[ "$ref_check" == *"HTTP 404"* ]]; then
-    echo "remote ref for <branch> already gone — skipping DELETE (benign no-op)"
-  else   # 403/5xx/rate-limit/network — not a 404, so not evidence the ref is gone
-    echo "STOP: existence check failed for <branch> — $ref_check"
+  else
+    echo "SKIP: local delete failed for <branch> — no remote action; investigate, then continue to the next branch"
   fi
 else
-  echo "STOP: git branch -d refused for <branch> — investigate before any remote action"
+  echo "SKIP: could not verify <branch> (PR #<number> not merged from it, gh error, merge commit not on origin/main, or local tip beyond the PR head) — no local or remote action; continue to the next branch"
 fi
 ```
-Never `-D`. If `-d` refuses, stop and investigate that branch specifically — skip its remote action and move on to the next confirmed branch in the list rather than aborting the whole sweep; don't force past it, and the remote delete must never run for a branch whose local `-d` was refused. The existence check is benign only on an actual `HTTP 404` (ref already gone — skip the DELETE and say so); any other failure stops with the captured error rather than being reported as pruned. The pre-check stays rather than folding into the DELETE because GitHub answers a DELETE on an already-gone ref with `HTTP 422: Reference does not exist`, not 404, which would blur the DELETE's stop rule below. On the DELETE call: any failure (403/422/5xx) — stop, report the branch name and error, and don't move on silently. Never prune: the default branch, any branch with unmerged commits, or a branch backing a **Live** feature / open PR.
+`git branch -d` is not a merge check here: it judges merged-ness against the branch's configured upstream (`origin/<branch>`, which `/git-push` sets), not `main`, so it passes any pushed branch vacuously — and once that upstream is pruned it falls back to HEAD and refuses every squash-merged branch. Its refusal is expected for a squash-merged branch and not diagnostic, which is why the local delete is `-D`: reachable only after the PR/merge-commit/tip verification and the human confirmation, and recoverable from the `(was <sha>)` line / reflog until gc. `SKIP:` leaves that branch alone (no further local or remote action — a failed local `-D` skips its remote action too) and the sweep continues with the next confirmed branch; `STOP:` halts the sweep and reports. The remote delete never runs for a branch whose local delete did not succeed. The existence check is benign only on an actual `HTTP 404` (ref already gone — skip the DELETE and say so); any other failure stops with the captured error rather than being reported as pruned. The pre-check stays rather than folding into the DELETE because GitHub answers a DELETE on an already-gone ref with `HTTP 422: Reference does not exist`, not 404, which would blur the DELETE's stop rule below. On the DELETE call: any failure (403/422/5xx) — stop, report the branch name and error, and don't move on silently. Never prune: the default branch, any branch whose PR has not merged or whose tip holds commits beyond what its PR merged, or a branch backing a **Live** feature / open PR.
 
 If a pruned branch's feature still has a Status-ledger row in `plans/META-PLAN.md`, delete that row too (per its History policy) — this is what stops the next sweep from re-flagging it.
 
@@ -98,4 +105,4 @@ Flag any mismatch before reporting. Then report: what was frozen (with SHAs/PRs)
 
 - Reorganizes planning docs only — never source files, never plans/implements a feature.
 - Deletion is irreversible for anything not in git history — peek at any non-standard file before removing it.
-- Every branch/remote deletion and the tracking decision go through `AskUserQuestion` — never assume.
+- Every branch/remote deletion and the tracking decision go through `AskUserQuestion` — never assume. Step 5's local delete is `-D`, so the PR/merge-commit/tip verification plus that confirmation is the only gate — there is no `-d` refusal behind it.
