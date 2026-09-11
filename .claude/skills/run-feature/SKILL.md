@@ -57,13 +57,7 @@ Fall through to Phase B once the PR is open.
 
 Do not assume the feature shipped or merged just because a PR exists.
 
-**Pause-and-ask checkpoint — merge confirmation:** confirm both conditions with the user before folding anything into `META-PLAN.md`:
-```
-AskUserQuestion, multiSelect:
-"Confirm before I fold this into META-PLAN.md:"
-  [ ] The feature works correctly on its branch (you've verified it)
-  [ ] Its PR is merged into main
-```
+**Pause-and-ask checkpoint — merge confirmation:** before folding anything into `META-PLAN.md`, ask via `AskUserQuestion` (multiSelect) whether both are true — **The feature works correctly on its branch (you've verified it)** and **Its PR is merged into `main`**.
 - Both confirmed → continue to Phase C now, in this same invocation.
 - Either unconfirmed → end the session. Tell the user to re-run `/run-feature <F-id>` once both are true — it will detect the merged PR via `gh` and resume directly at Phase C.
 
