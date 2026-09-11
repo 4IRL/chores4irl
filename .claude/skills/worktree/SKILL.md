@@ -92,6 +92,8 @@ Then, per that entry's Step 2 classification — never run both:
 - **Merged** → `git branch -d feature/<slug>` — refuses if it isn't actually merged; if it refuses here, stop and investigate, don't force past it.
 - **User-confirmed abandoned (never merged)** → `git branch -D feature/<slug>` — only for an entry the user explicitly confirmed as abandoned in Step 3's `AskUserQuestion`.
 
+Never run `-D` on any other classification — it is exclusive to the user-confirmed-abandoned case above.
+
 ### 5. Prune stale admin entries
 `git worktree prune` to clean up stale admin entries.
 
