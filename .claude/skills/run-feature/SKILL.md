@@ -69,7 +69,7 @@ AskUserQuestion, multiSelect:
 
 ## Phase C — fold the merge into META-PLAN.md
 
-1. `git checkout main && gmas`. Re-run `git status` and confirm the tree is clean and matches `origin/main`; on a `gmas` conflict/failure, stop and report rather than continuing.
+1. `git checkout main && gmas`. Verify the sync the same way as Branch Guard's post-`gmas` check above.
 2. `git checkout chore/meta-plan-update-<f-id-lowercase> || git checkout -b chore/meta-plan-update-<f-id-lowercase> main` — the branch may already exist (a Phase C attempt interrupted before its own PR merged, then resumed); fall back to creating it fresh only when it doesn't. Don't suppress the first attempt's error output — if it fails for a reason other than "branch doesn't exist" (e.g. already checked out in another worktree), that message needs to stay visible rather than being masked by the fallback's own error. If the branch already existed, rebase/merge it onto this freshly-synced `main` now, before step 3 edits `plans/META-PLAN.md` — other features' Phase C merges may have landed since it was created, and re-editing a stale copy could reintroduce or clobber their ledger/Baseline updates.
 3. Edit `plans/META-PLAN.md` per its own **Ledger update protocol** and **History policy**:
    - Delete this feature's Status-ledger row (never mark it `merged` — a verified-merged row is deleted, not kept).
