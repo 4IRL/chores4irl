@@ -44,8 +44,8 @@ Required only when the table above resolves to Phase A (not needed to resume Pha
 2. `git checkout feature/<slug> || git checkout -b feature/<slug> main` — the branch may already exist (a resumed feature); fall back to creating it fresh only when it doesn't. Don't suppress the first attempt's error output — if it fails for a reason other than "branch doesn't exist" (e.g. already checked out in another worktree), that message needs to stay visible rather than being masked by the fallback's own error.
 3. Set this feature's Status-ledger row in `plans/META-PLAN.md` to `in-progress` (a small standalone edit that rides in the first implementation commit).
 4. `/plan-creator` — produce the implementation plan from this feature's Assumed/Expected state; resolve its "Open risks / decisions" during planning.
-5. `/plan-reviewer` — apply its corrections before implementing.
-6. `/run-plan` **exactly once**, on this feature's own plan — never nested, never on `META-PLAN.md` itself.
+5. `/plan-reviewer <slug>` — apply its corrections before implementing. Unlike `/plan-creator`, which infers its topic, `/plan-reviewer` and `/run-plan` each locate the plan by fuzzy-matching a required plan-name argument against `plans/**`; the argument is the plan file's name stem — `plans/feature/<slug>/<slug>.md` as step 4 writes it (if `/plan-creator` chose a different filename, pass that stem instead; and since this step leaves `plans/feature/<slug>/reviews/<slug>-review.md` beside the plan, confirm each skill resolved the plan file itself, not its review doc).
+6. `/run-plan <slug>` **exactly once**, on this feature's own plan — never nested, never on `META-PLAN.md` itself.
 7. `/git-commit` to atomize the work; apply its self-review corrections.
 8. **Verify "Expected end state"** — run the relevant Vitest suites + `e2e/smoke.spec.ts`, and check every listed grep/route fact. Reconcile any gap before publishing.
 9. `/git-push` — runs the 8-agent review and opens/updates the PR. If it rejects, fix per its findings and re-push; do not fall through to Phase B with an unresolved rejection.
