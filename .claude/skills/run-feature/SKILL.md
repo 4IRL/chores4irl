@@ -1,16 +1,16 @@
 ---
 name: run-feature
-description: Run one feature from plans/META-PLAN.md through its full Per-Feature Session Contract for chores4irl — cold-survey, plan, review, implement, commit, verify, and push a PR, then (once merge is confirmed) fold the merge back into META-PLAN.md. Resumable: re-invoking after a merge picks up exactly where the feature left off, driven by the state of its PR. Use when asked to run/implement/work on/continue a specific F-id feature, to check on one already in flight, or to reconcile META-PLAN.md after merging one. Replaces the old plans/NST-META-PLAN-PROMPT.md template.
-argument-hint: <F-id>
+description: Run one feature from plans/META-PLAN.md through its full Per-Feature Session Contract for chores4irl — cold-survey, plan, review, implement, commit, verify, and push a PR, then (once merge is confirmed) fold the merge back into META-PLAN.md. Resumable: re-invoking after a merge picks up exactly where the feature left off, driven by the state of its PR. Use when asked to run/implement/work on/continue a specific F-ID feature, to check on one already in flight, or to reconcile META-PLAN.md after merging one. Replaces the old plans/NST-META-PLAN-PROMPT.md template.
+argument-hint: <F-ID>
 ---
 
 # Run Feature
 
 Execute exactly one feature from `plans/META-PLAN.md`'s "REMAINING FEATURES" section, following its Per-Feature Session Contract end-to-end, then — once the user confirms the PR merged — fold that merge back into `META-PLAN.md`. **Never touch a second feature in one invocation.**
 
-## Resolve the F-id
+## Resolve the F-ID
 
-`$0` is the F-id (bare current numbering, e.g. `F4`; not `-L` legacy or **SUPERSEDED**). Read `plans/META-PLAN.md` and locate its per-feature section under "REMAINING FEATURES". If the F-id doesn't exist there, is `-L`, or is marked **SUPERSEDED**, stop and say why.
+`$0` is the F-ID (bare current numbering, e.g. `F4`; not `-L` legacy or **SUPERSEDED**). Read `plans/META-PLAN.md` and locate its per-feature section under "REMAINING FEATURES". If the F-ID doesn't exist there, is `-L`, or is marked **SUPERSEDED**, stop and say why.
 
 From the section, note: the `feature/<slug>` branch name (its "Session loop" line), "Assumed starting state", "Expected end state", and "Open risks / decisions".
 
@@ -28,9 +28,9 @@ Check `gh`'s exit code and that stdout parses as valid JSON **before** consultin
 |---|---|
 | no PR found (branch may not exist yet either) | **Phase A** — implement |
 | PR open | **Phase B** — human merge gate |
-| PR merged, and `plans/META-PLAN.md`'s Status ledger still has a row for this F-id | **Phase C** — fold the merge into META-PLAN |
+| PR merged, and `plans/META-PLAN.md`'s Status ledger still has a row for this F-ID | **Phase C** — fold the merge into META-PLAN |
 | PR merged, no ledger row | nothing to do — report and stop |
-| PR closed, not merged | stop and ask the user whether to reopen the PR, restart on a fresh branch, or abandon the F-id |
+| PR closed, not merged | stop and ask the user whether to reopen the PR, restart on a fresh branch, or abandon the F-ID |
 
 If `gh pr list --state all` returns more than one PR for this head branch (e.g. a closed-then-reopened history), use the most recent by number/`createdAt`; if it's ambiguous which is authoritative, stop and show the full list to the user rather than guessing.
 
@@ -59,7 +59,7 @@ Do not assume the feature shipped or merged just because a PR exists.
 
 **Pause-and-ask checkpoint — merge confirmation:** before folding anything into `META-PLAN.md`, ask via `AskUserQuestion` (multiSelect) whether both are true — **The feature works correctly on its branch (you've verified it)** and **Its PR is merged into `main`**.
 - Both confirmed → continue to Phase C now, in this same invocation.
-- Either unconfirmed → end the session. Tell the user to re-run `/run-feature <F-id>` once both are true — it will detect the merged PR via `gh` and resume directly at Phase C.
+- Either unconfirmed → end the session. Tell the user to re-run `/run-feature <F-ID>` once both are true — it will detect the merged PR via `gh` and resume directly at Phase C.
 
 ## Phase C — fold the merge into META-PLAN.md
 
@@ -71,13 +71,13 @@ Do not assume the feature shipped or merged just because a PR exists.
    - If a *remaining* feature still targets this one's implemented contract, add/update it under "COMPLETED-FEATURE CONTRACTS STILL IN FORCE"; otherwise fold the durable facts into **Baseline** / **Standing invariants** instead.
    - Refresh the **Baseline** header (`main` at PR #N, `<SHA>`) and any baseline facts this feature changed.
    - If this feature was **★FOCUS**, re-evaluate "Shortest path to the focus feature": if the next step is unambiguous (its track's next item, zero new prerequisites), advance ★FOCUS and say so; if it's genuinely ambiguous, ask via `AskUserQuestion` rather than guessing.
-4. **Verify the step 3 edits landed** — re-read `plans/META-PLAN.md` (`git diff main -- plans/META-PLAN.md` is the quickest cross-check and also covers a resumed branch) and confirm every prescribed edit is actually present: this feature's Status-ledger row is gone; its **Legacy → current ID map** row, if the map has one for this F-id, carries the PR number; its contract or durable facts landed under "COMPLETED-FEATURE CONTRACTS STILL IN FORCE" or in **Baseline** / **Standing invariants**, and any baseline facts it changed were updated there (the header refresh alone satisfies neither); the **Baseline** header names this feature's merge PR/SHA (or a later merge's, if another Phase C already advanced it), not the pre-merge value; and, if this feature was **★FOCUS**, no `FOCUS` reference still names this F-id (`grep -in focus plans/META-PLAN.md`). Reconcile any gap before committing.
+4. **Verify the step 3 edits landed** — re-read `plans/META-PLAN.md` (`git diff main -- plans/META-PLAN.md` is the quickest cross-check and also covers a resumed branch) and confirm every prescribed edit is actually present: this feature's Status-ledger row is gone; its **Legacy → current ID map** row, if the map has one for this F-ID, carries the PR number; its contract or durable facts landed under "COMPLETED-FEATURE CONTRACTS STILL IN FORCE" or in **Baseline** / **Standing invariants**, and any baseline facts it changed were updated there (the header refresh alone satisfies neither); the **Baseline** header names this feature's merge PR/SHA (or a later merge's, if another Phase C already advanced it), not the pre-merge value; and, if this feature was **★FOCUS**, no `FOCUS` reference still names this F-ID (`grep -in focus plans/META-PLAN.md`). Reconcile any gap before committing.
 5. `/git-commit`.
 6. `/git-push` — this is a small docs-only PR; the 8-agent review still runs, that's fine.
 7. End the session. Do not start another feature.
 
 ## Important Notes
 
-- One feature per invocation, always. Never chain into a second F-id even if Phase C finishes quickly.
+- One feature per invocation, always. Never chain into a second F-ID even if Phase C finishes quickly.
 - Never self-mark a PR merged — Phase B's confirmation (or `gh`'s own `mergedAt`) is the only source of truth.
 - Phase A/C never hand-edit a Status-ledger row for a *different* feature.

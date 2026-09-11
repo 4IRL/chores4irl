@@ -339,15 +339,15 @@ feature's section here in the same PR.
 ## How to run a session (invocation)
 
 Each feature is **one fresh Claude Code session**. Start on an up-to-date checkout of `main`
-(`git checkout main && git pull`) and invoke `/run-feature <F-id>`. The session reads this
+(`git checkout main && git pull`) and invoke `/run-feature <F-ID>`. The session reads this
 file, runs **exactly one** feature's Per-Feature Session Contract, and ends at the pushed PR —
-it never chains into the next feature. Re-invoking `/run-feature <F-id>` later (once you've
+it never chains into the next feature. Re-invoking `/run-feature <F-ID>` later (once you've
 verified the branch and merged the PR) resumes at the META-PLAN-update step instead of
 restarting the feature — the skill detects this from the PR's state via `gh`.
 
 **Running several features at once.** Independent features (disjoint file surfaces) can be
 implemented concurrently in **git worktrees**, one session per worktree. Invoke
-`/worktree <F-id> [<F-id>…]` to verify the chosen F-ids cannot merge-conflict — computed live
+`/worktree <F-ID> [<F-ID>…]` to verify the chosen F-IDs cannot merge-conflict — computed live
 against the current codebase and the current numbering, never a cached table — and to
 provision the worktrees; implementation still runs each feature's own Per-Feature Session
 Contract via `/run-feature` inside each worktree, and the merge gate stays serial.
@@ -359,7 +359,7 @@ session's cold survey pass.
 
 **Invocation:**
 ```
-/run-feature <F-id>
+/run-feature <F-ID>
 ```
 `/run-feature` runs cold-survey → `/plan-creator` → `/plan-reviewer` → `/run-plan` (once) →
 `/git-commit` → verify "Expected end state" → `/git-push`, then — once you confirm the PR is

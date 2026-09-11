@@ -1,14 +1,14 @@
 ---
 name: worktree
-description: Provision (or tear down) git worktrees to run multiple independent chores4irl features from plans/META-PLAN.md in parallel — proves the chosen F-ids can't merge-conflict via a live-computed touch-set analysis plus git merge-tree, sets up one worktree + npm install per feature, and hands off to /run-feature in each. Never plans or implements a feature itself. Use when asked to parallelize features, work on multiple F-ids at once, set up worktrees, or tear down/clean up existing chores4irl worktrees. Replaces the old plans/WORKTREE-PARALLELIZE-PROMPT.md template.
-argument-hint: <F-id> [<F-id>...] | teardown
+description: Provision (or tear down) git worktrees to run multiple independent chores4irl features from plans/META-PLAN.md in parallel — proves the chosen F-IDs can't merge-conflict via a live-computed touch-set analysis plus git merge-tree, sets up one worktree + npm install per feature, and hands off to /run-feature in each. Never plans or implements a feature itself. Use when asked to parallelize features, work on multiple F-IDs at once, set up worktrees, or tear down/clean up existing chores4irl worktrees. Replaces the old plans/WORKTREE-PARALLELIZE-PROMPT.md template.
+argument-hint: <F-ID> [<F-ID>...] | teardown
 ---
 
 # Worktree
 
 Stand up one git worktree per independent feature so several `/run-feature` sessions can run at the same time without touching each other's working tree — or tear existing ones down. **This skill never plans or implements a feature itself**; each worktree still runs its own feature through `/run-feature`.
 
-If `$ARGUMENTS` is exactly `teardown`, skip to **Teardown mode**. Otherwise treat it as a whitespace-separated list of F-ids — **Provision mode**.
+If `$ARGUMENTS` is exactly `teardown`, skip to **Teardown mode**. Otherwise treat it as a whitespace-separated list of F-IDs — **Provision mode**.
 
 ## Branch Guard
 
@@ -16,14 +16,14 @@ Required for Provision mode only — Teardown mode doesn't require a clean `main
 
 ## Provision mode
 
-### 1. Resolve and filter the F-id set
-For each F-id, read its section in `plans/META-PLAN.md`. Drop — with a one-line reason, confirmed via `AskUserQuestion` if it's not obvious from the doc — any that:
+### 1. Resolve and filter the F-ID set
+For each F-ID, read its section in `plans/META-PLAN.md`. Drop — with a one-line reason, confirmed via `AskUserQuestion` if it's not obvious from the doc — any that:
 - is marked **SUPERSEDED**,
 - is gated on external work not yet satisfied (e.g. current `F15`/`F11`/`F12` on pi-kiosk phases),
-- **gates** another F-id still in the set (that pair is inherently serial, not parallel).
+- **gates** another F-ID still in the set (that pair is inherently serial, not parallel).
 
 ### 2. Compute touch-sets live — never reuse a cached table
-For each surviving F-id, build its file touch-set from that section's "Assumed starting state" / "Expected end state" / "Test-suite deltas", then sharpen with `grep` for the named components/routes/files. **Do not assume any previously-recorded "shared surfaces" table is still accurate** — F-numbering and file layout both drift between runs; always recompute from the current codebase and the current `META-PLAN.md`.
+For each surviving F-ID, build its file touch-set from that section's "Assumed starting state" / "Expected end state" / "Test-suite deltas", then sharpen with `grep` for the named components/routes/files. **Do not assume any previously-recorded "shared surfaces" table is still accurate** — F-numbering and file layout both drift between runs; always recompute from the current codebase and the current `META-PLAN.md`.
 
 ### 3. Pairwise independence matrix
 For every pair still in the set:
@@ -48,7 +48,7 @@ Print the full matrix and each feature's touch-set — the independence claim mu
 **Pause-and-ask checkpoint — RED/YELLOW pairs:** any **RED** pair → stop, report it, recommend running those two serially (drop one from this batch, or abort). Any **YELLOW** pair → `AskUserQuestion`: accept the risk (proceed, flag it as needing a rebase check at merge time) or drop one of the pair. Only GREEN and accepted-YELLOW features proceed to Step 4.
 
 ### 4. Provision worktrees
-For each surviving F-id, using its exact `feature/<slug>` name from META-PLAN's "Session loop" line:
+For each surviving F-ID, using its exact `feature/<slug>` name from META-PLAN's "Session loop" line:
 ```bash
 git worktree add ../c4i-wt-<slug> -b feature/<slug> main   # new branch
 # or, if the branch already exists (e.g. a resumed feature):
@@ -62,12 +62,12 @@ Then, in each worktree: `npm install` (node_modules is per-worktree, not shared)
   ```
   cd ../c4i-wt-<slug> && claude
   # then paste:
-  /run-feature <F-id>
+  /run-feature <F-ID>
   ```
-- **Mode B — subagent fan-out.** Only if the user explicitly wants this session to drive it: spawn one background subagent per worktree, each instructed to `cd` into its worktree and run `/run-feature <F-id>` end-to-end, then report its PR link. Note the cost (N concurrent plan/implement/push pipelines) before doing this.
+- **Mode B — subagent fan-out.** Only if the user explicitly wants this session to drive it: spawn one background subagent per worktree, each instructed to `cd` into its worktree and run `/run-feature <F-ID>` end-to-end, then report its PR link. Note the cost (N concurrent plan/implement/push pipelines) before doing this.
 
 ### 6. Summary
-Report: the pairwise matrix + touch-sets, any excluded F-ids with reasons, the worktree map (F-id → path → branch), and the merge-order reminder:
+Report: the pairwise matrix + touch-sets, any excluded F-IDs with reasons, the worktree map (F-ID → path → branch), and the merge-order reminder:
 - Merge the resulting PRs **one at a time** through the normal review + CI gate — implementation is parallel, merging stays serial.
 - After each merge, remaining worktree branches should `git fetch && git rebase origin/main` and re-run their suites; re-run the Step 3 `merge-tree` check between any two not-yet-merged branches if either rebased.
 - Each feature's PR edits only its own Status-ledger row — if two PRs both touch the ledger, git may flag it at merge; that's a one-line "keep both rows" resolution, not a real conflict.
