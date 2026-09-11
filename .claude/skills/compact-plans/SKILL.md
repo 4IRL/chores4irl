@@ -55,7 +55,9 @@ For each confirmed branch:
 ```bash
 if git branch -d <branch>; then   # -d only — refuses anything not actually merged
   if gh api repos/4IRL/chores4irl/git/refs/heads/<branch> >/dev/null 2>&1; then
-    gh api -X DELETE repos/4IRL/chores4irl/git/refs/heads/<branch>   # remote delete
+    if ! gh api -X DELETE repos/4IRL/chores4irl/git/refs/heads/<branch>; then   # remote delete
+      echo "STOP: remote delete failed for <branch> — report and do not continue to the next branch"
+    fi
   fi
 else
   echo "STOP: git branch -d refused for <branch> — investigate before any remote action"
