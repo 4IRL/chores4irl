@@ -60,16 +60,20 @@ cross-checked against `git branch -a`. A branch whose functionality shipped via 
 For each confirmed branch:
 ```bash
 if git branch -d <branch>; then   # -d only — refuses anything not actually merged
-  if gh api repos/4IRL/chores4irl/git/refs/heads/<branch> >/dev/null 2>&1; then
+  if ref_check=$(gh api repos/4IRL/chores4irl/git/ref/heads/<branch> 2>&1); then   # singular /ref/ = exact match; plural /refs/ prefix-matches
     if ! gh api -X DELETE repos/4IRL/chores4irl/git/refs/heads/<branch>; then   # remote delete
       echo "STOP: remote delete failed for <branch> — report and do not continue to the next branch"
     fi
+  elif [[ "$ref_check" == *"HTTP 404"* ]]; then
+    echo "remote ref for <branch> already gone — skipping DELETE (benign no-op)"
+  else   # 403/5xx/rate-limit/network — not a 404, so not evidence the ref is gone
+    echo "STOP: existence check failed for <branch> — $ref_check"
   fi
 else
   echo "STOP: git branch -d refused for <branch> — investigate before any remote action"
 fi
 ```
-Never `-D`. If `-d` refuses, stop and investigate that branch specifically — skip its remote action and move on to the next confirmed branch in the list rather than aborting the whole sweep; don't force past it, and the remote delete must never run for a branch whose local `-d` was refused. If the existence check itself returns 404, the ref is already gone — skip the DELETE, a benign no-op. On the DELETE call: any failure (403/422/5xx) — stop, report the branch name and error, and don't move on silently. Never prune: the default branch, any branch with unmerged commits, or a branch backing a **Live** feature / open PR.
+Never `-D`. If `-d` refuses, stop and investigate that branch specifically — skip its remote action and move on to the next confirmed branch in the list rather than aborting the whole sweep; don't force past it, and the remote delete must never run for a branch whose local `-d` was refused. The existence check is benign only on an actual `HTTP 404` (ref already gone — skip the DELETE and say so); any other failure stops with the captured error rather than being reported as pruned. The pre-check stays rather than folding into the DELETE because GitHub answers a DELETE on an already-gone ref with `HTTP 422: Reference does not exist`, not 404, which would blur the DELETE's stop rule below. On the DELETE call: any failure (403/422/5xx) — stop, report the branch name and error, and don't move on silently. Never prune: the default branch, any branch with unmerged commits, or a branch backing a **Live** feature / open PR.
 
 If a pruned branch's feature still has a Status-ledger row in `plans/META-PLAN.md`, delete that row too (per its History policy) — this is what stops the next sweep from re-flagging it.
 
