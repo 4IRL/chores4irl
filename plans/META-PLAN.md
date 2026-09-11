@@ -347,7 +347,7 @@ restarting the feature — the skill detects this from the PR's state via `gh`.
 
 **Running several features at once.** Independent features (disjoint file surfaces) can be
 implemented concurrently in **git worktrees**, one session per worktree. Invoke
-`/worktree <F-id> [<F-id>…]` to verify the chosen F-IDs cannot merge-conflict — computed live
+`/worktree <F-id> [<F-id>…]` to verify the chosen F-ids cannot merge-conflict — computed live
 against the current codebase and the current numbering, never a cached table — and to
 provision the worktrees; implementation still runs each feature's own Per-Feature Session
 Contract via `/run-feature` inside each worktree, and the merge gate stays serial.
