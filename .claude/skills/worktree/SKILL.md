@@ -78,21 +78,32 @@ Report: the pairwise matrix + touch-sets, any excluded F-ids with reasons, the w
 `git worktree list` — every `../c4i-wt-*` entry.
 
 ### 2. Check each branch's PR state
-For each, check its branch's PR state (`gh pr list --head <branch> --state all`). Candidates to remove: PR merged, or the user names it abandoned. If the `gh` call fails for a branch, record its PR state as `UNKNOWN (gh error)` rather than leaving it blank or omitting the row.
+For each, check its branch's PR state (`gh pr list --head <branch> --state all`) and record the PR number alongside the state (the merged PR's, if the branch has several — Step 4's gate re-verifies that number). Candidates to remove: PR merged, or the user names it abandoned. If the `gh` call fails for a branch, record its PR state as `UNKNOWN (gh error)` rather than leaving it blank or omitting the row.
 
 ### 3. Confirm the removal list
-**Pause-and-ask checkpoint — teardown confirmation:** present the exact list (worktree path, branch, PR state — including any `UNKNOWN (gh error)` rows) via `AskUserQuestion` before removing anything.
+**Pause-and-ask checkpoint — teardown confirmation:** present the exact list (worktree path, branch, PR state and number — including any `UNKNOWN (gh error)` rows) via `AskUserQuestion` before removing anything.
 
 ### 4. Remove confirmed worktrees and branches
-For each confirmed entry:
+For each confirmed entry in turn, pass the gate matching its Step 2 classification before removing anything — `git branch -D` is the only force-delete in this skill, reachable solely through one of these gates (each already behind Step 3's confirmation):
+- **Merged** → re-verify the PR; `<number>` is the PR number Step 2 recorded. Run `git fetch origin` once first so `origin/main` is current (Teardown mode doesn't sync `main`), then:
+  ```bash
+  read -r merged_sha head_oid < <(gh pr view <number> --json state,mergedAt,mergeCommit,headRefName,headRefOid --jq 'select(.state == "MERGED" and .mergedAt != null and .mergeCommit != null and .headRefName == "feature/<slug>") | "\(.mergeCommit.oid) \(.headRefOid)"')   # both empty unless the PR really merged from this branch
+  if [[ -n "$merged_sha" ]] && git merge-base --is-ancestor "$merged_sha" origin/main && git merge-base --is-ancestor "feature/<slug>" "$head_oid"; then   # the gate: PR merged from this branch, its merge commit is on main, and the local tip has nothing beyond what the PR merged
+    echo "VERIFIED: PR #<number> merged from feature/<slug> — proceed to remove it"
+  else
+    echo "SKIP: could not verify feature/<slug> as merged (PR #<number> not merged from it, gh error, merge commit not on origin/main, or local tip beyond the PR head) — leave its worktree and branch in place, report it under Step 6's \"left in place\", and continue to the next confirmed entry"
+  fi
+  ```
+- **User-confirmed abandoned (never merged)** → no PR check; the gate is the user having explicitly named it abandoned in Step 3's `AskUserQuestion`.
+- **Neither** (PR open, closed-unmerged, or `UNKNOWN (gh error)`, and not explicitly named abandoned) → no gate matches; leave its worktree and branch in place, report it under Step 6's "left in place", and continue.
+
+Then, once that entry's gate passed:
 ```bash
 git worktree remove ../c4i-wt-<slug>   # refuses if dirty — resolve first, don't force
+git branch -D "feature/<slug>"   # -D on purpose — see below; recoverable from the "(was <sha>)" line until gc
 ```
-Then, per that entry's Step 2 classification — never run both:
-- **Merged** → `git branch -d feature/<slug>` — refuses if it isn't actually merged; if it refuses here, stop and investigate, don't force past it.
-- **User-confirmed abandoned (never merged)** → `git branch -D feature/<slug>` — only for an entry the user explicitly confirmed as abandoned in Step 3's `AskUserQuestion`.
 
-Never run `-D` on any other classification — it is exclusive to the user-confirmed-abandoned case above.
+`git branch -d` is not a merge check here: it judges merged-ness against the branch's configured upstream (`origin/feature/<slug>`, which `/run-feature`'s `/git-push` sets), not `main`, so it would pass an unmerged pushed branch vacuously — and once that upstream is pruned it falls back to HEAD and refuses every squash-merged branch. Its refusal is expected for a squash-merged branch and not diagnostic, which is why the local delete is `-D` on both paths.
 
 ### 5. Prune stale admin entries
 `git worktree prune` to clean up stale admin entries.
@@ -100,11 +111,11 @@ Never run `-D` on any other classification — it is exclusive to the user-confi
 Never `rm -rf` a worktree directory by hand — always go through `git worktree remove` so git's bookkeeping stays consistent.
 
 ### 6. Verify end state
-Before reporting, re-verify the teardown removed exactly what Step 3 confirmed — nothing less, nothing more — rather than trusting narrative memory of what happened. This matters most for the `-D` path, which force-deletes unmerged work with no refusal safety net:
+Before reporting, re-verify the teardown removed exactly what Step 3 confirmed — nothing less, nothing more — rather than trusting narrative memory of what happened. This matters because Step 4's local delete is `-D` on both paths — nothing behind the PR verification or the user's abandoned confirmation would have refused a wrong deletion:
 - Re-run `git worktree list`: no confirmed `../c4i-wt-<slug>` path should remain (and `test -d <path>` should now fail for each confirmed entry, using the absolute path Step 1's listing printed — not a relative `../c4i-wt-*` glob, which silently returns empty from the wrong cwd), and every entry from Step 1's listing that was *not* confirmed in Step 3 (plus the main checkout itself) should still be present. Exception: an entry Step 1 listed as `prunable` disappears at Step 5 whether or not it was confirmed — report it as pruned-stale, not as a mismatch.
 - Run `git branch -a`: the local `feature/<slug>` branch of every confirmed entry should be gone, and the branch of every unconfirmed entry should still be listed. A lingering `remotes/origin/feature/<slug>` for any removed entry — merged or abandoned — is expected, not a mismatch: teardown never deletes remote refs (merged ones are `/compact-plans` Step 5's job).
 
-Flag any mismatch before reporting — either case means stop and tell the user; never re-run Step 4 with `--force` or `-D` to make the verification pass. A confirmed entry still present means Step 4 didn't actually remove it (a refusal was missed or the entry was skipped) — report it under "left in place" with the reason, not as a clean removal. An unconfirmed entry missing means something outside the list was touched; a deleted local branch is recoverable until gc from the `(was <sha>)` line that `git branch -d`/`-D` printed, or via `git fsck --lost-found` — its reflog is gone once the worktree is pruned, so `git reflog` won't find it. Then report: each removed entry (path → branch → PR state → `-d`/`-D` with the `(was <sha>)` it printed), and any entries deliberately left in place.
+Flag any mismatch before reporting — either case means stop and tell the user; never re-run Step 4 with `git worktree remove --force`, or with its Merged gate skipped, to make the verification pass. A confirmed entry still present means Step 4 didn't actually remove it (its gate SKIPped, a `git worktree remove` refusal was missed, or the entry was otherwise skipped) — report it under "left in place" with the reason, not as a clean removal. An unconfirmed entry missing means something outside the list was touched; a deleted local branch is recoverable until gc from the `(was <sha>)` line that `git branch -D` printed, or via `git fsck --lost-found` — its reflog is gone once the worktree is pruned, so `git reflog` won't find it. Then report: each removed entry (path → branch → PR state → which gate admitted the `-D` — PR-verified merged or user-confirmed abandoned — with the `(was <sha>)` it printed), and any entries deliberately left in place.
 
 ## Important Notes
 

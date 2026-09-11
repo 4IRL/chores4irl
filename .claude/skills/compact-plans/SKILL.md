@@ -59,7 +59,7 @@ cross-checked against `git branch -a`. A branch whose functionality shipped via 
 
 For each confirmed branch, re-verify its PR immediately before deleting — that verification plus the checkpoint above is the gate, not the local delete's exit status. `<number>` / `<branch>` are copied verbatim from the `gh pr list` result's `number` / `headRefName`. Run `git fetch origin` once first so `origin/main` is current (the Branch Guard only syncs `main` when the sweep starts there), then per branch:
 ```bash
-read -r merged_sha head_oid < <(gh pr view <number> --json state,mergedAt,mergeCommit,headRefName,headRefOid --jq 'select(.state == "MERGED" and .mergedAt != null and .headRefName == "<branch>") | "\(.mergeCommit.oid) \(.headRefOid)"')   # both empty unless the PR really merged from this branch
+read -r merged_sha head_oid < <(gh pr view <number> --json state,mergedAt,mergeCommit,headRefName,headRefOid --jq 'select(.state == "MERGED" and .mergedAt != null and .mergeCommit != null and .headRefName == "<branch>") | "\(.mergeCommit.oid) \(.headRefOid)"')   # both empty unless the PR really merged from this branch
 if [[ -n "$merged_sha" ]] && git merge-base --is-ancestor "$merged_sha" origin/main && git merge-base --is-ancestor "<branch>" "$head_oid"; then   # the gate: PR merged from this branch, its merge commit is on main, and the local tip has nothing beyond what the PR merged
   if git branch -D "<branch>"; then   # -D on purpose — -d judges against the branch's upstream, not main, so its verdict is not diagnostic; recoverable from the "(was <sha>)" line / reflog until gc
     if remote_tip=$(gh api "repos/4IRL/chores4irl/git/ref/heads/<branch>" --jq .object.sha 2>&1); then   # singular /ref/ = exact match; plural /refs/ prefix-matches
