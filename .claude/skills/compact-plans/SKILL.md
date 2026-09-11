@@ -81,6 +81,9 @@ Before deleting anything outside `tmp/`, confirm it isn't the only record of a d
 
 Before reporting, re-verify the sweep actually succeeded rather than trusting narrative memory of what happened:
 - Re-run Step 1's tracking counts (`git ls-files plans | wc -l` / `find plans -type f | wc -l`) and confirm they reflect the relocations/deletions just made.
+- Confirm Step 3's freeze header actually landed, across `plans/completed/` and `plans/abandoned/`: `find plans/completed plans/abandoned -mindepth 2 -maxdepth 2 -name '*.md' 2>/dev/null | xargs -r grep -L '^> \*\*STATUS:'` should return nothing (the `find`/`xargs -r` form tolerates either directory not existing yet, unlike a bare glob).
+- Confirm Step 4's ledger retention left the right files: `ls plans/ledger/*_feature_ledger.md` should list only the newest ledger and the one it directly supersedes — nothing older (one file is fine if there's no predecessor yet).
+- Confirm Step 4's `.gitignore` entry landed: `grep -q 'plans/\*\*/tmp/' .gitignore` should succeed.
 - Re-run Step 5's `gh pr list --state merged --json number,title,headRefName,mergeCommit` + `git branch -a` cross-check and confirm every branch confirmed for pruning is actually gone (local and remote), and no **Live** / open-PR branch was touched.
 - Confirm no plan dir was left live under `plans/feature|revision|chore` that Step 2 classified as Merged/Abandoned/Superseded.
 
