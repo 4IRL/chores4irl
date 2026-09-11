@@ -17,15 +17,18 @@ Required for Provision mode only — Teardown mode doesn't require a clean `main
 ## Provision mode
 
 ### 1. Resolve and filter the F-ID set
+
 For each F-ID, read its section in `plans/META-PLAN.md`. Drop — with a one-line reason, confirmed via `AskUserQuestion` if it's not obvious from the doc — any that:
 - is marked **SUPERSEDED**,
 - is gated on external work not yet satisfied (e.g. current `F15`/`F11`/`F12` on pi-kiosk phases),
 - **gates** another F-ID still in the set (that pair is inherently serial, not parallel).
 
 ### 2. Compute touch-sets live — never reuse a cached table
+
 For each surviving F-ID, build its file touch-set from that section's "Assumed starting state" / "Expected end state" / "Test-suite deltas", then sharpen with `grep` for the named components/routes/files. **Do not assume any previously-recorded "shared surfaces" table is still accurate** — F-numbering and file layout both drift between runs; always recompute from the current codebase and the current `META-PLAN.md`.
 
 ### 3. Pairwise independence matrix
+
 For every pair still in the set:
 - **Disjoint file sets → GREEN.**
 - **Same file, different region (e.g. different JSX block, different route handler) → YELLOW** — possible, needs explicit acceptance.
@@ -48,6 +51,7 @@ Print the full matrix and each feature's touch-set — the independence claim mu
 **Pause-and-ask checkpoint — RED/YELLOW pairs:** any **RED** pair → stop, report it, recommend running those two serially (drop one from this batch, or abort). Any **YELLOW** pair → `AskUserQuestion`: accept the risk (proceed, flag it as needing a rebase check at merge time) or drop one of the pair. Only GREEN and accepted-YELLOW features proceed to Step 4.
 
 ### 4. Provision worktrees
+
 For each surviving F-ID, using its exact `feature/<slug>` name from META-PLAN's "Session loop" line:
 ```bash
 git worktree add ../c4i-wt-<slug> -b feature/<slug> main   # new branch
@@ -57,6 +61,7 @@ git worktree add ../c4i-wt-<slug> feature/<slug>
 Then, in each worktree: `npm install` (node_modules is per-worktree, not shared), and confirm it's on the right branch and clean. If either check fails for a worktree (failed `npm install`, wrong branch, dirty tree), stop and report that specific worktree as unusable — don't include it in Step 5's dispatch.
 
 ### 5. Dispatch
+
 **Pause-and-ask checkpoint — dispatch mode:** ask the user whether this session should hand each worktree off for them to drive, or fan out subagents to run them itself, then follow the chosen mode:
 - **Mode A — hand-off (default).** Print, per worktree, the exact kickoff:
   ```
@@ -67,6 +72,7 @@ Then, in each worktree: `npm install` (node_modules is per-worktree, not shared)
 - **Mode B — subagent fan-out.** Only if the user explicitly wants this session to drive it: spawn one background subagent per worktree, each instructed to `cd` into its worktree and run `/run-feature <F-ID>` end-to-end, then report its PR link. Note the cost (N concurrent plan/implement/push pipelines) before doing this.
 
 ### 6. Summary
+
 Report: the pairwise matrix + touch-sets, any excluded F-IDs with reasons, the worktree map (F-ID → path → branch), and the merge-order reminder:
 - Merge the resulting PRs **one at a time** through the normal review + CI gate — implementation is parallel, merging stays serial.
 - After each merge, remaining worktree branches should `git fetch && git rebase origin/main` and re-run their suites; re-run the Step 3 `merge-tree` check between any two not-yet-merged branches if either rebased.
@@ -75,15 +81,19 @@ Report: the pairwise matrix + touch-sets, any excluded F-IDs with reasons, the w
 ## Teardown mode
 
 ### 1. List existing worktrees
+
 `git worktree list` — every `../c4i-wt-*` entry.
 
 ### 2. Check each branch's PR state
+
 For each, check its branch's PR state (`gh pr list --head <branch> --state all`) and record the PR number alongside the state (the merged PR's, if the branch has several — Step 4's gate re-verifies that number). Candidates to remove: PR merged, or the user names it abandoned. If the `gh` call fails for a branch, record its PR state as `UNKNOWN (gh error)` rather than leaving it blank or omitting the row.
 
 ### 3. Confirm the removal list
+
 **Pause-and-ask checkpoint — teardown confirmation:** present the exact list (worktree path, branch, PR state and number — including any `UNKNOWN (gh error)` rows) via `AskUserQuestion` before removing anything.
 
 ### 4. Remove confirmed worktrees and branches
+
 For each confirmed entry in turn, pass the gate matching its Step 2 classification before removing anything — `git branch -D` is the only force-delete in this skill, reachable solely through one of these gates (each already behind Step 3's confirmation):
 - **Merged** → re-verify the PR; `<number>` is the PR number Step 2 recorded. Run `git fetch origin` once first so `origin/main` is current (Teardown mode doesn't sync `main`), then:
   ```bash
@@ -106,11 +116,13 @@ git branch -D "feature/<slug>"   # -D on purpose — see below; recoverable from
 `git branch -d` is not a merge check here: it judges merged-ness against the branch's configured upstream (`origin/feature/<slug>`, which `/run-feature`'s `/git-push` sets), not `main`, so it would pass an unmerged pushed branch vacuously — and once that upstream is pruned it falls back to HEAD and refuses every squash-merged branch. Its refusal is expected for a squash-merged branch and not diagnostic, which is why the local delete is `-D` on both paths.
 
 ### 5. Prune stale admin entries
+
 `git worktree prune` to clean up stale admin entries.
 
 Never `rm -rf` a worktree directory by hand — always go through `git worktree remove` so git's bookkeeping stays consistent.
 
 ### 6. Verify end state
+
 Before reporting, re-verify the teardown removed exactly what Step 3 confirmed — nothing less, nothing more — rather than trusting narrative memory of what happened. This matters because Step 4's local delete is `-D` on both paths — nothing behind the PR verification or the user's abandoned confirmation would have refused a wrong deletion:
 - Re-run `git worktree list`: no confirmed `../c4i-wt-<slug>` path should remain (and `test -d <path>` should now fail for each confirmed entry, using the absolute path Step 1's listing printed — not a relative `../c4i-wt-*` glob, which silently returns empty from the wrong cwd), and every entry from Step 1's listing that was *not* confirmed in Step 3 (plus the main checkout itself) should still be present. Exception: an entry Step 1 listed as `prunable` disappears at Step 5 whether or not it was confirmed — report it as pruned-stale, not as a mismatch.
 - Run `git branch -a`: the local `feature/<slug>` branch of every confirmed entry should be gone, and the branch of every unconfirmed entry should still be listed. A lingering `remotes/origin/feature/<slug>` for any removed entry — merged or abandoned — is expected, not a mismatch: teardown never deletes remote refs (merged ones are `/compact-plans` Step 5's job).
