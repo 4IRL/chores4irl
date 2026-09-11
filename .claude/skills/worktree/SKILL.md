@@ -12,7 +12,7 @@ If `$ARGUMENTS` is exactly `teardown`, skip to **Teardown mode**. Otherwise trea
 
 ## Branch Guard
 
-Required for Provision mode only — Teardown mode doesn't require a clean `main`. Require `main` clean and synced (`git status`, `git branch --show-current`; `gmas` if behind). A dirty or non-`main` base silently poisons every worktree — stop and fix this first, don't work around it. After `gmas`, re-run `git status` and confirm the tree is clean and matches `origin/main`; on a `gmas` conflict/failure, stop and report rather than continuing.
+Required for Provision mode only — Teardown mode doesn't require a clean `main`. Require `main` clean (`git status`, `git branch --show-current`) and synced (`gmas` if behind; verify with `git status` that the tree is clean and matches `origin/main`; stop and report on any `gmas` conflict/failure). A dirty or non-`main` base silently poisons every worktree — stop and fix this first, don't work around it.
 
 ## Provision mode
 

@@ -36,7 +36,7 @@ If `gh pr list --state all` returns more than one PR for this head branch (e.g. 
 
 ## Branch Guard
 
-Required only when the table above resolves to Phase A (not needed to resume Phase B or C): require the working tree clean and on `main`, synced (`gmas`). If dirty or elsewhere, stop and ask how to proceed — do not stash without asking. After `gmas`, re-run `git status` and confirm the tree is clean and matches `origin/main`; on a `gmas` conflict/failure, stop and report rather than continuing.
+Required only when the table above resolves to Phase A (not needed to resume Phase B or C): require the working tree clean and on `main`, synced (`gmas`; verify with `git status` that the tree is clean and matches `origin/main`; stop and report on any `gmas` conflict/failure). If dirty or elsewhere, stop and ask how to proceed — do not stash without asking.
 
 ## Phase A — implement
 

@@ -9,7 +9,7 @@ Reorganize `plans/` back to: live work in `plans/feature/` (and `plans/revision/
 
 ## Branch Guard
 
-On `main`/`master`: `gmas`, then re-run `git status` and confirm the tree is clean and matches `origin/main` (on a `gmas` conflict/failure, stop and report rather than continuing), then `AskUserQuestion` — create `chore/compact-plans-<YYMMDD>` (recommended) or proceed on main. Do not proceed unconfirmed. On a feature branch already: proceed.
+On `main`/`master`: `gmas` (verify with `git status` that the tree is clean and matches `origin/main`; stop and report on any `gmas` conflict/failure), then `AskUserQuestion` — create `chore/compact-plans-<YYMMDD>` (recommended) or proceed on main. Do not proceed unconfirmed. On a feature branch already: proceed.
 
 ## 1. Tracking check
 
