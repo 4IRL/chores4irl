@@ -53,12 +53,15 @@ cross-checked against `git branch -a`. A branch whose functionality shipped via 
 
 For each confirmed branch:
 ```bash
-git branch -d <branch>   # -d only — refuses anything not actually merged
-if gh api repos/4IRL/chores4irl/git/refs/heads/<branch> >/dev/null 2>&1; then
-  gh api -X DELETE repos/4IRL/chores4irl/git/refs/heads/<branch>   # remote delete
+if git branch -d <branch>; then   # -d only — refuses anything not actually merged
+  if gh api repos/4IRL/chores4irl/git/refs/heads/<branch> >/dev/null 2>&1; then
+    gh api -X DELETE repos/4IRL/chores4irl/git/refs/heads/<branch>   # remote delete
+  fi
+else
+  echo "STOP: git branch -d refused for <branch> — investigate before any remote action"
 fi
 ```
-Never `-D`. If `-d` refuses, stop and investigate — don't force past it. If the existence check itself returns 404, the ref is already gone — skip the DELETE, a benign no-op. On the DELETE call: any failure (403/422/5xx) — stop, report the branch name and error, and don't move on silently. Never prune: the default branch, any branch with unmerged commits, or a branch backing a **Live** feature / open PR.
+Never `-D`. If `-d` refuses, stop and investigate that branch specifically — skip its remote action and move on to the next confirmed branch in the list rather than aborting the whole sweep; don't force past it, and the remote delete must never run for a branch whose local `-d` was refused. If the existence check itself returns 404, the ref is already gone — skip the DELETE, a benign no-op. On the DELETE call: any failure (403/422/5xx) — stop, report the branch name and error, and don't move on silently. Never prune: the default branch, any branch with unmerged commits, or a branch backing a **Live** feature / open PR.
 
 If a pruned branch's feature still has a Status-ledger row in `plans/META-PLAN.md`, delete that row too (per its History policy) — this is what stops the next sweep from re-flagging it.
 
