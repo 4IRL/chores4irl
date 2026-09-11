@@ -22,7 +22,7 @@ If `plans/` is largely untracked, raise the **tracking decision** once via `AskU
 ## 2. Classify every plan
 
 For everything under `plans/feature/`, `plans/revision/`, `plans/chore/` (i.e. not already archived), determine true status from the repo — never trust the plan doc's own claims:
-- **Merged** — `gh pr list --state merged --json number,title,headRefName,mergeCommit,mergedAt`, cross-checked against the dir/branch name; confirm the relevant code is actually on `main` (spot-check the route/component/field the plan describes).
+- **Merged** — `gh pr list --state merged --json number,title,headRefName,mergeCommit,mergedAt`, cross-checked against the dir/branch name; confirm the relevant code is actually on `main` (spot-check the route/component/field the plan describes). Check `gh`'s exit code and that stdout parses as valid JSON before classifying from the result; on any failure (auth/network/rate-limit), stop and report the raw error rather than treating an empty result as "nothing merged".
 - **Abandoned** — not on `main`, not in the current backlog (`plans/META-PLAN.md`'s Status ledger / latest `plans/ledger/*_feature_ledger.md`), no active branch.
 - **Superseded** — its functionality shipped a different way, or a later backlog item explicitly reverses/replaces it (check `META-PLAN.md`'s SUPERSEDED banners).
 - **Live** — in the current backlog or on an active branch/open PR. Leave it and its `tmp/` alone.
@@ -53,7 +53,7 @@ This repo **squash-merges**, so `git branch --merged main` misses merged feature
 ```bash
 gh pr list --state merged --json number,title,headRefName,mergeCommit
 ```
-cross-checked against `git branch -a`. A branch whose functionality shipped via a *different* path (squashed elsewhere, or superseded per Step 2) is also a candidate — confirm its work is genuinely on `main` first. No PR merged from it, so the per-branch gate below will refuse it — delete it only outside that snippet, after the on-`main` spot-check and its own explicit confirmation.
+cross-checked against `git branch -a`. Check `gh`'s exit code and that stdout parses as valid JSON before building the candidate list; on any failure (auth/network/rate-limit), stop and report the raw error rather than treating an empty result as "nothing to prune". A branch whose functionality shipped via a *different* path (squashed elsewhere, or superseded per Step 2) is also a candidate — confirm its work is genuinely on `main` first. No PR merged from it, so the per-branch gate below will refuse it — delete it only outside that snippet, after the on-`main` spot-check and its own explicit confirmation.
 
 **Pause-and-ask checkpoint — branch deletion:** present the exact branch list (local + remote) before deleting anything — branch deletion is recoverable (reflog / re-push from elsewhere) but a remote delete is outward-facing, same gate as a commit.
 
