@@ -61,7 +61,7 @@ For each confirmed branch:
 ```bash
 if git branch -d <branch>; then   # -d only — refuses anything not actually merged
   if ref_check=$(gh api repos/4IRL/chores4irl/git/ref/heads/<branch> 2>&1); then   # singular /ref/ = exact match; plural /refs/ prefix-matches
-    if ! gh api -X DELETE repos/4IRL/chores4irl/git/refs/heads/<branch>; then   # remote delete
+    if ! gh api -X DELETE repos/4IRL/chores4irl/git/refs/heads/<branch>; then   # only reached if -d succeeded and the ref was confirmed present
       echo "STOP: remote delete failed for <branch> — report and do not continue to the next branch"
     fi
   elif [[ "$ref_check" == *"HTTP 404"* ]]; then
