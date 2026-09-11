@@ -20,6 +20,10 @@ types/*.js
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+# The Claude Code Bash sandbox bind-mounts .vscode read-only and leaves a
+# 0-byte placeholder *file* named .vscode when the dir doesn't exist; the
+# trailing-slash patterns above only match a directory, so ignore the bare name
+.vscode
 .idea
 .DS_Store
 *.suo
