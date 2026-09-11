@@ -99,6 +99,13 @@ Never run `-D` on any other classification — it is exclusive to the user-confi
 
 Never `rm -rf` a worktree directory by hand — always go through `git worktree remove` so git's bookkeeping stays consistent.
 
+### 6. Verify end state
+Before reporting, re-verify the teardown removed exactly what Step 3 confirmed — nothing less, nothing more — rather than trusting narrative memory of what happened. This matters most for the `-D` path, which force-deletes unmerged work with no refusal safety net:
+- Re-run `git worktree list`: no confirmed `../c4i-wt-<slug>` path should remain (and `test -d <path>` should now fail for each confirmed entry, using the absolute path Step 1's listing printed — not a relative `../c4i-wt-*` glob, which silently returns empty from the wrong cwd), and every entry from Step 1's listing that was *not* confirmed in Step 3 (plus the main checkout itself) should still be present. Exception: an entry Step 1 listed as `prunable` disappears at Step 5 whether or not it was confirmed — report it as pruned-stale, not as a mismatch.
+- Run `git branch -a`: the local `feature/<slug>` branch of every confirmed entry should be gone, and the branch of every unconfirmed entry should still be listed. A lingering `remotes/origin/feature/<slug>` for any removed entry — merged or abandoned — is expected, not a mismatch: teardown never deletes remote refs (merged ones are `/compact-plans` Step 5's job).
+
+Flag any mismatch before reporting — either case means stop and tell the user; never re-run Step 4 with `--force` or `-D` to make the verification pass. A confirmed entry still present means Step 4 didn't actually remove it (a refusal was missed or the entry was skipped) — report it under "left in place" with the reason, not as a clean removal. An unconfirmed entry missing means something outside the list was touched; a deleted local branch is recoverable until gc from the `(was <sha>)` line that `git branch -d`/`-D` printed, or via `git fsck --lost-found` — its reflog is gone once the worktree is pruned, so `git reflog` won't find it. Then report: each removed entry (path → branch → PR state → `-d`/`-D` with the `(was <sha>)` it printed), and any entries deliberately left in place.
+
 ## Important Notes
 
 - Provision only from a clean, synced `main`.
