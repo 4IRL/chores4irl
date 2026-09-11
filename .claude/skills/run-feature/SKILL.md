@@ -10,7 +10,7 @@ Execute exactly one feature from `plans/META-PLAN.md`'s "REMAINING FEATURES" sec
 
 ## Resolve the F-id
 
-`$0` is the F-id (bare current numbering, e.g. `F4`; not `-L` legacy or SUPERSEDED). Read `plans/META-PLAN.md` and locate its per-feature section under "REMAINING FEATURES". If the F-id doesn't exist there, is `-L`, or is marked SUPERSEDED, stop and say why.
+`$0` is the F-id (bare current numbering, e.g. `F4`; not `-L` legacy or **SUPERSEDED**). Read `plans/META-PLAN.md` and locate its per-feature section under "REMAINING FEATURES". If the F-id doesn't exist there, is `-L`, or is marked **SUPERSEDED**, stop and say why.
 
 From the section, note: the `feature/<slug>` branch name (its "Session loop" line), "Assumed starting state", "Expected end state", and "Open risks / decisions".
 
