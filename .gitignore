@@ -33,8 +33,11 @@ types/*.js
 test-results/
 playwright-report/
 
-# Claude Code files
-.claude
+# Claude Code files — skills/ is tracked & shared (so worktrees inherit slash
+# commands via git); everything else (local config, secrets like c4i-app.pem)
+# stays untracked
+.claude/*
+!.claude/skills/
 
 # Planning scratch — subagent review working files are regenerated each run;
 # never commit them (the durable plan/review docs alongside them are fine to track)
