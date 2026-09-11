@@ -49,7 +49,7 @@ Required only when the table above resolves to Phase A (not needed to resume Pha
 7. `/git-commit` to atomize the work; apply its self-review corrections.
 8. **Verify "Expected end state"** — run the relevant Vitest suites + `e2e/smoke.spec.ts`, and check every listed grep/route fact. Reconcile any gap before publishing.
 9. `/git-push` — runs the 8-agent review and opens/updates the PR. If it rejects, fix per its findings and re-push; do not fall through to Phase B with an unresolved rejection.
-10. Update the Status-ledger row to `in-review` with the now-known PR link, in a small follow-up commit — matching `META-PLAN.md`'s own Ledger update protocol ("in-review + PR link after git-push"). Commit, then `git push` directly to land it on the already-open PR (a plain push, not another full `/git-push` review cycle — that PR was already reviewed in step 9 and this is a trivial one-line follow-up); confirm the push actually succeeded.
+10. Update the Status-ledger row to `in-review` with the now-known PR link, in a small follow-up commit — matching `META-PLAN.md`'s own Ledger update protocol ("in-review + PR link after git-push"). Commit, then `git push` directly to land it on the already-open PR (a plain push, not another full `/git-push` review cycle — that PR was already reviewed in step 9 and this is a trivial one-line follow-up); confirm the push actually succeeded — check `git push`'s own exit status/output, or re-run `git status` and confirm it reports nothing to push; on failure, stop and report rather than falling through to Phase B.
 
 Fall through to Phase B once the PR is open.
 
