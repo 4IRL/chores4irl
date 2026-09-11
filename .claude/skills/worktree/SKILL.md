@@ -74,17 +74,26 @@ Report: the pairwise matrix + touch-sets, any excluded F-ids with reasons, the w
 
 ## Teardown mode
 
-1. `git worktree list` — every `../c4i-wt-*` entry.
-2. For each, check its branch's PR state (`gh pr list --head <branch> --state all`). Candidates to remove: PR merged, or the user names it abandoned. If the `gh` call fails for a branch, record its PR state as `UNKNOWN (gh error)` rather than leaving it blank or omitting the row.
-3. **Pause-and-ask checkpoint — teardown confirmation:** present the exact list (worktree path, branch, PR state — including any `UNKNOWN (gh error)` rows) via `AskUserQuestion` before removing anything.
-4. For each confirmed entry:
-   ```bash
-   git worktree remove ../c4i-wt-<slug>   # refuses if dirty — resolve first, don't force
-   ```
-   Then, per that entry's Step 2 classification — never run both:
-   - **Merged** → `git branch -d feature/<slug>` — refuses if it isn't actually merged; if it refuses here, stop and investigate, don't force past it.
-   - **User-confirmed abandoned (never merged)** → `git branch -D feature/<slug>` — only for an entry the user explicitly confirmed as abandoned in Step 3's `AskUserQuestion`.
-5. `git worktree prune` to clean up stale admin entries.
+### 1. List existing worktrees
+`git worktree list` — every `../c4i-wt-*` entry.
+
+### 2. Check each branch's PR state
+For each, check its branch's PR state (`gh pr list --head <branch> --state all`). Candidates to remove: PR merged, or the user names it abandoned. If the `gh` call fails for a branch, record its PR state as `UNKNOWN (gh error)` rather than leaving it blank or omitting the row.
+
+### 3. Confirm the removal list
+**Pause-and-ask checkpoint — teardown confirmation:** present the exact list (worktree path, branch, PR state — including any `UNKNOWN (gh error)` rows) via `AskUserQuestion` before removing anything.
+
+### 4. Remove confirmed worktrees and branches
+For each confirmed entry:
+```bash
+git worktree remove ../c4i-wt-<slug>   # refuses if dirty — resolve first, don't force
+```
+Then, per that entry's Step 2 classification — never run both:
+- **Merged** → `git branch -d feature/<slug>` — refuses if it isn't actually merged; if it refuses here, stop and investigate, don't force past it.
+- **User-confirmed abandoned (never merged)** → `git branch -D feature/<slug>` — only for an entry the user explicitly confirmed as abandoned in Step 3's `AskUserQuestion`.
+
+### 5. Prune stale admin entries
+`git worktree prune` to clean up stale admin entries.
 
 Never `rm -rf` a worktree directory by hand — always go through `git worktree remove` so git's bookkeeping stays consistent.
 
