@@ -109,7 +109,7 @@ For each confirmed entry in turn, pass the gate matching its Step 2 classificati
 
 Then, once that entry's gate passed:
 ```bash
-git worktree remove ../c4i-wt-<slug>   # refuses if dirty — resolve first, don't force
+git worktree remove ../c4i-wt-<slug>   # refuses if dirty (modified or untracked files) or locked; on refusal, skip the -D below, report the worktree path and git's error under Step 6's "left in place", and continue to the next confirmed entry — never --force it (-f or -f -f), unlock it, stash, or discard/delete its files to make it succeed
 git branch -D "feature/<slug>"   # -D on purpose — see below; recoverable from the "(was <sha>)" line until gc
 ```
 
