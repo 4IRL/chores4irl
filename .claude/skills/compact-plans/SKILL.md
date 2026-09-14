@@ -29,7 +29,7 @@ For everything under `plans/feature/`, `plans/revision/`, `plans/chore/` (i.e. n
 
 ## 3. Freeze + relocate finished plans
 
-For each Merged / Abandoned / Superseded plan, prepend a header to its main `.md` (do not rewrite the body):
+For each **Merged** / **Abandoned** / **Superseded** plan, prepend a header to its main `.md` (do not rewrite the body):
 ```markdown
 > **STATUS: Merged** `<SHA>` (#<PR>). Frozen — historical record, do not edit.
 > **Outcome:** <1-4 lines: what shipped, any deviation + why, any interface contract a later feature depends on. Note if a later item supersedes it.>
@@ -119,7 +119,7 @@ Before reporting, re-verify the sweep actually succeeded rather than trusting na
 - Confirm Step 4's `.gitignore` entry landed: `grep -q 'plans/\*\*/tmp/' .gitignore` should succeed.
 - Re-run Step 5's `gh pr list --state merged --limit 500 --json number,title,headRefName,mergeCommit` + `git branch -a` cross-check and confirm every branch confirmed for pruning is actually gone (local and remote), and no **Live** / open-PR branch was touched.
 - Confirm Step 5's Status-ledger cleanup landed: for each branch confirmed-pruned this run that backed an F-ID feature, `grep -nE '^\| \*{0,2}<F-ID> ' plans/META-PLAN.md` should return no row (the row-matching form `/run-feature` Phase A step 3 uses; the trailing space after `<F-ID>` is load-bearing). A match means the row deletion Step 5's closing paragraph promises was skipped, so delete that row now — unless the row lists several IDs: that is a superseded group Step 5 never prunes, so a match there means the F-ID was mis-mapped; leave it.
-- Confirm no plan dir was left live under `plans/feature|revision|chore` that Step 2 classified as Merged/Abandoned/Superseded.
+- Confirm no plan dir was left live under `plans/feature|revision|chore` that Step 2 classified as **Merged**/**Abandoned**/**Superseded**.
 
 Flag any mismatch before reporting. Then report: what was frozen (with SHAs/PRs), moved, deleted (tmp/, stray dirs, old ledger files, Status-ledger rows), pruned (branches, local + remote), and left in place (any Step 5 candidate not pruned — no merged PR of its own, or a verification `SKIP:` — with the reason, for the user to handle manually). Then `/git-commit` on the working branch, followed by `/git-push` — runs the 8-agent review and opens/updates the PR before anything from this sweep is pushed, matching `/run-feature`'s own review-and-push gate (which `/worktree` also relies on via its hand-off to `/run-feature`). If it rejects, fix per its findings and re-push; a plans-only sweep is still exactly the kind of change that gate exists for.
 
