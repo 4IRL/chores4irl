@@ -113,7 +113,7 @@ Then, for each confirmed entry in turn, pass the gate matching its Step 2 classi
   ```bash
   if ! pr_json=$(gh pr view <number> --json state,mergedAt,mergeCommit,headRefName,headRefOid 2>&1); then   # the call itself failed (auth/rate-limit/network) — a STOP, not a SKIP: an empty read below could not tell that apart from "not merged"
     echo "STOP: gh pr view #<number> failed — $pr_json"   # halt Teardown here; nothing below runs for this or any later confirmed entry
-  elif ! pr_match=$(jq -r 'select(.state == "MERGED" and .mergedAt != null and .mergeCommit != null and .headRefName == "feature/<slug>") | "\(.mergeCommit.oid) \(.headRefOid)"' <<<"$pr_json" 2>&1); then   # jq missing, or gh's stdout wasn't JSON — a STOP for the same reason
+  elif ! pr_match=$(jq -r --arg b 'feature/<slug>' 'select(.state == "MERGED" and .mergedAt != null and .mergeCommit != null and .headRefName == $b) | "\(.mergeCommit.oid) \(.headRefOid)"' <<<"$pr_json" 2>&1); then   # jq missing, or gh's stdout wasn't JSON — a STOP for the same reason; --arg hands the name to jq as data rather than program text, and it stays single-quoted so the shell doesn't expand it either
     echo "STOP: could not parse gh pr view #<number>'s output — $pr_match"
   else
     read -r merged_sha head_oid <<<"$pr_match"   # both empty unless the PR really merged from this branch
