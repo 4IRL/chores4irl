@@ -24,7 +24,7 @@ If `plans/` is largely untracked, raise the **tracking decision** once via `AskU
 For everything under `plans/feature/`, `plans/revision/`, `plans/chore/` (i.e. not already archived), determine true status from the repo — never trust the plan doc's own claims:
 - **Merged** — `gh pr list --state merged --limit 500 --json number,title,headRefName,mergeCommit,mergedAt`, cross-checked against the dir/branch name; confirm the relevant code is actually on `main` (spot-check the route/component/field the plan describes). The explicit `--limit` is load-bearing, not noise: `gh pr list` silently caps at 30 results by default and this repo already has more merged PRs than that, so without it the oldest PRs drop off the list and are never classified here or pruned in Step 5. Check `gh`'s exit code and that stdout parses as valid JSON before classifying from the result; on any failure (auth/network/rate-limit), stop and report the raw error rather than treating an empty result as "nothing merged".
 - **Abandoned** — not on `main`, not in the current backlog (`plans/META-PLAN.md`'s Status ledger / latest `plans/ledger/*_feature_ledger.md`), no active branch.
-- **Superseded** — its functionality shipped a different way, or a later backlog item explicitly reverses/replaces it (check `META-PLAN.md`'s SUPERSEDED banners).
+- **Superseded** — its functionality shipped a different way, or a later backlog item explicitly reverses/replaces it (check `META-PLAN.md`'s **SUPERSEDED** banners).
 - **Live** — in the current backlog or on an active branch/open PR. Leave it and its `tmp/` alone.
 
 ## 3. Freeze + relocate finished plans
