@@ -79,6 +79,8 @@ else
     echo "SKIP: no local <branch> to compare against PR #<number>'s head — no local or remote action; continue to the next branch"
   elif ! git merge-base --is-ancestor "<branch>" "$head_oid"; then
     echo "SKIP: local <branch> tip is beyond PR #<number>'s head $head_oid — no local or remote action; continue to the next branch"
+  elif ! [[ '<branch>' =~ ^[A-Za-z0-9._/-]+$ ]]; then   # hardening only — every name here is copied from gh pr list's headRefName, so a miss most likely means a bad substitution, not an exotic ref; the two gh api URL strings below interpolate the name directly, and the name is single-quoted here so the shell doesn't expand it before the regex sees it
+    echo "STOP: branch name <branch> contains characters outside [A-Za-z0-9._/-] — refusing to build a gh api path from it; halt the sweep here — the -D and both gh api calls below must not run for this branch, and nothing runs for any later branch"
   else   # the gate passed — the only path to the -D below
     if git branch -D "<branch>"; then   # -D on purpose — see below
       if remote_tip=$(gh api "repos/4IRL/chores4irl/git/ref/heads/<branch>" --jq .object.sha 2>&1); then   # singular /ref/ = exact match; plural /refs/ prefix-matches
