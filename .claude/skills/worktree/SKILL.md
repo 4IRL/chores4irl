@@ -52,6 +52,8 @@ Print the full matrix and each feature's touch-set — the independence claim mu
 
 ### 4. Provision worktrees
 
+Every write into `../c4i-wt-<slug>` in this step — the `git worktree add` below, the two `ln -s` calls, and the in-worktree `npm install` — must run with `dangerouslyDisableSandbox: true` on that specific Bash call: the worktree is a sibling of the repo, outside the project's sandbox `filesystem.allowWrite`, so under the default sandbox each of them fails with `Read-only file system` — a sandbox denial, not one of the per-F-ID causes named after the snippet.
+
 For each surviving F-ID, using its exact `feature/<slug>` name from META-PLAN's "Session loop" line:
 ```bash
 if git rev-parse --verify --quiet refs/heads/feature/<slug> >/dev/null; then   # the branch already exists: a resumed feature — or a -b run below that failed on the path check, which still creates the branch
@@ -66,7 +68,7 @@ Then provision the untracked `.claude/` config. A worktree materializes tracked 
 ```bash
 main_root="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"   # the main checkout, from any cwd — --show-toplevel would return the worktree if run inside one
 ln -s "$main_root/.claude/skill-config.md" ../c4i-wt-<slug>/.claude/skill-config.md
-ln -s "$main_root/.claude/settings.json" ../c4i-wt-<slug>/.claude/settings.json   # the project's sandbox scope — its network allowlist is what lets npm install and gh reach out
+ln -s "$main_root/.claude/settings.json" ../c4i-wt-<slug>/.claude/settings.json   # the project's sandbox scope — its network allowlist is what lets the worktree's own /run-feature session's npm install and gh reach out (Step 5 Mode A)
 ```
 **Never** copy or symlink the whole `.claude/` directory — it holds `c4i-app.pem` and `generate-gh-c4i-token.sh`.
 
@@ -137,7 +139,7 @@ Then, for each confirmed entry in turn, pass the gate matching its Step 2 classi
 - **User-confirmed abandoned (never merged)** → no PR check; the gate is the user having explicitly named it abandoned in Step 3's `AskUserQuestion`.
 - **Neither** (PR open, closed-unmerged, or `UNKNOWN (gh error)`, and not explicitly named abandoned) → no gate matches; leave its worktree and branch in place, report it under Step 6's "left in place", and continue.
 
-Then, once that entry's gate passed:
+Then, once that entry's gate passed, run this removal with `dangerouslyDisableSandbox: true` on that specific Bash call on the *first* attempt — never probe it sandboxed first — because a sandboxed `git worktree remove` fails to delete `../c4i-wt-<slug>` (outside the project's sandbox `filesystem.allowWrite`, so `Read-only file system`) yet still deletes its `.git/worktrees/<id>` admin entry (git continues on error and removes the admin dir anyway), leaving an unregistered directory on disk that `git worktree list` no longer shows, that a flagged retry rejects with "is not a working tree", and that this skill's never-`rm -rf` rule can't recover — unlike Provision Step 4's `add`, which fails cleanly under the sandbox apart from the `-b` branch its `git rev-parse` pre-check already handles. If that has already happened, don't retry it or `rm -rf` it — report it under Step 6's "left in place" as needing the user's manual cleanup (the `SKIP:` branch's "leave its worktree and branch in place" no longer describes the state):
 ```bash
 if git worktree remove ../c4i-wt-<slug>; then   # refuses if dirty (modified or untracked files) or locked
   git branch -D "feature/<slug>"   # -D on purpose — see below
@@ -168,4 +170,5 @@ Flag any mismatch before reporting — either case means stop and tell the user;
 - Never worktree a RED pair together — say so and stop.
 - Worktrees live as siblings of the repo (`../c4i-wt-*`), never nested inside it.
 - A worktree's `.claude/skill-config.md` and `.claude/settings.json` are the symlinks Step 4 creates, not tracked files — without the first, every worktree-driven `/run-feature` hard-fails at `/git-push`; without the second, the sandbox has no network allowlist for `npm install` and `gh`. Don't drop that step, and never widen it to the whole `.claude/` directory (Step 4 names what that would leak).
+- The only Bash calls here that need `dangerouslyDisableSandbox: true` are the ones that write into `../c4i-wt-<slug>` — Provision Step 4's `git worktree add`, its two `ln -s` calls, and its in-worktree `npm install`, plus Teardown Step 4's `git worktree remove` — because the worktree is a sibling of the repo, outside the project's sandbox `filesystem.allowWrite` (`/home/rmila/Code/chores4irl` + `/tmp`); that per-call flag is the form the global `~/.claude/CLAUDE.md` prescribes, not a wider `allowWrite` in `.claude/settings.json`. The `git rev-parse` and `git branch -D` calls inside those snippets touch only the repo (or nothing) and need no flag of their own — they ride along under the flag of the call they share; don't split a snippet to sandbox them separately. Every other command (e.g. `git worktree list`, `git merge-tree`, `gh pr view`, `git fetch origin`, `test -f`, `git worktree prune`) writes only inside the repo or not at all and stays sandboxed. Step 5 Mode A's hand-off (`cd ../c4i-wt-<slug> && claude`) is unaffected — a fresh session's own cwd is allow-written by the harness. Mode B's subagents, by contrast, inherit this session's sandbox (cwd allowlist = the main repo), so every in-worktree write `/run-feature` makes there (the Vitest suites, the smoke spec, …) needs the same per-call flag on each such Bash call — a further reason Mode A is the default.
 - The merge gate stays human and serial regardless of how much implementation ran in parallel.
