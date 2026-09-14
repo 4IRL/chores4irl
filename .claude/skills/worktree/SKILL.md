@@ -6,7 +6,7 @@ argument-hint: <F-ID> [<F-ID>...] | teardown
 
 # Worktree
 
-Stand up one git worktree per independent feature so several `/run-feature` sessions can run at the same time without touching each other's working tree — or tear existing ones down. **This skill never plans or implements a feature itself**; each worktree still runs its own feature through `/run-feature`.
+Stand up one git worktree per independent feature so several `/run-feature` sessions can run at the same time without touching each other's working tree — or tear existing ones down. **This skill never plans or implements a feature itself**; each worktree still runs its own feature through `/run-feature`. This is distinct from the harness's built-in single-worktree isolation tool — invoke this skill explicitly as `/worktree <F-ID> [<F-ID>...]` for META-PLAN-driven parallel features.
 
 If `$ARGUMENTS` is exactly `teardown`, skip to **Teardown mode**. Otherwise treat it as a whitespace-separated list of F-IDs — **Provision mode**.
 
