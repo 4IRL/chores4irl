@@ -55,7 +55,7 @@ gh pr list --state merged --limit 500 --json number,title,headRefName,mergeCommi
 ```
 cross-checked against `git branch -a`. Check `gh`'s exit code and that stdout parses as valid JSON before building the candidate list; on any failure (auth/network/rate-limit), stop and report the raw error rather than treating an empty result as "nothing to prune". A branch with no merged PR of its own — even one whose functionality shipped via a *different* path (squashed elsewhere, or superseded per Step 2) — is not a candidate: this skill leaves it in place and reports it under Step 7's "left in place" for the user to handle manually.
 
-**Pause-and-ask checkpoint — branch deletion:** present the exact branch list (local + remote) before deleting anything — branch deletion is recoverable (reflog / re-push from elsewhere) but a remote delete is outward-facing, same gate as a commit.
+**Pause-and-ask checkpoint — branch deletion:** present the exact branch list (local + remote) before deleting anything — branch deletion is recoverable (locally from the `(was <sha>)` line `git branch -D` prints or the reflog, until gc; remotely by a re-push from elsewhere) but a remote delete is outward-facing, same gate as a commit.
 
 For each confirmed branch, re-verify its PR immediately before deleting — that verification plus the checkpoint above is the gate, not the local delete's exit status. `<number>` / `<branch>` are copied verbatim from the `gh pr list` result's `number` / `headRefName`. Run `git fetch origin` once first so `origin/main` is current (the Branch Guard only syncs `main` when the sweep starts there), and check that it succeeded — the per-branch gate below trusts `origin/main`, and in this repo `origin` is SSH, which fails with `Permission denied (publickey)` from the Bash tool's non-interactive shell, so an unchecked fetch failure is the expected outcome here and would give every branch merged since the last good fetch a false "merge commit … is not on origin/main" `SKIP:`:
 ```bash
@@ -78,7 +78,7 @@ else
   elif ! git merge-base --is-ancestor "<branch>" "$head_oid"; then
     echo "SKIP: local <branch> tip is beyond PR #<number>'s head $head_oid — no local or remote action; continue to the next branch"
   else   # the gate passed — the only path to the -D below
-    if git branch -D "<branch>"; then   # -D on purpose — -d judges against the branch's upstream, not main, so its verdict is not diagnostic; recoverable from the "(was <sha>)" line / reflog until gc
+    if git branch -D "<branch>"; then   # -D on purpose — see below
       if remote_tip=$(gh api "repos/4IRL/chores4irl/git/ref/heads/<branch>" --jq .object.sha 2>&1); then   # singular /ref/ = exact match; plural /refs/ prefix-matches
         if [[ "$remote_tip" != "$head_oid" ]]; then
           echo "SKIP: remote <branch> tip $remote_tip is not PR #<number>'s head — pushed to after the merge; leave the remote ref, investigate, then continue to the next branch"

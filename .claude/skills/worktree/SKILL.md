@@ -136,7 +136,7 @@ Then, for each confirmed entry in turn, pass the gate matching its Step 2 classi
 Then, once that entry's gate passed:
 ```bash
 git worktree remove ../c4i-wt-<slug>   # refuses if dirty (modified or untracked files) or locked; on refusal, skip the -D below, report the worktree path and git's error under Step 6's "left in place", and continue to the next confirmed entry — never --force it (-f or -f -f), unlock it, stash, or discard/delete its files to make it succeed
-git branch -D "feature/<slug>"   # -D on purpose — see below; recoverable from the "(was <sha>)" line until gc
+git branch -D "feature/<slug>"   # -D on purpose — see below
 ```
 
 `git branch -d` is not a merge check here: it judges merged-ness against the branch's configured upstream (`origin/feature/<slug>`, which `/run-feature`'s `/git-push` sets), not `main`, so it would pass an unmerged pushed branch vacuously — and once that upstream is pruned it falls back to HEAD and refuses every squash-merged branch. Its refusal is expected for a squash-merged branch and not diagnostic, which is why the local delete is `-D` on both paths.
