@@ -58,7 +58,15 @@ git worktree add ../c4i-wt-<slug> -b feature/<slug> main   # new branch
 # or, if the branch already exists (e.g. a resumed feature):
 git worktree add ../c4i-wt-<slug> feature/<slug>
 ```
-Then, in each worktree: `npm install` (node_modules is per-worktree, not shared), and confirm it's on the right branch and clean. If either check fails for a worktree (failed `npm install`, wrong branch, dirty tree), stop and report that specific worktree as unusable — don't include it in Step 5's dispatch.
+Then provision the untracked `.claude/` config. A worktree materializes tracked files only, and `.gitignore`'s `.claude/*` keeps `.claude/skill-config.md` and `.claude/settings.json` untracked — so the fresh worktree's `.claude/` holds the tracked `.claude/skills/` and nothing else, and `/run-feature` → `/git-push` would `exit 1` on the missing `repo:` field (and `/plan-creator` silently lose `topic_inference`) only after the whole plan/implement/commit pipeline had already run. Symlink exactly those two files out of the main checkout (symlinks, not copies, so edits in the main checkout stay in sync — and they're write-through, so edit these two files only there, never from inside a worktree); `.claude/` already exists, so a failed `ln -s` means the worktree itself wasn't created:
+```bash
+main_root="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"   # the main checkout, from any cwd — --show-toplevel would return the worktree if run inside one
+ln -s "$main_root/.claude/skill-config.md" ../c4i-wt-<slug>/.claude/skill-config.md
+ln -s "$main_root/.claude/settings.json" ../c4i-wt-<slug>/.claude/settings.json   # the project's sandbox scope — its network allowlist is what lets npm install and gh reach out
+```
+**Never** copy or symlink the whole `.claude/` directory — it holds `c4i-app.pem` and `generate-gh-c4i-token.sh`.
+
+Then, in each worktree: `npm install` (node_modules is per-worktree, not shared), and confirm it's on the right branch, clean, and has its config — `test -f ../c4i-wt-<slug>/.claude/skill-config.md && test -f ../c4i-wt-<slug>/.claude/settings.json` (`-f` follows symlinks, so a dangling link fails it; the symlinks themselves are gitignored and don't dirty the tree). If any of these checks fails for a worktree (failed `npm install`, wrong branch, dirty tree, missing `.claude/skill-config.md` or `.claude/settings.json`), stop and report that specific worktree as unusable — don't include it in Step 5's dispatch.
 
 ### 5. Dispatch
 
@@ -134,4 +142,5 @@ Flag any mismatch before reporting — either case means stop and tell the user;
 - Provision only from a clean, synced `main`.
 - Never worktree a RED pair together — say so and stop.
 - Worktrees live as siblings of the repo (`../c4i-wt-*`), never nested inside it.
+- A worktree's `.claude/skill-config.md` and `.claude/settings.json` are the symlinks Step 4 creates, not tracked files — without the first, every worktree-driven `/run-feature` hard-fails at `/git-push`; without the second, the sandbox has no network allowlist for `npm install` and `gh`. Don't drop that step, and never widen it to the whole `.claude/` directory (Step 4 names what that would leak).
 - The merge gate stays human and serial regardless of how much implementation ran in parallel.
