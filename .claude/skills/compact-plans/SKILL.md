@@ -47,6 +47,8 @@ Then relocate: `git mv <dir> plans/completed/` (or `plans/abandoned/`) if tracke
 - Confirm `.gitignore` contains `plans/**/tmp/`; add it if missing.
 - **Ledger retention:** `plans/ledger/` only needs the newest `*_feature_ledger.md` and the one it directly supersedes (carrying the PREDECESSOR banner). Delete any older ones — mechanical and git-reversible, no pause-and-ask needed; just note what was deleted.
 
+If any of these deletes or the `.gitignore` edit fails, report the path and error immediately (don't wait for Step 7's re-checks), then SKIP that delete or edit and continue with the remaining Step 4 actions.
+
 ## 5. Prune merged branches — PR state, not ancestry
 
 This repo **squash-merges**, so `git branch --merged main` misses merged feature branches (they're not ancestors). Drive the list from PRs instead:
