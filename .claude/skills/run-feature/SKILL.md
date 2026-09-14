@@ -1,6 +1,6 @@
 ---
 name: run-feature
-description: Run one feature from plans/META-PLAN.md through its full Per-Feature Session Contract for chores4irl — cold-survey, plan, review, implement, commit, verify, and push a PR, then (once merge is confirmed) fold the merge back into META-PLAN.md. Resumable: re-invoking after a merge picks up exactly where the feature left off, driven by the state of its PR. Use when asked to run/implement/work on/continue a specific F-ID feature, to check on one already in flight, or to reconcile META-PLAN.md after merging one. Replaces the old plans/NST-META-PLAN-PROMPT.md template.
+description: Run one feature from plans/META-PLAN.md through its full Per-Feature Session Contract for chores4irl — cold-survey, plan, review, implement, commit, verify, and push a PR, then (once merge is confirmed) fold the merge back into META-PLAN.md. Resumable: re-invoking after a merge picks up exactly where the feature left off, driven by the state of its PR. Never starts a second feature in one invocation. Use when asked to run/implement/work on/continue a specific F-ID feature, to check on one already in flight, or to reconcile META-PLAN.md after merging one. Replaces the old plans/NST-META-PLAN-PROMPT.md template.
 argument-hint: <F-ID>
 ---
 
