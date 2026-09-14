@@ -77,13 +77,13 @@ Then, in each worktree: `npm install` (node_modules is per-worktree, not shared)
   # then paste:
   /run-feature <F-ID>
   ```
-- **Mode B — subagent fan-out.** Only if the user explicitly wants this session to drive it: spawn one background subagent per worktree, each instructed to `cd` into its worktree and run `/run-feature <F-ID>` end-to-end, then report its PR link. Note the cost (N concurrent plan/implement/push pipelines) before doing this.
+- **Mode B — subagent fan-out.** Only if the user explicitly wants this session to drive it: spawn one background subagent per worktree, each instructed to `cd` into its worktree and run `/run-feature <F-ID>` end-to-end, then report its PR link. Note the cost (N concurrent plan/implement/push pipelines) before doing this. Their smoke runs will overlap by design — tell each subagent to follow `/run-feature` Phase A step 8's worktree rule (`CI=1`; on `… is already used …`, bounded wait-and-retry, then stop and report) rather than skip or work around it.
 
 ### 6. Summary
 
 Report: the pairwise matrix + touch-sets, any excluded F-IDs with reasons, the worktree map (F-ID → path → branch), and the merge-order reminder:
 - Merge the resulting PRs **one at a time** through the normal review + CI gate — implementation is parallel, merging stays serial.
-- After each merge, remaining worktree branches should `git fetch && git rebase origin/main` and re-run their suites; re-run the Step 3 `merge-tree` check between any two not-yet-merged branches if either rebased.
+- After each merge, remaining worktree branches should `git fetch && git rebase origin/main` and re-run their suites (the smoke spec with `CI=1`, per `/run-feature` Phase A step 8's worktree rule); re-run the Step 3 `merge-tree` check between any two not-yet-merged branches if either rebased.
 - Each feature's PR edits only its own Status-ledger row — if two PRs both touch the ledger, git may flag it at merge; that's a one-line "keep both rows" resolution, not a real conflict.
 
 ## Teardown mode
