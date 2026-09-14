@@ -54,11 +54,15 @@ Print the full matrix and each feature's touch-set — the independence claim mu
 
 For each surviving F-ID, using its exact `feature/<slug>` name from META-PLAN's "Session loop" line:
 ```bash
-git worktree add ../c4i-wt-<slug> -b feature/<slug> main   # new branch
-# or, if the branch already exists (e.g. a resumed feature):
-git worktree add ../c4i-wt-<slug> feature/<slug>
+if git rev-parse --verify --quiet refs/heads/feature/<slug> >/dev/null; then   # the branch already exists: a resumed feature — or a -b run below that failed on the path check, which still creates the branch
+  git worktree add ../c4i-wt-<slug> feature/<slug>
+else
+  git worktree add ../c4i-wt-<slug> -b feature/<slug> main   # new branch
+fi
 ```
-Then provision the untracked `.claude/` config. A worktree materializes tracked files only, and `.gitignore`'s `.claude/*` keeps `.claude/skill-config.md` and `.claude/settings.json` untracked — so the fresh worktree's `.claude/` holds the tracked `.claude/skills/` and nothing else, and `/run-feature` → `/git-push` would `exit 1` on the missing `repo:` field (and `/plan-creator` silently lose `topic_inference`) only after the whole plan/implement/commit pipeline had already run. Symlink exactly those two files out of the main checkout (symlinks, not copies, so edits in the main checkout stay in sync — and they're write-through, so edit these two files only there, never from inside a worktree); `.claude/` already exists, so a failed `ln -s` means the worktree itself wasn't created:
+Check `git worktree add`'s own exit status — it fails when `../c4i-wt-<slug>` already exists and isn't empty (e.g. left behind by an aborted run) or when `feature/<slug>` is already checked out in another worktree. If it fails, stop and report that F-ID as unusable, with git's error — don't include it in Step 5's dispatch, and don't proceed to the `.claude/` symlinks, `npm install`, or the per-worktree checks below for it; never `rm -rf` the leftover or `--force` the add to get past it (git's own error may suggest `add -f`) — a leftover that `git worktree list` still shows is Teardown mode's job.
+
+Then provision the untracked `.claude/` config. A worktree materializes tracked files only, and `.gitignore`'s `.claude/*` keeps `.claude/skill-config.md` and `.claude/settings.json` untracked — so the fresh worktree's `.claude/` holds the tracked `.claude/skills/` and nothing else, and `/run-feature` → `/git-push` would `exit 1` on the missing `repo:` field (and `/plan-creator` silently lose `topic_inference`) only after the whole plan/implement/commit pipeline had already run. Symlink exactly those two files out of the main checkout (symlinks, not copies, so edits in the main checkout stay in sync — and they're write-through, so edit these two files only there, never from inside a worktree); `.claude/` already exists, so no `mkdir -p` is needed, and a failed `ln -s` surfaces at the `test -f` check below:
 ```bash
 main_root="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"   # the main checkout, from any cwd — --show-toplevel would return the worktree if run inside one
 ln -s "$main_root/.claude/skill-config.md" ../c4i-wt-<slug>/.claude/skill-config.md
