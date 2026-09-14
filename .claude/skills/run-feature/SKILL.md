@@ -73,7 +73,7 @@ Do not assume the feature shipped or merged just because a PR exists.
    - If this feature was **★FOCUS**, re-evaluate "Shortest path to the focus feature": if the next step is unambiguous (its track's next item, zero new prerequisites), advance ★FOCUS and say so; if it's genuinely ambiguous, ask via `AskUserQuestion` rather than guessing.
 4. **Verify the step 3 edits landed** — re-read `plans/META-PLAN.md` (`git diff main -- plans/META-PLAN.md` is the quickest cross-check and also covers a resumed branch) and confirm every prescribed edit is actually present: this feature's Status-ledger row is gone; its **Legacy → current ID map** row, if the map has one for this F-ID, carries the PR number; its contract or durable facts landed under "COMPLETED-FEATURE CONTRACTS STILL IN FORCE" or in **Baseline** / **Standing invariants**, and any baseline facts it changed were updated there (the header refresh alone satisfies neither); the **Baseline** header names this feature's merge PR/SHA (or a later merge's, if another Phase C already advanced it), not the pre-merge value; and, if this feature was **★FOCUS**, no `FOCUS` reference still names this F-ID (`grep -in focus plans/META-PLAN.md`). Reconcile any gap before committing.
 5. `/git-commit`.
-6. `/git-push` — this is a small docs-only PR; the 8-agent review still runs, that's fine.
+6. `/git-push` — this is a small docs-only PR; the 8-agent review still runs, that's fine. If it rejects, fix per its findings and re-push.
 7. End the session. Do not start another feature.
 
 ## Important Notes
