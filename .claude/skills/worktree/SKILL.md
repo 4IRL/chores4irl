@@ -48,7 +48,7 @@ A reported conflict (status 1) downgrades that pair to RED regardless of the sta
 
 Print the full matrix and each feature's touch-set — the independence claim must be auditable, not asserted.
 
-**Pause-and-ask checkpoint — RED/YELLOW pairs:** any **RED** pair → stop, report it, recommend running those two serially (drop one from this batch, or abort). Any **YELLOW** pair → `AskUserQuestion`: accept the risk (proceed, flag it as needing a rebase check at merge time) or drop one of the pair. Only GREEN and accepted-YELLOW features proceed to Step 4.
+**Pause-and-ask checkpoint — RED/YELLOW pairs:** any **RED** pair → stop, report it, recommend running those two serially (drop one from this batch, or abort). Any **YELLOW** pair → `AskUserQuestion`: accept the risk (proceed, flag it as needing a rebase check at merge time) or drop one of the pair. Only **GREEN** and accepted-**YELLOW** features proceed to Step 4.
 
 ### 4. Provision worktrees
 
