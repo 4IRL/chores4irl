@@ -39,8 +39,8 @@ When a pair shares more than one file, its overall verdict is the worst individu
 If either branch in a pair already has commits, sharpen with the empirical check. Rely on `git merge-tree --write-tree`'s own exit status, not its output text (its own man page: "Do NOT attempt to guess... the conflict types from the output; check the exit status"): 0 = clean, 1 = conflict, anything else = the command itself failed.
 ```bash
 git merge-tree --write-tree feature/<a> feature/<b> >/dev/null 2>&1; status=$?
-if [ $status -eq 0 ]; then echo "clean"
-elif [ $status -eq 1 ]; then echo "CONFLICT <a>/<b>"
+if [[ $status -eq 0 ]]; then echo "clean"
+elif [[ $status -eq 1 ]]; then echo "CONFLICT <a>/<b>"
 else echo "ERROR <a>/<b>: merge-tree failed ($status)"
 fi
 ```
