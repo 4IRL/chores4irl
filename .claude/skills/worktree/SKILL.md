@@ -102,7 +102,7 @@ For each, check its branch's PR state (`gh pr list --head <branch> --state all`)
 
 ### 4. Remove confirmed worktrees and branches
 
-If any confirmed entry is **Merged**, run `git fetch origin` once first so `origin/main` is current (Teardown mode doesn't sync `main`), and check that it succeeded — the Merged gate below trusts `origin/main`, and in this repo `origin` is SSH, which fails with `Permission denied (publickey)` from the Bash tool's non-interactive shell, so an unchecked fetch failure is the expected outcome here and would turn every Merged entry into an ambiguous "could not verify" `SKIP:` instead of a verdict:
+If any confirmed entry is **Merged**, run `git fetch origin` once first so `origin/main` is current (Teardown mode doesn't sync `main`), and check that it succeeded — the Merged gate below trusts `origin/main`, and in this repo `origin` is SSH, which fails with `Permission denied (publickey)` from the Bash tool's non-interactive shell, so an unchecked fetch failure is the expected outcome here and would give every Merged entry whose PR landed since the last good fetch a false "merge commit … is not on origin/main" `SKIP:`:
 ```bash
 git fetch origin || { echo "STOP: git fetch origin failed — origin/main may be stale; fix the fetch (likely no SSH agent in this shell — run it from a terminal, or fetch +refs/heads/main:refs/remotes/origin/main via the HTTPS+token form /git-push Step 1 uses) before removing anything"; }
 ```
@@ -111,11 +111,23 @@ On that `STOP:` the per-entry loop must not start — halt Teardown and report i
 Then, for each confirmed entry in turn, pass the gate matching its Step 2 classification before removing anything — `git branch -D` is the only force-delete in this skill, reachable solely through one of these gates (each already behind Step 3's confirmation):
 - **Merged** → re-verify the PR; `<number>` is the PR number Step 2 recorded:
   ```bash
-  read -r merged_sha head_oid < <(gh pr view <number> --json state,mergedAt,mergeCommit,headRefName,headRefOid --jq 'select(.state == "MERGED" and .mergedAt != null and .mergeCommit != null and .headRefName == "feature/<slug>") | "\(.mergeCommit.oid) \(.headRefOid)"')   # both empty unless the PR really merged from this branch
-  if [[ -n "$merged_sha" ]] && git merge-base --is-ancestor "$merged_sha" origin/main && git merge-base --is-ancestor "feature/<slug>" "$head_oid"; then   # the gate: PR merged from this branch, its merge commit is on main, and the local tip has nothing beyond what the PR merged
-    echo "VERIFIED: PR #<number> merged from feature/<slug> — proceed to remove it"
+  if ! pr_json=$(gh pr view <number> --json state,mergedAt,mergeCommit,headRefName,headRefOid 2>&1); then   # the call itself failed (auth/rate-limit/network) — a STOP, not a SKIP: an empty read below could not tell that apart from "not merged"
+    echo "STOP: gh pr view #<number> failed — $pr_json"   # halt Teardown here; nothing below runs for this or any later confirmed entry
+  elif ! pr_match=$(jq -r 'select(.state == "MERGED" and .mergedAt != null and .mergeCommit != null and .headRefName == "feature/<slug>") | "\(.mergeCommit.oid) \(.headRefOid)"' <<<"$pr_json" 2>&1); then   # jq missing, or gh's stdout wasn't JSON — a STOP for the same reason
+    echo "STOP: could not parse gh pr view #<number>'s output — $pr_match"
   else
-    echo "SKIP: could not verify feature/<slug> as merged (PR #<number> not merged from it, gh error, merge commit not on origin/main, or local tip beyond the PR head) — leave its worktree and branch in place, report it under Step 6's \"left in place\", and continue to the next confirmed entry"
+    read -r merged_sha head_oid <<<"$pr_match"   # both empty unless the PR really merged from this branch
+    if [[ -z "$merged_sha" ]]; then
+      echo "SKIP: no merged PR from feature/<slug> (PR #<number> is not MERGED from it) — leave its worktree and branch in place, report it under Step 6's \"left in place\", and continue to the next confirmed entry"
+    elif ! git merge-base --is-ancestor "$merged_sha" origin/main; then
+      echo "SKIP: PR #<number>'s merge commit $merged_sha is not on origin/main — leave its worktree and branch in place, report it under Step 6's \"left in place\", and continue to the next confirmed entry"
+    elif ! git rev-parse --verify --quiet "refs/heads/feature/<slug>" >/dev/null; then   # checked first because merge-base exits 128 (not 1) on a missing ref, which the tip check below would misreport
+      echo "SKIP: no local feature/<slug> to compare against PR #<number>'s head — leave its worktree and branch in place, report it under Step 6's \"left in place\", and continue to the next confirmed entry"
+    elif ! git merge-base --is-ancestor "feature/<slug>" "$head_oid"; then
+      echo "SKIP: local feature/<slug> tip is beyond PR #<number>'s head $head_oid — leave its worktree and branch in place, report it under Step 6's \"left in place\", and continue to the next confirmed entry"
+    else   # the gate passed — the only path to the -D below
+      echo "VERIFIED: PR #<number> merged from feature/<slug> — proceed to remove it"
+    fi
   fi
   ```
 - **User-confirmed abandoned (never merged)** → no PR check; the gate is the user having explicitly named it abandoned in Step 3's `AskUserQuestion`.
