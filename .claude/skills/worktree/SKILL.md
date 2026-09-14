@@ -102,8 +102,14 @@ For each, check its branch's PR state (`gh pr list --head <branch> --state all`)
 
 ### 4. Remove confirmed worktrees and branches
 
-For each confirmed entry in turn, pass the gate matching its Step 2 classification before removing anything — `git branch -D` is the only force-delete in this skill, reachable solely through one of these gates (each already behind Step 3's confirmation):
-- **Merged** → re-verify the PR; `<number>` is the PR number Step 2 recorded. Run `git fetch origin` once first so `origin/main` is current (Teardown mode doesn't sync `main`), then:
+If any confirmed entry is **Merged**, run `git fetch origin` once first so `origin/main` is current (Teardown mode doesn't sync `main`), and check that it succeeded — the Merged gate below trusts `origin/main`, and in this repo `origin` is SSH, which fails with `Permission denied (publickey)` from the Bash tool's non-interactive shell, so an unchecked fetch failure is the expected outcome here and would turn every Merged entry into an ambiguous "could not verify" `SKIP:` instead of a verdict:
+```bash
+git fetch origin || { echo "STOP: git fetch origin failed — origin/main may be stale; fix the fetch (likely no SSH agent in this shell — run it from a terminal, or fetch +refs/heads/main:refs/remotes/origin/main via the HTTPS+token form /git-push Step 1 uses) before removing anything"; }
+```
+On that `STOP:` the per-entry loop must not start — halt Teardown and report it; nothing below runs until `origin/main` has actually been fetched by one of those routes.
+
+Then, for each confirmed entry in turn, pass the gate matching its Step 2 classification before removing anything — `git branch -D` is the only force-delete in this skill, reachable solely through one of these gates (each already behind Step 3's confirmation):
+- **Merged** → re-verify the PR; `<number>` is the PR number Step 2 recorded:
   ```bash
   read -r merged_sha head_oid < <(gh pr view <number> --json state,mergedAt,mergeCommit,headRefName,headRefOid --jq 'select(.state == "MERGED" and .mergedAt != null and .mergeCommit != null and .headRefName == "feature/<slug>") | "\(.mergeCommit.oid) \(.headRefOid)"')   # both empty unless the PR really merged from this branch
   if [[ -n "$merged_sha" ]] && git merge-base --is-ancestor "$merged_sha" origin/main && git merge-base --is-ancestor "feature/<slug>" "$head_oid"; then   # the gate: PR merged from this branch, its merge commit is on main, and the local tip has nothing beyond what the PR merged

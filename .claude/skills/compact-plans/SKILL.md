@@ -57,7 +57,11 @@ cross-checked against `git branch -a`. Check `gh`'s exit code and that stdout pa
 
 **Pause-and-ask checkpoint — branch deletion:** present the exact branch list (local + remote) before deleting anything — branch deletion is recoverable (reflog / re-push from elsewhere) but a remote delete is outward-facing, same gate as a commit.
 
-For each confirmed branch, re-verify its PR immediately before deleting — that verification plus the checkpoint above is the gate, not the local delete's exit status. `<number>` / `<branch>` are copied verbatim from the `gh pr list` result's `number` / `headRefName`. Run `git fetch origin` once first so `origin/main` is current (the Branch Guard only syncs `main` when the sweep starts there), then per branch:
+For each confirmed branch, re-verify its PR immediately before deleting — that verification plus the checkpoint above is the gate, not the local delete's exit status. `<number>` / `<branch>` are copied verbatim from the `gh pr list` result's `number` / `headRefName`. Run `git fetch origin` once first so `origin/main` is current (the Branch Guard only syncs `main` when the sweep starts there), and check that it succeeded — the per-branch gate below trusts `origin/main`, and in this repo `origin` is SSH, which fails with `Permission denied (publickey)` from the Bash tool's non-interactive shell, so an unchecked fetch failure is the expected outcome here and would turn every branch into an ambiguous "could not verify" `SKIP:` instead of a verdict:
+```bash
+git fetch origin || { echo "STOP: git fetch origin failed — origin/main may be stale; fix the fetch (likely no SSH agent in this shell — run it from a terminal, or fetch +refs/heads/main:refs/remotes/origin/main via the HTTPS+token form /git-push Step 1 uses) before pruning anything"; }
+```
+On that `STOP:` the per-branch loop must not start — nothing below runs until `origin/main` has actually been fetched by one of those routes. Then per branch:
 ```bash
 read -r merged_sha head_oid < <(gh pr view <number> --json state,mergedAt,mergeCommit,headRefName,headRefOid --jq 'select(.state == "MERGED" and .mergedAt != null and .mergeCommit != null and .headRefName == "<branch>") | "\(.mergeCommit.oid) \(.headRefOid)"')   # both empty unless the PR really merged from this branch
 if [[ -n "$merged_sha" ]] && git merge-base --is-ancestor "$merged_sha" origin/main && git merge-base --is-ancestor "<branch>" "$head_oid"; then   # the gate: PR merged from this branch, its merge commit is on main, and the local tip has nothing beyond what the PR merged
