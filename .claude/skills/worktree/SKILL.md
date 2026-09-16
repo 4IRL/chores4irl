@@ -34,7 +34,7 @@ For every pair still in the set:
 - **Same file, different region (e.g. different JSX block, different route handler) → YELLOW** — possible, needs explicit acceptance.
 - **Same file, same region/symbol → RED** — do not parallelize.
 
-When a pair shares more than one file, its overall verdict is the worst individual verdict across all of its shared files (any RED file makes the pair RED, else any YELLOW file makes it YELLOW).
+When a pair shares more than one file, its overall verdict is the worst individual verdict across all of its shared files (any **RED** file makes the pair **RED**, else any **YELLOW** file makes it **YELLOW**).
 
 If either branch in a pair already has commits, sharpen with the empirical check. Rely on `git merge-tree --write-tree`'s own exit status, not its output text (its own man page: "Do NOT attempt to guess... the conflict types from the output; check the exit status"): 0 = clean, 1 = conflict, anything else = the command itself failed.
 ```bash
@@ -44,7 +44,7 @@ elif [[ $status -eq 1 ]]; then echo "CONFLICT <a>/<b>"
 else echo "ERROR <a>/<b>: merge-tree failed ($status)"
 fi
 ```
-A reported conflict (status 1) downgrades that pair to RED regardless of the static call. Any other non-zero status (bad ref, unpushed branch, permissions) is a tool failure, not a clean result — stop and report it rather than defaulting to "clean"; this check backs the skill's own "auditable, not asserted" safety claim.
+A reported conflict (status 1) downgrades that pair to **RED** regardless of the static call. Any other non-zero status (bad ref, unpushed branch, permissions) is a tool failure, not a clean result — stop and report it rather than defaulting to "clean"; this check backs the skill's own "auditable, not asserted" safety claim.
 
 Print the full matrix and each feature's touch-set — the independence claim must be auditable, not asserted.
 
@@ -169,7 +169,7 @@ Flag any mismatch before reporting — either case means stop and tell the user;
 ## Important Notes
 
 - Provision only from a clean, synced `main`.
-- Never worktree a RED pair together — say so and stop.
+- Never worktree a **RED** pair together — say so and stop.
 - Worktrees live as siblings of the repo (`../c4i-wt-*`), never nested inside it.
 - A worktree's `.claude/skill-config.md` and `.claude/settings.json` are the symlinks Step 4 creates, not tracked files — without the first, every worktree-driven `/run-feature` hard-fails at `/git-push`; without the second, the sandbox has no network allowlist for `npm install` and `gh`. Don't drop that step, and never widen it to the whole `.claude/` directory (Step 4 names what that would leak).
 - The only Bash calls here that need `dangerouslyDisableSandbox: true` are the ones that write into `../c4i-wt-<slug>` — Provision Step 4's `git worktree add`, its two `ln -s` calls, and its in-worktree `npm install`, plus Teardown Step 4's `git worktree remove` — because the worktree is a sibling of the repo, outside the project's sandbox `filesystem.allowWrite` (`/home/rmila/Code/chores4irl` + `/tmp`); that per-call flag is the form the global `~/.claude/CLAUDE.md` prescribes, not a wider `allowWrite` in `.claude/settings.json`. The `git rev-parse` and `git branch -D` calls inside those snippets touch only the repo (or nothing) and need no flag of their own — they ride along under the flag of the call they share; don't split a snippet to sandbox them separately. Every other command (e.g. `git worktree list`, `git merge-tree`, `gh pr view`, `git fetch origin`, `test -f`, `git worktree prune`) writes only inside the repo or not at all and stays sandboxed. Step 5 Mode A's hand-off (`cd ../c4i-wt-<slug> && claude`) is unaffected — a fresh session's own cwd is allow-written by the harness. Mode B's subagents, by contrast, inherit this session's sandbox (cwd allowlist = the main repo), so every in-worktree write `/run-feature` makes there (the Vitest suites, the smoke spec, …) needs the same per-call flag on each such Bash call — a further reason Mode A is the default.

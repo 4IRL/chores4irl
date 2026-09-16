@@ -55,7 +55,7 @@ This repo **squash-merges**, so `git branch --merged main` misses merged feature
 ```bash
 gh pr list --state merged --limit 500 --json number,title,headRefName,mergeCommit
 ```
-cross-checked against `git branch -a`. Check `gh`'s exit code and that stdout parses as valid JSON before building the candidate list; on any failure (auth/network/rate-limit), stop and report the raw error rather than treating an empty result as "nothing to prune". A branch with no merged PR of its own — even one whose functionality shipped via a *different* path (squashed elsewhere, or superseded per Step 2) — is not a candidate: this skill leaves it in place and reports it under Step 7's "left in place" for the user to handle manually.
+cross-checked against `git branch -a`. Check `gh`'s exit code and that stdout parses as valid JSON before building the candidate list; on any failure (auth/network/rate-limit), stop and report the raw error rather than treating an empty result as "nothing to prune". A branch with no merged PR of its own — even one whose functionality shipped via a *different* path (squashed elsewhere, or **Superseded** per Step 2) — is not a candidate: this skill leaves it in place and reports it under Step 7's "left in place" for the user to handle manually.
 
 **Pause-and-ask checkpoint — branch deletion:** present the exact branch list (local + remote) before deleting anything — branch deletion is recoverable (locally from the `(was <sha>)` line `git branch -D` prints or the reflog, until gc; remotely by a re-push from elsewhere) but a remote delete is outward-facing, same gate as a commit.
 
