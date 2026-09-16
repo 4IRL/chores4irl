@@ -90,3 +90,8 @@ Hand-delete warning confirmed present; F4 assumed-state bullets are concrete and
 - [x] **Collapse the Baseline Tests bullet's F14 clause to topic level** — `plans/META-PLAN.md` (Baseline › Tests) — "component-level show/clear/refocus + App-level clear-restores-room-filter, from `F14`".
 - [x] **Normalize the "(current numbering, incl. `F15`)" comma** — `plans/META-PLAN.md` (Remaining table heading, Chain integrity heading) — add the comma so all four headings match.
 - [ ] **(deferred, minor) Reword F4's "incl. its tests"** — `plans/META-PLAN.md` (F4 › Expected end state) — left as-is: F4's "Test-suite deltas" already says "update shared-form tests", which covers removing the Details-never-clearable assertion.
+
+## Review 3
+Generated: 2026-09-16 11:21
+Comparison: origin/main...HEAD (`88865c4`)
+Verdict: **PUSHED** — all 8 reviewers PASS with zero findings; Review 1 and Review 2 to-dos verified applied (the one deferred Review 2 minor stays deferred with its stated reason).
