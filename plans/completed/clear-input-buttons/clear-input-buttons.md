@@ -1,12 +1,12 @@
 > **STATUS: Merged** `3533b67` (#34). Frozen — historical record, do not edit.
 > **Outcome:** Shipped as planned — new `ClearButton` component wired into
-> `ChoreSearchInput` and the Add/Edit form's Name (via `FormField`'s new opt-in `clearable`
-> prop, default `false`) and Room fields; Details stays non-clearable because `F4` removes
-> it. Push review fixed one major inline (the plan's own Step 3/5 checkboxes contradicted its
-> COMPLETE tracking) and left three minors — harvested to `plans/PUSH-REVIEW-FINDINGS.md`.
-> **Contract a later feature depends on:** `clearable` is string-only by design (`value !==
-> ''`); a future number/date consumer must tighten the check first (see the harvested `[dx]`
-> item).
+> `ChoreSearchInput` and the Add/Edit form's Name (via `FormField`'s new opt-in
+> `clearable` prop, default `false`) and Room fields; Details stays non-clearable because
+> `F4` removes it. Push review fixed one major inline (the plan's own Step 3/5 checkboxes
+> contradicted its COMPLETE tracking) and left three minors — harvested to
+> `plans/PUSH-REVIEW-FINDINGS.md`. **Contract a later feature depends on:** `clearable` is
+> string-only by design (`value !== ''`); a future number/date consumer must tighten the
+> check first (see the harvested `[dx]` item).
 
 # F14 — Clear-✕ affordance on every free-text input
 

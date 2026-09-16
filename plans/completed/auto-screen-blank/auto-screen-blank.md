@@ -1,12 +1,13 @@
 > **STATUS: Merged** `a633a2a` (#27). Frozen — historical record, do not edit.
-> **Outcome:** Shipped as planned — `useScreenBlank` hook (21:00–06:00 window, tap-to-wake,
-> 5-min inactivity re-blank, `rearmTick`-keyed reschedule) + portal-rendered
+> **Outcome:** Shipped as planned — `useScreenBlank` hook (21:00–06:00 window,
+> tap-to-wake, 5-min inactivity re-blank, `rearmTick`-keyed reschedule) + portal-rendered
 > `ScreenBlankOverlay` with the `.App` wrapper made `inert` while blanked. Post-review fix
 > `652a5e8` added the five required tests plus an unconditional `rearmTick` bump on
 > `visibilitychange` (closes the even-boundary-count stale-timer edge). Two cosmetic
-> optionals were left as-is — harvested to `plans/PUSH-REVIEW-FINDINGS.md`. **Contract a
-> later feature depends on:** `F15` (adopt kiosk-shell) removes this overlay from chores4irl
-> once pi-kiosk's shell reaches parity — see `plans/META-PLAN.md`'s `F1` contract note.
+> optionals were left as-is; those plus Review 2's one prose-only test note are harvested
+> to `plans/PUSH-REVIEW-FINDINGS.md`. **Contract a later feature depends on:** `F15`
+> (adopt kiosk-shell) removes this overlay from chores4irl once pi-kiosk's shell reaches
+> parity — see `plans/META-PLAN.md`'s `F1` contract note.
 
 # F1 — Auto screen-blank 9pm–6am
 

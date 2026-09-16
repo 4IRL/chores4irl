@@ -202,6 +202,7 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
+| **F14 — clear-✕ affordance on free-text inputs** *(added 2026-07-08)* ★FOCUS | in-review *(PR merged 2026-09-10 — row deliberately kept by the 2026-09-16 `/compact-plans` sweep so `/run-feature F14` resumes at Phase C, which deletes it after the full fold-back)* | `feature/clear-input-buttons` *(pruned locally 2026-09-16)* | [#34](https://github.com/4IRL/chores4irl/pull/34) |
 | F4 — remove Details/Long-term | pending | `feature/remove-details-longterm` | — |
 | F5 — translucent Add-Task deck | pending | `feature/translucent-add-deck` | — |
 | F15 — adopt kiosk-shell *(added 2026-07-15)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — |
@@ -212,8 +213,11 @@ pi-kiosk repo's own planning, not here.
 
 **Branch/dir cleanup:** none outstanding as of the 2026-09-16 `/compact-plans` sweep —
 local branches are `main` plus whatever is live; every merged plan dir is frozen under
-`plans/completed/`. Sweep history lives in git (PRs #22, #26, #29 and the sweep commits on
-later branches), not here. Run `/compact-plans` after each merge to keep it that way.
+`plans/completed/`. The one row above whose PR has already merged (`F14`) is kept on
+purpose: `/run-feature`'s resume table treats "PR merged + row present" as the Phase C
+trigger, so deleting it here would skip the Baseline / ID-map / ★FOCUS fold-back — run
+`/run-feature F14` next. Sweep history lives in git (PRs #22, #26, #29 and the sweep
+commits on later branches), not here. Run `/compact-plans` after each merge.
 
 **Ledger update protocol (per session):** set `in-progress` on start; `in-review` + PR
 link after `git-push`; once the PR is *verified* merged (never self-marked), the row is

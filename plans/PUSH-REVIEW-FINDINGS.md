@@ -36,8 +36,8 @@ backlog is visible and actionable instead of scattered.
   format those skills expect.
 
 ## Quick batch view (by theme)
-- `[test]`     — ~16 items: assertion hardening, missing-branch coverage, brittle-selector fixes, `rearmTick` self-heal (auto-screen-blank), `!event.repeat` guard (touch-lock), post-submit clear-✕ reset (clear-input-buttons)
-- `[style]`/`[dx]` — ~18 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup, native `<button>`/`z-50` (auto-screen-blank), repeat-key `preventDefault` + plan-step comment cleanup (touch-lock), `clearable` type-safety (clear-input-buttons), META-PLAN policy-restatement consolidation (deferred)
+- `[test]`     — 13 items: assertion hardening, missing-branch coverage, brittle-selector fixes, `rearmTick` self-heal (auto-screen-blank), `!event.repeat` guard (touch-lock), post-submit clear-✕ reset (clear-input-buttons)
+- `[style]`/`[dx]` — 21 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup, native `<button>`/`z-50` (auto-screen-blank), repeat-key `preventDefault` + plan-step comment cleanup (touch-lock), `clearable` type-safety (clear-input-buttons), META-PLAN policy-restatement consolidation (deferred)
 - `[a11y]`     — 3 items: `focus-visible:` reveal, focus-ring clipping (bar-redesign); aria-label sentence-casing (clear-input-buttons)
 - `[security]` — 4 items: server-side `urgency` enum validation (edit-task); SSE connection cap + host-specifics redaction + predecessor-ledger username (all opt / only-if-public)
 - `[design]`   — 2 items: both had a blocking dependency that **has since merged** — now decidable (see ⚠ below)
@@ -116,7 +116,7 @@ Source: `plans/completed/plans-housekeeping/reviews/push-review-chore-plans-hous
 
 ## F1 (current numbering) — auto-screen-blank  (`a633a2a`, #27)
 Source: `plans/completed/auto-screen-blank/reviews/push-review-feature-auto-screen-blank.md`
-> Harvested by the 2026-09-16 `/compact-plans` sweep. Review 1's 7 required/low-risk items landed in `652a5e8` (verified on `main`: the four test files + the unconditional `rearmTick` bump and rationale comment in `useScreenBlank.ts`) and were checked off in the source; only the two cosmetic optionals Review 2 explicitly left as-is remain, plus Review 2's one prose-only note.
+> Harvested by the 2026-09-16 `/compact-plans` sweep. Review 1's 7 required/low-risk items landed in `652a5e8` (verified on `main`: the three test files + the unconditional `rearmTick` bump and rationale comment in `useScreenBlank.ts`) and were checked off in the source; only the two cosmetic optionals Review 2 explicitly left as-is remain, plus Review 2's one prose-only note.
 
 - [ ] `[style]` opt — Native `<button>` instead of `div[role="button"]` — `frontend/src/components/common/ScreenBlankOverlay.tsx` — every other interactive control (`ConfirmDialog` actions, `AddChoreButton`) is a real `<button>`; a `<button className="fixed inset-0 ...">` covers the same target and drops the manual Enter/Space `onKeyDown` handling.
 - [ ] `[style]` opt — Use `z-50` instead of the one-off `z-[100]` — `frontend/src/components/common/ScreenBlankOverlay.tsx` — `ConfirmDialog`/`ChoreFormModal` both use `z-50`, already the highest value elsewhere; keep `z-[100]` only if a concrete stacking conflict requires it.
@@ -135,7 +135,7 @@ Source: `plans/completed/touch-lock/reviews/push-review-feature-touch-lock.md` (
 
 ---
 
-## F14 — clear-input-buttons  (`3533b67`, #34)
+## F14 (current numbering) — clear-input-buttons  (`3533b67`, #34)
 Source: `plans/completed/clear-input-buttons/reviews/push-review-feature-clear-input-buttons.md`
 > Harvested by the 2026-09-16 `/compact-plans` sweep. Review 1's one major finding was fixed inline before push; these three are its non-blocking minors.
 
@@ -145,7 +145,7 @@ Source: `plans/completed/clear-input-buttons/reviews/push-review-feature-clear-i
 
 ---
 
-## (chore) meta-plan-housekeeping-260723  (`37f79ed` #31 · `ed93e24` #33)
+## (chore) meta-plan-housekeeping-260723  (`37f79ed`, #31 + `ed93e24`, #33)
 Source: `plans/completed/meta-plan-housekeeping-260723/reviews/push-review-chore-meta-plan-housekeeping-260723.md`
 > Harvested by the 2026-09-16 `/compact-plans` sweep. Review 1's four required items landed on-branch (`750d092`/`e96d0b1`) and its stale To-Do was marked superseded by `/compact-plans` Step 5 on 2026-09-16; the two below are Review 2's deliberately-deferred items, carried here so the deferral is visible rather than buried.
 

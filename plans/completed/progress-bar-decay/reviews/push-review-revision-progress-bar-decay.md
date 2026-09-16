@@ -1,8 +1,8 @@
 > **STATUS: Merged** `790a4ab` (#32). Frozen — historical record, do not edit.
 > **Outcome:** Revision of the original `progress-bar-decay` feature (`e929b75`, #7 —
-> frozen at `plans/completed/progress-bar-decay.md`). Tailwind v4 dropped `bg-opacity-*`, so
-> the bar fill and `AddChoreButton` had rendered opaque; `computeBar` now returns a bare
-> `barColor` and `ProgressBar` applies `opacity-50` itself, `AddChoreButton` uses the
+> frozen at `plans/completed/progress-bar-decay.md`). Tailwind v4 dropped `bg-opacity-*`,
+> so the bar fill and `AddChoreButton` had rendered opaque; `computeBar` now returns a
+> bare `barColor` and `ProgressBar` applies `opacity-50` itself, `AddChoreButton` uses the
 > alpha-suffixed `bg-blue-500/50`, and `statusColors` drops its red tier so red means
 > overdue only (`isOverdue` branch). The one design question — collapsing the 2-entry
 > `statusColors` table — was **declined by user decision 2026-09-05** (kept for

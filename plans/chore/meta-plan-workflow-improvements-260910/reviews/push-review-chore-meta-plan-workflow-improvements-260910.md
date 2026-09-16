@@ -325,3 +325,58 @@ STOP vs SKIP used correctly throughout; every gh/git/jq call feeding a decision 
 - [x] **Note that `gmas` is a login-shell alias in the three Branch Guards** — `.claude/skills/compact-plans/SKILL.md` Branch Guard, `.claude/skills/run-feature/SKILL.md` Branch Guard, `.claude/skills/worktree/SKILL.md` Branch Guard — the Bash tool's non-interactive shell does not source `~/.bashrc`, so bare `gmas` returns `command not found`. Add one parenthetical at the first `gmas` mention in each Branch Guard telling the agent that if `gmas` is not found, ask the user to run `! gmas` in the prompt (the `!` prefix runs it in the session's login shell), then re-verify with `git status`. Keep the alias name — the same convention is used by the global `git-push`/`git-commit`/`plan-creator`/`new-feature` skills, so fix those in the same pass if adopting the parenthetical there too.
 - [x] **Mark the housekeeping review's stale To-Do as superseded** — `plans/chore/meta-plan-housekeeping-260723/reviews/push-review-chore-meta-plan-housekeeping-260723.md` line 40 — the unchecked `- [ ] **Update branch-pruning cross-check to match the history policy**` item targets `plans/COMPACT-PLANS-PROMPT.md` Step 4.1/4.5, which this branch deletes (the equivalent logic now lives in `.claude/skills/compact-plans/SKILL.md` Step 5's PR-driven gate). Either check it off with a one-line "superseded by `/compact-plans` Step 5" note, or leave it for the next `/compact-plans` run's findings-harvest step (Step 3) to fold into `plans/PUSH-REVIEW-FINDINGS.md` — do not treat it as actionable against the deleted file.
 - [x] **Resolve the two remaining dangling template mentions on the next `/compact-plans` sweep** — `plans/feature/touch-lock/touch-lock.md` line 599 (names `REFRESH-META-PLAN-PROMPT.md`) and `plans/chore/meta-plan-housekeeping-260723/reviews/push-review-chore-meta-plan-housekeeping-260723.md` line 31 (names `COMPACT-PLANS-PROMPT.md`) — both are historical narrative in dirs that will be frozen into `plans/completed/`; no edit needed now, but confirm the freeze header's Outcome line for each mentions the template's replacement skill so the reference reads as historical rather than live. — **done 2026-09-16 by the `/compact-plans` sweep on this branch**: both dirs are now frozen under `plans/completed/` (`touch-lock` → #28 `3160dfc`, `meta-plan-housekeeping-260723` → #31 `37f79ed` + #33 `ed93e24`) and each freeze header's Outcome line names the replacement (`REFRESH-META-PLAN-PROMPT.md` → global `/new-feature`; `COMPACT-PLANS-PROMPT.md` → `.claude/skills/compact-plans/SKILL.md` Step 5), so both mentions now read as archive-historical.
+
+## Review 8
+Generated: 2026-09-16 10:17
+Comparison: origin/chore/meta-plan-workflow-improvements-260910...HEAD (6 commits — the five Review 7 fixes plus the 2026-09-16 `/compact-plans` sweep)
+Verdict: **PUSHED WITH MINOR FINDINGS** (one major finding, raised identically by three reviewers, was fixed inline before push — see below)
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+Planning docs + three skill docs only. The one executable change (worktree Provision Step 4's guarded `git rev-parse`) is a safety improvement. No secrets; `c4i-app.pem` / `generate-gh-c4i-token.sh` appear as filename references only.
+
+#### 2. Correctness — FAIL → FIXED
+- *(major)* `plans/META-PLAN.md` — the sweep deleted F14's Status-ledger row while the rest of the file (Current focus, Shortest path, priority table, the full `## F14` section, Chain integrity) still describes F14 as the live, unshipped ★FOCUS. Every SHA/PR in the six freeze headers, the touch-lock `d5fe530` deviation claim, and all repointed `rotate-screen-button` paths verified correct.
+- *(minor)* `plans/PUSH-REVIEW-FINDINGS.md` F1 harvest note said `652a5e8` touched "the four test files" — it touched three test files plus the hook.
+- *(minor)* Quick batch view counts drifted from the grep tallies (13 `[test]`, 21 `[style]`/`[dx]`).
+
+#### 3. Simplicity & Conciseness — PASS
+The worktree if/else is the minimal correct guard (a `|| { STOP }` short-circuit can't work because `dirname ""` exits 0); the repeated `gmas` clause is required per-file duplication; every freeze-header sentence carries distinct signal. Side note that the F1 `rearmTick` self-heal item is harvested from Review 2 prose rather than a checkbox — deliberate, and the section preamble says so.
+
+#### 4. Test Coverage — PASS
+No test files touched; no verification step in the skill docs removed; every harvested `[test]` item cross-checked verbatim against its source review and its referenced test file confirmed to exist.
+
+#### 5. Completeness & Cleanup — FAIL → FIXED
+- *(major)* Same F14 Status-ledger finding as Correctness/Integration Risk.
+- *(minor)* Same "four test files" count as Correctness.
+- *(minor)* `plans/completed/auto-screen-blank/auto-screen-blank.md` Outcome said "two cosmetic optionals" harvested; the F1 section holds three open items.
+- *(minor)* `plans/completed/touch-lock/touch-lock.md` and the meta-plan-housekeeping review header said a template "was deleted in #35" — #35 is this branch's still-open PR.
+
+#### 6. Consistency & Style — PASS
+- *(minor)* The two-commit section heading in `PUSH-REVIEW-FINDINGS.md` used `` `sha` #N · `sha` #N `` instead of the file's `` (`sha`, #N) `` shape.
+- *(minor)* Several freeze-header lines ran 92–98 chars vs. the precedent's 91 max.
+All freeze headers match the precedent shape; harvested entries use only documented tags/severities; the `- [x]` resolved-in-place item mirrors the plans-housekeeping precedent; `git diff --check` clean.
+
+#### 7. Integration Risk — FAIL → FIXED
+- *(major)* `plans/META-PLAN.md` — `/run-feature`'s resume table (SKILL.md lines 31–32) treats "PR merged + Status-ledger row present" as the Phase C trigger and "PR merged, no row" as *nothing to do*. `/compact-plans` Step 5's "delete the row too" rule therefore skips Phase C's Baseline / ID-map / ★FOCUS fold-back permanently — no documented path can self-heal it.
+- *(minor)* `plans/completed/docker-raspberry-pi/docker-raspberry-pi.md` line 8's frozen header still points at `plans/feature/rotate-screen-button/`.
+No dangling references to the deleted 260707 ledger; `/new-feature`'s newest-ledger lookup still works with the 260708+260715 pair.
+
+#### 8. Error Handling & Silent Failures — PASS
+The worktree rev-parse guard captures stderr and echoes it in the STOP message; the `gmas` fallback is actionable and non-masking.
+- *(minor)* `PUSH-REVIEW-FINDINGS.md` numbering note claimed all three new sections carry "(current numbering)" in their headings — the F14 heading did not.
+- *(minor)* Same auto-screen-blank "two vs. three harvested" count as Completeness.
+
+### To-Do: Required Changes
+
+- [x] **Restore F14's Status-ledger row as the Phase C trigger** *(fixed inline 2026-09-16)* — `plans/META-PLAN.md` — re-inserted the row above F4's, status `in-review` with an italic note that the PR merged 2026-09-10 and the row is deliberately kept so `/run-feature F14` resumes at Phase C (which deletes it after the full fold-back); the branch cell notes the local branch was pruned. The "Branch/dir cleanup" paragraph under the ledger now explains the same and says to run `/run-feature F14` next. The remaining F14-as-FOCUS narrative is *pre-existing* staleness (F14 merged 2026-09-10 with no fold-back) that Phase C owns — not re-derived here.
+- [ ] **Reconcile `/compact-plans` Step 5's row-deletion rule with `/run-feature`'s resume table** — `.claude/skills/compact-plans/SKILL.md` Step 5 closing paragraph + Step 7's `grep -nE '^\| \*{0,2}<F-ID> '` check — today the sweep is told to delete a pruned branch's Status-ledger row, but `run-feature/SKILL.md` lines 31–32 need that row present to enter Phase C. Pick one: (a) Step 5 deletes the row only when the F-ID has no Legacy → current ID-map row left unannotated / its Phase C already ran (detectable: Baseline header cites the PR), else leaves it and reports "run `/run-feature <F-ID>`"; or (b) `/run-feature`'s table adds a fourth row — "PR merged, no ledger row, but Baseline header predates the PR → Phase C". Skill files are outside this sweep's scope (and write-denied in the sandbox); left for the user.
+- [x] **Correct the `652a5e8` test-file count** *(fixed inline)* — `plans/PUSH-REVIEW-FINDINGS.md` F1 preamble — "four" → "three test files".
+- [x] **Correct the Quick batch view tallies** *(fixed inline)* — `plans/PUSH-REVIEW-FINDINGS.md` — `[test]` 13, `[style]`/`[dx]` 21 (exact grep counts, `~` dropped).
+- [x] **Say three items were harvested from auto-screen-blank** *(fixed inline)* — `plans/completed/auto-screen-blank/auto-screen-blank.md` Outcome — "two cosmetic optionals; those plus Review 2's one prose-only test note are harvested".
+- [x] **Reword the two "#35" claims for a still-open PR** *(fixed inline)* — `plans/completed/touch-lock/touch-lock.md`, `plans/completed/meta-plan-housekeeping-260723/reviews/push-review-chore-meta-plan-housekeeping-260723.md` — "was deleted in #35" → "is deleted on this branch (PR #35, pending merge)".
+- [x] **Add "(current numbering)" to the F14 heading** *(fixed inline)* — `plans/PUSH-REVIEW-FINDINGS.md` — heading now matches the numbering note's claim.
+- [x] **Normalize the two-commit section heading** *(fixed inline)* — `plans/PUSH-REVIEW-FINDINGS.md` — `` (`37f79ed`, #31 + `ed93e24`, #33) ``.
+- [x] **Re-wrap freeze headers to ≤90 chars** *(fixed inline)* — all six headers re-wrapped at 88 (max line 90 incl. `> `); one hyphen-join artifact (`allowlist-before- interpolation`) caught and fixed.
+- [x] **Add a path forward-pointer to the docker plan's frozen header** *(fixed inline)* — `plans/completed/docker-raspberry-pi/docker-raspberry-pi.md` — one `> **Path note (2026-09-16):**` line after the stale path, following that file's own F-numbering-note precedent (frozen text left as written).
