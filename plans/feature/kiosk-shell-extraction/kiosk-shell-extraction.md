@@ -183,7 +183,7 @@ kiosk-agent (systemd user service, Python, binds 127.0.0.1:8127)
   Deploy prerequisite: the `rmilarachi` user joins the `input` group for
   `/dev/input/event*` read access.
 - **DD-8 — `F13` (rotate) harvest list.** Carried over from
-  `plans/feature/rotate-screen-button/rotate-screen-button.md` into the agent: connector
+  `plans/completed/rotate-screen-button/rotate-screen-button.md` into the agent: connector
   name discovered at apply time from `wlr-randr` (never hardcoded — it drifts between
   HDMI ports); a single `case` table for transform → token → `calibrationMatrix`
   (`deploy/pi/README.md` is the source); integer `0` → keyword `normal`; sed-anchored

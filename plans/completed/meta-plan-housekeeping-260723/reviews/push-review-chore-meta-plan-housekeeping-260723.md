@@ -1,3 +1,15 @@
+> **STATUS: Merged** `37f79ed` (#31) + `ed93e24` (#33, same branch — reconcile against `main`
+> at #32). Frozen — historical record, do not edit.
+> **Outcome:** Established META-PLAN's forward-looking history policy (merged Status-ledger
+> rows are *deleted*, git/`gh` is the sole merged-work authority) and fixed the pi-kiosk
+> repo name (`rehankalu`, not `rmilarachi`). Review 1's Integration Risk finding against
+> `plans/COMPACT-PLANS-PROMPT.md` is historical — that template was deleted in #35 and
+> replaced by `.claude/skills/compact-plans/SKILL.md`, whose Step 5 now does the PR-driven
+> prune; the matching To-Do (**Update branch-pruning cross-check…**) was marked superseded
+> accordingly on 2026-09-16. Review 2's two deliberately-deferred items harvested to
+> `plans/PUSH-REVIEW-FINDINGS.md`. This dir holds only the review (the chore had no separate
+> plan doc).
+
 # Push Review: chore/meta-plan-housekeeping-260723
 
 ## Review 1

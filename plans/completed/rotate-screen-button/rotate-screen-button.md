@@ -1,3 +1,16 @@
+> **STATUS: Superseded** by the kiosk-layer extraction (2026-07-15, design doc merged in
+> #30 `a12a13a`; `F13` migrated to `rehankalu/pi-kiosk`). Frozen — historical record, do not edit.
+> **Outcome:** Never implemented in chores4irl — no branch, no PR. The chores-backend
+> host-bridge (Express `/api/display/rotation`, `rotation.json`, bind mount, `inotifywait`
+> watcher, `SettingsPanel`) was dropped in favour of the pi-kiosk agent's localhost HTTP API.
+> **What survives:** the host-side decisions below were harvested verbatim into
+> `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md` DD-8 (connector discovery,
+> transform→`calibrationMatrix` table, sed-anchored kanshi/labwc edits, allowlist-before-
+> interpolation, user-service Wayland env, portrait-only `90 ↔ 270` default) — that doc and
+> pi-kiosk are the live contract; this file is the harvest source only. Archived to
+> `plans/completed/` per this file's own banner; `plans/META-PLAN.md`'s `F13` section keeps
+> the banner-level summary.
+
 # In-App Rotate-Screen Button (Pi Kiosk)
 
 > **SUPERSEDED IN PART (2026-07-15) — do not implement this plan as written.** `F13`
