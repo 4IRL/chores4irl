@@ -64,11 +64,15 @@ fi
 ```
 Check `git worktree add`'s own exit status — it fails when `../c4i-wt-<slug>` already exists and isn't empty (e.g. left behind by an aborted run) or when `feature/<slug>` is already checked out in another worktree. If it fails, stop and report that F-ID as unusable, with git's error — don't include it in Step 5's dispatch, and don't proceed to the `.claude/` symlinks, `npm install`, or the per-worktree checks below for it; never `rm -rf` the leftover or `--force` the add to get past it (git's own error may suggest `add -f`) — a leftover that `git worktree list` still shows is Teardown mode's job.
 
-Then provision the untracked `.claude/` config. A worktree materializes tracked files only, and `.gitignore`'s `.claude/*` keeps `.claude/skill-config.md` and `.claude/settings.json` untracked — so the fresh worktree's `.claude/` holds the tracked `.claude/skills/` and nothing else, and `/run-feature` → `/git-push` would `exit 1` on the missing `repo:` field (and `/plan-creator` silently lose `topic_inference`) only after the whole plan/implement/commit pipeline had already run. Symlink exactly those two files out of the main checkout (symlinks, not copies, so edits in the main checkout stay in sync — and they're write-through, so edit these two files only there, never from inside a worktree); `.claude/` already exists, so no `mkdir -p` is needed, and a failed `ln -s` surfaces at the `test -f` check below:
+Then provision the untracked `.claude/` config. A worktree materializes tracked files only, and `.gitignore`'s `.claude/*` keeps `.claude/skill-config.md` and `.claude/settings.json` untracked — so the fresh worktree's `.claude/` holds the tracked `.claude/skills/` and nothing else, and `/run-feature` → `/git-push` would `exit 1` on the missing `repo:` field (and `/plan-creator` silently lose `topic_inference`) only after the whole plan/implement/commit pipeline had already run. Symlink exactly those two files out of the main checkout (symlinks, not copies, so edits in the main checkout stay in sync — and they're write-through, so edit these two files only there, never from inside a worktree); `.claude/` already exists, so no `mkdir -p` is needed; a failed `git rev-parse` STOPs before either `ln -s` runs (an unchecked failure would resolve `main_root` to `.` and mis-root both links), and a failed `ln -s` surfaces at the `test -f` check below:
 ```bash
-main_root="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"   # the main checkout, from any cwd — --show-toplevel would return the worktree if run inside one
-ln -s "$main_root/.claude/skill-config.md" ../c4i-wt-<slug>/.claude/skill-config.md
-ln -s "$main_root/.claude/settings.json" ../c4i-wt-<slug>/.claude/settings.json   # the project's sandbox scope — its network allowlist is what lets the worktree's own /run-feature session's npm install and gh reach out (Step 5 Mode A)
+if ! common_dir=$(git rev-parse --path-format=absolute --git-common-dir 2>&1); then   # the main checkout's .git, from any cwd — --show-toplevel would return the worktree if run inside one
+  echo "STOP: could not resolve the main checkout root — $common_dir"   # halt here for this F-ID — neither ln -s below runs, so nothing is mis-rooted; don't include it in Step 5's dispatch, and continue to the next F-ID
+else
+  main_root="$(dirname "$common_dir")"
+  ln -s "$main_root/.claude/skill-config.md" ../c4i-wt-<slug>/.claude/skill-config.md
+  ln -s "$main_root/.claude/settings.json" ../c4i-wt-<slug>/.claude/settings.json   # the project's sandbox scope — its network allowlist is what lets the worktree's own /run-feature session's npm install and gh reach out (Step 5 Mode A)
+fi
 ```
 **Never** copy or symlink the whole `.claude/` directory — it holds `c4i-app.pem` and `generate-gh-c4i-token.sh`.
 
