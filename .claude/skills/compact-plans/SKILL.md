@@ -9,7 +9,7 @@ Reorganize `plans/` back to: live work in `plans/feature/` (and `plans/revision/
 
 ## Branch Guard
 
-On `main`/`master`: `gmas` (verify with `git status` that the tree is clean and matches `origin/main`; stop and report on any `gmas` conflict/failure), then `AskUserQuestion` — create `chore/compact-plans-<YYMMDD>` (recommended) or proceed on main. Do not proceed unconfirmed. On a feature branch already: `git status` — if dirty, stop and ask how to proceed (do not stash without asking) so unrelated uncommitted changes can't ride into Step 7's `/git-commit`; otherwise proceed.
+On `main`/`master`: `gmas` (if `gmas` is `command not found` — the Bash tool's non-interactive shell does not source `~/.bashrc` — ask the user to run `! gmas` in the prompt, where the `!` prefix runs it in the session's login shell, then re-verify with `git status`; verify with `git status` that the tree is clean and matches `origin/main`; stop and report on any `gmas` conflict/failure), then `AskUserQuestion` — create `chore/compact-plans-<YYMMDD>` (recommended) or proceed on main. Do not proceed unconfirmed. On a feature branch already: `git status` — if dirty, stop and ask how to proceed (do not stash without asking) so unrelated uncommitted changes can't ride into Step 7's `/git-commit`; otherwise proceed.
 
 ## 1. Tracking check
 

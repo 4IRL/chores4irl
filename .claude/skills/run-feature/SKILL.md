@@ -36,7 +36,7 @@ If `gh pr list --state all` returns more than one PR for this head branch (e.g. 
 
 ## Branch Guard
 
-Required only when the table above resolves to Phase A (not needed to resume Phase B or C): require the working tree clean and on `main`, synced (`gmas`; verify with `git status` that the tree is clean and matches `origin/main`; stop and report on any `gmas` conflict/failure). If dirty or elsewhere, stop and ask how to proceed — do not stash without asking.
+Required only when the table above resolves to Phase A (not needed to resume Phase B or C): require the working tree clean and on `main`, synced (`gmas`; if `gmas` is `command not found` — the Bash tool's non-interactive shell does not source `~/.bashrc` — ask the user to run `! gmas` in the prompt, where the `!` prefix runs it in the session's login shell, then re-verify with `git status`; verify with `git status` that the tree is clean and matches `origin/main`; stop and report on any `gmas` conflict/failure). If dirty or elsewhere, stop and ask how to proceed — do not stash without asking.
 
 ## Phase A — implement
 
