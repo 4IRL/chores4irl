@@ -99,7 +99,7 @@ Infra track:
 
 - **Chore-list track:** `F4` and `F5`. Disjoint surfaces. `F14` (ordered first per the
   user's 2026-07-08 preference) shipped in #34 with its `FormField` clear-affordance as the
-  planned **opt-in `clearable` prop** — so the Details field never gained a clear-✕, and `F4`
+  planned opt-in `clearable` prop — so the Details field never gained a clear-✕, and `F4`
   can delete that field without touching the clear-✕ wiring on Name/Room/search.
 - **Kiosk extraction track (replaces the device-control panel track):** the console and
   its hardware controls (`F3`, `F7`, `F8`, `F9`, `F10`, `F13`) migrated to
@@ -151,9 +151,9 @@ first. `F5` (S, purely visual) is independent and may run in parallel via `/work
 |---|---|---|---|---|
 | ★ | **F4** — Remove *Details* & *Long-term task* fields **[FOCUS]** | **M** | none blocking *(F3-L and F14 already merged)* | Chore-list |
 | 1 | **F5** — Translucent/blur *Add Task* deck | **S** | — | Chore-list |
-| 3 | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee *(added 2026-07-15)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi | Kiosk extraction |
-| 4 | **F11** — Undo *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* | **M–L** | **external:** pi-kiosk Phase 4 (`kiosk/v1` contract) | Kiosk extraction |
-| 5 | **F12** — Redo *(re-scoped 2026-07-15)* | **M** | F11 + same external gate | Kiosk extraction |
+| 2 | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee *(added 2026-07-15)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi | Kiosk extraction |
+| 3 | **F11** — Undo *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* | **M–L** | **external:** pi-kiosk Phase 4 (`kiosk/v1` contract) | Kiosk extraction |
+| 4 | **F12** — Redo *(re-scoped 2026-07-15)* | **M** | F11 + same external gate | Kiosk extraction |
 | — | **F6** — Local URL alias instead of IP:port | **M–L** *(research spike)* | deployment stack (Pi/Docker); independent | Infra (parallel) |
 | ~~—~~ | ~~**F3 · F7 · F8 · F9 · F10 · F13** — device-control console + its controls~~ | — | **superseded 2026-07-15** — migrated to pi-kiosk (shell console / agent controls / settings; `F13`'s plan harvested, see its banner) | *(migrated)* |
 
@@ -221,7 +221,9 @@ local branches are `main` plus whatever is live; every merged plan dir is frozen
 non-blocking review minors harvested into `plans/PUSH-REVIEW-FINDINGS.md`). Sweep history
 lives in git (PRs #22, #26, #29 and the sweep commits on later branches), not here. Run
 `/compact-plans` after each merge, then `/run-feature <F-ID>` on the merged feature so its
-Phase C fold-back (ledger row deleted, Baseline/ID-map/★FOCUS refreshed) lands.
+Phase C fold-back (ledger row deleted, Baseline/ID-map/★FOCUS refreshed) lands — never
+hand-delete a merged row: `/run-feature` keys Phase C off "PR merged + row present", so a
+hand-deleted row silently skips the fold-back.
 
 **Ledger update protocol (per session):** set `in-progress` on start; `in-review` + PR
 link after `git-push`; once the PR is *verified* merged (never self-marked), the row is
@@ -268,7 +270,7 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 - `components/common/ClearButton.tsx` (`F14`, #34) — the shared clear-✕ primitive: `{ label: string; onClear: () => void; anchor?: 'center' | 'top' }`; `lucide-react` `X` inside an absolutely-positioned `right-3` 44×44 px touch target (the app's kiosk-touch convention, matching `DateNavigationBanner`); `anchor='center'` (default) vertically centres on a label-less input (search), `anchor='top'` pins to the input's top edge so it clears a `FormField`'s label. `aria-label={label}` — the three current labels are Title Case (`"Clear Search"`/`"Clear Name"`/`"Clear Room"`); sentence-casing them is an open `[a11y]` minor in `plans/PUSH-REVIEW-FINDINGS.md`. Inputs that host it reserve `pr-14`.
 
 **Tests**
-- **Vitest** unit tests both sides, now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`), the reversed swipe mapping + threshold (`F10-L`), and the clear-✕ affordance (`F14`: `__tests__/components/ClearButton.test.tsx`, `FormField.test.tsx`, `ChoreSearchInput.test.tsx`, `ChoreForm.test.tsx`, plus the App-level `App.search.test.tsx` clear-restores-room-filter case). Frontend suite was 252 tests / 29 files at #34.
+- **Vitest** unit tests both sides, now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`), the reversed swipe mapping + threshold (`F10-L`), and the clear-✕ affordance (`F14`: `ClearButton`/`FormField`/`ChoreSearchInput`/`ChoreForm` component tests — hidden-when-empty, clears-on-click, refocus, Details never clearable — plus an App-level clear-restores-room-filter case).
 - **Playwright e2e**: `e2e/smoke.spec.ts`. `swipeBar(page, bar, 'left')` now triggers **edit**, `'right'` triggers **delete** (flipped by F10-L). Still depends on seed chore `Vacuum Bedroom Floor` and the `+ Add Task` flow.
 - **CI**: `.github/workflows/ci.yml` unchanged — backend + frontend tests on PRs to `main`; `main` branch-protected.
 
@@ -282,7 +284,7 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 7. **Persistent name-search filter**, view-only, ANDs with the room filter, survives SSE re-pulls, sits above the scroll region (F9-L).
 8. **Auto screen-blank overlay**: `useScreenBlank()` + `ScreenBlankOverlay`, driven by real wall-clock time (`realToday`, never `simulatedDate`), blanks 21:00–06:00 local, tap-to-wake swallows the waking tap, re-blanks after 5 minutes' inactivity inside the window (F1, shipped #27). *Holds until `F15` relocates this behavior to pi-kiosk and removes the in-app code.*
 9. **Double-tap touch lock**: `useTouchLock()` + `TouchLockOverlay`/`TouchLockIndicator` — local-only/per-tab, arms after 5 minutes' inactivity, unlocks on a second tap within 1500 ms and 60 px, 400 ms `CLOSING_SETTLE_MS` closing handshake, `z-[90]` always defers to the blank overlay's `z-[100]` (F2, shipped #28). *Holds until `F15` relocates this behavior to pi-kiosk and removes the in-app code.*
-10. **Clear-✕ affordance on every free-text input** (F14, shipped #34): search bar, form Name, form Room each render the shared `ClearButton` only when non-empty; clicking clears that field's local state only (never submits/closes) and refocuses the input. `FormField`'s affordance is **opt-in via `clearable`** (default off) — no other `FormField` usage (Details, Last Completed, Duration, Frequency) may gain it by default. `F4` deletes the Details `FormField` without touching this wiring.
+10. **Clear-✕ affordance on every free-text input**: search bar, form Name, form Room each render the shared `ClearButton` only when non-empty; clicking clears that field's local state only (never submits/closes) and refocuses the input. `FormField`'s affordance is opt-in via `clearable` (default off) — no other `FormField` usage (Details, Last Completed, Duration, Frequency) may gain it by default. `F4` deletes the Details `FormField` without touching this wiring (F14, shipped #34).
 
 **Assumptions to revisit at planning time**
 1. `better-sqlite3` bundles SQLite ≥ 3.35 (needed by **F4**'s `DROP COLUMN`). Verify at F4 planning, else fall back to a table-rebuild migration. *(Unchanged from prior reconcile — still unverified.)*
@@ -502,8 +504,8 @@ and `F14` clear-✕ wiring on the shared form (leave both untouched — `F14` sc
 - The shared `ChoreForm` renders a Details `FormField` (**without** `clearable`) and a
   `longTermTask` checkbox; its Room field is the `<datalist>` input (`F3-L`) with its own
   hand-wired `ClearButton` (`F14`), and Name is `FormField … clearable` (`F14`) — **do not
-  disturb any of these.** `ClearButton.tsx`, `ChoreSearchInput.tsx`, and `FormField.tsx`'s
-  `clearable` branch are out of `F4`'s touch-set entirely.
+  disturb any of these** (`ClearButton.tsx`, `ChoreSearchInput.tsx`, and `FormField.tsx`'s
+  `clearable` branch are outside `F4`'s touch-set).
 - `grep -rn "longTermTask\|long_term_task" backend frontend types` returns matches (verified true as of this reconcile).
 
 **Expected end state** (repo-checkable):
@@ -848,8 +850,8 @@ INFRA TRACK
   - From **F6**: a documented LAN name-alias to the app; IP:port still works.
   - **Already holding (legacy, unchanged):** delete-confirm, `PUT`/edit, swipe infra
     (now edit-left/delete-right + 25% reveal), shorter grid bar, SSE re-pull gate, Room
-    `<datalist>`, persistent name-search filter, **clear-✕ on search/Name/Room with
-    opt-in `clearable` on `FormField` (F14, #34 — Standing invariant 10)**.
+    `<datalist>`, persistent name-search filter, clear-✕ on search/Name/Room with
+    opt-in `clearable` on `FormField` (F14, #34 — Standing invariant 10).
 
 > If any session's cold survey finds the repo does **not** match its assumed start, **stop
 > and reconcile** before planning. The repository is the single source of truth across
