@@ -1,3 +1,17 @@
+> **STATUS: Merged** `3160dfc` (#28). Frozen — historical record, do not edit.
+> **Outcome:** Shipped as planned, local-only (no backend/SSE change, per the 2026-07-08
+> decision) — `useTouchLock` 5-min inactivity lock, `TouchLockOverlay` with the
+> close-enough double-tap re-arm and padlock animation, `TouchLockIndicator` state icon.
+> **One deviation from the plan body:** Step 4/DD-2 describes mutating
+> `wasLockedRef.current` in the render body; the shipped fix `d5fe530` computes
+> `justRelocked` in render but updates the ref in a separate `useEffect` keyed on
+> `[isLocked]` (StrictMode-safe). Four optional follow-ups harvested to
+> `plans/PUSH-REVIEW-FINDINGS.md`. The Progress-Tracking note near the end that names
+> `plans/REFRESH-META-PLAN-PROMPT.md` is historical — that template is deleted on this
+> branch (PR #35, pending merge) and replaced by the global `/new-feature` skill.
+> **Contract a later feature depends on:** `F15` (adopt kiosk-shell) removes this overlay
+> — see `plans/META-PLAN.md`'s `F2` contract note.
+
 # F2 — Double-tap accidental-touch lock
 
 ## Summary

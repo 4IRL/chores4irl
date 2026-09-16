@@ -15,7 +15,11 @@ backlog is visible and actionable instead of scattered.
 > four older sections were left as-is (not renamed) since they're stable historical labels
 > a reader might already have cited elsewhere. **When in doubt, match by PR number/SHA in the
 > section heading, not by the bare F-number.** See `plans/META-PLAN.md`'s "Legacy → current ID
-> map" for the authoritative translation.
+> map" for the authoritative translation. Sections added by the 2026-09-16 sweep (`F1`
+> auto-screen-blank, `F2` touch-lock, `F14` clear-input-buttons) use the **current**
+> numbering and say so in their headings — so this file's `F2 — edit-task` (#15) and
+> `F2 (current numbering) — touch-lock` (#28) are different features; the PR number is the
+> tiebreaker.
 
 ## How this file works
 - **This ledger is canonical for status.** The per-feature `reviews/push-review-*.md`
@@ -32,10 +36,10 @@ backlog is visible and actionable instead of scattered.
   format those skills expect.
 
 ## Quick batch view (by theme)
-- `[test]`     — ~13 items: assertion hardening, missing-branch coverage, brittle-selector fixes
-- `[style]`/`[dx]` — ~13 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, META-PLAN dual-table reminder, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup
-- `[a11y]`     — 2 items: `focus-visible:` reveal, focus-ring clipping (bar-redesign)
-- `[security]` — 3 items: server-side `urgency` enum validation (edit-task); SSE connection cap + host-specifics redaction (both opt)
+- `[test]`     — 13 items: assertion hardening, missing-branch coverage, brittle-selector fixes, `rearmTick` self-heal (auto-screen-blank), `!event.repeat` guard (touch-lock), post-submit clear-✕ reset (clear-input-buttons)
+- `[style]`/`[dx]` — 21 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup, native `<button>`/`z-50` (auto-screen-blank), repeat-key `preventDefault` + plan-step comment cleanup (touch-lock), `clearable` type-safety (clear-input-buttons), META-PLAN policy-restatement consolidation (deferred)
+- `[a11y]`     — 3 items: `focus-visible:` reveal, focus-ring clipping (bar-redesign); aria-label sentence-casing (clear-input-buttons)
+- `[security]` — 4 items: server-side `urgency` enum validation (edit-task); SSE connection cap + host-specifics redaction + predecessor-ledger username (all opt / only-if-public)
 - `[design]`   — 2 items: both had a blocking dependency that **has since merged** — now decidable (see ⚠ below)
 
 ---
@@ -107,6 +111,46 @@ Source: `plans/completed/plans-housekeeping/reviews/push-review-chore-plans-hous
 
 - [x] `[dx]` minor — ~~Make the META-PLAN dual-table update explicit~~ — **superseded by policy 2026-07-24**: merged features are no longer tabulated in META-PLAN at all (git is the authority; merged Status-ledger rows are deleted), so there is no Completed table to drift against the Status ledger.
 - [ ] `[security]` opt — Redact host specifics in historical deploy plans — `plans/completed/docker-raspberry-pi/docker-raspberry-pi.md` et al. — replace `192.168.1.214` / `rmilarachi` with placeholders **only if this repo ever goes public**. Non-blocking for a private repo.
+
+---
+
+## F1 (current numbering) — auto-screen-blank  (`a633a2a`, #27)
+Source: `plans/completed/auto-screen-blank/reviews/push-review-feature-auto-screen-blank.md`
+> Harvested by the 2026-09-16 `/compact-plans` sweep. Review 1's 7 required/low-risk items landed in `652a5e8` (verified on `main`: the three test files + the unconditional `rearmTick` bump and rationale comment in `useScreenBlank.ts`) and were checked off in the source; only the two cosmetic optionals Review 2 explicitly left as-is remain, plus Review 2's one prose-only note.
+
+- [ ] `[style]` opt — Native `<button>` instead of `div[role="button"]` — `frontend/src/components/common/ScreenBlankOverlay.tsx` — every other interactive control (`ConfirmDialog` actions, `AddChoreButton`) is a real `<button>`; a `<button className="fixed inset-0 ...">` covers the same target and drops the manual Enter/Space `onKeyDown` handling.
+- [ ] `[style]` opt — Use `z-50` instead of the one-off `z-[100]` — `frontend/src/components/common/ScreenBlankOverlay.tsx` — `ConfirmDialog`/`ChoreFormModal` both use `z-50`, already the highest value elsewhere; keep `z-[100]` only if a concrete stacking conflict requires it.
+- [ ] `[test]` opt — Self-heal test for the unconditional `rearmTick` bump — `frontend/src/__tests__/hooks/useScreenBlank.test.ts` — hide the tab across an *even* number of 21:00/06:00 boundaries (so `inWindow` lands back on its original value) and assert the boundary timer is still rescheduled on `visibilitychange`. Review 2's only leftover note; mirrors the original "optional" framing.
+
+---
+
+## F2 (current numbering) — touch-lock  (`3160dfc`, #28)
+Source: `plans/completed/touch-lock/reviews/push-review-feature-touch-lock.md` (Review 2 "Optional Follow-ups")
+> Harvested by the 2026-09-16 `/compact-plans` sweep. Review 1's required items all landed in `d5fe530`; the four below are Review 2's non-blocking follow-ups.
+
+- [ ] `[style]` opt — Suppress default browser behavior on repeated Enter/Space too — `frontend/src/components/common/TouchLockOverlay.tsx` (`handleKeyDown`) — move `event.preventDefault()` outside the `!event.repeat` check (or add an unconditional second call) so held-key default behavior stays suppressed; cosmetic — the overlay is a full-viewport fixed layer with nothing scrollable behind it.
+- [ ] `[test]` minor — Regression test for the `!event.repeat` guard — `frontend/src/__tests__/components/TouchLockOverlay.test.tsx` — fire two `keyDown(overlay, { key: 'Enter', repeat: true })` events and assert `onArm` is never called, plus a companion case showing a genuine non-repeat second Enter still qualifies.
+- [x] `[dx]` opt — ~~Update `touch-lock.md`'s Step 4/DD-2 text to match the shipped fix~~ — **resolved by the freeze header** the 2026-09-16 sweep prepended to `plans/completed/touch-lock/touch-lock.md`, whose Outcome line records the `d5fe530` deviation (`wasLockedRef.current` updated in a separate `useEffect` keyed on `[isLocked]`, not in the render body). The plan body is frozen and deliberately left as written.
+- [ ] `[style]` minor — Remove internal plan-step references from source comments — `frontend/src/components/common/TouchLockOverlay.tsx` (three comments mentioning "App.tsx (Step 4)") — reword to describe the relationship directly (e.g. "Imported by App.tsx so its own isClosing unmount-delay timer stays numerically in sync…"); no other file uses the plan-step comment convention.
+
+---
+
+## F14 (current numbering) — clear-input-buttons  (`3533b67`, #34)
+Source: `plans/completed/clear-input-buttons/reviews/push-review-feature-clear-input-buttons.md`
+> Harvested by the 2026-09-16 `/compact-plans` sweep. Review 1's one major finding was fixed inline before push; these three are its non-blocking minors.
+
+- [ ] `[a11y]` minor — Normalize aria-label casing — `frontend/src/components/common/ClearButton.tsx` and its 3 call sites — change `"Clear Search"`/`"Clear Name"`/`"Clear Room"` to sentence case (`"Clear search"`/`"Clear name"`/`"Clear room"`) to match every other aria-label in the repo, and update the matching test query strings.
+- [ ] `[test]` minor — Post-submit-reset visibility test — `frontend/src/__tests__/components/ChoreForm.test.tsx` — after a successful add-mode submit, assert `queryByRole('button', { name: 'Clear Name' })` and `'Clear Room'` are both `null`, confirming the clear-✕ buttons disappear with the rest of the form reset.
+- [ ] `[dx]` opt — Tighten `clearable`'s type-safety — `frontend/src/components/form/FormField.tsx` — either normalize the emptiness check to `String(value) !== ''`, or (if `clearable` is ever expected on number/date fields) restrict it via a discriminated union so `clearable` + non-text `type` is unrepresentable. Not needed while only the always-string Name field uses `clearable`.
+
+---
+
+## (chore) meta-plan-housekeeping-260723  (`37f79ed`, #31 + `ed93e24`, #33)
+Source: `plans/completed/meta-plan-housekeeping-260723/reviews/push-review-chore-meta-plan-housekeeping-260723.md`
+> Harvested by the 2026-09-16 `/compact-plans` sweep. Review 1's four required items landed on-branch (`750d092`/`e96d0b1`) and its stale To-Do was marked superseded by `/compact-plans` Step 5 on 2026-09-16; the two below are Review 2's deliberately-deferred items, carried here so the deferral is visible rather than buried.
+
+- [ ] `[dx]` opt *(deferred — deliberate)* — Policy-statement redundancy — `plans/META-PLAN.md` — the three restatements of the history policy are section-local context for cold-start agents; consolidate only if they drift.
+- [ ] `[security]` opt *(won't-fix)* — `rmilarachi` in the 260708 predecessor ledger — `plans/ledger/260708_feature_ledger.md` — frozen historical file carrying a PREDECESSOR banner; left untouched by design (same reasoning as the plans-housekeeping host-specifics item above — only revisit if the repo ever goes public).
 
 ---
 

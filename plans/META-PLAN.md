@@ -67,20 +67,15 @@ postMessage contract (deferred until pi-kiosk Phase 4); **`F15`** (adopt kiosk-s
 remove the `F1`/`F2` overlays, commit the embeddability guarantee) is gated on pi-kiosk
 Phase 2 parity.
 
-**Branch hygiene — 3 local-only stale branches found (2026-09-10 reconcile), not yet
-pruned.** `chore/plan-reconciliation-260708`, `feature/touch-lock`, and
-`revision/progress-bar-decay` are fully superseded — each verified via `git diff main
-<branch>`: every file the branch touches is either identical on `main` or further evolved
-there, with no unmerged content left in the branch. They correspond to already-merged
-PRs #29, #28, and #32 respectively (squash-merged, so `git merge-base --is-ancestor` won't
-show them as ancestors — content diff is the correct check, not ancestry). **The remote
-side of all three is already gone** — GitHub's repo currently lists only `main`
-(`gh api repos/.../branches`), confirming auto-delete-on-merge already ran; only the
-**local** refs need pruning. **Recommend deleting the 3 local branches** at the next
-`plans/COMPACT-PLANS-PROMPT.md` sweep; not done automatically by this reconcile
-(planning-doc-only pass, per its own instructions). Once pruned, a cold survey finding
-only `main` (plus any live feature branch) is the expected state — do not resurrect pruned
-branches, and do not expect plan dirs for features that shipped without one (F9-L, F3-L).
+**Branch hygiene — clean as of the 2026-09-16 `/compact-plans` sweep.** The three stale
+local branches the 2026-09-10 reconcile flagged (`chore/plan-reconciliation-260708`,
+`feature/touch-lock`, `revision/progress-bar-decay`) are gone, and the sweep pruned
+`chore/meta-plan-housekeeping-260723` (#31/#33) and `feature/clear-input-buttons` (#34)
+after verifying each against its merged PR (this repo squash-merges, so `gh pr list
+--state merged` is the check, not `git branch --merged`; GitHub auto-deletes the remote
+side on merge). A cold survey finding only `main` (plus any live feature branch) is the
+expected state — do not resurrect pruned branches, and do not expect plan dirs for
+features that shipped without one (F9-L, F3-L).
 
 ### Remaining work — three tracks (current numbering, incl. `F14`/`F15`)
 
@@ -207,7 +202,7 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| **F14 — clear-✕ affordance on free-text inputs** *(added 2026-07-08)* ★FOCUS | in-review | `feature/clear-input-buttons` | [#34](https://github.com/4IRL/chores4irl/pull/34) |
+| **F14 — clear-✕ affordance on free-text inputs** *(added 2026-07-08)* ★FOCUS | in-review *(PR merged 2026-09-10 — row deliberately kept by the 2026-09-16 `/compact-plans` sweep so `/run-feature F14` resumes at Phase C, which deletes it after the full fold-back)* | `feature/clear-input-buttons` *(pruned locally 2026-09-16)* | [#34](https://github.com/4IRL/chores4irl/pull/34) |
 | F4 — remove Details/Long-term | pending | `feature/remove-details-longterm` | — |
 | F5 — translucent Add-Task deck | pending | `feature/translucent-add-deck` | — |
 | F15 — adopt kiosk-shell *(added 2026-07-15)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — |
@@ -216,12 +211,13 @@ pi-kiosk repo's own planning, not here.
 | F6 — local URL alias | pending | `feature/local-url-alias` | — |
 | F3 · F7 · F8 · F9 · F10 · F13 — device-control console + controls | **superseded** *(2026-07-15 — migrated to pi-kiosk; branches never created)* | — | — |
 
-**Branch/dir cleanup:** 3 local-only stale branches outstanding as of the 2026-09-10
-reconcile — `chore/plan-reconciliation-260708`, `feature/touch-lock`,
-`revision/progress-bar-decay` (remotes already auto-deleted on merge); see "Branch
-hygiene" under *Where the rollout stands* above for the verification and PR mapping.
-Earlier sweeps (through 2026-07-08) are recorded in git history (PRs #22, #26, #29). Run
-`plans/COMPACT-PLANS-PROMPT.md` to prune the three found here.
+**Branch/dir cleanup:** none outstanding as of the 2026-09-16 `/compact-plans` sweep —
+local branches are `main` plus whatever is live; every merged plan dir is frozen under
+`plans/completed/`. The one row above whose PR has already merged (`F14`) is kept on
+purpose: `/run-feature`'s resume table treats "PR merged + row present" as the Phase C
+trigger, so deleting it here would skip the Baseline / ID-map / ★FOCUS fold-back — run
+`/run-feature F14` next. Sweep history lives in git (PRs #22, #26, #29 and the sweep
+commits on later branches), not here. Run `/compact-plans` after each merge.
 
 **Ledger update protocol (per session):** set `in-progress` on start; `in-review` + PR
 link after `git-push`; once the PR is *verified* merged (never self-marked), the row is
@@ -339,44 +335,32 @@ feature's section here in the same PR.
 ## How to run a session (invocation)
 
 Each feature is **one fresh Claude Code session**. Start on an up-to-date checkout of `main`
-(`git checkout main && git pull`) and paste a kickoff prompt. The session reads this file,
-runs **exactly one** feature's contract, and ends at the pushed PR. It never chains into the
-next feature — that is a new session, started by you after the prior PR is merged.
+(`git checkout main && git pull`) and invoke `/run-feature <F-ID>`. The session reads this
+file, runs **exactly one** feature's Per-Feature Session Contract, and ends at the pushed PR —
+it never chains into the next feature. Re-invoking `/run-feature <F-ID>` later (once you've
+verified the branch and merged the PR) resumes at the META-PLAN-update step instead of
+restarting the feature — the skill detects this from the PR's state via `gh`.
 
 **Running several features at once.** Independent features (disjoint file surfaces) can be
-implemented concurrently in **git worktrees**, one session per worktree. Use
-`plans/WORKTREE-PARALLELIZE-PROMPT.md` to verify the chosen F-IDs cannot merge-conflict and
-to provision the worktrees; implementation still runs each feature's own Per-Feature Session
-Contract, and the merge gate stays serial. **Use the current (260707) F-IDs when filling in
-`FEATURES`** — that template's own worked example still cites old F-numbers (see its stale-
-numbering note), but the mechanism itself is numbering-scheme-agnostic, it just needs valid
-slugs.
+implemented concurrently in **git worktrees**, one session per worktree. Invoke
+`/worktree <F-ID> [<F-ID>...]` to verify the chosen F-IDs cannot merge-conflict — computed live
+against the current codebase and the current numbering, never a cached table — and to
+provision the worktrees; implementation still runs each feature's own Per-Feature Session
+Contract via `/run-feature` inside each worktree, and the merge gate stays serial.
 
 **Why a human gate exists between sessions.** `main` is branch-protected (PR + review + CI
 required), so a session can only reach "PR pushed." **You merge the PR**; that merge is the
-durable signal that lets the next session's cold survey pass.
+durable signal that lets `/run-feature` fold the merge back into this file, and lets the next
+session's cold survey pass.
 
-**Kickoff prompt — explicit (recommended):**
+**Invocation:**
 ```
-Read META-PLAN.md. Run feature <F-id> (current numbering, e.g. F14) and only that
-feature. Follow its Per-Feature Session Contract: cold-survey and verify the repo matches
-the Baseline / that feature's "Assumed starting state" (STOP and report if it diverges), set
-its Status ledger row to in-progress, then create-plan → review-plan → run-plan (once) →
-git-commit → verify "Expected end state" → update the ledger row to in-review with the PR
-link → git-push. End the session after the PR is pushed. Do not start any other feature.
+/run-feature <F-ID>
 ```
-
-**Kickoff prompt — focus feature (recommended next session; `F2` merged #28, so `F14` is up):**
-```
-Read META-PLAN.md. Run feature F14 (clear-✕ affordance on free-text inputs) and only F14. It
-has no prerequisites — implement it directly. Per its Per-Feature Session Contract: cold-survey
-against the Baseline (confirm no clear-✕ button exists yet on the search bar, Name, or Room
-fields), then create-plan → review-plan → run-plan (once) → git-commit → verify "Expected end
-state" → git-push. End after the PR.
-```
-
-**Skill mapping:** create-plan → `/plan-creator`; review-plan → `/plan-reviewer`; run-plan →
-`/run-plan` (once, on this feature's plan only); then `/git-commit` and `/git-push`.
+`/run-feature` runs cold-survey → `/plan-creator` → `/plan-reviewer` → `/run-plan` (once) →
+`/git-commit` → verify "Expected end state" → `/git-push`, then — once you confirm the PR is
+merged — folds the merge back into this file's Status ledger, ID map, Baseline, and Standing
+invariants on its own small follow-up PR. It never starts a second feature.
 
 **Between sessions — monitoring:** `gh pr list` / `gh pr view <n>`; `gh pr checks <n>`;
 `reviews/push-review-<branch>.md` (written by `/git-push` if its review *rejects*);
@@ -654,7 +638,7 @@ single-row banner + a control-registration shape for `F7`–`F13` to plug into. 
 this feature.
 
 **Dependencies.** None (gates `F7`–`F13`). Coordinate with `F13`, which has a detailed
-existing plan (`plans/feature/rotate-screen-button/rotate-screen-button.md`) assuming this
+existing plan (`plans/completed/rotate-screen-button/rotate-screen-button.md`) assuming this
 panel houses the rotate control — `F3` and `F13` may be planned together, but `F3` must land
 first or in the same PR.
 
@@ -691,7 +675,7 @@ planning. (c) Overlay must not permanently obstruct the chore list (single-row, 
 > shell console's rotate button calls the agent's localhost HTTP API directly, replacing
 > this section's chores-backend host-bridge (Express endpoint → `rotation.json` →
 > bind mount → `inotifywait` watcher — all dropped). The existing detailed plan at
-> `plans/feature/rotate-screen-button/rotate-screen-button.md` carries its own
+> `plans/completed/rotate-screen-button/rotate-screen-button.md` carries its own
 > supersession banner listing exactly which of its host-side decisions are harvested
 > (connector discovery, transform↔matrix table, sed-anchored persistence, injection
 > guard, portrait-only toggle default, user-service Wayland env). The section is retained
@@ -703,7 +687,7 @@ touch orientation between the two portrait orientations (`90 ↔ 270`) without h
 **Rank rationale.** Unchanged — the one functional control the panel ships with; most
 involved remaining feature, with an existing detailed plan.
 
-**Effort: L.** Per `plans/feature/rotate-screen-button/rotate-screen-button.md`: React button
+**Effort: L.** Per `plans/completed/rotate-screen-button/rotate-screen-button.md`: React button
 → new Express endpoint → backend writes `rotation.json` into an rmilarachi-owned bind-mounted
 host dir → a host-side systemd user service watches the file and applies rotation live
 (`wlr-randr`) + persistently (kanshi + labwc `calibrationMatrix`). Builds on the
@@ -714,14 +698,14 @@ LAN/Pi verification must run unsandboxed.
 
 **Assumed starting state** = **Baseline** + `F3` panel present + the Pi deployment (#19's
 kanshi/labwc config under version control). Detailed assumed-start/decisions live in
-`plans/feature/rotate-screen-button/rotate-screen-button.md` — read that plan; do not
+`plans/completed/rotate-screen-button/rotate-screen-button.md` — read that plan; do not
 re-derive it. **That plan (unchanged by this reconcile) contains no F-number self-reference
 at all — it was never called "F17" internally, so there's nothing stale to reinterpret inside
 it. It's simply this section, `F13`, under the current scheme.**
 
 **Expected end state** (repo-checkable **+ deploy-doc-anchored**):
 - A rotate control in the `F3` panel toggles portrait `90 ↔ 270`; landscape unreachable from the button.
-- New Express endpoint + `rotation.json` write path (app code, testable); host-side watcher/bind-mount/systemd unit captured as deploy docs under `plans/feature/rotate-screen-button/`.
+- New Express endpoint + `rotation.json` write path (app code, testable); host-side watcher/bind-mount/systemd unit captured as deploy docs under `plans/completed/rotate-screen-button/`.
 - Display and touch stay in sync after rotation.
 
 **Test-suite deltas.** Backend test for the endpoint + `rotation.json` write. Host-side
@@ -732,7 +716,7 @@ for the non-root user service; portrait-only toggle; host-bridge file-watch mech
 **Do not re-plan from scratch** — refine the existing plan.
 
 **Session loop.** Run the Per-Feature Session Contract on branch `feature/rotate-screen-button`
-(refine the existing plan; the `plans/feature/rotate-screen-button/` dir already exists).
+(refine the existing plan; the `plans/completed/rotate-screen-button/` dir already exists).
 
 ---
 

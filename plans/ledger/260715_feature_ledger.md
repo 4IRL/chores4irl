@@ -24,7 +24,7 @@ former section's items:
 - **Auto screen blank/wake settings (F9)** → pi-kiosk settings UI editing agent-owned
   config (`PATCH /api/config`), which also carries F1's formerly hardcoded 9pm/6am times.
 - **Rotate (F13)** → pi-kiosk agent; the host-side decisions of
-  `plans/feature/rotate-screen-button/rotate-screen-button.md` are harvested (see that
+  `plans/completed/rotate-screen-button/rotate-screen-button.md` are harvested (see that
   file's supersession banner and the design doc's DD-8).
 - **Undo / Redo** → remain chores4irl features: re-listed above as F11/F12 (re-scoped onto
   the `kiosk/v1` contract).

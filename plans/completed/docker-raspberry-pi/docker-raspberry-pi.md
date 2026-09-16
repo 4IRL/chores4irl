@@ -6,6 +6,9 @@
 > deploy docs (LAN alias, rotate, brightness/screen-blank/restart) may be anchored here
 > **or** in the feature's own plan dir — the rotate plan already lives in
 > `plans/feature/rotate-screen-button/`.
+> **Path note (2026-09-16):** that dir is now `plans/completed/rotate-screen-button/` — the
+> rotate plan was superseded by the pi-kiosk extraction and archived by the 2026-09-16
+> `/compact-plans` sweep. Forward-pointer only; the paragraph above is left as written.
 > **⚠ F-numbering note (2026-07-07):** this paragraph originally cited legacy F-numbers
 > (`F8`/`F17`/`F12`–`F14`) which are now stale — see `plans/META-PLAN.md`'s "Legacy → current
 > ID map" for the live IDs (rotate is now `F13`, LAN alias is `F6`, the device-control
