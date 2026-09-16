@@ -145,7 +145,7 @@ first. `F5` (S, purely visual) is independent and may run in parallel via `/work
 > where it steers future work: the Baseline, the Standing invariants, the Legacy →
 > current ID map, and the kept contracts under Completed-Feature Contracts below.
 
-### Remaining (current numbering incl. `F15`; reassessed against current `main` after the 2026-09-16 `F14` fold-back)
+### Remaining (current numbering, incl. `F15`; reassessed against current `main` after the 2026-09-16 `F14` fold-back)
 
 | Order | Feature | Effort | Depends on | Track |
 |---|---|---|---|---|
@@ -270,7 +270,7 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 - `components/common/ClearButton.tsx` (`F14`, #34) — the shared clear-✕ primitive: `{ label: string; onClear: () => void; anchor?: 'center' | 'top' }`; `lucide-react` `X` inside an absolutely-positioned `right-3` 44×44 px touch target (the app's kiosk-touch convention, matching `DateNavigationBanner`); `anchor='center'` (default) vertically centres on a label-less input (search), `anchor='top'` pins to the input's top edge so it clears a `FormField`'s label. `aria-label={label}` — the three current labels are Title Case (`"Clear Search"`/`"Clear Name"`/`"Clear Room"`); sentence-casing them is an open `[a11y]` minor in `plans/PUSH-REVIEW-FINDINGS.md`. Inputs that host it reserve `pr-14`.
 
 **Tests**
-- **Vitest** unit tests both sides, now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`), the reversed swipe mapping + threshold (`F10-L`), and the clear-✕ affordance (`F14`: `ClearButton`/`FormField`/`ChoreSearchInput`/`ChoreForm` component tests — hidden-when-empty, clears-on-click, refocus, Details never clearable — plus an App-level clear-restores-room-filter case).
+- **Vitest** unit tests both sides, now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`), the reversed swipe mapping + threshold (`F10-L`), and the clear-✕ affordance (component-level show/clear/refocus + App-level clear-restores-room-filter, from `F14`).
 - **Playwright e2e**: `e2e/smoke.spec.ts`. `swipeBar(page, bar, 'left')` now triggers **edit**, `'right'` triggers **delete** (flipped by F10-L). Still depends on seed chore `Vacuum Bedroom Floor` and the `+ Add Task` flow.
 - **CI**: `.github/workflows/ci.yml` unchanged — backend + frontend tests on PRs to `main`; `main` branch-protected.
 
@@ -284,7 +284,7 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 7. **Persistent name-search filter**, view-only, ANDs with the room filter, survives SSE re-pulls, sits above the scroll region (F9-L).
 8. **Auto screen-blank overlay**: `useScreenBlank()` + `ScreenBlankOverlay`, driven by real wall-clock time (`realToday`, never `simulatedDate`), blanks 21:00–06:00 local, tap-to-wake swallows the waking tap, re-blanks after 5 minutes' inactivity inside the window (F1, shipped #27). *Holds until `F15` relocates this behavior to pi-kiosk and removes the in-app code.*
 9. **Double-tap touch lock**: `useTouchLock()` + `TouchLockOverlay`/`TouchLockIndicator` — local-only/per-tab, arms after 5 minutes' inactivity, unlocks on a second tap within 1500 ms and 60 px, 400 ms `CLOSING_SETTLE_MS` closing handshake, `z-[90]` always defers to the blank overlay's `z-[100]` (F2, shipped #28). *Holds until `F15` relocates this behavior to pi-kiosk and removes the in-app code.*
-10. **Clear-✕ affordance on every free-text input**: search bar, form Name, form Room each render the shared `ClearButton` only when non-empty; clicking clears that field's local state only (never submits/closes) and refocuses the input. `FormField`'s affordance is opt-in via `clearable` (default off) — no other `FormField` usage (Details, Last Completed, Duration, Frequency) may gain it by default. `F4` deletes the Details `FormField` without touching this wiring (F14, shipped #34).
+10. **Clear-✕ affordance on every free-text input**: search bar, form Name, form Room each render the shared `ClearButton` only when non-empty; clicking clears that field's local state only (never submits/closes) and refocuses the input; `FormField`'s affordance is opt-in via `clearable` (default off), so no other `FormField` usage (Details, Last Completed, Duration, Frequency) gains it (F14, shipped #34). *`F4` deletes the Details `FormField` without touching this wiring.*
 
 **Assumptions to revisit at planning time**
 1. `better-sqlite3` bundles SQLite ≥ 3.35 (needed by **F4**'s `DROP COLUMN`). Verify at F4 planning, else fall back to a table-rebuild migration. *(Unchanged from prior reconcile — still unverified.)*
@@ -791,7 +791,7 @@ unsandboxed; keep additive; deploy-doc capture is mandatory.
 
 ---
 
-## Chain integrity (remaining work, current numbering incl. `F15`)
+## Chain integrity (remaining work, current numbering, incl. `F15`)
 
 ```
 CHORE-LIST TRACK (disjoint surfaces; soft order — F4 before F5, per 2026-07-08 pref; F14 shipped #34)
