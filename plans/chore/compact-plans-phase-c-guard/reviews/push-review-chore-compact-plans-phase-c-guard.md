@@ -146,3 +146,45 @@ Well-handled: branch-independent diff check, restated superseded carve-out, name
 - [x] **Add bold case labels and a pass line** — Step 7 sub-bullets — `**Uncommitted diff** →`, `**Pruned-branch rows** →`, `**Whole-ledger scan** →` (matching `worktree`'s nested-bullet form); the scan "passes when every hit below lands in a named report bucket".
 - [x] **State the cross-skill invariant the branch check relies on** — same sub-bullet — one sentence: sound because `/run-feature` Phase A step 10 only records a PR found via `gh pr list --head feature/<slug>`; revisit if that changes.
 - [x] **Trim the "verified against the live ledger…" aside** — same sub-bullet — keep only the mechanism ("excluded by construction").
+
+## Review 4
+Generated: 2026-09-16 22:22
+Comparison: origin/main...HEAD (4 commits — through Review 3 fixes `604f38f`)
+Verdict: **BLOCKED**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+Rewording introduced no new interpolation or destructive op; the `N` gate still precedes `gh pr view "$N"`.
+
+#### 2. Correctness — PASS
+The documented `sed` verified against the three real cell shapes; the four `state` outcomes confirmed exhaustive via GraphQL enum introspection; step-10 invariant verified. Two minors: OPEN's "no entry" not restated in the report line; `N` extraction described in prose rather than a command.
+
+#### 3. Simplicity & Conciseness — PASS
+Every addition maps 1:1 to a Review 3 item; nothing restated.
+
+#### 4. Test Coverage — PASS
+The pass-3 major re-verified fixed with the byte-exact `sed`. Two minors: no inline input→output example beside the `sed`; the scan currently matches zero live rows (all PR cells are `—`), so its first real hit should be watched end-to-end.
+
+#### 5. Completeness & Cleanup — PASS
+All seven Review 3 To-Do items verified landed exactly as described; no stale live text.
+
+#### 6. Consistency & Style — PASS
+All five pass-3 minors verified. One minor: `'<N>'` single-quoted in the hardening `STOP:` while Step 5's `<branch>` twin is unquoted.
+
+#### 7. Integration Risk — PASS
+CLOSED wording matches `run-feature`'s resume-table row; no skill leaves a CLOSED-PR row as a normal state. One minor: the `—` Branch-cell carve-out is unreachable under the current row-writing contract — say so.
+
+#### 8. Error Handling & Silent Failures — FAIL
+The `sed` normalization and CLOSED bucket verified. One critical, one minor:
+- *(critical)* `SKILL.md:124` — `[^|·]*` in the enumeration grep excludes a row whose first cell contains `·` *anywhere*, not just the multi-ID join — a title like "F30 — feature with · in title" would be silently skipped by the scan.
+- *(minor)* `SKILL.md:124` — the grep runs over the whole file; it is safe only because `[#N](` syntax is unique to the Status ledger's PR column today — document that.
+
+### To-Do: Required Changes
+
+- [x] **Anchor the multi-ID exclusion to the actual join shape** — `.claude/skills/compact-plans/SKILL.md` Step 7 scan sub-bullet — replace `[^|·]*` with a two-stage pipeline: `grep -nE '^\| \*{0,2}F[0-9]+ .*\[#[0-9]+\]\(' plans/META-PLAN.md | grep -vE '^[0-9]+:\| \*{0,2}F[0-9]+ · '` (verified against bold ★FOCUS, italic-first-cell, `·`-in-title, multi-ID group, and `—` rows).
+- [x] **Document the whole-file scope assumption** — same sub-bullet — one sentence: safe only because `[#N](` link syntax appears solely in the Status ledger's PR column today.
+- [x] **Give `N` extraction as a command and add inline `sed` examples** — same sub-bullet — `N=$(grep -oE '\[#[0-9]+\]\(' <<<"$row" | grep -oE '[0-9]+')`; three input→output pairs beside the `sed`.
+- [x] **Unquote `<N>` in the hardening `STOP:`** — same sub-bullet — match Step 5's `<branch>` form.
+- [x] **Mark the `—` carve-out as defensive and OPEN as deliberately omitted** — same sub-bullet — two short parentheticals.
+- [x] **Watch the scan's first live hit** *(note, no edit)* — the ledger currently has no linked rows, so the full grep → extraction → `sed` → `gh pr view` → bucket pipeline has been verified only on synthetic rows; confirm it once on the first real sweep after a feature merges.
