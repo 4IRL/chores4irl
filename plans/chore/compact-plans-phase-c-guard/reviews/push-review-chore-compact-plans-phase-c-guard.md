@@ -98,3 +98,51 @@ Pass-1 critical closed; `STOP:` usage consistent with Step 5. Four minors, all o
 - [x] **Give the scan a crisp enumeration command and an F-ID ↔ PR cross-check** — same sub-bullet — `grep -nE '^\| \*{0,2}F[0-9]+ [^|·]*\|.*\[#[0-9]+\]\(' plans/META-PLAN.md` (the `[^|·]*` excludes the multi-ID superseded group by construction — verified against the live ledger and synthetic rows; the first draft without it matched `F3 · F7`); request `headRefName` from `gh pr view` and treat MERGED-with-different-branch as a mis-linked row reported under "left in place", not "Phase C pending"; `STOP:` messages name `<N>` and `<F-ID>`.
 - [x] **Fix the `/new-feature` attribution** — `.claude/skills/compact-plans/SKILL.md` Step 5 (line 105) + Important Notes — "a full `/new-feature` run, whose Steps 3/7/8 perform the same fold-back inline (its ★FOCUS re-evaluation is scoped to the newly-added feature, not to what the just-shipped one unblocks)"; Important Notes says "a full `/new-feature` run".
 - [x] **Quote "left in place" in the report line to match "Phase C pending"** — `.claude/skills/compact-plans/SKILL.md` Step 7 report line — and extend its parenthetical to name the mis-linked-row case.
+
+## Review 3
+Generated: 2026-09-16 22:15
+Comparison: origin/main...HEAD (3 commits — `81a2281` + Review 1 fixes `7eb874c` + Review 2 fixes `82ff830`)
+Verdict: **BLOCKED**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+`N` validation with a named `STOP:` verified; `headRefName` cross-check correctly routes a mis-linked row; only read-only ops added; no secrets.
+
+#### 2. Correctness — PASS
+Enumeration grep tested against the live ledger and synthetic rows (bold ★FOCUS, italic first cell, `—`, multi-ID group) — matches exactly the single-ID linked rows; `gh pr view` fields verified live against #34/#36; `/new-feature` Steps 3/7/8 attribution verified. Two minors:
+- *(minor)* `SKILL.md:124` — `mergedAt` requested but never used.
+- *(minor)* `SKILL.md:124` — no bucket for a `CLOSED` (unmerged) PR.
+
+#### 3. Simplicity & Conciseness — PASS
+Split landed; scan sub-bullet's length is justified by its content and in-family with Step 5's density. One minor: the "verified against the live ledger…" aside documents the author's testing rather than guiding the executor.
+
+#### 4. Test Coverage — FAIL
+Pass-2 minors genuinely fixed. One major:
+- *(major)* `SKILL.md:124` — the mis-linked-row test compares bare `headRefName` to the raw Branch cell, which the live ledger writes as `` `feature/<slug>` `` (sometimes with a trailing `*(…)*` note); a literal comparison never matches, silently reclassifying every genuine Phase C pending row as "left in place".
+
+#### 5. Completeness & Cleanup — PASS
+All five Review 2 To-Do items verified landed exactly as described (including the accuracy of the `/new-feature` claim against that skill); no stale live text; Review 2 section internally consistent.
+
+#### 6. Consistency & Style — PASS
+Three minors: sub-bullets lack the bold `**Label** →` lead-in `worktree` uses for nested case-bullets; second `STOP:` drops the `#` and uses `:` instead of the em-dash shape used elsewhere; sub-bullet 3 states no crisp pass/fail line.
+
+#### 7. Integration Risk — PASS
+Traced Phase A step 10, `/worktree` provisioning, and the "PR closed, not merged" resume path — none can produce a `headRefName` ≠ Branch-cell row, so no spurious mis-linked report. Two minors: backticks must be stripped before comparing; the check's soundness rests on an unstated cross-skill invariant (step 10's `--head feature/<slug>` filter).
+
+#### 8. Error Handling & Silent Failures — FAIL
+Well-handled: branch-independent diff check, restated superseded carve-out, named `STOP:` for `N`, MERGED-wrong-branch distinguished, forward-only scope documented. One critical, one major, two minors:
+- *(critical)* `SKILL.md:124` — same backtick issue as Test Coverage: read literally, every correctly-linked merged row is misclassified.
+- *(major)* `SKILL.md:124` — `CLOSED` has no bucket and would fall through silently, hiding a dead PR link indefinitely.
+- *(minor)* a `—` Branch cell would always compare "different".
+- *(minor)* the JSON-parse-failure `STOP:` wording is delegated to Step 5 without a template.
+
+### To-Do: Required Changes
+
+- [x] **Normalize the Branch cell before comparing to `headRefName`** — `.claude/skills/compact-plans/SKILL.md` Step 7 scan sub-bullet — strip backticks and any trailing `*(…)*` annotation (`sed -E 's/`//g; s/ *\*\(.*\)\*//; s/^ *//; s/ *$//'`), state why (the live ledger writes `` `feature/<slug>` ``), and treat a `—` Branch cell as "nothing to cross-check" → Phase C pending on MERGED.
+- [x] **Add a `CLOSED` outcome** — same sub-bullet — report under "left in place" as a stale PR link, pointing at `/run-feature`'s "PR closed, not merged" decision; extend the report line's "left in place" parenthetical to name it.
+- [x] **Drop `mergedAt` from the scan's `--json`** — same sub-bullet — only `state` and `headRefName` are consulted.
+- [x] **Match the file's `STOP:` shape and cover parse failure** — same sub-bullet — `STOP: gh pr view #<N> for <F-ID> failed — <raw output>`, covering call *or* parse failure.
+- [x] **Add bold case labels and a pass line** — Step 7 sub-bullets — `**Uncommitted diff** →`, `**Pruned-branch rows** →`, `**Whole-ledger scan** →` (matching `worktree`'s nested-bullet form); the scan "passes when every hit below lands in a named report bucket".
+- [x] **State the cross-skill invariant the branch check relies on** — same sub-bullet — one sentence: sound because `/run-feature` Phase A step 10 only records a PR found via `gh pr list --head feature/<slug>`; revisit if that changes.
+- [x] **Trim the "verified against the live ledger…" aside** — same sub-bullet — keep only the mechanism ("excluded by construction").
