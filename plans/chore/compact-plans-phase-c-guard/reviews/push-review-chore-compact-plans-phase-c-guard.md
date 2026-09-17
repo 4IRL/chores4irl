@@ -228,3 +228,42 @@ Two-link and empty-`N` cases traced: both land in the STOP (empty is structurall
 - [x] **Reword the numeric-gate STOP to cover the two-link case** — same sub-bullet — "is not exactly one numeric value", with a parenthetical explaining the two-line rejection and the one-link-per-row contract.
 - [x] **Echo OPEN's deliberate omission in the report line** — Step 7 report line — "OPEN-linked rows are deliberately unreported".
 - [x] **Restore the `+`-chained Comparison line in Review 4** — this file — match Reviews 2–3.
+
+## Review 6
+Generated: 2026-09-16 22:33
+Comparison: origin/main...HEAD (6 commits — `81a2281` + Review 1 fixes `7eb874c` + Review 2 fixes `82ff830` + Review 3 fixes `604f38f` + Review 4 fixes `b6fde16` + Review 5 fixes `da212b7`)
+Verdict: **PUSHED WITH MINOR FINDINGS**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+`lineno` is only ever the integer from the enumeration grep's `-n` prefix; the `N` gate still precedes `gh pr view`; nothing regressed.
+
+#### 2. Correctness — PASS
+Full per-row pipeline run against a real-shaped row: `fid=F4`, `N=40`, `branch=feature/remove-details-longterm`; `awk -F'|'` column 4 is Branch; `head -1` yields the row's own F-ID. One minor: the `(<F-ID>/<N> below are $fid/$N)` note sits after the first STOP that uses those placeholders.
+
+#### 3. Simplicity & Conciseness — PASS
+Two minors: same placement note; the `<placeholder>` vs `$variable` dual notation mirrors Step 5's existing convention (no change needed).
+
+#### 4. Test Coverage — PASS
+Pipeline run against the five shapes plus a two-link row — all correct. Two minors: outcome comparison is prose rather than a `jq`/`read -r` extraction like Step 5's; `lineno` is the one remaining prose-only step.
+
+#### 5. Completeness & Cleanup — PASS
+All four Review 5 items verified byte-exact; Review 4 Comparison line fixed; no stale live text.
+
+#### 6. Consistency & Style — PASS
+Assign-before-use form matches Step 5. One minor: same placement note as Correctness.
+
+#### 7. Integration Risk — PASS
+`fid=`/`branch=` verified against every row shape `/new-feature` Step 8 and `/run-feature` steps 3/10 write (7 live rows, NF=6 each). One minor (no action): the `awk` split assumes no literal `|` in a cell — same caveat class as the `[#N](` scope note.
+
+#### 8. Error Handling & Silent Failures — PASS
+`sed -n "${lineno}p"` can't pick a wrong line under the documented sequencing; `fid`/`branch` can't be empty for a genuinely matched row. Three minors: `lineno=` one-liner; `N` extraction scans the whole row rather than the PR column; `$fid`'s non-empty guarantee is unstated.
+
+### To-Do: Required Changes
+
+- [ ] **Move the `(<F-ID>/<N> … are $fid/$N)` mapping note before its first use** — `.claude/skills/compact-plans/SKILL.md` Step 7 scan sub-bullet — place it right after the `row=`/`fid=`/`N=`/`branch=` assignments so it precedes the numeric-gate STOP, or reword "below" to "here and below".
+- [ ] **Add a `lineno=` one-liner** — same sub-bullet — `lineno=$(cut -d: -f1 <<<"$hit")` alongside the other assignments, so no step is prose-only.
+- [ ] **Extract `N` from the PR column rather than the whole row** — same sub-bullet — `N=$(awk -F'|' '{print $5}' <<<"$row" | grep -oE '\[#[0-9]+\]\(' | grep -oE '[0-9]+')`, so a `[#N](` link in prose elsewhere on the row can't trip the two-link STOP; or add a one-clause scoping caveat.
+- [ ] **Turn the outcome comparison into a `jq` extraction** — same sub-bullet — `read -r state head_ref <<<"$(jq -r '"\(.state) \(.headRefName)"' <<<"$pr_json")"` then `[[ "$state" == MERGED && "$head_ref" == "$branch" ]]` etc., mirroring Step 5's pattern.
+- [ ] **State `$fid`'s non-empty guarantee** — same sub-bullet — one clause: guaranteed by the enumeration grep's `^\| \*{0,2}F[0-9]+` anchor, so no separate guard is needed.
