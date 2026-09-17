@@ -149,7 +149,7 @@ Well-handled: branch-independent diff check, restated superseded carve-out, name
 
 ## Review 4
 Generated: 2026-09-16 22:22
-Comparison: origin/main...HEAD (4 commits — through Review 3 fixes `604f38f`)
+Comparison: origin/main...HEAD (4 commits — `81a2281` + Review 1 fixes `7eb874c` + Review 2 fixes `82ff830` + Review 3 fixes `604f38f`)
 Verdict: **BLOCKED**
 
 ### Results by Reviewer
@@ -188,3 +188,43 @@ The `sed` normalization and CLOSED bucket verified. One critical, one minor:
 - [x] **Unquote `<N>` in the hardening `STOP:`** — same sub-bullet — match Step 5's `<branch>` form.
 - [x] **Mark the `—` carve-out as defensive and OPEN as deliberately omitted** — same sub-bullet — two short parentheticals.
 - [x] **Watch the scan's first live hit** *(note, no edit)* — the ledger currently has no linked rows, so the full grep → extraction → `sed` → `gh pr view` → bucket pipeline has been verified only on synthetic rows; confirm it once on the first real sweep after a feature merges.
+
+## Review 5
+Generated: 2026-09-16 22:28
+Comparison: origin/main...HEAD (5 commits — `81a2281` + Review 1 fixes `7eb874c` + Review 2 fixes `82ff830` + Review 3 fixes `604f38f` + Review 4 fixes `b6fde16`)
+Verdict: **BLOCKED**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+`N` gate still precedes `gh pr view`; the here-string extraction can't be abused by a typo'd row. One minor: a row with two `[#N](` links yields a two-line `$N` — the anchored regex rejects it, but the STOP wording says "not numeric".
+
+#### 2. Correctness — PASS
+Ran the two-stage pipeline against all five synthetic shapes (correct), the `N=` extraction (correct), the three `sed` examples (true). One minor: Branch-cell extraction still prose-only while `N` has a command.
+
+#### 3. Simplicity & Conciseness — PASS
+All five additions functional; in-family density.
+
+#### 4. Test Coverage — PASS
+Pipeline re-run against the five shapes; the `·`-in-title row now correctly retained. One minor (no fix needed): the exclusion anchors on the first join only — sufficient under the ledger's convention.
+
+#### 5. Completeness & Cleanup — PASS
+All six Review 4 items verified byte-exact. Two minors: OPEN's "deliberately no entry" not echoed in the report line; the OPEN note is an appositive rather than a parenthetical.
+
+#### 6. Consistency & Style — FAIL
+Arrow-example notation consistent with the file's idiom. One major, one minor:
+- *(major)* `SKILL.md:124` — `N=$(… <<<"$row" …)` consumes `$row`, which nothing assigns; every other shown command in the file assigns its variables inline before use.
+- *(minor)* review file — Review 4's `Comparison:` line collapsed the commit chain instead of the `+`-chained form Reviews 2–3 use.
+
+#### 7. Integration Risk — PASS
+The "`[#N](` appears solely in the Status ledger" claim verified across the current file and its git history (an older Completed table once used that shape — exactly why the caveat is worth keeping). No other contract affected.
+
+#### 8. Error Handling & Silent Failures — PASS
+Two-link and empty-`N` cases traced: both land in the STOP (empty is structurally unreachable). Three minors: STOP wording for the two-link case; note that empty `N` can't occur; state the one-link-per-row contract.
+
+### To-Do: Required Changes
+
+- [x] **Assign `row`, `fid`, and `branch` before use** — `.claude/skills/compact-plans/SKILL.md` Step 7 scan sub-bullet — `row=$(sed -n "${lineno}p" plans/META-PLAN.md)` from the grep's `-n` prefix, `fid=$(grep -oE 'F[0-9]+' <<<"$row" | head -1)`, `branch=$(awk -F'|' '{print $4}' <<<"$row" | sed -E …)`; refer to `$branch`/`$fid` in the outcome clauses (verified end-to-end on a real-shaped row).
+- [x] **Reword the numeric-gate STOP to cover the two-link case** — same sub-bullet — "is not exactly one numeric value", with a parenthetical explaining the two-line rejection and the one-link-per-row contract.
+- [x] **Echo OPEN's deliberate omission in the report line** — Step 7 report line — "OPEN-linked rows are deliberately unreported".
+- [x] **Restore the `+`-chained Comparison line in Review 4** — this file — match Reviews 2–3.
