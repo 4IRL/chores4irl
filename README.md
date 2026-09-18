@@ -4,7 +4,7 @@ A household chore-tracking app designed to run on a Raspberry Pi 4 with an attac
 
 ## Architecture
 
-- **Backend** (`backend/`) — Express + TypeScript, `better-sqlite3` in WAL mode. Serves `/api/*`. DB location is controlled by the `DB_PATH` env var (defaults to a file at repo root in dev; `/data/data.db` in the container).
+- **Backend** (`backend/`) — Express + TypeScript, `better-sqlite3` in WAL mode. Serves `/api/*`. DB location is controlled by the `DB_PATH` env var (defaults to a file at repo root in dev; `/data/data.db` in the container). `db.ts` also runs an idempotent, `pragma table_info`-guarded schema migration at boot (currently: drop the legacy `details`/`long_term_task` columns).
 - **Frontend** (`frontend/`) — React + Vite + Tailwind. Calls the API via relative URLs (`fetch('/api/chores')`) so it must share an origin with the backend in production.
 - **Nginx** (`nginx.conf`) — serves the built frontend and reverse-proxies `/api/*` to the backend over the Compose network. That shared origin is what lets the frontend's relative URLs work.
 
@@ -22,9 +22,9 @@ today, > 1 = overdue); multiplying by `duration` (minutes the task takes) means 
 that's half-overdue can outrank a quick task that's fully overdue. The scoring and sort live
 in `frontend/src/utils/choreSort.ts` (`calcDurationWeightedScore` / `orderChores`).
 
-Chores flagged `longTermTask` (e.g. a quarterly HVAC-filter change) always sort **below**
-short-term daily/weekly chores regardless of score, so routine upkeep never buries the
-day-to-day list.
+There is no separate tier for infrequent maintenance chores — a quarterly HVAC-filter change
+competes on the same score as daily upkeep, so it surfaces only once it is far enough overdue
+to outweigh them.
 
 Each chore renders as a timer bar that drains as its due date approaches and turns red once
 overdue (`frontend/src/utils/choreBarMath.ts`). The displayed date can be stepped forward to
@@ -39,13 +39,11 @@ monorepo's single source of truth, imported with `import type` on both sides):
 interface Chore {
     id: number;
     name: string;
-    details?: string | null;
     room: string;
     dateLastCompleted: Date;
     duration: number;        // minutes — how long the task takes
     frequency: number;       // days — how often it should be done
     urgency?: 'low' | 'medium' | 'high';
-    longTermTask?: boolean;  // true = maintenance/infrequent
 }
 ```
 
@@ -182,3 +180,5 @@ docker compose up -d --build
 ```
 
 `docker compose down -v` would wipe chore data — use plain `docker compose down` (or the systemd unit's `ExecStop`) when restarting.
+
+Releases that carry a schema migration alter `/data/data.db` on first boot. Take a snapshot first (`sudo systemctl start chores4irl-backup.service`) before `docker compose up -d --build`; the previous image cannot write to a migrated DB, so rolling back means restoring that snapshot as well. If the frontend never comes up after the rebuild, run `docker compose logs backend` — a failed migration aborts the backend on purpose rather than masking a migration failure.
