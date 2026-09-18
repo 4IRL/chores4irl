@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from '../services/choreApi';
@@ -683,5 +683,52 @@ describe('date navigation', () => {
         }
 
         expect(screen.getByText(/overdue/i)).toBeInTheDocument();
+    });
+});
+
+describe('Add Task deck (F5)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore()]);
+    });
+
+    it('renders the deck sticky at the bottom of the scroll region with a translucent blurred background', async () => {
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        const deck = screen.getByTestId('add-task-deck');
+        expect(deck.className).toContain('sticky');
+        expect(deck.className).toContain('bottom-0');
+        expect(deck.className).toContain('mt-auto');
+        expect(deck.className).toContain('bg-gray-900/60');
+        expect(deck.className).toContain('backdrop-blur-sm');
+        // Tailwind v4 dropped bg-opacity-*; it compiles to nothing and leaves the
+        // deck fully opaque, so guard against the dead v3 utility creeping back in.
+        expect(deck.className).not.toContain('bg-opacity');
+
+        const scrollRegion = document.querySelector('.overflow-y-auto');
+        expect(scrollRegion).not.toBeNull();
+        expect(scrollRegion!.contains(deck)).toBe(true);
+        expect((scrollRegion as HTMLElement).className).toContain('scroll-pb-20');
+        // mt-auto pinning depends on the deck being the scroll region's last child.
+        expect(scrollRegion!.lastElementChild).toBe(deck);
+
+        expect(within(deck).getByRole('button', { name: /add task/i })).toBeInTheDocument();
+    });
+
+    it('still renders the deck pinned last inside the scroll region when there are no chores', async () => {
+        vi.mocked(fetchAllChores).mockResolvedValue([]);
+
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText(/No chores yet/i)).toBeInTheDocument());
+
+        const deck = screen.getByTestId('add-task-deck');
+        const scrollRegion = document.querySelector('.overflow-y-auto');
+        expect(scrollRegion).not.toBeNull();
+        expect(scrollRegion!.contains(deck)).toBe(true);
+        expect(scrollRegion!.lastElementChild).toBe(deck);
+        expect(within(deck).getByRole('button', { name: /add task/i })).toBeInTheDocument();
     });
 });

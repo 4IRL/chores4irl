@@ -331,11 +331,18 @@ export default function App() {
                 />
                 <ReturnToTodayButton dayOffset={dayOffset} onReset={() => setDayOffset(0)} />
                 <ChoreSearchInput value={searchQuery} onChange={setSearchQuery} />
-                <div className="flex-1 overflow-y-auto min-h-0">
+                <div className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-20">
                     <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} onEdit={handleRequestEdit} />
-                </div>
-                <div className="flex-shrink-0 py-4 flex justify-center border-t border-gray-700">
-                    <AddChoreButton onClick={() => { setEditingId(null); setShowForm(true); }} />
+                    {/* F5: sticky frosted deck — mt-auto pins it to the bottom when the list is
+                        short; sticky keeps it pinned while a long list scrolls beneath the blur.
+                        scroll-pb-20 tells scrollIntoView/focus that the deck's footprint is
+                        obscured, so bars are never scrolled to rest under it. */}
+                    <div
+                        data-testid="add-task-deck"
+                        className="sticky bottom-0 mt-auto flex-shrink-0 flex justify-center py-4 border-t border-gray-700 bg-gray-900/60 backdrop-blur-sm"
+                    >
+                        <AddChoreButton onClick={() => { setEditingId(null); setShowForm(true); }} />
+                    </div>
                 </div>
             </div>
             {showForm && <ChoreFormModal rooms={uniqueRooms} onSubmit={handleAddChore} onCancel={() => setShowForm(false)} />}
