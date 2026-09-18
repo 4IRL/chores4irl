@@ -59,15 +59,15 @@ jsdom has no layout engine, so pinning/blur/reachability can only be checked in 
 
 **Run 1 (2026-09-18)** — 13/14; the one failure was `[1280x720] E: pill.bottom=640.0 > deck.top=639.0` (1px): Chrome aligns the Tab-focused 28px pill, not its 64px bar, to the `scroll-padding`-reduced edge (720 − 80 = 640) while the deck's top is at 639 (81px tall). → Fixed by bumping `scroll-padding-bottom` to `scroll-pb-24` (96px) on `App.tsx:334` + comment, `App.test.tsx` literal, and this plan (review DD-4 superseded, Option 2). **Run 2 (2026-09-18)** — 14/14 PASS, exit 0 (ready in 3 s, `OWNED=1`, ports pre-checked free, freshly seeded 10 rows). E rects: 768×1024 pill `{top:900, bottom:928}` vs deck `{top:943, bottom:1024}` (scrollTop 9, 20 Tabs); 1280×720 pill `{top:577, bottom:605}` vs deck `{top:639, bottom:720}` (scrollTop 332 = max, 20 Tabs). C rects: last bar bottom 927 ≤ deck top 943 at 768×1024; 623 ≤ 639 at 1280×720. Screenshots confirmed the human judgements (blurred green bleed-through under the deck at 1280×720 B and faintly at 768×1024 A; solid blue button; deck reads as a distinct frosted surface over `bg-gray-900`). Ports free after the trap; throwaway scripts, screenshots and logs deleted; tree shows only App.tsx, App.test.tsx, plan, review.
 
-### 4. Verify All Tests Pass
+### 4. Verify All Tests Pass — COMPLETE (2026-09-18)
 Run the full suites to confirm nothing is broken.
 
 **To-do:**
-- [ ] Run `npm test --workspace frontend` and confirm all Vitest tests pass (expected: 29 files, 254 tests — 252 existing + 2 new).
-- [ ] Run `npm test --workspace backend` and confirm it passes (untouched, sanity).
-- [ ] Run `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/smoke.spec.ts` from the repo root and confirm all smoke tests pass — pay particular attention to `'deletes a chore and it disappears from the list'` — it swipes a freshly-added chore that sorts *mid-list* (8th of 11 under the seed + pinned clock; the long-term HVAC chore is always last and untouched by e2e), so it is a general `swipeBar()`/`scrollIntoViewIfNeeded()`/`boundingBox()` regression, **not** a test of pointer hit-testing on the deck-adjacent bar — that worst case is verified only by step 3's throwaway script (screenshots C/E), by deliberate scope (META-PLAN F5: no e2e change) — and the touch-lock `boundingBox()` click on `+ Add Task`. If it fails with `… is already used …` / `Process from config.webServer was not able to start`, a sibling worktree's run holds the ports (step 3d already proved this worktree's own servers are gone): retry every ~30 s (jittered) for up to ~10 min; never kill that listener or drop `CI=1` — exactly `/run-feature` step 8's rule.
-- [ ] Run `npm run lint` and `npx tsc --noEmit -p frontend/tsconfig.json` — clean.
-- [ ] Investigate and fix any failures before marking the plan finished.
+- [x] Run `npm test --workspace frontend` and confirm all Vitest tests pass (expected: 29 files, 254 tests — 252 existing + 2 new).
+- [x] Run `npm test --workspace backend` and confirm it passes (untouched, sanity).
+- [x] Run `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/smoke.spec.ts` from the repo root and confirm all smoke tests pass — pay particular attention to `'deletes a chore and it disappears from the list'` — it swipes a freshly-added chore that sorts *mid-list* (8th of 11 under the seed + pinned clock; the long-term HVAC chore is always last and untouched by e2e), so it is a general `swipeBar()`/`scrollIntoViewIfNeeded()`/`boundingBox()` regression, **not** a test of pointer hit-testing on the deck-adjacent bar — that worst case is verified only by step 3's throwaway script (screenshots C/E), by deliberate scope (META-PLAN F5: no e2e change) — and the touch-lock `boundingBox()` click on `+ Add Task`. If it fails with `… is already used …` / `Process from config.webServer was not able to start`, a sibling worktree's run holds the ports (step 3d already proved this worktree's own servers are gone): retry every ~30 s (jittered) for up to ~10 min; never kill that listener or drop `CI=1` — exactly `/run-feature` step 8's rule.
+- [x] Run `npm run lint` and `npx tsc --noEmit -p frontend/tsconfig.json` — clean.
+- [x] Investigate and fix any failures before marking the plan finished.
 
 ## Status
-finished: false
+finished: true
