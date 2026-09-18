@@ -5,36 +5,30 @@ import ClearButton from '../common/ClearButton';
 
 type FormState = {
     name: string;
-    details: string;
     room: string;
     dateLastCompleted: string;
     duration: string;
     frequency: string;
     urgency: '' | 'low' | 'medium' | 'high';
-    longTermTask: boolean;
 };
 
 const initialFormState: FormState = {
     name: '',
-    details: '',
     room: '',
     dateLastCompleted: '',
     duration: '',
     frequency: '',
     urgency: '',
-    longTermTask: false,
 };
 
 function choreToFormState(chore: Chore): FormState {
     return {
         name: chore.name,
-        details: chore.details ?? '',
         room: chore.room,
         dateLastCompleted: chore.dateLastCompleted.toISOString().slice(0, 10),
         duration: String(chore.duration),
         frequency: String(chore.frequency),
         urgency: chore.urgency ?? '',
-        longTermTask: chore.longTermTask ?? false,
     };
 }
 
@@ -60,13 +54,11 @@ export default function ChoreForm({ mode = 'add', initialChore, rooms = [], onSu
         e.preventDefault();
         onSubmit({
             name: formData.name,
-            details: formData.details || null,
             room: formData.room,
             dateLastCompleted: new Date(formData.dateLastCompleted),
             duration: Number(formData.duration),
             frequency: Number(formData.frequency),
             urgency: formData.urgency || undefined,
-            longTermTask: formData.longTermTask || undefined,
         });
         if (mode === 'add') setFormData(initialFormState);
     }
@@ -76,7 +68,6 @@ export default function ChoreForm({ mode = 'add', initialChore, rooms = [], onSu
             <h3 className="text-white font-semibold text-lg mb-4">{mode === 'edit' ? 'Edit Chore' : 'Add New Chore'}</h3>
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <FormField name="name" label="Name" value={formData.name} onChange={handleFieldChange} required autoFocus clearable />
-                <FormField name="details" label="Details" value={formData.details} onChange={handleFieldChange} />
                 <div className="flex flex-col gap-1">
                     <label htmlFor="room" className="text-sm text-gray-400 capitalize">Room</label>
                     <div className="relative">
@@ -125,17 +116,6 @@ export default function ChoreForm({ mode = 'add', initialChore, rooms = [], onSu
                         <option value="medium">Medium</option>
                         <option value="high">High</option>
                     </select>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        id="longTermTask"
-                        checked={formData.longTermTask}
-                        onChange={e => setFormData(prev => ({ ...prev, longTermTask: e.target.checked }))}
-                        className="accent-indigo-500"
-                    />
-                    <label htmlFor="longTermTask" className="text-sm text-gray-400">Long-term task</label>
                 </div>
 
                 <div className="flex gap-3 mt-2">
