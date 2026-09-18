@@ -89,7 +89,7 @@ Deduplicated total: 0 critical, 4 major, 6 minor (the "No chores match" wording 
 | 1 | Keep `scroll-pb-20`, add a one-sentence justification | Tighter padding; 1px worst case is far from any clickable/focus target's centre |
 | 2 | Bump to `scroll-pb-24` (test literal + className) | 15px headroom; slightly more over-scroll on programmatic scrolls |
 
-**Chosen:** Option 1 — keep `scroll-pb-20`; justification sentence added to the hit-testing Research Finding.
+**Chosen:** Option 1 — keep `scroll-pb-20`; justification sentence added to the hit-testing Research Finding. Superseded during implementation (Step 3 run 1, 2026-09-18): real-browser measurement showed Chrome pads against the focused pill, not the bar — pill.bottom=640 vs deck.top=639 at 1280×720 — so the value was bumped to `scroll-pb-24` (Option 2).
 
 ---
 

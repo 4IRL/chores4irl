@@ -331,11 +331,11 @@ export default function App() {
                 />
                 <ReturnToTodayButton dayOffset={dayOffset} onReset={() => setDayOffset(0)} />
                 <ChoreSearchInput value={searchQuery} onChange={setSearchQuery} />
-                <div className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-20">
+                <div className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-24">
                     <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} onEdit={handleRequestEdit} />
                     {/* F5: sticky frosted deck — mt-auto pins it to the bottom when the list is
                         short; sticky keeps it pinned while a long list scrolls beneath the blur.
-                        scroll-pb-20 tells scrollIntoView/focus that the deck's footprint is
+                        scroll-pb-24 tells scrollIntoView/focus that the deck's footprint is
                         obscured, so bars are never scrolled to rest under it. */}
                     <div
                         data-testid="add-task-deck"

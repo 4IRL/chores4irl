@@ -710,7 +710,7 @@ describe('Add Task deck (F5)', () => {
         const scrollRegion = document.querySelector('.overflow-y-auto');
         expect(scrollRegion).not.toBeNull();
         expect(scrollRegion!.contains(deck)).toBe(true);
-        expect((scrollRegion as HTMLElement).className).toContain('scroll-pb-20');
+        expect((scrollRegion as HTMLElement).className).toContain('scroll-pb-24');
         // mt-auto pinning depends on the deck being the scroll region's last child.
         expect(scrollRegion!.lastElementChild).toBe(deck);
 
