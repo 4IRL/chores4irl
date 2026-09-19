@@ -34,7 +34,9 @@ Windows/WSL/iOS) instead of `http://192.168.1.214/`, with:
   pushed by the router via DHCP).
 - **cloud-init hostname management**: cloud-init 25.2, NoCloud datasource seeded from
   `/boot/firmware` (`seedfrom: file:///boot/firmware`); `cloud-init status` =
-  `degraded done` at the last boot (2026-09-14 — pre-existing baseline, not an F6 effect).
+  `degraded done` at the last boot (2026-09-14 — pre-existing, not an F6 effect); by the
+  F6 pre-flight on 2026-09-19 it read `status: done`, which is the baseline the post-reboot
+  check was compared against (see Verification log).
   `/etc/cloud/cloud.cfg` has `preserve_hostname: false` and runs `set_hostname`,
   `update_hostname`, `update_etc_hosts`; `/boot/firmware/user-data` has
   `hostname: MilarachiC4I` and `manage_etc_hosts: true`;
@@ -135,11 +137,64 @@ These drive the docs (root `README.md`, `deploy/pi/README.md`), not the code.
 | Android 12+ | yes | no (ignores DHCP search domains) |
 | Android < 12 | no | no |
 | Linux with `libnss-mdns` | yes | yes (if DHCP search domain applied) |
-| The Pi itself | yes (`getent hosts c4i.local`) | yes |
+| The Pi itself | yes — but `getent hosts c4i.local` answers `172.18.0.1` (its Docker Compose bridge), not the wlan0 `192.168.1.214`: Avahi publishes on every interface by default and `nss-mdns` returns the first; nginx is on `0.0.0.0:80` so the app still answers (observed 2026-09-19, see Verification log) | yes (`127.0.1.1` via `/etc/hosts`) |
 
 ## Verification log
 
-_Empty until Step 5 — filled with the observed Step 4 outputs, one `` `<command>` → `<result>` `` line per probe, plus the user-run client checks list (DD-5)._
+Observed Step 4 outputs (one `` `<command>` → `<result>` `` line per probe). LAN-reaching
+commands ran unsandboxed from the WSL laptop (DD-4); nothing on the Pi was hand-edited.
+
+**Date:** 2026-09-19. `<PI_IP>` = `192.168.1.214` (the DHCP lease did not move across the reboot).
+
+Pre-flight (before the rename):
+
+- `getent ahostsv4 MilarachiC4I | awk 'NR==1{print $1, $3}'` → `192.168.1.214 MilarachiC4I.mynetworksettings.com`
+- `ssh -o BatchMode=yes rmilarachi@MilarachiC4I 'hostname; cloud-init status; sudo -n true'` → `MilarachiC4I` / `status: done` / sudo OK — **baseline = `done`** (the `degraded done` seen on 2026-09-14 had cleared by itself; not an F6 effect either way)
+- `sudo grep -E "^hostname:" /var/lib/cloud/instance/cloud-config.txt` (cached cloud-init config) → `hostname: MilarachiC4I`
+- `cat /var/lib/cloud/data/instance-id` / `sudo grep -E "^instance-id:" /boot/firmware/meta-data` → `rpi-imager-1772074782562` in both (unchanged instance-id → cloud-init reuses its cached config on reboot; the drop-in + user-data flip cover that case)
+- `ls /etc/cloud/cloud.cfg.d/` → `05_logging.cfg 99_raspberry-pi.cfg README` (no pre-existing `99-c4i-hostname.cfg` → no `.cfg.bak` expected)
+- `grep -rn "^ssh_deletekeys" /etc/cloud/cloud.cfg /etc/cloud/cloud.cfg.d/ || true; sudo grep -n "^ssh_deletekeys" /boot/firmware/user-data || true` → `/etc/cloud/cloud.cfg.d/99_raspberry-pi.cfg:17:ssh_deletekeys: false`; key absent from user-data (so a `cloud-init clean` recovery would have kept the host keys)
+
+Rename (script shipped with `scp` to `~/chores4irl/deploy/pi/` + `cloud-init/`):
+
+- `ssh rmilarachi@MilarachiC4I 'chmod +x ~/chores4irl/deploy/pi/set-hostname.sh && ~/chores4irl/deploy/pi/set-hostname.sh c4i'` → `exit 0`; `[1/4]` `backed up -> /boot/firmware/user-data.bak`, `hostname: -> c4i`, `manage_etc_hosts: -> false`; `[2/4]` `backed up -> /etc/hosts.bak`, `127.0.1.1 -> c4i c4i`, `hostnamectl hostname c4i`; `[3/4] installed.` (no `.bak` — none pre-existed); `[4/4]` verify lines all as expected (`hostname: c4i`, `manage_etc_hosts: false`, `c4i`, `127.0.1.1 c4i c4i`, `preserve_hostname: true`, `manage_etc_hosts: false`, avahi `active`); the only `WARNING:` was the laptop reminder (`deploy.sh / ~/.ssh/config targets 'MilarachiC4I' -> 'c4i'`); no `sudo: unable to resolve host` line appeared
+- `ssh rmilarachi@MilarachiC4I 'sudo reboot'` → connection dropped at 17:31:09 (expected)
+- `getent ahostsv4 c4i | awk 'NR==1{print $1, $3}'` → `192.168.1.214 c4i.mynetworksettings.com` at 17:31:59 — resolved on the first poll, ~50 s after the reboot command (DHCP re-registration lag ≈ the reboot itself)
+- **DD-3 rung taken: `rung 0`** — bare `c4i` resolved without escalation; rung 1 (`systemd-run --unit=c4i-release …` re-lease) and rung 2 (router UI) were not needed
+- **`deploy.sh` target written:** `sed -i 's/rmilarachi@MilarachiC4I/rmilarachi@c4i/g' deploy.sh` → both the `scp` and `ssh` lines now read `rmilarachi@c4i` (rung 0–2 form; local, gitignored file)
+
+Post-reboot proof (`ssh -o StrictHostKeyChecking=accept-new rmilarachi@c4i '…'`, rc=0; ssh printed `Permanently added 'c4i' (ED25519)` — same host key, new name):
+
+- `cloud-init status --wait` → `status: done`
+- `hostname` → `c4i`
+- `grep 127.0.1.1 /etc/hosts` → `127.0.1.1 c4i c4i` (cloud-init did not re-render the old name)
+- `sudo grep -E '^(hostname|manage_etc_hosts):' /boot/firmware/user-data` → `hostname: c4i` + `manage_etc_hosts: false`
+- `sudo grep -E '^(preserve_hostname|manage_etc_hosts):' /etc/cloud/cloud.cfg.d/99-c4i-hostname.cfg` → `preserve_hostname: true` + `manage_etc_hosts: false`
+- `cloud-init status` → `status: done` (= pre-flight baseline; no new `degraded`/`error`)
+- `systemctl is-active avahi-daemon chores4irl` → `active` / `active` (Avahi followed the hostname change without a restart, as documented)
+- `systemctl cat chores4irl.service | grep -ci milarachic4i || true` → `0` (the Pi-side unit carries no hostname)
+- `docker ps --format "{{.Names}} {{.Status}}"` → `chores4irl-frontend-1 Up 7 seconds (healthy)` / `chores4irl-backend-1 Up 30 seconds (healthy)`
+- `sudo grep -c "preserve_hostname' is set" /var/log/cloud-init.log` → `1` (drop-in was read — `cc_update_hostname` skipped)
+- `sudo grep -c "manage_etc_hosts' is not set" /var/log/cloud-init.log` → `1` (the user-data flip, not the cached `true`, won — `cc_update_etc_hosts` skipped)
+- `sudo journalctl -b -u cloud-init.service -u cloud-init-local.service -u cloud-init-main.service | grep -c "user maintained" || true` → `0` (informational only; with `preserve_hostname: true` the hostname modules never reach that message)
+- `sudo cloud-init clean && sudo reboot` recovery rung → **not needed** (`/etc/hosts` held `c4i` after the reboot)
+- `sudo rm -f /boot/firmware/user-data.bak /etc/hosts.bak /etc/cloud/cloud.cfg.d/99-c4i-hostname.cfg.bak` → done (DD-8; rollback is now `set-hostname.sh MilarachiC4I` alone)
+
+Laptop-side name checks (IPv4 throughout — the stack listens on IPv4 only):
+
+- `curl -4 -s -o /dev/null -w '%{http_code}\n' http://c4i/api/chores` → `200` (bare name, router DNS + search domain)
+- `curl -4 -s -o /dev/null -w '%{http_code}\n' http://192.168.1.214/api/chores` → `200` (raw IP still works)
+- `/mnt/c/windows/system32/ping.exe -4 -n 1 c4i.local` → `Pinging c4i.local [192.168.1.214]` / reply `TTL=64` (Windows' built-in mDNS resolver; address family IPv4)
+- `ssh -o StrictHostKeyChecking=accept-new rmilarachi@c4i 'getent hosts c4i.local'` → `172.18.0.1      c4i.local` — **not** `192.168.1.214`: the Pi resolves its own mDNS name to its Docker Compose bridge `br-c35bfa1e87f1` (`172.18.0.1/16`), because `avahi-daemon.conf` uses defaults (no `allow-interfaces=` / `deny-interfaces=` / `publish-addresses=`), Avahi publishes an address on every interface it runs on, and `nss-mdns` returns the first one. LAN clients are unaffected (the `ping.exe` line above shows `192.168.1.214`; nginx is published on `0.0.0.0:80`, so even `172.18.0.1` serves the app). Caveat recorded in `## Client caveats` and `deploy/pi/README.md`; a defensive `[server] deny-interfaces=br-…` (or `allow-interfaces=wlan0`) in `avahi-daemon.conf` was **not** applied — the bridge name is Compose-generated and can change on `docker compose down`/`up`, so pinning it would be its own maintenance item.
+
+Relayed to the user, not acted on (DD-7 — subagents stay out of `~/.ssh/` and `.claude/settings*.json`): rename the `~/.ssh/config` alias `Host milarachic4i` → `Host c4i` (`HostName c4i`); no `ssh-keygen -R` is needed (host key unchanged, `accept-new` added the `c4i` entry); the `Bash(ssh c4i:*)` / `Bash(ssh rmilarachi@c4i:*)` allow-rules and the removal of the old `milarachic4i` rules in `.claude/settings.local.json` are the user's call.
+
+### Pending client checks (user)
+
+Not verifiable from the laptop CLI (DD-5) — confirm at the `/run-feature` Phase B merge gate; a failing client goes into the caveats table in a follow-up commit:
+
+- phone → `http://c4i.local/` (iOS/Android 12+ — mDNS)
+- Windows browser → `http://c4i/` (type `c4i/` or `http://c4i` the first time) and `http://c4i.local/`
 
 ## Rollback
 
@@ -155,7 +210,7 @@ _Empty until Step 5 — filled with the observed Step 4 outputs, one `` `<comman
   so `/etc/hosts` and the running hostname move back together (a restored `/etc/hosts`
   with the hostname still `c4i` gives `sudo: unable to resolve host c4i` on every call,
   and with the drop-in in place cloud-init will not repair it); after that, rollback is
-  the script.
+  the script. (Deleted 2026-09-19 once the post-reboot proof passed — see Verification log.)
 - Full revert to cloud-init management: remove `/etc/cloud/cloud.cfg.d/99-c4i-hostname.cfg`, set `manage_etc_hosts: true` back in user-data, reboot.
 - If the `sudo cloud-init clean && sudo reboot` recovery rung is needed (old name still in
   `/etc/hosts` after the post-rename reboot), check `ssh_deletekeys` in user-data first —
@@ -169,3 +224,5 @@ _Empty until Step 5 — filled with the observed Step 4 outputs, one `` `<comman
 ## Downstream (pi-kiosk / F15)
 
 pi-kiosk `target_url` should become `http://c4i.local/` everywhere (wall Pi included) for consistency with the LAN name; RISK for F15: the kiosk then depends on Avahi + nss-mdns being up on the Pi at login (boot-order dependency) — F15 must weigh a `localhost` fallback.
+
+Fold-back note for `/run-feature` Phase C (META-PLAN F15 section / Infra-track bullet, 2026-09-19): F6 is live — `target_url` → `http://c4i.local/`; carry the DD-11 risk (Avahi + nss-mdns must be up at login; weigh a `localhost` fallback) and the observed caveat that the Pi resolves `c4i.local` to its Docker bridge `172.18.0.1` (still served, but one more reason the wall Pi's kiosk should keep `http://localhost/`).

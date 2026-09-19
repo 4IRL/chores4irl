@@ -179,6 +179,7 @@ From Windows, use `ping.exe -4 -n 1 c4i.local` or open `http://c4i.local/` in a 
 | Android 12+ | ✓ | ✗ (ignores DHCP search domain) |
 | Android < 12 | ✗ | ✗ (use the IP) |
 | Linux | ✓ with `libnss-mdns` | ✓ if it uses router DNS + search domain |
+| The Pi itself | ✓ but answers `172.18.0.1` (Docker bridge), see note | ✓ (`127.0.1.1` via `/etc/hosts`) |
 
 - Browsers treat a single label as a search term: type `c4i/` or `http://c4i` the first
   time; `c4i.local` (has a dot) is always treated as a URL.
@@ -186,6 +187,15 @@ From Windows, use `ping.exe -4 -n 1 c4i.local` or open `http://c4i.local/` in a 
   re-registers it); Windows may cache the old answer — `ipconfig /flushdns`.
 - SSH `known_hosts` keys by name: the first `ssh c4i` prompts once to trust the
   (unchanged) host key. `deploy.sh` / any `~/.ssh/config` `Host` entry must move to `c4i`.
+- On the Pi itself, `getent hosts c4i.local` returns `172.18.0.1` (the Docker Compose
+  bridge `br-…`), not the wlan0 LAN IP: `avahi-daemon.conf` uses defaults (no
+  `allow-interfaces=` / `deny-interfaces=` / `publish-addresses=`), so Avahi publishes an
+  address on every interface and `nss-mdns` returns the first one. LAN clients are
+  unaffected (Windows mDNS → the LAN IP; observed 2026-09-19), and the app still answers on
+  the bridge address because nginx is published on `0.0.0.0:80`. Not applied, on purpose:
+  pinning `[server] allow-interfaces=wlan0` (or `deny-interfaces=` for the bridge, whose
+  name is Compose-generated) in `/etc/avahi/avahi-daemon.conf` would fix the answer but
+  adds a config file to keep in step with the network layout.
 - IPv6-only clients are not served: the stack is reachable over IPv4 only on this Pi
   (`docker ps` shows `0.0.0.0:80->80/tcp` with no `[::]:80` publish — probed 2026-09-19;
   `nginx.conf` `listen 80;`, `docker-compose.yml` `"80:80"`). Dual-stack clients fall back
