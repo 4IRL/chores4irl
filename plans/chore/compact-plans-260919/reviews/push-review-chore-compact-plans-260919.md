@@ -46,15 +46,53 @@ Remote-only deletion path itself is soundly gated (exact `remote_tip == head_oid
 
 ### To-Do: Required Changes
 
-- [x] **Trim the remote-only paragraph to its two novel points** — `.claude/skills/compact-plans/SKILL.md` Step 5 (the "A **remote-only** candidate…" paragraph) — keep only (a) remote-only is a normal case, not a SKIP, and (b) why the remote leg's `remote_tip == head_oid` check is a sufficient tip gate; drop the restated teardown mechanism and candidate-list-construction sentences (already at line 58 and in the snippet comment).
-- [x] **Define the 404 outcome's report home and reconcile the three passages** — `.claude/skills/compact-plans/SKILL.md` Step 5 404-branch comment, stale-ref paragraph, and Step 7 report line — replace "report it as already-clean, not as pruned" with: the entry stays in the report's "pruned" bucket, annotated per leg (`local: deleted (was <sha>)` / `local: already absent`; `remote: deleted here` / `remote: already gone (404)`); make Step 7's report line say "pruned (branches, local + remote, each annotated with which legs were actually deleted here vs already gone)".
-- [x] **Exact-match the two benign errors in the stale-ref cleanup and STOP on anything else** — `.claude/skills/compact-plans/SKILL.md` Step 5 stale-ref paragraph — turn the prose into a snippet: `git branch -dr "origin/<branch>"` → benign only when stderr contains `remote-tracking branch 'origin/<branch>' not found`; `git config --remove-section "branch.<branch>"` → benign only when stderr contains `no such section`; any other non-zero exit (e.g. `could not lock config file`) is a `STOP:` naming the branch and git's error. Also widen the config-section cleanup's scope to every branch whose local `git branch -D` succeeded this run, regardless of how its remote leg ended.
-- [x] **Add a Step 7 check that the config-section cleanup landed** — `.claude/skills/compact-plans/SKILL.md` Step 7 — after the branch cross-check bullet: `git config --get-regexp '^branch\.'` must list no `branch.<name>.*` key for any branch pruned this run; a hit means the `--remove-section` was skipped — run it now (unsandboxed) and report.
-- [x] **Define or drop the `local-only` tag** — `.claude/skills/compact-plans/SKILL.md` Step 5 pause-and-ask checkpoint — keep the three tags but define them in one clause as the state of `git branch -a` (`local+remote`: both refs present locally; `remote-only`: only `remotes/origin/<branch>`; `local-only`: only `refs/heads/<branch>` — its remote leg will usually hit the benign 404).
-- [x] **Add "do not edit" to the sidecar freeze header and document the variant** — `plans/completed/remove-details-longterm/pr-description.md:1` and `.claude/skills/compact-plans/SKILL.md` Step 3 — header becomes `> **STATUS: Merged** \`d728989\` (#38). Frozen — historical record, do not edit. PR body as submitted; see \`remove-details-longterm.md\` for the outcome.`; Step 3 gains one sentence: sidecar `.md` files at the plan's top level (e.g. `pr-description.md`) get the same STATUS line plus a pointer to the main plan instead of an Outcome.
-- [x] **Normalize the two Outcome openers** — `plans/completed/remove-details-longterm/remove-details-longterm.md:2`, `plans/completed/translucent-add-deck/translucent-add-deck.md:2` — "F4 shipped as planned:" → "Shipped as planned — …"; "F5 shipped with a different layout technique…" → "Shipped with a different layout technique than META-PLAN sketched (F5) — …".
-- [x] **Split the combined Resolved/archived bullet** — `plans/PUSH-REVIEW-FINDINGS.md` "Resolved / archived" — one bullet each for meta-plan-update-f4 (#40) and meta-plan-workflow-improvements-260910 (#35).
-- [x] **Correct the `[style]`/`[dx]` tally** — `plans/PUSH-REVIEW-FINDINGS.md` Quick batch view — 32 → 31.
-- [x] **Correct the F4 harvest note's reviewer count** — `plans/PUSH-REVIEW-FINDINGS.md` F4 section blockquote — "8/8 PASS" → "9/9 PASS (Type Design reviewer included)".
-- [x] **De-duplicate the two blockquote/`[x]` explanations** — `plans/PUSH-REVIEW-FINDINGS.md` F5 section and meta-plan-update-f14 section — keep the resolution detail in the `[x]` bullet; shorten each blockquote to a pointer ("one item resolved — see below").
+- [ ] **Trim the remote-only paragraph to its two novel points** — `.claude/skills/compact-plans/SKILL.md` Step 5 (the "A **remote-only** candidate…" paragraph) — keep only (a) remote-only is a normal case, not a SKIP, and (b) why the remote leg's `remote_tip == head_oid` check is a sufficient tip gate; drop the restated teardown mechanism and candidate-list-construction sentences (already at line 58 and in the snippet comment).
+- [ ] **Define the 404 outcome's report home and reconcile the three passages** — `.claude/skills/compact-plans/SKILL.md` Step 5 404-branch comment, stale-ref paragraph, and Step 7 report line — replace "report it as already-clean, not as pruned" with: the entry stays in the report's "pruned" bucket, annotated per leg (`local: deleted (was <sha>)` / `local: already absent`; `remote: deleted here` / `remote: already gone (404)`); make Step 7's report line say "pruned (branches, local + remote, each annotated with which legs were actually deleted here vs already gone)".
+- [ ] **Exact-match the two benign errors in the stale-ref cleanup and STOP on anything else** — `.claude/skills/compact-plans/SKILL.md` Step 5 stale-ref paragraph — turn the prose into a snippet: `git branch -dr "origin/<branch>"` → benign only when stderr contains `remote-tracking branch 'origin/<branch>' not found`; `git config --remove-section "branch.<branch>"` → benign only when stderr contains `no such section`; any other non-zero exit (e.g. `could not lock config file`) is a `STOP:` naming the branch and git's error. Also widen the config-section cleanup's scope to every branch whose local `git branch -D` succeeded this run, regardless of how its remote leg ended.
+- [ ] **Add a Step 7 check that the config-section cleanup landed** — `.claude/skills/compact-plans/SKILL.md` Step 7 — after the branch cross-check bullet: `git config --get-regexp '^branch\.'` must list no `branch.<name>.*` key for any branch pruned this run; a hit means the `--remove-section` was skipped — run it now (unsandboxed) and report.
+- [ ] **Define or drop the `local-only` tag** — `.claude/skills/compact-plans/SKILL.md` Step 5 pause-and-ask checkpoint — keep the three tags but define them in one clause as the state of `git branch -a` (`local+remote`: both refs present locally; `remote-only`: only `remotes/origin/<branch>`; `local-only`: only `refs/heads/<branch>` — its remote leg will usually hit the benign 404).
+- [ ] **Add "do not edit" to the sidecar freeze header and document the variant** — `plans/completed/remove-details-longterm/pr-description.md:1` and `.claude/skills/compact-plans/SKILL.md` Step 3 — header becomes `> **STATUS: Merged** \`d728989\` (#38). Frozen — historical record, do not edit. PR body as submitted; see \`remove-details-longterm.md\` for the outcome.`; Step 3 gains one sentence: sidecar `.md` files at the plan's top level (e.g. `pr-description.md`) get the same STATUS line plus a pointer to the main plan instead of an Outcome.
+- [ ] **Normalize the two Outcome openers** — `plans/completed/remove-details-longterm/remove-details-longterm.md:2`, `plans/completed/translucent-add-deck/translucent-add-deck.md:2` — "F4 shipped as planned:" → "Shipped as planned — …"; "F5 shipped with a different layout technique…" → "Shipped with a different layout technique than META-PLAN sketched (F5) — …".
+- [ ] **Split the combined Resolved/archived bullet** — `plans/PUSH-REVIEW-FINDINGS.md` "Resolved / archived" — one bullet each for meta-plan-update-f4 (#40) and meta-plan-workflow-improvements-260910 (#35).
+- [ ] **Correct the `[style]`/`[dx]` tally** — `plans/PUSH-REVIEW-FINDINGS.md` Quick batch view — 32 → 31.
+- [ ] **Correct the F4 harvest note's reviewer count** — `plans/PUSH-REVIEW-FINDINGS.md` F4 section blockquote — "8/8 PASS" → "9/9 PASS (Type Design reviewer included)".
+- [ ] **De-duplicate the two blockquote/`[x]` explanations** — `plans/PUSH-REVIEW-FINDINGS.md` F5 section and meta-plan-update-f14 section — keep the resolution detail in the `[x]` bullet; shorten each blockquote to a pointer ("one item resolved — see below").
 - [x] **META-PLAN "Branch/dir cleanup" paragraph is stale** — `plans/META-PLAN.md` — no action in this sweep by design (the skill never edits META-PLAN); already tracked as an open `[dx]` item under the meta-plan-update-f5 findings section.
+
+## Review 2
+Generated: 2026-09-19 11:14
+Comparison: origin/main...HEAD (Review 1's 11 actionable items all landed in `a2efff4`)
+Verdict: **BLOCKED**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+Regex hardening still upstream of every destructive use; `dangerouslyDisableSandbox` scoped to the two-line cleanup block. Minor: the cleanup snippet relies on the loop's earlier regex gate rather than re-asserting it — safe structurally, but the property depends on the executing agent carrying the vetted names forward.
+
+#### 2. Correctness — PASS
+Verified in a scratch repo that both exact-match strings (`remote-tracking branch '…' not found`, `no such section`) are what git 2.43 prints, that `if ! out=$(cmd 2>&1)` gates on the real exit status, and that a locked `.git/config` leaves the `branch.<name>.*` section behind after a successful `-D`. Tallies (31/18/3) and all seven SHA/PR pairs re-verified. Minors: Step 7's config check covers "any branch pruned this run" while the cleanup was scoped only to local-`-D` branches (a remote-only entry with a pre-existing stale section falls between them); the F5 Outcome opener omitted the `(F5)` marker Review 1's item specified.
+
+#### 3. Simplicity & Conciseness — PASS
+Review 1's major and both minors fixed; the new snippet, Step 7 bullet, report annotation, and Step 3 sentence each add distinct information.
+
+#### 4. Test Coverage — PASS
+The added Step 7 bullet covers both leftovers the cleanup creates.
+
+#### 5. Completeness & Cleanup — PASS
+All three Review 1 fixes landed and the three passages (404 comment, cleanup comments, report line) agree; no `already-clean` text remains. Minors: the benign-reason comment still named "a remote-only entry" while the scope comment excluded remote-only; the `(F5)` marker gap.
+
+#### 6. Consistency & Style — FAIL
+All four Review 1 minors fixed. **major** — this review file had Review 1's 12 To-Do boxes ticked in place with the verdict still `BLOCKED` and no `## Review 2`, contradicting `PUSH-REVIEW-FINDINGS.md`'s rule that per-feature review files are frozen at review time (boxes checked only in the ledger) and `/git-push` Step 6's append-only `## Review N+1` contract.
+
+#### 7. Integration Risk — PASS
+worktree ↔ compact-plans hand-off still lines up; no step renumbering, no stale cross-references, no dangling plan paths. Empirically confirmed the sandbox `-D` behaviour the skill describes.
+
+#### 8. Error Handling & Silent Failures — PASS
+Both Review 1 majors fixed and verified against real git error text. Minor: same scope/benign-comment contradiction as Correctness/Completeness — not a silent failure (Step 7's check backstops it).
+
+### To-Do: Required Changes
+
+- [ ] **Restore Review 1's To-Do boxes to `[ ]` and append this `## Review 2`** — `plans/chore/compact-plans-260919/reviews/push-review-chore-compact-plans-260919.md` — per-feature review files are frozen at review time; a later round records what landed in its own `Comparison:` line, never by editing an earlier round's checkboxes.
+- [ ] **Reconcile the config-section cleanup's scope and benign-reason comments** — `.claude/skills/compact-plans/SKILL.md` Step 5 stale-ref snippet — widen the scope comment to include remote-only entries (a sweep halted by a STOP after `-D` can leave the section for a later run to find as remote-only) and reword the benign reason to "`-D` ran unsandboxed and cleaned it itself, or a remote-only entry that never had one"; make Step 7's bullet say "(either leg)" and add "or was out of scope" to its hit interpretation.
+- [ ] **State the cleanup's name provenance** — `.claude/skills/compact-plans/SKILL.md` Step 5 stale-ref intro — "over the same `<branch>` names the loop already passed through its regex gate (never a name from anywhere else)".
+- [ ] **Add the `(F5)` marker to the F5 Outcome opener** — `plans/completed/translucent-add-deck/translucent-add-deck.md:2` — "…than META-PLAN sketched (F5) — …", matching Review 1's item verbatim.
