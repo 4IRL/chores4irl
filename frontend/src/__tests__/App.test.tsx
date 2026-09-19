@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from '../services/choreApi';
@@ -683,5 +683,71 @@ describe('date navigation', () => {
         }
 
         expect(screen.getByText(/overdue/i)).toBeInTheDocument();
+    });
+});
+
+describe('Add Task deck (F5)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore()]);
+    });
+
+    it('renders the deck sticky at the bottom of the scroll region with a translucent blurred background', async () => {
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        const deck = screen.getByTestId('add-task-deck');
+        expect(deck.className).toContain('sticky');
+        expect(deck.className).toContain('bottom-0');
+        expect(deck.className).toContain('mt-auto');
+        // No hard top edge: the deck itself carries no border or background.
+        expect(deck.className).not.toMatch(/\bborder-t\b/);
+        expect(deck.className).not.toMatch(/\bbg-/);
+
+        // The tint + blur live on a masked backing layer that overhangs the deck's top
+        // edge so the frost fades in over the list rather than stopping at a hard line.
+        const backing = within(deck).getByTestId('add-task-deck-backing');
+        expect(backing.getAttribute('aria-hidden')).toBe('true');
+        expect(backing.className).toContain('absolute');
+        expect(backing.className).toContain('-top-16');
+        expect(backing.className).toContain('bg-gray-900/60');
+        expect(backing.className).toContain('backdrop-blur-sm');
+        expect(backing.className).toContain('[mask-image:linear-gradient(to_bottom,transparent,black_4rem)]');
+        expect(backing.className).toContain('pointer-events-none');
+        // Tailwind v4 dropped bg-opacity-*; it compiles to nothing and leaves the
+        // backing fully opaque, so guard against the dead v3 utility creeping back in.
+        expect(backing.className).not.toContain('bg-opacity');
+        // The button must paint above the backing: backing first in DOM, button in a
+        // positioned wrapper after it (both positioned, z-index auto → DOM order).
+        expect(deck.firstElementChild).toBe(backing);
+        const button = within(deck).getByRole('button', { name: /add task/i });
+        expect(button.parentElement).not.toBeNull();
+        expect(button.parentElement!.className).toContain('relative');
+        expect(backing.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+        const scrollRegion = document.querySelector('.overflow-y-auto');
+        expect(scrollRegion).not.toBeNull();
+        expect(scrollRegion!.contains(deck)).toBe(true);
+        expect((scrollRegion as HTMLElement).className).toContain('scroll-pb-40');
+        // mt-auto pinning depends on the deck being the scroll region's last child.
+        expect(scrollRegion!.lastElementChild).toBe(deck);
+
+        expect(within(deck).getByRole('button', { name: /add task/i })).toBeInTheDocument();
+    });
+
+    it('still renders the deck pinned last inside the scroll region when there are no chores', async () => {
+        vi.mocked(fetchAllChores).mockResolvedValue([]);
+
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText(/No chores yet/i)).toBeInTheDocument());
+
+        const deck = screen.getByTestId('add-task-deck');
+        const scrollRegion = document.querySelector('.overflow-y-auto');
+        expect(scrollRegion).not.toBeNull();
+        expect(scrollRegion!.contains(deck)).toBe(true);
+        expect(scrollRegion!.lastElementChild).toBe(deck);
+        expect(within(deck).getByRole('button', { name: /add task/i })).toBeInTheDocument();
     });
 });

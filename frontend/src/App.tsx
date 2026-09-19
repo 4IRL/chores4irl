@@ -331,11 +331,29 @@ export default function App() {
                 />
                 <ReturnToTodayButton dayOffset={dayOffset} onReset={() => setDayOffset(0)} />
                 <ChoreSearchInput value={searchQuery} onChange={setSearchQuery} />
-                <div className="flex-1 overflow-y-auto min-h-0">
+                <div className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40">
                     <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} onEdit={handleRequestEdit} />
-                </div>
-                <div className="flex-shrink-0 py-4 flex justify-center border-t border-gray-700">
-                    <AddChoreButton onClick={() => { setEditingId(null); setShowForm(true); }} />
+                    {/* F5: sticky frosted deck — mt-auto pins it to the bottom when the list is
+                        short; sticky keeps it pinned while a long list scrolls beneath the blur.
+                        The tint + blur live on a backing layer that reaches 4rem above the deck
+                        and is masked transparent→opaque over that overhang, so the frost fades in
+                        over the list instead of ending at a hard edge; the button sits above the
+                        backing (positioned, later in DOM) and stays fully opaque.
+                        scroll-pb-40 tells scrollIntoView/focus that the deck's footprint plus the
+                        fade overhang is obscured, so bars are never scrolled to rest under it. */}
+                    <div
+                        data-testid="add-task-deck"
+                        className="sticky bottom-0 mt-auto flex-shrink-0 flex justify-center py-4"
+                    >
+                        <div
+                            aria-hidden="true"
+                            data-testid="add-task-deck-backing"
+                            className="pointer-events-none absolute inset-x-0 -top-16 bottom-0 bg-gray-900/60 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,transparent,black_4rem)]"
+                        />
+                        <div className="relative">
+                            <AddChoreButton onClick={() => { setEditingId(null); setShowForm(true); }} />
+                        </div>
+                    </div>
                 </div>
             </div>
             {showForm && <ChoreFormModal rooms={uniqueRooms} onSubmit={handleAddChore} onCancel={() => setShowForm(false)} />}
