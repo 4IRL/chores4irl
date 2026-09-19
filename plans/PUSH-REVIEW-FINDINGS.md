@@ -36,11 +36,11 @@ backlog is visible and actionable instead of scattered.
   format those skills expect.
 
 ## Quick batch view (by theme)
-- `[test]`     — 13 items: assertion hardening, missing-branch coverage, brittle-selector fixes, `rearmTick` self-heal (auto-screen-blank), `!event.repeat` guard (touch-lock), post-submit clear-✕ reset (clear-input-buttons)
-- `[style]`/`[dx]` — 21 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup, native `<button>`/`z-50` (auto-screen-blank), repeat-key `preventDefault` + plan-step comment cleanup (touch-lock), `clearable` type-safety (clear-input-buttons), META-PLAN policy-restatement consolidation (deferred)
+- `[test]`     — 18 items: assertion hardening, missing-branch coverage, brittle-selector fixes, `rearmTick` self-heal (auto-screen-blank), `!event.repeat` guard (touch-lock), post-submit clear-✕ reset (clear-input-buttons), `BEGIN IMMEDIATE` two-connection migration test (remove-details-longterm), deck-class assertions (translucent-add-deck)
+- `[style]`/`[dx]` — 31 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup, native `<button>`/`z-50` (auto-screen-blank), repeat-key `preventDefault` + plan-step comment cleanup (touch-lock), `clearable` type-safety (clear-input-buttons), META-PLAN policy-restatement consolidation (deferred), migration count-alias + tagged log line (remove-details-longterm), `/compact-plans` Step 7 scan doc nits (phase-c-guard), ledger/paragraph tidies deferred to `/new-feature` (meta-plan-update-f5)
 - `[a11y]`     — 3 items: `focus-visible:` reveal, focus-ring clipping (bar-redesign); aria-label sentence-casing (clear-input-buttons)
 - `[security]` — 4 items: server-side `urgency` enum validation (edit-task); SSE connection cap + host-specifics redaction + predecessor-ledger username (all opt / only-if-public)
-- `[design]`   — 2 items: both had a blocking dependency that **has since merged** — now decidable (see ⚠ below)
+- `[design]`   — 3 items: both had a blocking dependency that **has since merged** — now decidable (see ⚠ below); plus the F5 `relative`-wrapper removal, which needs a Pi kiosk re-verification first
 
 ---
 
@@ -154,8 +154,63 @@ Source: `plans/completed/meta-plan-housekeeping-260723/reviews/push-review-chore
 
 ---
 
+## F4 (current numbering) — remove-details-longterm  (`d728989`, #38)
+Source: `plans/completed/remove-details-longterm/reviews/push-review-feature-remove-details-longterm.md`
+> Harvested by the 2026-09-19 `/compact-plans` sweep. Review 1 was 9/9 PASS (Type Design reviewer included) with no blocking findings; these four are its non-blocking minors/optionals.
+
+- [ ] `[style]` minor — Rename the count alias in the migration test helper — `backend/src/__tests__/db-migration.test.ts` (`rowCount`) — use `SELECT COUNT(*) AS count FROM chores` / `{ count: number }` to match `backend/src/db.ts`'s existing convention for the same query.
+- [ ] `[dx]` minor — Add a greppable log line before the migration rethrows — `backend/src/db.ts` (`dropLegacyChoreColumns` body or its module-load call) — wrap in `try { … } catch (err) { console.error('[db] F4 legacy-column migration failed:', err); throw err; }` so crash-loud behaviour is unchanged but the log carries an explicit tag.
+- [ ] `[test]` opt — Add a two-connection `BEGIN IMMEDIATE` test — `backend/src/__tests__/db-migration.test.ts` — open two better-sqlite3 connections on one legacy temp file, call `dropLegacyChoreColumns` on both without closing the first, assert the second either serialises to a 7-column no-op or throws `SQLITE_BUSY` as the comment documents.
+- [ ] `[style]` opt *(taste)* — Inline the two guarded ALTER statements — `backend/src/db.ts` — replace the `LEGACY_CHORE_COLUMNS` loop with two straight-line `if (present.has('details')) …` / `if (present.has('long_term_task')) …` statements.
+
+---
+
+## F5 (current numbering) — translucent-add-deck  (`a1705b3`, #39)
+Source: `plans/completed/translucent-add-deck/reviews/push-review-feature-translucent-add-deck.md`
+> Harvested by the 2026-09-19 `/compact-plans` sweep. Two review rounds, both all-PASS; six non-blocking items, one already resolved (see its `[x]` below).
+
+- [ ] `[test]` opt — Remove the redundant `not.toContain('bg-blue-500/')` assertion — `frontend/src/__tests__/components/AddChoreButton.test.tsx:11` — the `toMatch(/(^|\s)bg-blue-500(\s|$)/)` on line 10 already rejects the alpha-suffixed form; drop line 11 and its comment, or keep it only if the exact-token guard is wanted for readability.
+- [ ] `[test]` minor — Assert the scroll region is a flex column in the deck tests — `frontend/src/__tests__/App.test.tsx`, both tests in `describe('Add Task deck (F5)')` — add `expect((scrollRegion as HTMLElement).className).toContain('flex')` and `.toContain('flex-col')` next to the existing `scroll-pb-24` assertion, so `mt-auto`'s precondition is guarded.
+- [x] `[dx]` — Confirm F4 and F5 ledger rows after merge — `plans/META-PLAN.md` Status ledger — **resolved 2026-09-19**: both rows were removed by their Phase C fold-backs (#40, #41); verified by this sweep's Step 7 ledger scan.
+- [ ] `[test]` minor — Assert the backing's full extent — `frontend/src/__tests__/App.test.tsx` ('Add Task deck (F5)' first test) — add `expect(backing.className).toContain('inset-x-0')` and `.toContain('bottom-0')` beside the `-top-16` assertion so a dropped edge fails a test.
+- [ ] `[test]` minor — Tie the overhang/mask/scroll-padding numbers together — `frontend/src/__tests__/App.test.tsx` — derive the three from one constant in the test (e.g. `const OVERHANG_REM = 4` → `-top-${OVERHANG_REM*4}`, `black_${OVERHANG_REM}rem`, and assert `scroll-pb-N` with `N*4 >= 81/4 + OVERHANG_REM*4`), or add one comment-linked assertion block, so editing one without the others fails.
+- [ ] `[design]` opt *(needs Pi verification)* — Evaluate removing the `relative` button wrapper — `frontend/src/App.tsx` deck markup — only if `isolate` on the deck plus `-z-10` on the backing is re-verified on the Pi kiosk to still blur the list beneath (isolation may change the backdrop root); otherwise keep the wrapper.
+
+---
+
+## (chore) compact-plans-phase-c-guard  (`e488e28`, #37)
+Source: `plans/completed/compact-plans-phase-c-guard/reviews/push-review-chore-compact-plans-phase-c-guard.md`
+> Harvested by the 2026-09-19 `/compact-plans` sweep. Six review rounds; Reviews 1–5's items all landed on-branch. These five are Review 6's deferred doc nits on the `/compact-plans` skill's Step 7 whole-ledger scan. Note: the 2026-09-19 sweep separately reworked Step 5's per-branch gate (remote-only path) — these items are in Step 7 and remain open.
+
+- [ ] `[dx]` minor — Move the `(<F-ID>/<N> … are $fid/$N)` mapping note before its first use — `.claude/skills/compact-plans/SKILL.md` Step 7 scan sub-bullet — place it right after the `row=`/`fid=`/`N=`/`branch=` assignments so it precedes the numeric-gate STOP, or reword "below" to "here and below".
+- [ ] `[dx]` minor — Add a `lineno=` one-liner — same sub-bullet — `lineno=$(cut -d: -f1 <<<"$hit")` alongside the other assignments, so no step is prose-only.
+- [ ] `[dx]` minor — Extract `N` from the PR column rather than the whole row — same sub-bullet — `N=$(awk -F'|' '{print $5}' <<<"$row" | grep -oE '\[#[0-9]+\]\(' | grep -oE '[0-9]+')`, so a `[#N](` link in prose elsewhere on the row can't trip the two-link STOP; or add a one-clause scoping caveat.
+- [ ] `[dx]` minor — Turn the outcome comparison into a `jq` extraction — same sub-bullet — `read -r state head_ref <<<"$(jq -r '"\(.state) \(.headRefName)"' <<<"$pr_json")"` then `[[ "$state" == MERGED && "$head_ref" == "$branch" ]]` etc., mirroring Step 5's pattern.
+- [ ] `[dx]` minor — State `$fid`'s non-empty guarantee — same sub-bullet — one clause: guaranteed by the enumeration grep's `^\| \*{0,2}F[0-9]+` anchor, so no separate guard is needed.
+
+---
+
+## (chore) meta-plan-update-f14  (`1b2f8a4`, #36)
+Source: `plans/completed/meta-plan-update-f14/reviews/push-review-chore-meta-plan-update-f14.md`
+> Harvested by the 2026-09-19 `/compact-plans` sweep. Reviews 1–2's required items all landed on-branch; the one deferred minor is carried here for visibility only (moot — see its `[x]` below).
+
+- [x] `[dx]` opt *(moot)* — Reword F4's "incl. its tests" — `plans/META-PLAN.md` (F4 › Expected end state) — F4 merged (#38) and its META-PLAN section was removed by the #40 fold-back, so the sentence this targeted no longer exists; nothing to do.
+
+---
+
+## (chore) meta-plan-update-f5  (`f63d03f`, #41)
+Source: `plans/completed/meta-plan-update-f5/reviews/push-review-chore-meta-plan-update-f5.md`
+> Harvested by the 2026-09-19 `/compact-plans` sweep. Review 1 was all-PASS; both items are optional and explicitly deferred to other skills. (The first item's "deleted by the next `/compact-plans` sweep" premise is wrong — this sweep never edits `META-PLAN.md`; the paragraph is only rewritten by `/run-feature` Phase C or `/new-feature`.)
+
+- [ ] `[dx]` opt — Shorten the "Branch/dir cleanup" enumeration — `plans/META-PLAN.md` "Branch/dir cleanup" paragraph — do it in the next Phase C / `/new-feature` rewrite of that paragraph, not by hand.
+- [ ] `[dx]` opt — Tick F5 in the feature ledger — `plans/ledger/260715_feature_ledger.md` — mark `F5` as shipped (#39) if/when `/new-feature` next rewrites the ledger; do not hand-edit outside that skill. (Same applies to `F4`, #38.)
+
+---
+
 ## Resolved / archived
 Findings whose feature reviews reached 0-open at push time (kept for provenance, no action):
 - **date-navigation-simulation** (`c36d867`, #12) — both review rounds fully resolved (8/8 done).
 - **reconfig-ClaudeCode** push review — 20/20 done.
+- **meta-plan-update-f4** (`89a9675`, #40) — push review reached 0-open at push time; archived by the 2026-09-19 sweep with nothing to harvest.
+- **meta-plan-workflow-improvements-260910** (`9d3e7a4`, #35) — push review reached 0-open at push time; archived by the 2026-09-19 sweep with nothing to harvest.
 - **plans-housekeeping** (`b823ad4`, #20) — two doc-hygiene findings resolved in the 2026-06-30 `/compact-plans` sweep: (1) freeze headers added to the six older completed plans that lacked them; (2) `progress-bar-decay.md` corrected to **Merged `e929b75` (#7)** with an F6-consolidation note (the prior "never merged" claim was contradicted by git).
