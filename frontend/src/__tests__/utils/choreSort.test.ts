@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { Chore } from '@customTypes/SharedTypes';
 import { calcDurationWeightedScore, orderChores } from '../../utils/choreSort';
 import { makeChore, localNoon } from '../fixtures/chore';
 
@@ -29,19 +30,18 @@ describe('calcDurationWeightedScore', () => {
 });
 
 describe('orderChores', () => {
-    it('separates short-term from long-term chores', () => {
+    it('ignores a legacy longTermTask flag and orders purely by descending duration-weighted score', () => {
         const today = localNoon('2025-01-15');
-        const shortTerm = makeChore({ id: 1, longTermTask: undefined,
-            dateLastCompleted: localNoon('2025-01-01') });
-        const longTerm = makeChore({ id: 2, longTermTask: true,
-            dateLastCompleted: localNoon('2024-01-01') });
-        const result = orderChores([longTerm, shortTerm], today);
-        // short-term should come first regardless of score
-        expect(result[0].id).toBe(1);
-        expect(result[1].id).toBe(2);
+        // weekly: 5/7 * 10 ≈ 7.1; quarterly: 380/90 * 10 ≈ 42.2
+        // cast: longTermTask leaves the Chore type in Step 4; keeps this stale-key test compiling
+        const weekly = makeChore({ id: 1, duration: 10, frequency: 7,
+            dateLastCompleted: localNoon('2025-01-10') });
+        const quarterly = { ...makeChore({ id: 2, duration: 10, frequency: 90,
+            dateLastCompleted: localNoon('2024-01-01') }), longTermTask: true } as unknown as Chore;
+        expect(orderChores([weekly, quarterly], today).map(c => c.id)).toEqual([2, 1]);
     });
 
-    it('sorts within each group by descending score', () => {
+    it('sorts by descending score', () => {
         const today = localNoon('2025-01-15');
         const leastOverdue = makeChore({ id: 1, duration: 10, frequency: 7,
             dateLastCompleted: localNoon('2025-01-12') });

@@ -207,7 +207,7 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| **F4 — remove Details/Long-term** ★FOCUS | pending | `feature/remove-details-longterm` | — |
+| **F4 — remove Details/Long-term** ★FOCUS | in-review | `feature/remove-details-longterm` | [#38](https://github.com/4IRL/chores4irl/pull/38) |
 | F5 — translucent Add-Task deck | pending | `feature/translucent-add-deck` | — |
 | F15 — adopt kiosk-shell *(added 2026-07-15)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — |
 | F11 — undo *(re-scoped 2026-07-15: `kiosk/v1` contract)* | pending *(gated on external pi-kiosk Phase 4)* | `feature/undo` | — |

@@ -4,13 +4,11 @@ import type { Chore } from '../../types/SharedTypes.js';
 type ChoreRow = {
     id: number;
     name: string;
-    details: string | null;
     room: string;
     date_last_completed: string;
     duration: number;
     frequency: number;
     urgency: 'low' | 'medium' | 'high' | null;
-    long_term_task: number;
 };
 
 type ChoreWire = Omit<Chore, 'dateLastCompleted'> & { dateLastCompleted: string };
@@ -19,13 +17,11 @@ function rowToChore(row: ChoreRow): ChoreWire {
     return {
         id: row.id,
         name: row.name,
-        details: row.details ?? null,
         room: row.room,
         dateLastCompleted: row.date_last_completed,
         duration: row.duration,
         frequency: row.frequency,
         urgency: row.urgency ?? undefined,
-        longTermTask: row.long_term_task === 1 ? true : undefined,
     };
 }
 
@@ -35,11 +31,10 @@ export function getAllChores(): ChoreWire[] {
 
 export function createChore(input: Omit<Chore, 'id'>): ChoreWire {
     const result = db.prepare(`
-        INSERT INTO chores (name, details, room, date_last_completed, duration, frequency, urgency, long_term_task)
-        VALUES (@name, @details, @room, @date_last_completed, @duration, @frequency, @urgency, @long_term_task)
+        INSERT INTO chores (name, room, date_last_completed, duration, frequency, urgency)
+        VALUES (@name, @room, @date_last_completed, @duration, @frequency, @urgency)
     `).run({
         name: input.name,
-        details: input.details ?? null,
         room: input.room,
         date_last_completed: input.dateLastCompleted instanceof Date
             ? input.dateLastCompleted.toISOString()
@@ -47,7 +42,6 @@ export function createChore(input: Omit<Chore, 'id'>): ChoreWire {
         duration: input.duration,
         frequency: input.frequency,
         urgency: input.urgency ?? null,
-        long_term_task: input.longTermTask ? 1 : 0,
     });
     return rowToChore(db.prepare('SELECT * FROM chores WHERE id = ?').get(result.lastInsertRowid) as ChoreRow);
 }
@@ -61,14 +55,13 @@ export function completeChore(id: number, dateLastCompleted: string): ChoreWire 
 export function updateChore(id: number, input: Omit<Chore, 'id'>): ChoreWire | null {
     const result = db.prepare(`
         UPDATE chores
-        SET name = @name, details = @details, room = @room,
+        SET name = @name, room = @room,
             date_last_completed = @date_last_completed, duration = @duration,
-            frequency = @frequency, urgency = @urgency, long_term_task = @long_term_task
+            frequency = @frequency, urgency = @urgency
         WHERE id = @id
     `).run({
         id,
         name: input.name,
-        details: input.details ?? null,
         room: input.room,
         date_last_completed: input.dateLastCompleted instanceof Date
             ? input.dateLastCompleted.toISOString()
@@ -76,7 +69,6 @@ export function updateChore(id: number, input: Omit<Chore, 'id'>): ChoreWire | n
         duration: input.duration,
         frequency: input.frequency,
         urgency: input.urgency ?? null,
-        long_term_task: input.longTermTask ? 1 : 0,
     });
     if (result.changes === 0) return null;
     return rowToChore(db.prepare('SELECT * FROM chores WHERE id = ?').get(id) as ChoreRow);

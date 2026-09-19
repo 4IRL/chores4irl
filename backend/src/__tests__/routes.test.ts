@@ -23,8 +23,8 @@ describe('GET /api/chores', () => {
     });
 
     it('returns 200 with all chores when table has rows', async () => {
-        db.exec(`INSERT INTO chores (name, room, date_last_completed, duration, frequency, long_term_task)
-            VALUES ('Sweep', 'Kitchen', '2025-01-01T00:00:00.000Z', 10, 7, 0)`);
+        db.exec(`INSERT INTO chores (name, room, date_last_completed, duration, frequency)
+            VALUES ('Sweep', 'Kitchen', '2025-01-01T00:00:00.000Z', 10, 7)`);
         const res = await request(app).get('/api/chores');
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
@@ -46,6 +46,15 @@ describe('POST /api/chores', () => {
         const res = await request(app).post('/api/chores').send({ name: 'Only name' });
         expect(res.status).toBe(400);
         expect(res.body.success).toBe(false);
+    });
+
+    it('returns 201 and drops legacy details/longTermTask keys from the body', async () => {
+        const res = await request(app)
+            .post('/api/chores')
+            .send({ ...BASE_CHORE, details: 'stale', longTermTask: true });
+        expect(res.status).toBe(201);
+        expect(res.body.data).not.toHaveProperty('details');
+        expect(res.body.data).not.toHaveProperty('longTermTask');
     });
 });
 
@@ -109,6 +118,17 @@ describe('PUT /api/chores/:id', () => {
     it('returns 400 when id is not a number', async () => {
         const res = await request(app).put('/api/chores/abc').send(BASE_CHORE);
         expect(res.status).toBe(400);
+    });
+
+    it('returns 200 and drops legacy details/longTermTask keys from the body', async () => {
+        const post = await request(app).post('/api/chores').send(BASE_CHORE);
+        const id = post.body.data.id;
+        const res = await request(app)
+            .put(`/api/chores/${id}`)
+            .send({ ...BASE_CHORE, details: 'stale', longTermTask: true });
+        expect(res.status).toBe(200);
+        expect(res.body.data).not.toHaveProperty('details');
+        expect(res.body.data).not.toHaveProperty('longTermTask');
     });
 });
 

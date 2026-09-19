@@ -7,14 +7,8 @@ export function calcDurationWeightedScore(chore: Chore, today: Date): number {
     return chore.duration * percentOverdue;
 }
 
-function orderSubList(chores: Chore[], today: Date): Chore[] {
+export function orderChores(chores: Chore[], today: Date): Chore[] {
     return [...chores].sort((a, b) =>
         calcDurationWeightedScore(b, today) - calcDurationWeightedScore(a, today)
     );
-}
-
-export function orderChores(chores: Chore[], today: Date): Chore[] {
-    const shortTerm = chores.filter(c => !c.longTermTask);
-    const longTerm = chores.filter(c => c.longTermTask);
-    return [...orderSubList(shortTerm, today), ...orderSubList(longTerm, today)];
 }

@@ -19,13 +19,11 @@ describe('ChoreForm', () => {
                 initialChore={makeChore({
                     id: 7,
                     name: 'Mop',
-                    details: 'wet',
                     room: 'Kitchen',
                     dateLastCompleted: new Date('2025-03-31T00:00:00.000Z'),
                     duration: 45,
                     frequency: 7,
                     urgency: 'low',
-                    longTermTask: true,
                 })}
                 onSubmit={vi.fn()}
                 onCancel={vi.fn()}
@@ -33,12 +31,10 @@ describe('ChoreForm', () => {
         );
 
         expect(screen.getByLabelText('Name')).toHaveValue('Mop');
-        expect(screen.getByLabelText('Details')).toHaveValue('wet');
         expect(screen.getByLabelText('Room')).toHaveValue('Kitchen');
         expect(screen.getByLabelText('Last Completed')).toHaveValue('2025-03-31');
         expect(screen.getByLabelText('Duration (minutes)')).toHaveValue(45);
         expect(screen.getByLabelText('Frequency (days)')).toHaveValue(7);
-        expect(screen.getByLabelText('Long-term task')).toBeChecked();
         expect(screen.getByRole('combobox', { name: 'Urgency' })).toHaveValue('low');
         expect(screen.getByText('Edit Chore')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument();
@@ -53,13 +49,11 @@ describe('ChoreForm', () => {
                 initialChore={makeChore({
                     id: 7,
                     name: 'Mop',
-                    details: 'wet',
                     room: 'Kitchen',
                     dateLastCompleted: new Date('2025-03-31T00:00:00.000Z'),
                     duration: 45,
                     frequency: 7,
                     urgency: 'low',
-                    longTermTask: true,
                 })}
                 onSubmit={onSubmit}
                 onCancel={vi.fn()}
@@ -77,10 +71,23 @@ describe('ChoreForm', () => {
         expect(payload.dateLastCompleted).toBeInstanceOf(Date);
         expect(payload.duration).toBe(45);
         expect(payload.frequency).toBe(7);
-        expect(payload.details).toBe('wet');
         expect(payload.urgency).toBe('low');
-        expect(payload.longTermTask).toBe(true);
         expect(payload).not.toHaveProperty('id');
+        expect(payload).not.toHaveProperty('details');
+        expect(payload).not.toHaveProperty('longTermTask');
+    });
+
+    it('no longer renders a Details field or a Long-term task checkbox (F4)', () => {
+        const assertAbsent = () => {
+            expect(screen.queryByLabelText('Details')).toBeNull();
+            expect(screen.queryByLabelText('Long-term task')).toBeNull();
+            expect(screen.queryByRole('checkbox')).toBeNull();
+        };
+        const { unmount } = render(<ChoreForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+        assertAbsent();
+        unmount();
+        render(<ChoreForm mode="edit" initialChore={makeChore({ id: 7, urgency: 'low' })} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+        assertAbsent();
     });
 });
 
@@ -184,15 +191,6 @@ describe('ChoreForm clear-✕ (F14)', () => {
         expect(screen.getByLabelText('Name')).toHaveValue('Sweep');
         expect(onSubmit).not.toHaveBeenCalled();
         expect(onCancel).not.toHaveBeenCalled();
-    });
-
-    it('Details field never renders a clear-✕', async () => {
-        const user = userEvent.setup();
-        render(<ChoreForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
-
-        await user.type(screen.getByLabelText('Details'), 'some notes');
-
-        expect(screen.queryByRole('button', { name: 'Clear Details' })).toBeNull();
     });
 
     it('clear-✕ is present immediately on mount in edit mode, with no typing', () => {
