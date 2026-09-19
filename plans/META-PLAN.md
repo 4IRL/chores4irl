@@ -131,8 +131,8 @@ only unblocked candidate — `F5`'s own fold-back must decide (ask the user) bet
 `F6` and holding for the pi-kiosk gates, rather than assuming `F6` is next.
 
 - **Do not** re-open `F4`'s or `F14`'s scope — the *Details* / *Long-term task* fields are
-  gone (#38, with the `db.ts` boot migration) and the clear-✕ affordance shipped (#34); Standing invariants
-  10–11 record both as verified-shipped facts.
+  gone (#38, with the `db.ts` boot migration) and the clear-✕ affordance shipped (#34);
+  Standing invariants 10–11 record both as verified-shipped facts.
 - **Do not** start `F3`/`F7`/`F8`/`F9`/`F10`/`F13` in this repo at all — they are
   superseded (migrated to pi-kiosk, 2026-07-15). `F15` cannot start until pi-kiosk
   Phase 2 parity is verified on the Pi; `F11`/`F12` cannot start until pi-kiosk Phase 4

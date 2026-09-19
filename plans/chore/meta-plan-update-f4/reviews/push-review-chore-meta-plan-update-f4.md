@@ -47,3 +47,44 @@ Crash-loud chain (db.ts → server.ts `listen`, HEALTHCHECK, `on-failure:5`, REA
 - [x] **Note the stale-key silent-drop as a deliberate tradeoff** — `plans/META-PLAN.md` Domain-model bullet (~line 263) and Standing invariant 11 (~line 298) — add a short parenthetical: rejecting with 400 would break kiosk clients still running the old form until reloaded; accepted in F4's push review
 - [x] **Delete the retired "F14 ↔ F4 / F4 ↔ F3-L" coupling bullet** — `plans/META-PLAN.md` Chain integrity → "Cross-feature couplings to honor" (~line 790) — Standing invariants 6 and 10 already record it
 - [x] **Normalise the three style nits** — `plans/META-PLAN.md` ~line 130 (`*Details* / *Long-term task* are gone`), ~lines 301/303 (`**Resolved (F4, shipped #38):**`), ~line 111 (`none blocking *(F4 and F14 already merged)*`)
+
+## Review 2
+Generated: 2026-09-19 08:44
+Comparison: origin/main (d728989)...HEAD (7321c3a), 2 commits, 2 files
+Verdict: **BLOCKED** *(all five Review 1 to-dos verified applied by every reviewer; one new major — this file itself lacked a Review 2 section, the same self-referential finding the F14 fold-back's Review 2 hit — resolved by this section, plus one minor wrap fix applied in the follow-up commit)*
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+Docs-only; no secrets/hostnames; the crash-loud migration prose documents its snapshot-first safeguards.
+
+#### 2. Correctness — PASS
+Both Review 1 majors confirmed fixed against `ChoreForm.tsx` (Urgency `<select>`, options None/low/medium/high) and `gh` (#39 OPEN; its branch carries the F5 row flip); all other repo facts re-verified.
+
+#### 3. Simplicity & Conciseness — PASS (3 minor, deferred)
+- minor `plans/META-PLAN.md:266,301` — stale-key rationale stated in both the Domain-model bullet and Standing invariant 11.
+- minor `:281,300` — "no diff in #38" fact stated in both the Key UI form bullet and Standing invariant 10.
+- minor `:263` — the SQLite bullet is one dense ~200-word sentence.
+*Deferred:* the Baseline-prose + Standing-invariant pairing is the document's existing pattern (invariants 8–10 compress facts already in the Baseline) and the reviewer judged it warranted; the long single-line Baseline bullets are the file's established convention.
+
+#### 4. Test Coverage — PASS
+The one new test-adjacent claim (raw Urgency `<select>`) matches `ChoreForm.tsx` and `ChoreForm.test.tsx`'s `combobox` query.
+
+#### 5. Completeness & Cleanup — PASS
+All five to-dos landed; the F5 prose/ledger fix judged a complete resolution (verified `gh pr diff 39` flips the row on that branch); no stale `#35`/`9d3e7a4`/forward-looking F4 text; tables/fences sound; review record well-formed.
+
+#### 6. Consistency & Style — FAIL (1 major, 1 minor)
+All five fixes match the document's conventions.
+- **major** this file — no `## Review 2` section had been appended for the second pass (the sibling `meta-plan-update-f14` record establishes one dated section per pass). Resolved by this section.
+- minor `plans/META-PLAN.md:134` — 107-char line in the "Do not re-open" bullet vs. the ~90-col wrap of its neighbours.
+
+#### 7. Integration Risk — PASS
+Skill grep patterns still match (exactly one F5 row, no live FOCUS → F4, ID-map row present); #39 conflict still confined to the single ledger hunk and the fix commit touches no line #39 touches; review-record path matches the frozen `plans/completed/meta-plan-housekeeping-260723/reviews/` precedent for `/compact-plans`.
+
+#### 8. Error Handling & Silent Failures — PASS
+Added stale-key rationale matches F4's push-review reviewer-8 note verbatim and `chores.ts`'s named-param literals.
+
+### To-Do: Required Changes
+
+- [x] **Append this Review 2 section** — `plans/chore/meta-plan-update-f4/reviews/push-review-chore-meta-plan-update-f4.md` — record the second pass and re-verify Review 1's fixes (done by this section).
+- [x] **Re-wrap the "Do not re-open" bullet to ~90 cols** — `plans/META-PLAN.md` ~line 134 — break before "Standing invariants".
