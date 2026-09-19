@@ -88,3 +88,25 @@ Added stale-key rationale matches F4's push-review reviewer-8 note verbatim and 
 
 - [x] **Append this Review 2 section** — `plans/chore/meta-plan-update-f4/reviews/push-review-chore-meta-plan-update-f4.md` — record the second pass and re-verify Review 1's fixes (done by this section).
 - [x] **Re-wrap the "Do not re-open" bullet to ~90 cols** — `plans/META-PLAN.md` ~line 134 — break before "Standing invariants".
+
+## Review 3
+Generated: 2026-09-19 08:47
+Comparison: origin/main (d728989)...HEAD (d36775f), 3 commits, 2 files
+Verdict: **PUSHED** — all 8 reviewers PASS with zero findings; Review 1 and Review 2 to-dos verified applied (the three Review 2 Simplicity minors stay deferred with their stated reason).
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+#### 2. Correctness — PASS
+Re-wrap changed no words; Review 2's statements, line refs and Comparison line verified; no live FOCUS → F4; exactly one F5 ledger row, no F4 row.
+#### 3. Simplicity & Conciseness — PASS
+#### 4. Test Coverage — PASS
+#### 5. Completeness & Cleanup — PASS
+#### 6. Consistency & Style — PASS
+Review 2 section matches the `meta-plan-update-f14` record's format; the re-wrapped bullet sits within its neighbours' 66–93-col range.
+#### 7. Integration Risk — PASS
+#### 8. Error Handling & Silent Failures — PASS
+
+### To-Do: Required Changes
+
+*(none)*
