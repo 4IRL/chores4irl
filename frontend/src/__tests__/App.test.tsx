@@ -716,12 +716,13 @@ describe('Add Task deck (F5)', () => {
         expect(backing.className).toContain('[mask-image:linear-gradient(to_bottom,transparent,black_4rem)]');
         expect(backing.className).toContain('pointer-events-none');
         // Tailwind v4 dropped bg-opacity-*; it compiles to nothing and leaves the
-        // deck fully opaque, so guard against the dead v3 utility creeping back in.
+        // backing fully opaque, so guard against the dead v3 utility creeping back in.
         expect(backing.className).not.toContain('bg-opacity');
         // The button must paint above the backing: backing first in DOM, button in a
         // positioned wrapper after it (both positioned, z-index auto → DOM order).
         expect(deck.firstElementChild).toBe(backing);
         const button = within(deck).getByRole('button', { name: /add task/i });
+        expect(button.parentElement).not.toBeNull();
         expect(button.parentElement!.className).toContain('relative');
         expect(backing.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
