@@ -1,4 +1,4 @@
-> **STATUS: Merged** `d728989` (#38). Frozen — this is the PR body as submitted; see `remove-details-longterm.md` for the outcome header.
+> **STATUS: Merged** `d728989` (#38). Frozen — historical record, do not edit. PR body as submitted; see `remove-details-longterm.md` for the outcome.
 
 ## Summary
 

@@ -37,7 +37,7 @@ backlog is visible and actionable instead of scattered.
 
 ## Quick batch view (by theme)
 - `[test]`     — 18 items: assertion hardening, missing-branch coverage, brittle-selector fixes, `rearmTick` self-heal (auto-screen-blank), `!event.repeat` guard (touch-lock), post-submit clear-✕ reset (clear-input-buttons), `BEGIN IMMEDIATE` two-connection migration test (remove-details-longterm), deck-class assertions (translucent-add-deck)
-- `[style]`/`[dx]` — 32 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup, native `<button>`/`z-50` (auto-screen-blank), repeat-key `preventDefault` + plan-step comment cleanup (touch-lock), `clearable` type-safety (clear-input-buttons), META-PLAN policy-restatement consolidation (deferred), migration count-alias + tagged log line (remove-details-longterm), `/compact-plans` Step 7 scan doc nits (phase-c-guard), ledger/paragraph tidies deferred to `/new-feature` (meta-plan-update-f5)
+- `[style]`/`[dx]` — 31 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup, native `<button>`/`z-50` (auto-screen-blank), repeat-key `preventDefault` + plan-step comment cleanup (touch-lock), `clearable` type-safety (clear-input-buttons), META-PLAN policy-restatement consolidation (deferred), migration count-alias + tagged log line (remove-details-longterm), `/compact-plans` Step 7 scan doc nits (phase-c-guard), ledger/paragraph tidies deferred to `/new-feature` (meta-plan-update-f5)
 - `[a11y]`     — 3 items: `focus-visible:` reveal, focus-ring clipping (bar-redesign); aria-label sentence-casing (clear-input-buttons)
 - `[security]` — 4 items: server-side `urgency` enum validation (edit-task); SSE connection cap + host-specifics redaction + predecessor-ledger username (all opt / only-if-public)
 - `[design]`   — 3 items: both had a blocking dependency that **has since merged** — now decidable (see ⚠ below); plus the F5 `relative`-wrapper removal, which needs a Pi kiosk re-verification first
@@ -156,7 +156,7 @@ Source: `plans/completed/meta-plan-housekeeping-260723/reviews/push-review-chore
 
 ## F4 (current numbering) — remove-details-longterm  (`d728989`, #38)
 Source: `plans/completed/remove-details-longterm/reviews/push-review-feature-remove-details-longterm.md`
-> Harvested by the 2026-09-19 `/compact-plans` sweep. Review 1 was 8/8 PASS with no blocking findings; these four are its non-blocking minors/optionals.
+> Harvested by the 2026-09-19 `/compact-plans` sweep. Review 1 was 9/9 PASS (Type Design reviewer included) with no blocking findings; these four are its non-blocking minors/optionals.
 
 - [ ] `[style]` minor — Rename the count alias in the migration test helper — `backend/src/__tests__/db-migration.test.ts` (`rowCount`) — use `SELECT COUNT(*) AS count FROM chores` / `{ count: number }` to match `backend/src/db.ts`'s existing convention for the same query.
 - [ ] `[dx]` minor — Add a greppable log line before the migration rethrows — `backend/src/db.ts` (`dropLegacyChoreColumns` body or its module-load call) — wrap in `try { … } catch (err) { console.error('[db] F4 legacy-column migration failed:', err); throw err; }` so crash-loud behaviour is unchanged but the log carries an explicit tag.
@@ -167,7 +167,7 @@ Source: `plans/completed/remove-details-longterm/reviews/push-review-feature-rem
 
 ## F5 (current numbering) — translucent-add-deck  (`a1705b3`, #39)
 Source: `plans/completed/translucent-add-deck/reviews/push-review-feature-translucent-add-deck.md`
-> Harvested by the 2026-09-19 `/compact-plans` sweep. Two review rounds, both all-PASS; six non-blocking items. Review 1's ledger-row check is closed here: both rows were deleted by the Phase C fold-backs (#40 for F4, #41 for F5).
+> Harvested by the 2026-09-19 `/compact-plans` sweep. Two review rounds, both all-PASS; six non-blocking items, one already resolved (see its `[x]` below).
 
 - [ ] `[test]` opt — Remove the redundant `not.toContain('bg-blue-500/')` assertion — `frontend/src/__tests__/components/AddChoreButton.test.tsx:11` — the `toMatch(/(^|\s)bg-blue-500(\s|$)/)` on line 10 already rejects the alpha-suffixed form; drop line 11 and its comment, or keep it only if the exact-token guard is wanted for readability.
 - [ ] `[test]` minor — Assert the scroll region is a flex column in the deck tests — `frontend/src/__tests__/App.test.tsx`, both tests in `describe('Add Task deck (F5)')` — add `expect((scrollRegion as HTMLElement).className).toContain('flex')` and `.toContain('flex-col')` next to the existing `scroll-pb-24` assertion, so `mt-auto`'s precondition is guarded.
@@ -192,9 +192,9 @@ Source: `plans/completed/compact-plans-phase-c-guard/reviews/push-review-chore-c
 
 ## (chore) meta-plan-update-f14  (`1b2f8a4`, #36)
 Source: `plans/completed/meta-plan-update-f14/reviews/push-review-chore-meta-plan-update-f14.md`
-> Harvested by the 2026-09-19 `/compact-plans` sweep. Reviews 1–2's required items all landed on-branch; the one deferred minor is carried here for visibility but is now **moot** — F4 merged (#38) and its META-PLAN section was removed by the #40 fold-back, so the sentence it targeted no longer exists.
+> Harvested by the 2026-09-19 `/compact-plans` sweep. Reviews 1–2's required items all landed on-branch; the one deferred minor is carried here for visibility only (moot — see its `[x]` below).
 
-- [x] `[dx]` opt *(moot)* — Reword F4's "incl. its tests" — `plans/META-PLAN.md` (F4 › Expected end state) — target text removed with the F4 section by #40; nothing to do.
+- [x] `[dx]` opt *(moot)* — Reword F4's "incl. its tests" — `plans/META-PLAN.md` (F4 › Expected end state) — F4 merged (#38) and its META-PLAN section was removed by the #40 fold-back, so the sentence this targeted no longer exists; nothing to do.
 
 ---
 
@@ -211,5 +211,6 @@ Source: `plans/completed/meta-plan-update-f5/reviews/push-review-chore-meta-plan
 Findings whose feature reviews reached 0-open at push time (kept for provenance, no action):
 - **date-navigation-simulation** (`c36d867`, #12) — both review rounds fully resolved (8/8 done).
 - **reconfig-ClaudeCode** push review — 20/20 done.
-- **meta-plan-update-f4** (`89a9675`, #40) and **meta-plan-workflow-improvements-260910** (`9d3e7a4`, #35) — push reviews reached 0-open at push time; archived by the 2026-09-19 sweep with nothing to harvest.
+- **meta-plan-update-f4** (`89a9675`, #40) — push review reached 0-open at push time; archived by the 2026-09-19 sweep with nothing to harvest.
+- **meta-plan-workflow-improvements-260910** (`9d3e7a4`, #35) — push review reached 0-open at push time; archived by the 2026-09-19 sweep with nothing to harvest.
 - **plans-housekeeping** (`b823ad4`, #20) — two doc-hygiene findings resolved in the 2026-06-30 `/compact-plans` sweep: (1) freeze headers added to the six older completed plans that lacked them; (2) `progress-bar-decay.md` corrected to **Merged `e929b75` (#7)** with an F6-consolidation note (the prior "never merged" claim was contradicted by git).
