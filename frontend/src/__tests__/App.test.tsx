@@ -710,10 +710,10 @@ describe('Add Task deck (F5)', () => {
         const backing = within(deck).getByTestId('add-task-deck-backing');
         expect(backing.getAttribute('aria-hidden')).toBe('true');
         expect(backing.className).toContain('absolute');
-        expect(backing.className).toContain('-top-8');
+        expect(backing.className).toContain('-top-16');
         expect(backing.className).toContain('bg-gray-900/60');
         expect(backing.className).toContain('backdrop-blur-sm');
-        expect(backing.className).toContain('[mask-image:linear-gradient(to_bottom,transparent,black_2rem)]');
+        expect(backing.className).toContain('[mask-image:linear-gradient(to_bottom,transparent,black_4rem)]');
         expect(backing.className).toContain('pointer-events-none');
         // Tailwind v4 dropped bg-opacity-*; it compiles to nothing and leaves the
         // deck fully opaque, so guard against the dead v3 utility creeping back in.
@@ -728,7 +728,7 @@ describe('Add Task deck (F5)', () => {
         const scrollRegion = document.querySelector('.overflow-y-auto');
         expect(scrollRegion).not.toBeNull();
         expect(scrollRegion!.contains(deck)).toBe(true);
-        expect((scrollRegion as HTMLElement).className).toContain('scroll-pb-32');
+        expect((scrollRegion as HTMLElement).className).toContain('scroll-pb-40');
         // mt-auto pinning depends on the deck being the scroll region's last child.
         expect(scrollRegion!.lastElementChild).toBe(deck);
 
