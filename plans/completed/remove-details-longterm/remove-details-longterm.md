@@ -1,3 +1,6 @@
+> **STATUS: Merged** `d728989` (#38). Frozen — historical record, do not edit.
+> **Outcome:** F4 shipped as planned: `details`/`longTermTask` removed from `Chore`, `ChoreForm`, `chores.ts`, `db.ts` schema+seed, `choreSort.ts` (long-term sort tier collapsed — a visible behaviour change, accepted); `frontend/src/assets/database.ts` deleted. Migration is an exported, idempotent `dropLegacyChoreColumns(db)` (`pragma table_info` guard + `ALTER … DROP COLUMN`, SQLite 3.51.3 ≥ 3.35 verified) called at module load, **crash-loud by design** (no try/catch) — the Pi's live `data.db` migrates on first container start after redeploy; snapshot the volume first. Deviation: META-PLAN's "grep returns no matches" end-state was unsatisfiable as written (the migration itself must name `long_term_task`) — the two remaining references in `db.ts` are intentional. Phase C fold-back landed as #40.
+
 # Remove *Details* and *Long-term task* fields (F4)
 
 ## Summary

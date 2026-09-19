@@ -1,3 +1,5 @@
+> **STATUS: Merged** `d728989` (#38). Frozen — this is the PR body as submitted; see `remove-details-longterm.md` for the outcome header.
+
 ## Summary
 
 - **F4 removes the *Details* text field and the *Long-term task* checkbox** end to end: the shared `Chore` type (`types/SharedTypes.d.ts`), the chore form (`ChoreForm.tsx`), the backend data-access layer (`createChore` + `updateChore` + `rowToChore` in `chores.ts`), the SQLite schema and seed (`db.ts`), the frontend sort util (`choreSort.ts`), the dead reference file `frontend/src/assets/database.ts`, and the root `README.md`.

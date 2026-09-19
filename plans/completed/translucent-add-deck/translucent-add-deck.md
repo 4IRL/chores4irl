@@ -1,3 +1,6 @@
+> **STATUS: Merged** `a1705b3` (#39). Frozen — historical record, do not edit.
+> **Outcome:** F5 shipped with a different layout technique than META-PLAN sketched: instead of restyling the footer `div`, the deck moved *inside* the scroll container as a `sticky bottom-0 mt-auto` last child (scroller gained `flex flex-col` + `scroll-pb-24`), with a `pointer-events-none absolute inset-x-0 -top-16 bottom-0 bg-gray-900/60 backdrop-blur-sm` backing masked by a top-fade gradient — so the blur overhangs the list with zero magic-number heights. `AddChoreButton` became fully opaque (`bg-blue-500`, was `/50`) — an explicit decision, pinned by test. Contract a later feature must respect: `.overflow-y-auto` is still the single scroll region and the search input stays outside it (`App.search.test.tsx` depends on this). Chore-list track complete; Phase C fold-back landed as #41.
+
 # Translucent / blur Add Task deck (F5)
 
 ## Summary
