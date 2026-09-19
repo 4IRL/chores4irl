@@ -96,3 +96,40 @@ Both Review 1 majors fixed and verified against real git error text. Minor: same
 - [ ] **Reconcile the config-section cleanup's scope and benign-reason comments** — `.claude/skills/compact-plans/SKILL.md` Step 5 stale-ref snippet — widen the scope comment to include remote-only entries (a sweep halted by a STOP after `-D` can leave the section for a later run to find as remote-only) and reword the benign reason to "`-D` ran unsandboxed and cleaned it itself, or a remote-only entry that never had one"; make Step 7's bullet say "(either leg)" and add "or was out of scope" to its hit interpretation.
 - [ ] **State the cleanup's name provenance** — `.claude/skills/compact-plans/SKILL.md` Step 5 stale-ref intro — "over the same `<branch>` names the loop already passed through its regex gate (never a name from anywhere else)".
 - [ ] **Add the `(F5)` marker to the F5 Outcome opener** — `plans/completed/translucent-add-deck/translucent-add-deck.md:2` — "…than META-PLAN sketched (F5) — …", matching Review 1's item verbatim.
+
+## Review 3
+Generated: 2026-09-19 11:19
+Comparison: origin/main...HEAD (Review 2's 4 items all landed in `2287815`)
+Verdict: **PUSHED WITH MINOR FINDINGS**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+Regex gate precedes every destructive op including the cleanup; Review 2's provenance minor landed verbatim; no secrets.
+
+#### 2. Correctness — PASS
+Both Review 2 minors landed and are mutually consistent; control flow re-traced; Review 1 boxes `[ ]`, Review 2 present. Minor: Step 7's "or was out of scope" clause is now a defensive hedge with no live gap behind it.
+
+#### 3. Simplicity & Conciseness — PASS
+New comments/prose each add distinct information.
+
+#### 4. Test Coverage — PASS
+Step 7 bullet matches the widened cleanup scope.
+
+#### 5. Completeness & Cleanup — PASS
+Both Review 2 minors landed; Review 2's four To-Do items verified against `2287815`; no stale text remains.
+
+#### 6. Consistency & Style — PASS
+Review record now matches house form (append-only rounds, Review 1 boxes restored). Minor: the two scoping comments in the stale-ref snippet are standalone leading `#` lines; every other snippet comment in the file trails its code line.
+
+#### 7. Integration Risk — PASS
+Step numbering unchanged; worktree/META-PLAN references resolve; no dangling plan paths.
+
+#### 8. Error Handling & Silent Failures — PASS
+Scope/benign/Step 7 wording consistent; both new STOPs carry `$out`. Minor (pre-existing, unmodified): the `gh api -X DELETE` failure STOP names the branch but doesn't capture the command's output like its newer siblings.
+
+### To-Do: Required Changes
+
+- [ ] **Capture the DELETE call's output in its STOP** — `.claude/skills/compact-plans/SKILL.md` Step 5 per-branch snippet — `elif ! delete_out=$(gh api -X DELETE "repos/4IRL/chores4irl/git/refs/heads/<branch>" 2>&1); then echo "STOP: remote delete failed for <branch> — $delete_out"`, for symmetry with the existence-check and stale-ref STOPs.
+- [ ] **Trail the two stale-ref scoping comments** — `.claude/skills/compact-plans/SKILL.md` Step 5 stale-ref snippet — move each leading `# for every branch …` line to trail its `if ! out=$(…); then` line, matching the file's trailing-comment convention (or leave as-is if line length argues for it).
+- [ ] **Optionally drop "or was out of scope"** — `.claude/skills/compact-plans/SKILL.md` Step 7 stale-ref bullet — the cleanup scope now covers every category that reaches "pruned"; keep only if future narrowing is anticipated.
