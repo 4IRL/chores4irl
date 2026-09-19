@@ -67,7 +67,7 @@ npx playwright test                  # e2e
 
 The production target is a Raspberry Pi 4 (ARM64) running 64-bit Raspberry Pi OS Bookworm. Deployment ships the **source tree** to the Pi and builds natively there, because `better-sqlite3`, `@tailwindcss/oxide`, `lightningcss`, and `@rollup/rollup` all have platform-specific native binaries — building the image on an x86_64 laptop and `docker save`/`docker load`-ing to the Pi would ship the wrong binaries.
 
-For the full rationale, step-by-step validation, and troubleshooting, see [`plans/deploy/docker-raspberry-pi/docker-raspberry-pi.md`](plans/deploy/docker-raspberry-pi/docker-raspberry-pi.md).
+For the full rationale, step-by-step validation, and troubleshooting, see [`plans/completed/docker-raspberry-pi/docker-raspberry-pi.md`](plans/completed/docker-raspberry-pi/docker-raspberry-pi.md).
 
 ### Local smoke test
 
@@ -108,7 +108,7 @@ would ship without the files needed to build on the Pi.)
 
 ```bash
 git archive --format=tar.gz -o /tmp/chores4irl-src.tar.gz HEAD
-scp /tmp/chores4irl-src.tar.gz <pi-user>@<pi-host>:~/chores4irl-src.tar.gz
+scp /tmp/chores4irl-src.tar.gz <pi-user>@c4i:~/chores4irl-src.tar.gz
 ```
 
 Then on the Pi:
@@ -122,6 +122,7 @@ docker compose up -d
 ```
 
 From another machine on the LAN: `curl http://<pi-ip>/api/chores` to confirm the stack is up.
+The Pi also answers as `http://c4i.local/` (mDNS) and `http://c4i/` (router DNS) — see [`deploy/pi/README.md`](deploy/pi/README.md) § LAN name for the client matrix; the raw IP keeps working.
 
 ### First-boot Pi setup
 
@@ -135,6 +136,7 @@ Once the containers are running, configure the Pi host so it boots straight into
   - **Wayland** (Bookworm default): `wlr-randr --output <name> --transform 90` (discover `<name>` by running `wlr-randr` with no args). Add the command to the autostart `.desktop` `Exec=` line before `chromium-browser` so rotation applies every login.
   - **X11**: `display_rotate=1` in `/boot/firmware/config.txt` for DSI panels (rotates both framebuffer and touch); `xrandr --output HDMI-1 --rotate left` for HDMI.
 - **Autostart on boot** — a systemd unit (`/etc/systemd/system/chores4irl.service`) brings the Compose stack up before the desktop autostart launches Chromium.
+- **Reaching the app by name** — run `deploy/pi/set-hostname.sh` (then reboot) so the Pi is named `c4i` and answers as `http://c4i.local/` (mDNS) and `http://c4i/` (router DNS) from LAN clients; see `deploy/pi/README.md` § LAN name. The kiosk itself stays on `http://localhost/`.
 
 Full copy-pasteable snippets for all of the above are in the deployment plan.
 
@@ -171,7 +173,7 @@ Same shipping workflow — the `chores-data` volume is not touched by builds, so
 ```bash
 # On the laptop (ships the committed tree — commit first):
 git archive --format=tar.gz -o /tmp/chores4irl-src.tar.gz HEAD
-scp /tmp/chores4irl-src.tar.gz pi@<pi-host>:~/chores4irl-src.tar.gz
+scp /tmp/chores4irl-src.tar.gz pi@c4i:~/chores4irl-src.tar.gz
 
 # On the Pi:
 tar -xzf ~/chores4irl-src.tar.gz -C ~/chores4irl    # re-extract over the existing dir
