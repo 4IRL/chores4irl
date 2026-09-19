@@ -701,16 +701,34 @@ describe('Add Task deck (F5)', () => {
         expect(deck.className).toContain('sticky');
         expect(deck.className).toContain('bottom-0');
         expect(deck.className).toContain('mt-auto');
-        expect(deck.className).toContain('bg-gray-900/60');
-        expect(deck.className).toContain('backdrop-blur-sm');
+        // No hard top edge: the deck itself carries no border or background.
+        expect(deck.className).not.toMatch(/\bborder-t\b/);
+        expect(deck.className).not.toMatch(/\bbg-/);
+
+        // The tint + blur live on a masked backing layer that overhangs the deck's top
+        // edge so the frost fades in over the list rather than stopping at a hard line.
+        const backing = within(deck).getByTestId('add-task-deck-backing');
+        expect(backing.getAttribute('aria-hidden')).toBe('true');
+        expect(backing.className).toContain('absolute');
+        expect(backing.className).toContain('-top-8');
+        expect(backing.className).toContain('bg-gray-900/60');
+        expect(backing.className).toContain('backdrop-blur-sm');
+        expect(backing.className).toContain('[mask-image:linear-gradient(to_bottom,transparent,black_2rem)]');
+        expect(backing.className).toContain('pointer-events-none');
         // Tailwind v4 dropped bg-opacity-*; it compiles to nothing and leaves the
         // deck fully opaque, so guard against the dead v3 utility creeping back in.
-        expect(deck.className).not.toContain('bg-opacity');
+        expect(backing.className).not.toContain('bg-opacity');
+        // The button must paint above the backing: backing first in DOM, button in a
+        // positioned wrapper after it (both positioned, z-index auto → DOM order).
+        expect(deck.firstElementChild).toBe(backing);
+        const button = within(deck).getByRole('button', { name: /add task/i });
+        expect(button.parentElement!.className).toContain('relative');
+        expect(backing.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
         const scrollRegion = document.querySelector('.overflow-y-auto');
         expect(scrollRegion).not.toBeNull();
         expect(scrollRegion!.contains(deck)).toBe(true);
-        expect((scrollRegion as HTMLElement).className).toContain('scroll-pb-24');
+        expect((scrollRegion as HTMLElement).className).toContain('scroll-pb-32');
         // mt-auto pinning depends on the deck being the scroll region's last child.
         expect(scrollRegion!.lastElementChild).toBe(deck);
 

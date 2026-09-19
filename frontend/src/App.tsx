@@ -331,17 +331,28 @@ export default function App() {
                 />
                 <ReturnToTodayButton dayOffset={dayOffset} onReset={() => setDayOffset(0)} />
                 <ChoreSearchInput value={searchQuery} onChange={setSearchQuery} />
-                <div className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-24">
+                <div className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-32">
                     <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} onEdit={handleRequestEdit} />
                     {/* F5: sticky frosted deck — mt-auto pins it to the bottom when the list is
                         short; sticky keeps it pinned while a long list scrolls beneath the blur.
-                        scroll-pb-24 tells scrollIntoView/focus that the deck's footprint is
-                        obscured, so bars are never scrolled to rest under it. */}
+                        The tint + blur live on a backing layer that reaches 2rem above the deck
+                        and is masked transparent→opaque over that overhang, so the frost fades in
+                        over the list instead of ending at a hard edge; the button sits above the
+                        backing (positioned, later in DOM) and stays fully opaque.
+                        scroll-pb-32 tells scrollIntoView/focus that the deck's footprint plus the
+                        fade overhang is obscured, so bars are never scrolled to rest under it. */}
                     <div
                         data-testid="add-task-deck"
-                        className="sticky bottom-0 mt-auto flex-shrink-0 flex justify-center py-4 border-t border-gray-700 bg-gray-900/60 backdrop-blur-sm"
+                        className="sticky bottom-0 mt-auto flex-shrink-0 flex justify-center py-4"
                     >
-                        <AddChoreButton onClick={() => { setEditingId(null); setShowForm(true); }} />
+                        <div
+                            aria-hidden="true"
+                            data-testid="add-task-deck-backing"
+                            className="pointer-events-none absolute inset-x-0 -top-8 bottom-0 bg-gray-900/60 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,transparent,black_2rem)]"
+                        />
+                        <div className="relative">
+                            <AddChoreButton onClick={() => { setEditingId(null); setShowForm(true); }} />
+                        </div>
                     </div>
                 </div>
             </div>
