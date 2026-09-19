@@ -34,18 +34,21 @@
 
 ## Where the rollout stands
 
-**Current focus: `F5`** (translucent / blur *Add Task* deck) — see *Shortest path to
-the focus feature* below. *(Advanced from `F4` on 2026-09-19, once `F4`'s PR #38 was
-verified merged.)*
+**Current focus: `F6`** (local URL alias instead of IP:port) — see *Shortest path to
+the focus feature* below. *(Advanced from `F5` on 2026-09-19, once `F5`'s PR #39 was
+verified merged; the user chose `F6` over holding for the pi-kiosk gates — it is the only
+unblocked feature left in this repo.)*
 
-**Shipped through PR #38** — merged work is recorded by git, not re-tabulated here
-(`gh pr list --state merged` / `git log --oneline main`). Since #32: #33, #35, #36 and #37
-were docs/skills-only (META-PLAN reconciles and fold-backs, and the replacement of the
+**Shipped through PR #39** — merged work is recorded by git, not re-tabulated here
+(`gh pr list --state merged` / `git log --oneline main`). Since #32: #33, #35, #36, #37 and
+#40 were docs/skills-only (META-PLAN reconciles and fold-backs, and the replacement of the
 `plans/*-PROMPT.md` templates by the `/run-feature`, `/worktree`, `/compact-plans` skills);
-the two app-code merges are **#34 — `F14`, the clear-✕ affordance** (Standing invariant 10)
-and **#38 — `F4`, the removal of the *Details* / *Long-term task* fields plus the first
-`db.ts` boot migration** (Standing invariant 11), both now folded into the Baseline below.
-What each merge left behind that still matters is captured
+the three app-code merges are **#34 — `F14`, the clear-✕ affordance** (Standing invariant 10),
+**#38 — `F4`, the removal of the *Details* / *Long-term task* fields plus the first
+`db.ts` boot migration** (Standing invariant 11), and **#39 — `F5`, the frosted sticky
+*Add Task* deck** (Standing invariant 12), all now folded into the Baseline below. With
+`F5` the **chore-list track is complete**. What each merge left behind that still matters
+is captured
 *forward*: in the Baseline, the Standing invariants, and the few completed-feature
 contracts kept below because a remaining feature builds on or must remove them. **History
 policy:** once a feature's PR is *verified* merged (never self-marked) and the
@@ -84,9 +87,9 @@ features that shipped without one (F9-L, F3-L).
 ### Remaining work — three tracks (current numbering, incl. `F15`)
 
 ```
-Chore-list track (one item left):
-    F5 (blur Add-Task deck, S ★FOCUS)
-    (F14 — clear-✕ on free-text inputs — shipped #34; F4 — remove Details/Long-term — shipped #38)
+Chore-list track (complete):
+    (F14 — clear-✕ on free-text inputs — shipped #34; F4 — remove Details/Long-term — shipped #38;
+     F5 — frosted Add-Task deck — shipped #39)
 
 Kiosk extraction track (2026-07-15 — see plans/feature/kiosk-shell-extraction/):
     [external] rehankalu/pi-kiosk Phases 1–4 ──► F15 (adopt kiosk-shell, M) after Phase 2 parity
@@ -96,14 +99,15 @@ Kiosk extraction track (2026-07-15 — see plans/feature/kiosk-shell-extraction/
         contract; deferred until pi-kiosk Phase 4 delivers the contract
 
 Infra track:
-    F6 (local URL alias, M–L · research-first) ── independent; different surface entirely
+    F6 (local URL alias, M–L · research-first ★FOCUS) ── independent; different surface entirely
 ```
 
-- **Chore-list track:** only `F5` remains. `F14` (#34) and `F4` (#38) shipped in the
-  user's 2026-07-08 order (`F14` → `F4` → `F5`); the shared `ChoreForm` now carries exactly
+- **Chore-list track: complete.** `F14` (#34), `F4` (#38) and `F5` (#39) shipped in the
+  user's 2026-07-08 order (`F14` → `F4` → `F5`); the shared `ChoreForm` carries exactly
   Name (`clearable`), the Room `<datalist>`, Last Completed, Duration, Frequency and the
-  Urgency `<select>`, and `F5` touches only the `App.tsx` footer deck — no shared-form
-  surface at all.
+  Urgency `<select>`, and the *Add Task* deck is the frosted sticky surface recorded in
+  Standing invariant 12. Nothing is queued on this track; new chore-list work enters via
+  `/new-feature`.
 - **Kiosk extraction track (replaces the device-control panel track):** the console and
   its hardware controls (`F3`, `F7`, `F8`, `F9`, `F10`, `F13`) migrated to
   `rehankalu/pi-kiosk` — no chores4irl session runs them; the sequencing now lives in the
@@ -112,27 +116,34 @@ Infra track:
   `F1`/`F2` overlay code; Standing invariants 8–9 hold until then), and `F11`/`F12`
   (app-data undo/redo, re-scoped onto the `kiosk/v1` contract, gated on the external
   Phase 4).
-- **Infra track:** `F6` (renumbered from legacy `F8-L`) is unchanged — LAN name resolution,
-  shares no files with app code. If `F6` lands, its alias becomes the natural
+- **Infra track:** `F6` (renumbered from legacy `F8-L`) is now the ★FOCUS — LAN name
+  resolution, shares no files with app code. If `F6` lands, its alias becomes the natural
   `target_url` in the pi-kiosk config.
 
-### Shortest path to the focus feature (`F5`)
+### Shortest path to the focus feature (`F6`)
 
-**`F5` is the current ★FOCUS** (translucent / blur *Add Task* deck) — the chore-list
-track's last item in the user's 2026-07-08 order (`F14` → `F4` → `F5`), with nothing
-blocking it: purely visual, confined to the `App.tsx` footer deck, no schema or shared-form
-surface. It was already in flight when `F4` folded back: its PR #39 was open on
-`feature/translucent-add-deck` as of 2026-09-19, and that PR carries its own ledger-row flip
-to `in-review`, so the Status ledger below still reads `pending` / `—` on `main` until #39
-merges — per the ledger's authority note, trust `gh`, and `/run-feature F5` resumes from the
-PR's state, not from Phase A. **After `F5` merges the chore-list track is empty:** the kiosk
-extraction features (`F15`, `F11`, `F12`) wait on external pi-kiosk gates, and `F6` is the
-only unblocked candidate — `F5`'s own fold-back must decide (ask the user) between starting
-`F6` and holding for the pi-kiosk gates, rather than assuming `F6` is next.
+**`F6` is the current ★FOCUS** (local URL alias instead of IP:port) — chosen by the user
+at `F5`'s 2026-09-19 fold-back over the alternative of holding with no focus until the
+pi-kiosk gates open. It is the only unblocked feature in this repo: the chore-list track is
+complete (`F14` #34, `F4` #38, `F5` #39), and the kiosk-extraction features (`F15`, `F11`,
+`F12`) cannot start until their **external** pi-kiosk phases land regardless of local
+appetite. `F6` shares no files with app code — its surface is LAN name resolution and the
+Pi/Docker deployment — and it is **research-first**: `/run-feature F6` begins with the
+spike its section describes (mDNS/Avahi `c4i.local` vs LAN DNS vs rejected hosts-file),
+and its end state is deployment docs in `plans/feature/local-url-alias/` plus whatever
+config the chosen mechanism needs. The sandbox cannot reach the Pi LAN (memory
+`sandbox-cannot-reach-pi-lan`) — every Pi-side step runs unsandboxed, as `F5`'s Phase B
+Pi deploy did.
 
-- **Do not** re-open `F4`'s or `F14`'s scope — the *Details* / *Long-term task* fields are
-  gone (#38, with the `db.ts` boot migration) and the clear-✕ affordance shipped (#34);
-  Standing invariants 10–11 record both as verified-shipped facts.
+- **Do not** re-open the chore-list track's scope — the *Details* / *Long-term task* fields
+  are gone (#38, with the `db.ts` boot migration), the clear-✕ affordance shipped (#34), and
+  the frosted deck shipped (#39); Standing invariants 10–12 record all three as
+  verified-shipped facts. Follow-up polish on any of them enters via `/new-feature`, not by
+  reopening the F-ID.
+- **When a pi-kiosk gate opens while `F6` is in flight**, `F15` does not displace `F6` —
+  run them in parallel via `/worktree` (disjoint surfaces: `F15` is app code + `nginx.conf`,
+  `F6` is deploy docs/config), and let `F6`'s or `F15`'s fold-back, whichever comes first,
+  re-evaluate ★FOCUS.
 - **Do not** start `F3`/`F7`/`F8`/`F9`/`F10`/`F13` in this repo at all — they are
   superseded (migrated to pi-kiosk, 2026-07-15). `F15` cannot start until pi-kiosk
   Phase 2 parity is verified on the Pi; `F11`/`F12` cannot start until pi-kiosk Phase 4
@@ -150,20 +161,19 @@ only unblocked candidate — `F5`'s own fold-back must decide (ask the user) bet
 > where it steers future work: the Baseline, the Standing invariants, the Legacy →
 > current ID map, and the kept contracts under Completed-Feature Contracts below.
 
-### Remaining (current numbering, incl. `F15`; reassessed against current `main` after the 2026-09-19 `F4` fold-back)
+### Remaining (current numbering, incl. `F15`; reassessed against current `main` after the 2026-09-19 `F5` fold-back)
 
 | Order | Feature | Effort | Depends on | Track |
 |---|---|---|---|---|
-| ★ | **F5** — Translucent/blur *Add Task* deck **[FOCUS]** | **S** | none blocking *(F4 and F14 already merged)* | Chore-list |
+| ★ | **F6** — Local URL alias instead of IP:port **[FOCUS]** | **M–L** *(research spike)* | deployment stack (Pi/Docker); independent — the only unblocked feature | Infra (parallel) |
 | 1 | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee *(added 2026-07-15)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi | Kiosk extraction |
 | 2 | **F11** — Undo *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* | **M–L** | **external:** pi-kiosk Phase 4 (`kiosk/v1` contract) | Kiosk extraction |
 | 3 | **F12** — Redo *(re-scoped 2026-07-15)* | **M** | F11 + same external gate | Kiosk extraction |
-| — | **F6** — Local URL alias instead of IP:port | **M–L** *(research spike)* | deployment stack (Pi/Docker); independent | Infra (parallel) |
 | ~~—~~ | ~~**F3 · F7 · F8 · F9 · F10 · F13** — device-control console + its controls~~ | — | **superseded 2026-07-15** — migrated to pi-kiosk (shell console / agent controls / settings; `F13`'s plan harvested, see its banner) | *(migrated)* |
 
-**Effort tally (remaining, in this repo).** Chore-list track: F5 (S) ≈ **1 pt**.
+**Effort tally (remaining, in this repo).** Chore-list track: **0 pts** (complete).
 Kiosk extraction track: F15 (M=2) + F11 (M–L≈2–3) + F12 (M=2) ≈ **6–7 pts**,
-all gated on external pi-kiosk phases. Infra: F6 ≈ **2–3 pts**. (S=1 / M=2 / L=3 / XL=5.)
+all gated on external pi-kiosk phases. Infra: F6 ≈ **2–3 pts** (★FOCUS). (S=1 / M=2 / L=3 / XL=5.)
 The former device-control tally (~11 pts placeholder-ship + connections) now lives in the
 pi-kiosk repo's own planning, not here.
 
@@ -181,7 +191,7 @@ pi-kiosk repo's own planning, not here.
 | Legacy (260630 META-PLAN) | Current (260707 ledger) |
 |---|---|
 | F1-L remove Details/Long-term | → **F4** *(shipped #38 — folded into Baseline / Standing invariant 11)* |
-| F7-L blur Add-Task deck | → **F5** |
+| F7-L blur Add-Task deck | → **F5** *(shipped #39 — folded into Baseline / Standing invariant 12)* |
 | F8-L local URL alias | → **F6** |
 | F11-L settings panel container | → **F3** *(superseded 2026-07-15 — migrated to pi-kiosk)* |
 | F12-L brightness | → **F7** *(superseded 2026-07-15 — migrated to pi-kiosk)* |
@@ -211,22 +221,27 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| **F5 — translucent Add-Task deck** ★FOCUS | in-review | `feature/translucent-add-deck` | [#39](https://github.com/4IRL/chores4irl/pull/39) |
 | F15 — adopt kiosk-shell *(added 2026-07-15)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — |
 | F11 — undo *(re-scoped 2026-07-15: `kiosk/v1` contract)* | pending *(gated on external pi-kiosk Phase 4)* | `feature/undo` | — |
 | F12 — redo *(re-scoped 2026-07-15)* | pending *(gated on F11 + same external gate)* | `feature/redo` | — |
-| F6 — local URL alias | pending | `feature/local-url-alias` | — |
+| **F6 — local URL alias** ★FOCUS | pending | `feature/local-url-alias` | — |
 | F3 · F7 · F8 · F9 · F10 · F13 — device-control console + controls | **superseded** *(2026-07-15 — migrated to pi-kiosk; branches never created)* | — | — |
 
-**Branch/dir cleanup:** outstanding as of the 2026-09-19 `F4` fold-back — `F4` merged
-(#38) but has not been swept yet: its local branch `feature/remove-details-longterm`, its
-`/worktree` checkout `c4i-wt-remove-details-longterm`, and its plan dir
-`plans/feature/remove-details-longterm/` (whose
-`reviews/push-review-feature-remove-details-longterm.md` holds four non-blocking minors —
-count-alias naming, a greppable log tag before the migration rethrows, an optional
-two-connection `BEGIN IMMEDIATE` test, an optional loop inlining — to harvest into
-`plans/PUSH-REVIEW-FINDINGS.md`) all await the next `/compact-plans` sweep. Everything
-older is clean: every earlier merged plan dir is frozen under `plans/completed/`. Sweep
+**Branch/dir cleanup:** outstanding as of the 2026-09-19 `F5` fold-back — two merged
+features have not been swept yet. `F4` (#38): its local branch
+`feature/remove-details-longterm`, its `/worktree` checkout
+`c4i-wt-remove-details-longterm`, and its plan dir `plans/feature/remove-details-longterm/`
+(whose `reviews/push-review-feature-remove-details-longterm.md` holds four non-blocking
+minors — count-alias naming, a greppable log tag before the migration rethrows, an optional
+two-connection `BEGIN IMMEDIATE` test, an optional loop inlining). `F5` (#39): its local
+branch `feature/translucent-add-deck`, its `/worktree` checkout
+`c4i-wt-translucent-add-deck`, and its plan dir `plans/feature/translucent-add-deck/`
+(whose `reviews/push-review-feature-translucent-add-deck.md` Review 2 holds three
+non-blocking minors — assert the backing's `inset-x-0`/`bottom-0`, tie the
+`-top-16`/`black_4rem`/`scroll-pb-40` numbers together in the test, and an
+only-if-re-verified-on-the-Pi `isolate`+`-z-10` alternative to the button's `relative`
+wrapper). All of it — plus harvesting those minors into `plans/PUSH-REVIEW-FINDINGS.md` —
+awaits the next `/compact-plans` sweep. Everything older is clean: every earlier merged plan dir is frozen under `plans/completed/`. Sweep
 history lives in git (PRs #22, #26, #29 and the sweep commits on later branches), not here. Run
 `/compact-plans` after each merge, then `/run-feature <F-ID>` on the merged feature so its
 Phase C fold-back (ledger row deleted, Baseline/ID-map/★FOCUS refreshed) lands — never
@@ -240,15 +255,16 @@ in the feature's own commits/PR.
 
 ---
 
-## Baseline: the codebase as it exists today (`main` at PR #38, `d728989`)
+## Baseline: the codebase as it exists today (`main` at PR #39, `a1705b3`)
 
-> **This Baseline reflects `main` after PR #38 (`d728989`).** It is the literal current
-> state and the **assumed starting state for every remaining feature.** (PRs #33, #35, #36
-> and #37 touched only `plans/` docs and `.claude/skills/`; the app-code deltas since #32 are
-> **#34 (`3533b67`) — `F14`**, all under `frontend/src/`, and **#38 (`d728989`) — `F4`**,
+> **This Baseline reflects `main` after PR #39 (`a1705b3`).** It is the literal current
+> state and the **assumed starting state for every remaining feature.** (PRs #33, #35, #36,
+> #37 and #40 touched only `plans/` docs and `.claude/skills/`; the app-code deltas since #32
+> are **#34 (`3533b67`) — `F14`**, all under `frontend/src/`, **#38 (`d728989`) — `F4`**,
 > spanning `types/SharedTypes.d.ts`, `backend/src/` (`db.ts`, `chores.ts`, tests),
 > `frontend/src/` (`ChoreForm.tsx`, `utils/choreSort.ts`, the deleted dead reference file
-> `assets/database.ts`, tests) and `README.md`.)
+> `assets/database.ts`, tests) and `README.md`, and **#39 (`a1705b3`) — `F5`**, confined to
+> `frontend/src/App.tsx`, `components/form/AddChoreButton.tsx` and their tests.)
 > Touch-lock is fully on `main`:
 > `frontend/src/hooks/useTouchLock.ts`, `components/common/TouchLockOverlay.tsx` (with the
 > exported `CLOSING_SETTLE_MS` / `App.tsx` `isClosing` unmount handshake), and
@@ -272,7 +288,7 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 **Frontend API** (`frontend/src/services/choreApi.ts`): `fetchAllChores`, `addChore`, `updateChore(id, chore)`, `completeChore`, `removeChore`.
 
 **Key UI**
-- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (`searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`), and the **two kiosk overlays**: `useScreenBlank()` → `{ isBlanked, wake }` rendering `<ScreenBlankOverlay onWake={wake} />` when `isBlanked` (`F1`, shipped #27), and `useTouchLock()` → `{ isLocked, arm }` rendering `TouchLockIndicator` always plus `TouchLockOverlay` when `(isLocked || isClosing) && !isBlanked` (`F2`, shipped #28), the app root `inert` while either is active, with a force-close-dialogs effect on blank/lock. **Both overlays are slated for removal by `F15`** (kiosk-layer extraction — their behavior moves to the pi-kiosk shell). Footer deck (`flex-shrink-0 py-4 flex justify-center border-t border-gray-700`, **still opaque** — `F5`'s target — `App.tsx:337`) holds `AddChoreButton`; scroll area directly above is `flex-1 overflow-y-auto min-h-0`. `NavBar` renders room chips **and the persistent search input** above the list. **There is no settings/device-control panel on `main`, and there never will be** — `F3` was superseded 2026-07-15 (migrated to pi-kiosk).
+- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (`searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`), and the **two kiosk overlays**: `useScreenBlank()` → `{ isBlanked, wake }` rendering `<ScreenBlankOverlay onWake={wake} />` when `isBlanked` (`F1`, shipped #27), and `useTouchLock()` → `{ isLocked, arm }` rendering `TouchLockIndicator` always plus `TouchLockOverlay` when `(isLocked || isClosing) && !isBlanked` (`F2`, shipped #28), the app root `inert` while either is active, with a force-close-dialogs effect on blank/lock. **Both overlays are slated for removal by `F15`** (kiosk-layer extraction — their behavior moves to the pi-kiosk shell). **Add Task deck (`F5`, shipped #39) — a frosted sticky surface *inside* the scroll region:** the scroll container is `flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40` (the literal `overflow-y-auto` token must stay on this element — `App.search.test.tsx` locates it by class), `ChoreList` first, then the deck as its last child: `data-testid="add-task-deck"`, `sticky bottom-0 mt-auto flex-shrink-0 flex justify-center py-4` with **no border or background of its own**. The tint + blur live on an `aria-hidden` `data-testid="add-task-deck-backing"` child — `pointer-events-none absolute inset-x-0 -top-16 bottom-0 bg-gray-900/60 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,transparent,black_4rem)]` — a progressive blur that fades in over a 4rem overhang above the ~81px deck rather than stopping at a hard edge (tuned on the Pi kiosk: 2rem read as abrupt, 4rem accepted). `AddChoreButton` (`bg-blue-500 hover:bg-blue-600`, now **fully opaque**) sits in a `relative` wrapper *after* the backing so it paints on top. `mt-auto` pins the deck to the bottom for short/empty lists, `sticky` while a long list scrolls beneath the blur; `scroll-pb-40` (160px ≥ 81px deck + 64px overhang) declares the deck plus its fade as obscured so `scrollIntoView`/keyboard focus land bars clear of it (Chrome aligns a Tab-focused sr-only pill's *own* rect to the scroll-padding edge — measured). The deck's own box keeps default pointer events (a frosted surface must not pass taps to half-hidden bars); the overhang is `pointer-events-none` so bars under the fade stay tappable. No z-index anywhere. Tailwind 4.1.18 emits both `-webkit-`/unprefixed `mask-image` and `backdrop-filter`. Note that Tailwind's built-in `mask-t-*` utilities fade the *bottom* edge in (`to top, black <from>, transparent <to>`), so the arbitrary `mask-image` property is the simplest correct form — verified by compiling both (F5 push Review 2). `NavBar` renders room chips **and the persistent search input** above the list. **There is no settings/device-control panel on `main`, and there never will be** — `F3` was superseded 2026-07-15 (migrated to pi-kiosk).
   - **SSE sync — unchanged contract:** subscribes via `useChoreEvents(onChange)` (`hooks/useChoreEvents.ts`; `new EventSource('/api/events')` + `visibilitychange→visible` re-fire). Re-pulls are gated by `isRepullGated()` (`isMutatingRef` || `showForm` || `editingId` || `pendingDeleteId`); deferred via `pendingRefreshRef`. **Any new frontend feature holding uncommitted user input in `App.tsx` state must be added to this gate.**
   - **Visible-list pipeline (three-stage):** `filteredChores = useRoomFilter(choreData, selectedRoom)` → `searchFilteredChores` (substring on `name`, from `F9-L`) → `orderedChores` (maps `sortedIds` over a `Map` of `searchFilteredChores`).
   - **`F1`'s real-clock scheduling (shipped):** `frontend/src/hooks/useScreenBlank.ts` — window-boundary re-arming timeouts driven by `realToday`, **not** `simulatedDate` (adapted from the `useMidnightClock.ts` single-`setTimeout`-to-boundary pattern, which remains available as a precedent for any future real-clock feature).
@@ -283,7 +299,7 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 - `components/common/ClearButton.tsx` (`F14`, #34) — the shared clear-✕ primitive: `{ label: string; onClear: () => void; anchor?: 'center' | 'top' }`; `lucide-react` `X` inside an absolutely-positioned `right-3` 44×44 px touch target (the app's kiosk-touch convention, matching `DateNavigationBanner`); `anchor='center'` (default) vertically centres on a label-less input (search), `anchor='top'` pins to the input's top edge so it clears a `FormField`'s label. `aria-label={label}` — the three current labels are Title Case (`"Clear Search"`/`"Clear Name"`/`"Clear Room"`); sentence-casing them is an open `[a11y]` minor in `plans/PUSH-REVIEW-FINDINGS.md`. Inputs that host it reserve `pr-14`.
 
 **Tests**
-- **Vitest** unit tests both sides (backend 43, frontend 252 as of #38), now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`), the reversed swipe mapping + threshold (`F10-L`), the clear-✕ affordance (component-level show/clear/refocus + App-level clear-restores-room-filter, from `F14`), and `F4`'s removal: `backend/src/__tests__/db-migration.test.ts` (7 cases — idempotency on `:memory:`, boot wiring against a legacy 9-column temp file, rows/other columns preserved), stale-client-key drop tests on `POST`/`PUT` and `createChore`/`updateChore`, a `ChoreForm` absence test (no Details / Long-term inputs) and a stale-`longTermTask`-flag-ignored sort test.
+- **Vitest** unit tests both sides (backend 43, frontend 254 as of #39), now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`), the reversed swipe mapping + threshold (`F10-L`), the clear-✕ affordance (component-level show/clear/refocus + App-level clear-restores-room-filter, from `F14`), and `F4`'s removal: `backend/src/__tests__/db-migration.test.ts` (7 cases — idempotency on `:memory:`, boot wiring against a legacy 9-column temp file, rows/other columns preserved), stale-client-key drop tests on `POST`/`PUT` and `createChore`/`updateChore`, a `ChoreForm` absence test (no Details / Long-term inputs) and a stale-`longTermTask`-flag-ignored sort test, plus `F5`'s `Add Task deck (F5)` describe in `App.test.tsx` (deck sticky/`mt-auto`/last-child inside `.overflow-y-auto` for populated and empty lists, the masked backing layer's classes and backing-before-button paint order, `scroll-pb-40`) and the opaque-button assertion in `AddChoreButton.test.tsx`.
 - **Playwright e2e**: `e2e/smoke.spec.ts`. `swipeBar(page, bar, 'left')` now triggers **edit**, `'right'` triggers **delete** (flipped by F10-L). Still depends on seed chore `Vacuum Bedroom Floor` and the `+ Add Task` flow.
 - **CI**: `.github/workflows/ci.yml` unchanged — backend + frontend tests on PRs to `main`; `main` branch-protected.
 
@@ -299,6 +315,7 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 9. **Double-tap touch lock**: `useTouchLock()` + `TouchLockOverlay`/`TouchLockIndicator` — local-only/per-tab, arms after 5 minutes' inactivity, unlocks on a second tap within 1500 ms and 60 px, 400 ms `CLOSING_SETTLE_MS` closing handshake, `z-[90]` always defers to the blank overlay's `z-[100]` (F2, shipped #28). *Holds until `F15` relocates this behavior to pi-kiosk and removes the in-app code.*
 10. **Clear-✕ affordance on every free-text input**: search bar, form Name, form Room each render the shared `ClearButton` only when non-empty; clicking clears that field's local state only (never submits/closes) and refocuses the input; `FormField`'s affordance is opt-in via `clearable` (default off), so no other `FormField` usage (Last Completed, Duration, Frequency) gains it (F14, shipped #34; verified intact after F4 — `ClearButton.tsx`, `ChoreSearchInput.tsx`, `FormField.tsx` had no diff in #38).
 11. **No `details` / `longTermTask` anywhere in the live model**: `Chore` is `id, name, room, dateLastCompleted, duration, frequency, urgency?`; the shared `ChoreForm` has no Details field or Long-term checkbox; `app.ts`/`chores.ts` never read or write them (stale keys from old clients are dropped silently, never rejected — deliberate, so a not-yet-reloaded kiosk page keeps working through the rollout; don't "fix" it with a 400); `db.ts` runs the idempotent, crash-loud `dropLegacyChoreColumns` boot migration (`pragma table_info` guard, `BEGIN IMMEDIATE`) so an existing 9-column `data.db` migrates itself to 7 columns on first boot and later boots are no-ops; `orderChores` is a single duration-weighted sort with no long-term partition (F4, shipped #38). Any future schema change adds its own guarded step beside that migration — `CREATE TABLE IF NOT EXISTS` never alters an existing `data.db`. The pre-F4 image cannot write to a migrated DB (its SQL still names the dropped columns), so a rollback restores the pre-deploy snapshot together with the old image.
+12. **Frosted sticky *Add Task* deck**: the deck lives *inside* the scroll region as its `sticky bottom-0 mt-auto` last child with no border/background of its own; tint + blur come from a masked, `aria-hidden`, `pointer-events-none` backing layer that overhangs the deck by 4rem and fades in (`bg-gray-900/60 backdrop-blur-sm` + `mask-image` gradient); `AddChoreButton` is fully opaque and paints above the backing; the scroll container carries `scroll-pb-40` so focus/scrollIntoView never rest a bar under the deck or its fade; `.overflow-y-auto` stays the single scrolling element and `ChoreSearchInput` stays outside it (F5, shipped #39). Any change to the deck's height or overhang must re-check `scroll-pb-*` (≥ deck + overhang) and the Tab-focus clearance measured in `plans/feature/translucent-add-deck/` (or its frozen copy under `plans/completed/`).
 
 **Assumptions to revisit at planning time**
 1. **Resolved (F4, shipped #38):** `better-sqlite3` bundles SQLite 3.51.3 (≥ 3.35), so `ALTER TABLE … DROP COLUMN` is available and the boot migration uses it — no table-rebuild fallback was needed. Re-verify only if `better-sqlite3` is ever downgraded.
@@ -484,45 +501,12 @@ local-to-the-kiosk semantics forward).
 
 > Every remaining feature's **Assumed starting state is the Baseline above**. `F1` (#27)
 > and `F2` (#28) shipped — their implemented contracts are kept under Completed-Feature
-> Contracts (below) because `F15` targets them; `F14` (#34) and `F4` (#38) shipped and live
-> entirely in the Baseline + Standing invariants 10–11 (no remaining feature builds on them). The
-> **focus feature is `F5`** (see "Shortest path" above). `F3`/`F7`/`F8`/`F9`/`F10`/`F13`
+> Contracts (below) because `F15` targets them; `F14` (#34), `F4` (#38) and `F5` (#39) shipped
+> and live entirely in the Baseline + Standing invariants 10–12 (no remaining feature builds on
+> them). The **focus feature is `F6`** (see "Shortest path" above). `F3`/`F7`/`F8`/`F9`/`F10`/`F13`
 > are **superseded — migrated to `rehankalu/pi-kiosk`** (2026-07-15, see
 > `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`); their sections below
 > are retained as banners + history only. `F11`/`F12` remain here, re-scoped; `F15` is new.
-
-## F5 — Translucent / blur *Add Task* button deck  ·  ★ FOCUS  ·  Effort S  ·  (260707 item 5)
-
-**Goal.** Bottom *Add Task* deck uses a transparent, blurred background so the chore list is
-faintly visible beneath it; the button stays locked at the bottom and opaque while the list
-scrolls beneath.
-
-**Rank rationale.** The chore-list track's last item and the current ★FOCUS (advanced from
-`F4` on 2026-09-19) — fully independent, purely visual, lowest risk.
-
-**Effort: S.** Focused layout/CSS change to the footer deck + button; verify scroll behavior
-beneath the blur on mobile viewports.
-
-**Dependencies.** None.
-
-**Assumed starting state** = **Baseline**. Verify:
-- `App.tsx` footer deck is `<div className="flex-shrink-0 py-4 flex justify-center border-t border-gray-700">` wrapping `AddChoreButton` (still opaque — verified, `App.tsx:337`).
-- Scroll area directly above is `<div className="flex-1 overflow-y-auto min-h-0">`.
-
-**Expected end state** (repo-checkable):
-- Footer deck uses a semi-transparent background with `backdrop-blur` (e.g.
-  `bg-gray-900/60 backdrop-blur-*`); chore bars faintly visible beneath/around the button.
-- Deck remains pinned at the bottom (`flex-shrink-0`); `AddChoreButton` remains visually opaque/legible.
-- No functional/JS behavior change; existing tests still pass.
-
-**Test-suite deltas.** Minimal — optionally assert blur/translucency classes in a small render test. No e2e change.
-
-**Open risks / decisions.** Exact opacity/blur values — default: translucent+blurred deck,
-fully opaque button. Confirm `backdrop-blur` performs acceptably on the Pi/mobile browser.
-
-**Session loop.** Run the Per-Feature Session Contract on branch `feature/translucent-add-deck`.
-
----
 
 ## F3 — Settings / device-control panel (container)  ·  SUPERSEDED 2026-07-15 (migrated to pi-kiosk)
 
@@ -713,15 +697,16 @@ them in pi-kiosk first; this feature never starts on partial parity.
 
 ---
 
-## F6 — Local URL alias instead of IP:port  ·  Infra track (parallel)  ·  Effort M–L (research spike)  ·  (260707 item 6, = legacy `F8-L`)
+## F6 — Local URL alias instead of IP:port  ·  ★ FOCUS  ·  Infra track (parallel)  ·  Effort M–L (research spike)  ·  (260707 item 6, = legacy `F8-L`)
 
 **Goal.** Let LAN users reach the app by a memorable name instead of the raw IP — e.g. `c4i`
 instead of `[local_IP_address]:[port]`. Explore viable options; implement the best fit for
 the Pi/Docker deployment.
 
-**Rank rationale.** Unchanged — entirely separate surface from app code; touches LAN name
-resolution / the Pi deployment. Blocks nothing, blocked by nothing. Least-confident estimate
-(research spike).
+**Rank rationale.** The current ★FOCUS (advanced from `F5` on 2026-09-19 by user choice —
+the chore-list track is complete and everything else waits on external pi-kiosk gates).
+Entirely separate surface from app code; touches LAN name resolution / the Pi deployment.
+Blocks nothing, blocked by nothing. Least-confident estimate (research spike).
 
 **Effort: M–L (research-first).** Candidates to evaluate at planning time: mDNS/Avahi
 (`c4i.local`, low-friction, `.local` suffix required), LAN DNS (router static entry or
@@ -758,8 +743,7 @@ unsandboxed; keep additive; deploy-doc capture is mandatory.
 ## Chain integrity (remaining work, current numbering, incl. `F15`)
 
 ```
-CHORE-LIST TRACK (one item left; F14 shipped #34, F4 shipped #38 — the 2026-07-08 order F14 → F4 → F5 is honored by history)
-  Baseline ─★F5★ (blur Add-Task deck)
+CHORE-LIST TRACK (complete; F14 shipped #34, F4 shipped #38, F5 shipped #39 — the 2026-07-08 order F14 → F4 → F5 is honored by history)
 
 KIOSK EXTRACTION TRACK (2026-07-15 — external gates; see plans/feature/kiosk-shell-extraction/)
   [pi-kiosk Phase 1: shell scaffold + iframe passthrough]
@@ -769,20 +753,19 @@ KIOSK EXTRACTION TRACK (2026-07-15 — external gates; see plans/feature/kiosk-s
   [pi-kiosk Phase 4: settings (absorbs F9) + kiosk/v1 contract] ──► F11 (undo) ─→ F12 (redo)
 
 INFRA TRACK
-  Baseline ─F6 (LAN alias; independent — if it lands, it becomes pi-kiosk's target_url)
+  Baseline ─★F6★ (LAN alias; independent — if it lands, it becomes pi-kiosk's target_url)
 ```
 
 - **No hard chain remains inside this repo.** The old device-control edge (`F3` gates
   `F7`–`F13`) left the repo with the migration — pi-kiosk's Migration Phases carry that
-  sequencing now. What remains here: no ordering at all inside the chore-list track (its
-  soft `F14` → `F4` → `F5` preference of 2026-07-08 is satisfied by history — `F14` #34 and
-  `F4` #38 shipped; only `F5` is left), and two **external** gates (`F15` on pi-kiosk
-  Phase 2 parity; `F11`/`F12` on Phase 4's `kiosk/v1` contract, with `F12` also following
-  `F11`). `F6` is fully parallel.
-- **Focus path:** `F5` — the chore-list track's last item; nothing blocks it. Once it
-  merges, the kiosk-extraction features still cannot start until their external gates open,
-  regardless of local appetite, and `F6` is the only unblocked candidate — `F5`'s fold-back
-  decides (ask the user) rather than assuming `F6` becomes ★FOCUS.
+  sequencing now. What remains here: the chore-list track is complete (its soft `F14` →
+  `F4` → `F5` preference of 2026-07-08 was honored — #34, #38, #39), and two **external**
+  gates (`F15` on pi-kiosk Phase 2 parity; `F11`/`F12` on Phase 4's `kiosk/v1` contract,
+  with `F12` also following `F11`). `F6` is fully parallel.
+- **Focus path:** `F6` — the only unblocked feature; chosen by the user at `F5`'s fold-back
+  over holding for the pi-kiosk gates. The kiosk-extraction features still cannot start until
+  their external gates open, regardless of local appetite; if one opens mid-`F6`, see the
+  parallel-via-`/worktree` rule under "Shortest path" above.
 - **Cross-feature couplings to honor:**
   - **F1 ↔ F2 — shipped and resolved.** `ScreenBlankOverlay` (`z-[100]`) always wins over
     `TouchLockOverlay` (`z-[90]`); the pi-kiosk port must preserve this precedence, and
@@ -800,7 +783,6 @@ INFRA TRACK
   - From **F1**/**F2** *(shipped — Standing invariants 8–9)*: blank + lock contracts as
     recorded under Completed-Feature Contracts; **held until `F15` relocates the behavior to
     pi-kiosk**, at which point they are retired-as-relocated, not regressed.
-  - From **F5**: translucent/blurred Add-Task deck, opaque button.
   - From **F15**: the app is embeddable (no frame-blocking headers — documented in
     `nginx.conf` + README) and contains no kiosk/screen code; it works identically
     standalone at `IP:port` and inside the pi-kiosk shell.
@@ -813,7 +795,9 @@ INFRA TRACK
     opt-in `clearable` on `FormField` (F14, #34 — Standing invariant 10), and no
     `details`/`longTermTask` anywhere in the live model (`app.ts`, `chores.ts`,
     `SharedTypes.d.ts`, non-test frontend) with the idempotent `dropLegacyChoreColumns`
-    boot migration in `db.ts` (F4, #38 — Standing invariant 11).
+    boot migration in `db.ts` (F4, #38 — Standing invariant 11), and the frosted sticky
+    Add-Task deck inside the scroll region with its masked fade-in backing, opaque button
+    and `scroll-pb-40` focus clearance (F5, #39 — Standing invariant 12).
 
 > If any session's cold survey finds the repo does **not** match its assumed start, **stop
 > and reconcile** before planning. The repository is the single source of truth across
