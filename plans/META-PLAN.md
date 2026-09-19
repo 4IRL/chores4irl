@@ -224,7 +224,7 @@ pi-kiosk repo's own planning, not here.
 | F15 — adopt kiosk-shell *(added 2026-07-15)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — |
 | F11 — undo *(re-scoped 2026-07-15: `kiosk/v1` contract)* | pending *(gated on external pi-kiosk Phase 4)* | `feature/undo` | — |
 | F12 — redo *(re-scoped 2026-07-15)* | pending *(gated on F11 + same external gate)* | `feature/redo` | — |
-| **F6 — local URL alias** ★FOCUS | pending | `feature/local-url-alias` | — |
+| **F6 — local URL alias** ★FOCUS | in-progress | `feature/local-url-alias` | — |
 | F3 · F7 · F8 · F9 · F10 · F13 — device-control console + controls | **superseded** *(2026-07-15 — migrated to pi-kiosk; branches never created)* | — | — |
 
 **Branch/dir cleanup:** outstanding as of the 2026-09-19 `F5` fold-back — two merged
