@@ -330,3 +330,29 @@ Verdict: **BLOCKED**
 
 - [x] **Record case T's stub exactly as run** — plan Step 2 matrix — `printf '…%s…' "$D/home-a" > $D/bin/getent`, with a note on why `$D` must be interpolated at stub-creation time; re-proved literally 2026-09-20.
 - [x] **Reword the two README phrases** — `deploy/pi/README.md:161,215`.
+
+## Review 8
+Generated: 2026-09-20 11:05
+Comparison: origin/feature/local-url-alias (e3c4abb, PR #43 head)...HEAD (af1b9d9) — delta only
+Verdict: **PUSHED WITH MINOR FINDINGS**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+#### 2. Correctness — PASS
+Case T's recorded stub now reproduces as written.
+#### 3. Simplicity & Conciseness — PASS
+- minor — decision record: the "Root cause of the stale tree" sentence repeats the 08:53 timestamp given a sentence earlier.
+#### 4. Test Coverage — PASS
+#### 5. Completeness & Cleanup — PASS
+- minor — decision record: "Pending client checks (user)" still lists the phone/mDNS check although "Post-rename findings" below confirms it passed.
+#### 6. Consistency & Style — PASS
+- minor — decision record: the lock-fixture summary is prose rather than the M–V case letters used in the plan.
+#### 7. Integration Risk — PASS
+- minor — `deploy/pi/README.md` § Apply / re-apply says a redeploy lands the tracked script unconditionally; true once this PR is on `main` (a deploy from `main` before merge would not carry it — which is exactly what happened on 2026-09-20 and why the files were re-shipped by hand).
+#### 8. Error Handling & Silent Failures — PASS
+
+### To-Do: Required Changes
+
+- [ ] **(Optional) Tighten the decision record** — drop the repeated timestamp; mark the phone check as resolved 2026-09-20 in the Pending list; use case letters M–V in the fixture summary.
+- [ ] **(Optional) Qualify the README redeploy sentence** — "once this branch is merged" — moot after merge.
