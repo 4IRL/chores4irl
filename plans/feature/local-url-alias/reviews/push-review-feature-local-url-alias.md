@@ -150,3 +150,46 @@ Review 2's major and minor confirmed fixed; fail-fast validation, `rc=$?` split,
 - [x] **Backtick `/etc/hosts` in the Files-table row** — `deploy/pi/README.md:21`.
 - [x] **Note that `deploy/pi/` artifacts are not synced by a normal redeploy** — `deploy/pi/README.md` § Apply / re-apply — one sentence: `scp` `deploy/pi/set-hostname.sh` and `deploy/pi/cloud-init/99-c4i-hostname.cfg` to `~/chores4irl/deploy/pi/` on the Pi before a re-apply or rollback, since `deploy.sh` ships only the app.
 - [ ] **(Optional, accepted risk) Exercise the `hostnamectl` fallback in the matrix** — `deploy/pi/set-hostname.sh:384-390` — an `APPLY_LIVE=1` case with `hostnamectl` shadowed on `PATH`. — deferred: accepted risk
+
+## Review 4
+Generated: 2026-09-19 23:05
+Comparison: origin/main (f007927)...HEAD (83d6883)
+Verdict: **PUSHED WITH MINOR FINDINGS**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+Anchored RFC 1123 gate before any `$NEW` use; user-data grep-only for two keys; backup-before-mutation under `set -euo pipefail`.
+
+#### 2. Correctness — PASS
+The `[4/4]` `$SUDO` reads behave in both `SUDO=`/`SUDO=sudo` modes; all narrations match `[1/4]`→`[3/4]`.
+- minor — `deploy/pi/set-hostname.sh` `[4/4]`: `2>/dev/null` on the `$SUDO cat "$HOSTNAME_FILE"` line but not on the sibling `$SUDO grep … "$HOSTS_FILE"` line (redundant stderr line possible). Cosmetic.
+
+#### 3. Simplicity & Conciseness — PASS
+Tightly scoped; the new "not synced by a normal redeploy" paragraph is adjacent in spirit to the intro's "canonical copies live on the Pi" sentence but serves a different purpose. No action.
+
+#### 4. Test Coverage — PASS
+All prior required fixes verified.
+- minor — `[4/4]` avahi-inactive branch is exercised by neither the matrix (`APPLY_LIVE=0`) nor the live run. Accepted risk alongside the `hostnamectl` fallback.
+
+#### 5. Completeness & Cleanup — PASS
+Exhaustive sweep: every enumeration of the three edits now follows the script's real order; no debug/placeholder/temp artifacts; old-hostname references confined to the intended lines.
+
+#### 6. Consistency & Style — PASS
+- minor — `deploy/pi/set-hostname.sh:69,74` vs `59-62,81-87`: guard-and-exit shape mixed (`cmd || { warn; exit 1; }` one-liners vs multi-line `if`). Cosmetic.
+
+#### 7. Integration Risk — PASS
+Review 3's "deploy/pi not synced" note confirmed in `deploy/pi/README.md` § Apply / re-apply; no other risks.
+
+#### 8. Error Handling & Silent Failures — PASS
+Review 3's `$SUDO` minor confirmed fixed.
+- minor — `deploy/pi/set-hostname.sh:169`: "no $HOSTNAME_FILE" conflates missing with unreadable; optional "could not read" rewording.
+- minor — `deploy/pi/set-hostname.sh:74`: the findmnt guard's message doesn't distinguish not-mounted / findmnt-missing / read-only. Negligible on the target.
+
+### To-Do: Required Changes
+
+- [ ] **(Optional) Harmonise stderr handling on the two `[4/4]` verify reads** — `deploy/pi/set-hostname.sh:169-170` — add `2>/dev/null` to the hosts grep or drop it from the hostname cat.
+- [ ] **(Optional) Reword "no $HOSTNAME_FILE" → "could not read $HOSTNAME_FILE"** — `deploy/pi/set-hostname.sh:169`.
+- [ ] **(Optional) Broaden the findmnt guard message** — `deploy/pi/set-hostname.sh:74` — "could not confirm /boot/firmware is mounted read-write".
+- [ ] **(Optional) Unify guard-and-exit shape** — `deploy/pi/set-hostname.sh:59-87` — one style throughout.
+- [ ] **(Optional, accepted risk) Matrix case for the avahi-inactive branch** — `deploy/pi/set-hostname.sh:429`.
