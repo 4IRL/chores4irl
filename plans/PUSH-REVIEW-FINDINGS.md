@@ -36,10 +36,10 @@ backlog is visible and actionable instead of scattered.
   format those skills expect.
 
 ## Quick batch view (by theme)
-- `[test]`     — 18 items: assertion hardening, missing-branch coverage, brittle-selector fixes, `rearmTick` self-heal (auto-screen-blank), `!event.repeat` guard (touch-lock), post-submit clear-✕ reset (clear-input-buttons), `BEGIN IMMEDIATE` two-connection migration test (remove-details-longterm), deck-class assertions (translucent-add-deck)
-- `[style]`/`[dx]` — 31 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup, native `<button>`/`z-50` (auto-screen-blank), repeat-key `preventDefault` + plan-step comment cleanup (touch-lock), `clearable` type-safety (clear-input-buttons), META-PLAN policy-restatement consolidation (deferred), migration count-alias + tagged log line (remove-details-longterm), `/compact-plans` Step 7 scan doc nits (phase-c-guard), ledger/paragraph tidies deferred to `/new-feature` (meta-plan-update-f5)
+- `[test]`     — 21 items: assertion hardening, missing-branch coverage, brittle-selector fixes, `rearmTick` self-heal (auto-screen-blank), `!event.repeat` guard (touch-lock), post-submit clear-✕ reset (clear-input-buttons), `BEGIN IMMEDIATE` two-connection migration test (remove-details-longterm), deck-class assertions (translucent-add-deck), three accepted-risk `set-hostname.sh` matrix cases (local-url-alias)
+- `[style]`/`[dx]` — 43 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup, native `<button>`/`z-50` (auto-screen-blank), repeat-key `preventDefault` + plan-step comment cleanup (touch-lock), `clearable` type-safety (clear-input-buttons), META-PLAN policy-restatement consolidation (deferred), migration count-alias + tagged log line (remove-details-longterm), `/compact-plans` Step 7 scan doc nits (phase-c-guard), ledger/paragraph tidies deferred to `/new-feature` (meta-plan-update-f5), `set-hostname.sh` naming/message/guard-shape nits + `*.sh` gitignore anchor (local-url-alias), three `/compact-plans` Step 5/7 snippet nits (compact-plans-260919), F15 gate bullet + invariant-13 trim (meta-plan-update-f6)
 - `[a11y]`     — 3 items: `focus-visible:` reveal, focus-ring clipping (bar-redesign); aria-label sentence-casing (clear-input-buttons)
-- `[security]` — 4 items: server-side `urgency` enum validation (edit-task); SSE connection cap + host-specifics redaction + predecessor-ledger username (all opt / only-if-public)
+- `[security]` — 5 items: server-side `urgency` enum validation (edit-task); SSE connection cap + host-specifics redaction (docker-raspberry-pi and local-url-alias) + predecessor-ledger username (all opt / only-if-public)
 - `[design]`   — 3 items: both had a blocking dependency that **has since merged** — now decidable (see ⚠ below); plus the F5 `relative`-wrapper removal, which needs a Pi kiosk re-verification first
 
 ---
@@ -204,6 +204,45 @@ Source: `plans/completed/meta-plan-update-f5/reviews/push-review-chore-meta-plan
 
 - [ ] `[dx]` opt — Shorten the "Branch/dir cleanup" enumeration — `plans/META-PLAN.md` "Branch/dir cleanup" paragraph — do it in the next Phase C / `/new-feature` rewrite of that paragraph, not by hand.
 - [ ] `[dx]` opt — Tick F5 in the feature ledger — `plans/ledger/260715_feature_ledger.md` — mark `F5` as shipped (#39) if/when `/new-feature` next rewrites the ledger; do not hand-edit outside that skill. (Same applies to `F4`, #38.)
+
+---
+
+## F6 (current numbering) — local-url-alias  (`1c63e0a`, #43)
+Source: `plans/completed/local-url-alias/reviews/push-review-feature-local-url-alias.md`
+> Harvested by the 2026-09-20 `/compact-plans` sweep. Eight review rounds (1–4 on the PR body; 5–8 delta-only on the Chromium profile-lock cleanup added after the live rename broke the kiosk). Every required item landed on-branch and is `[x]` in the source; the thirteen below are the rounds' explicit `(Optional …)` deferrals, all on `deploy/pi/set-hostname.sh` or its docs. Two are moot (see their `[x]`).
+
+- [ ] `[security]` opt *(only-if-public)* — Redact the LAN IP/MAC in the F6 planning docs — `plans/completed/local-url-alias/**` (plan, research, reviews) — `192.168.1.214` + the Wi-Fi MAC are committed in cleartext; RFC1918 + LAN-only, so only if the repo is or becomes public (same decision as the docker-raspberry-pi item under "(chore) plans-housekeeping"; the deploy docs already use `<pi-ip>`-style placeholders).
+- [ ] `[dx]` opt *(follow-up F-ID)* — Anchor the `*.sh` gitignore rule — `.gitignore:55` — so future `deploy/pi/*.sh` scripts don't need `git add -f`; deferred as out of scope for #43 — a candidate for `/new-feature`.
+- [ ] `[dx]` opt — Rename `rc` → `grep_status` and `need_meh` → `need_manage_etc_hosts` — `deploy/pi/set-hostname.sh:79-92` — cosmetic.
+- [ ] `[dx]` opt — Harmonise stderr handling on the two `[4/4]` verify reads — `deploy/pi/set-hostname.sh:169-170` — add `2>/dev/null` to the hosts grep or drop it from the hostname cat.
+- [ ] `[dx]` opt — Reword "no $HOSTNAME_FILE" → "could not read $HOSTNAME_FILE" — `deploy/pi/set-hostname.sh:169`.
+- [ ] `[dx]` opt — Broaden the findmnt guard message — `deploy/pi/set-hostname.sh:74` — "could not confirm /boot/firmware is mounted read-write".
+- [ ] `[style]` opt — Unify guard-and-exit shape — `deploy/pi/set-hostname.sh:59-87` — one style throughout.
+- [ ] `[dx]` opt — Header note that the invoker/`SUDO_USER` must be the kiosk user — `deploy/pi/set-hostname.sh` header comment — relevant only if the Pi gains a second account.
+- [ ] `[test]` opt *(accepted risk)* — Exercise the `hostnamectl` fallback in the dry-run matrix — `deploy/pi/set-hostname.sh:384-390` — an `APPLY_LIVE=1` case with `hostnamectl` shadowed on `PATH`.
+- [ ] `[test]` opt *(accepted risk)* — Matrix case for the avahi-inactive branch — `deploy/pi/set-hostname.sh:429`.
+- [ ] `[test]` opt *(accepted risk)* — Fixture the `readlink`-failure warn branch — `deploy/pi/set-hostname.sh` Chromium lock block — TOCTOU-only path.
+- [x] `[dx]` opt *(moot)* — Tighten the decision record (drop the repeated timestamp; mark the phone check resolved 2026-09-20; use case letters M–V in the fixture summary) — `plans/completed/local-url-alias/research/lan-name-resolution.md` — the plan dir was frozen by this sweep ("historical record, do not edit"); nothing to do.
+- [x] `[dx]` opt *(moot)* — Qualify the README redeploy sentence "once this branch is merged" — `README.md` / `deploy/pi/README.md` — the phrase is absent on `main` at #43; resolved on-branch or by the merge itself.
+
+---
+
+## (chore) compact-plans-260919  (`f007927`, #42)
+Source: `plans/completed/compact-plans-260919/reviews/push-review-chore-compact-plans-260919.md`
+> Harvested by the 2026-09-20 `/compact-plans` sweep. Three review rounds. This review adopted the append-only convention (Review 2's own item: earlier rounds' boxes stay `[ ]`, landing is recorded in the next round's `Comparison:` line) — so its 15 `[ ]` boxes under Reviews 1–2 all landed (`a2efff4`, `2287815`, per Review 2/3's Comparison lines; spot-checked against the current `SKILL.md`) and are **not** open. The three below are Review 3's deferred nits on the `/compact-plans` skill, all still present in `SKILL.md` as of this sweep.
+
+- [ ] `[dx]` minor — Capture the DELETE call's output in its STOP — `.claude/skills/compact-plans/SKILL.md` Step 5 per-branch snippet — `elif ! delete_out=$(gh api -X DELETE "repos/4IRL/chores4irl/git/refs/heads/<branch>" 2>&1); then echo "STOP: remote delete failed for <branch> — $delete_out"`, for symmetry with the existence-check and stale-ref STOPs.
+- [ ] `[style]` opt — Trail the two stale-ref scoping comments — same file, Step 5 stale-ref snippet — move each leading `# for every branch …` line to trail its `if ! out=$(…); then` line, matching the file's trailing-comment convention (or leave as-is if line length argues for it).
+- [ ] `[dx]` opt — Drop "or was out of scope" — same file, Step 7 stale-ref bullet — the cleanup scope now covers every category that reaches "pruned"; keep only if future narrowing is anticipated.
+
+---
+
+## (chore) meta-plan-update-f6  (`a045b11`, #44)
+Source: `plans/completed/meta-plan-update-f6/reviews/push-review-chore-meta-plan-update-f6.md`
+> Harvested by the 2026-09-20 `/compact-plans` sweep. Review 1 was all-PASS; the four required items landed before push; both items below are optional META-PLAN tidies — do them in the next `/run-feature` Phase C or `/new-feature` rewrite of those paragraphs, not by hand (same rule as the meta-plan-update-f5 items).
+
+- [ ] `[dx]` opt — Add an explicit Phase-2-parity gate bullet to F15's *Assumed starting state* — `plans/META-PLAN.md` F15 section — the bullets check only pi-kiosk Phase 1; the Phase 2 parity gate is stated only in Dependencies / Open risks / the focus-path text.
+- [ ] `[style]` opt — Trim Standing invariant 13's redeploy sentence to a cross-reference — `plans/META-PLAN.md` — it restates the Baseline *Deployment / LAN name* paragraph.
 
 ---
 

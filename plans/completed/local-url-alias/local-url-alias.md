@@ -1,3 +1,6 @@
+> **STATUS: Merged** `1c63e0a` (#43). Frozen — historical record, do not edit.
+> **Outcome:** Shipped as planned (F6) — the Pi's hostname was renamed `MilarachiC4I` → `c4i` by a new idempotent `deploy/pi/set-hostname.sh` (+ cloud-init drop-in `99-c4i-hostname.cfg`, `manage_etc_hosts: false`), so Avahi advertises `c4i.local` and the router's DHCP-name DNS answers bare `c4i`; no app code changed (nginx `server_name _`, relative `/api`). Two deviations: (1) the live rename broke the kiosk — Chromium's profile `SingletonLock` symlink still targeted the old hostname — so the script grew a Chromium profile-lock cleanup step (`CHROMIUM_DIR`, `SUDO_USER`/`getent` home resolution; push-review rounds 5–8, matrix cases M–V); (2) the Pi's own `getent hosts c4i.local` returns its Docker bridge address (`172.18.0.x`), not the wlan0 IP — LAN clients unaffected, caveat recorded in `deploy/pi/README.md`. Contract a later feature depends on: the Pi is reached as `c4i.local` / `c4i` (README, `deploy/pi/README.md` § LAN name; `ssh` alias rename + Windows client checks were left to the user). Infra track complete; Phase C fold-back landed as #44 (★FOCUS → F15, gated; moved to F21 the same day by `/new-feature`).
+
 # Local URL alias instead of IP:port (F6)
 
 ## Summary
