@@ -334,7 +334,8 @@ pi-kiosk repo's own planning, not here.
 `plans/completed/` by the 2026-09-19 sweep (#42); `F6` (#43) by the 2026-09-20 sweep, which
 also pruned `feature/local-url-alias` and the #42/#44 chore branches. Their non-blocking
 push-review minors are harvested in `plans/PUSH-REVIEW-FINDINGS.md` (sections F4, F5 and
-F6 — current numbering). Everything older is clean: every earlier merged plan dir is frozen under `plans/completed/`. Sweep
+F6 — current numbering).
+Everything older is clean: every earlier merged plan dir is frozen under `plans/completed/`. Sweep
 history lives in git (PRs #22, #26, #29 and the sweep commits on later branches), not here. Run
 `/compact-plans` after each merge, then `/run-feature <F-ID>` on the merged feature so its
 Phase C fold-back (ledger row deleted, Baseline/ID-map/★FOCUS refreshed) lands — never
@@ -1210,8 +1211,8 @@ days out). Ledger item: `F19` in `plans/ledger/260920_feature_ledger.md`.
   like any other). If `F19` runs before `F20` it keys off `isLocked` alone and `F20` re-keys
   it to the tick — hence the soft order `F20` → `F19`. "Instant, never smooth" still holds:
   with `F20` the app is no longer `inert` under the lock, but the reset happens at an idle
-  expiry, so nobody is watching. **Step 0 on every tick — close any open dialog.** `F20`
-  lets the Add modal open *under* the lock, and the existing force-close-dialogs effect
+  expiry, so nobody is watching. **Step 0 on every tick — close the open Add modal, if
+  any.** `F20` lets the Add modal open *under* the lock, and the existing force-close-dialogs effect
   only fires on the `isLocked` transition, so a form opened after the lock engaged and then
   abandoned would otherwise stay open across every later reset. Each idle-expiry tick
   therefore also force-closes the Add modal (the only dialog reachable while locked — `F20`
@@ -1352,7 +1353,8 @@ first tap; overlay mounted on attempt), the `F2` test suites (`useTouchLock`, `T
 Verify:
 - `App.tsx`: `inert={isBlanked || isLocked}` on the app root; `TouchLockOverlay` rendered
   when `(isLocked || isClosing) && !isBlanked`; `TouchLockIndicator` is `pointer-events-none`.
-- `ChoreTimerBar.tsx`: `isSimulating` guard on `resetTask`, `onSwiping` and `onSwiped` (not on `onTouchStartOrOnMouseDown`, which only resets `swipingRef`)
+- `ChoreTimerBar.tsx`: `isSimulating` guard on `resetTask`, `onSwiping` and `onSwiped`
+  (not on `onTouchStartOrOnMouseDown`, which only resets `swipingRef`)
   (the pattern to mirror for `isLocked`, minus the dimming classes).
 - `useTouchLock.ts`: activity listeners attached only while `!isLocked` (the line to change).
 - If `F18` shipped, its button lives outside `.overflow-y-auto` and must stay usable under

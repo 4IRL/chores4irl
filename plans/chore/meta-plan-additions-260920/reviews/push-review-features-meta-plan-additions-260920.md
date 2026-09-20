@@ -52,3 +52,45 @@ F16 `frequency === 0`, F17 all-zero override, F18 reduced-motion, F21 rollback/e
 - [ ] **Add the unset-`urgency` test case to F16** — `plans/META-PLAN.md:984` — "a chore with `urgency` omitted scores identically to `urgency: 'medium'`".
 - [ ] **(Optional) Shorten the top-summary F15 clause to a pointer** — `plans/META-PLAN.md:37` — "`F15` stays gated on external pi-kiosk Phase 2 parity — see *Shortest path* below".
 - [ ] **(Optional) Drop one ★ marker form from the tree diagrams** — `plans/META-PLAN.md:109`, `:1557` — either remove the bare `★ ` prefix (match the F15-era trees) or keep it and drop "★FOCUS" from line 1557.
+
+## Review 2
+Generated: 2026-09-20 16:28
+Comparison: origin/main (`a045b11`)...HEAD (`fb6bb9b` + the three minors below) — Review 1's eight To-Do items (six required + both optionals) all landed in `fb6bb9b`; per the append-only convention adopted in #42, Review 1's boxes stay `[ ]` and this line is the record
+Verdict: **PUSHED WITH MINOR FINDINGS**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+Delta is prose-only; no secrets, code or destructive operations.
+
+#### 2. Correctness — PASS
+All Review 1 items verified against the files: the F19/F20 step-0 amendment is consistent across F19 Design / Expected end state / tests, F20 Open risk (b) and the ledger; the rewritten Branch/dir cleanup paragraph is true (F4/F5 frozen by #42, F6 by this branch, sections F4/F5/F6 exist in `PUSH-REVIEW-FINDINGS.md`); the `isSimulating` sentence matches `ChoreTimerBar.tsx`; the ledger trim lost no decision; one ★ FOCUS heading; F16–F21 rows unique; soft order consistent.
+
+#### 3. Simplicity & Conciseness — PASS
+All three majors resolved; the step-0 rule is restated per-section at the depth each section's role warrants.
+- minor — `plans/completed/local-url-alias/local-url-alias.md:2` — Outcome is ~6 lines at 110 col (was ~11); still over the literal ≤ 4 but shorter than the two nearest sibling headers. Optional further trim.
+
+#### 4. Test Coverage — PASS
+F16 unset-`urgency` case and F19's "Add form left open across a second idle tick → closed" case present; ledger trim removed nothing META-PLAN doesn't carry.
+
+#### 5. Completeness & Cleanup — PASS
+Both stale spots fixed; the only remaining `plans/feature/local-url-alias` mention carries the frozen-copy hedge; review file follows house form; `plans/**/tmp/` covers the tmp dir; ledger entries keep their date stamp + META-PLAN pointer.
+
+#### 6. Consistency & Style — PASS
+- minor — `plans/META-PLAN.md:337` — Branch/dir cleanup's new closing sentence ran onto the pre-existing unwrapped tail (123-col line) — **fixed before push** (line break inserted).
+- minor — `plans/META-PLAN.md:1355` — the reworded `ChoreTimerBar.tsx` bullet grew to 155 cols — **fixed before push** (re-wrapped).
+- minor *(observational)* — Review 1's To-Do boxes unchecked although `fb6bb9b` applied them; sibling f14/f6 files tick them. Left as-is on purpose: the append-only convention from #42 (Review 2's Comparison line records the landing) supersedes that older precedent.
+
+#### 7. Integration Risk — PASS
+Row grep / ★FOCUS / Step 7 scan unchanged; `/worktree` reads META-PLAN sections (not the ledger) for touch sets, so the trim is safe; the step-0 amendment is consistent with F15 Open risks (e)/(f) and the DD-2 hand-over; `plans/chore/` is a dir `/compact-plans` classifies.
+
+#### 8. Error Handling & Silent Failures — PASS
+Step-0 names the Add modal (cross-referenced to F20 (c)'s closed enumeration), orders the close before the four resets, leaves the manual-lock case to the existing engage-keyed effect, and frames the discarded half-typed form under the same abandonment rule as the engage case.
+- minor — `plans/META-PLAN.md:1213` — the bolded lead-in "close any open dialog" read broader than the narrowed body — **fixed before push** ("close the open Add modal, if any").
+
+### To-Do: Required Changes
+
+- [x] **Break the Branch/dir cleanup paragraph after "current numbering)."** — `plans/META-PLAN.md:337` — done before push.
+- [x] **Re-wrap the `ChoreTimerBar.tsx` Verify bullet** — `plans/META-PLAN.md:1355` — done before push.
+- [x] **Narrow the step-0 lead-in to the Add modal** — `plans/META-PLAN.md:1213` — done before push.
+- [ ] **(Optional) Trim the F6 freeze Outcome to ≤ 4 lines** — `plans/completed/local-url-alias/local-url-alias.md:2` — e.g. fold "no app code changed" into the lead sentence and drop "push-review rounds 5–8".
