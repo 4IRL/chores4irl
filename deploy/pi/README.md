@@ -115,16 +115,16 @@ The hostname is cloud-init-managed on this Pi: `/boot/firmware/user-data` carrie
 `/etc/hosts` gets re-rendered from the seed's old name on every boot (`sudo: unable to
 resolve host …` noise). `set-hostname.sh` makes three edits, each load-bearing:
 
-1. Installs the drop-in `cloud-init/99-c4i-hostname.cfg` → `/etc/cloud/cloud.cfg.d/`
-   (`preserve_hostname: true`, `manage_etc_hosts: false`), which stops cloud-init
-   re-applying the seed's hostname / re-rendering `/etc/hosts` every boot.
-2. Because user-data out-ranks `cloud.cfg.d` for `manage_etc_hosts`, it also flips that
-   key to `false` in `/boot/firmware/user-data` and rewrites the file's `hostname:` line
-   to the new name (so a later `cloud-init clean` cannot resurrect the old name).
+1. Rewrites the `hostname:` line in `/boot/firmware/user-data` to the new name (so a
+   later `cloud-init clean` cannot resurrect the old name) and, because user-data
+   out-ranks `cloud.cfg.d` for `manage_etc_hosts`, flips that key to `false` there too.
    user-data also holds `users:` credentials — the script edits those two lines in place
    and never prints the file.
-3. Applies the change immediately: the `127.0.1.1` line in `/etc/hosts` first, then
+2. Applies the change immediately: the `127.0.1.1` line in `/etc/hosts` first, then
    `hostnamectl`.
+3. Installs the drop-in `cloud-init/99-c4i-hostname.cfg` → `/etc/cloud/cloud.cfg.d/`
+   (`preserve_hostname: true`, `manage_etc_hosts: false`), which stops cloud-init
+   re-applying the seed's hostname / re-rendering `/etc/hosts` every boot.
 
 If a reboot still shows the old name in `/etc/hosts` (cloud-init used its cached config),
 run `sudo cloud-init clean && sudo reboot` once.
@@ -197,9 +197,9 @@ From Windows, use `ping.exe -4 -n 1 c4i.local` or open `http://c4i.local/` in a 
   name is Compose-generated) in `/etc/avahi/avahi-daemon.conf` would fix the answer but
   adds a config file to keep in step with the network layout.
 - IPv6-only clients are not served: the stack is reachable over IPv4 only on this Pi
-  (`docker ps` shows `0.0.0.0:80->80/tcp` with no `[::]:80` publish — probed 2026-09-19;
-  `nginx.conf` `listen 80;`, `docker-compose.yml` `"80:80"`). Dual-stack clients fall back
-  from the router's AAAA to A automatically.
+  (this follows from `docker-compose.yml`'s `"80:80"` mapping and `nginx.conf`'s
+  `listen 80;` — an IPv4-only publish, inferred from config rather than a logged probe).
+  Dual-stack clients fall back from the router's AAAA to A automatically.
 
 ### Full revert (cloud-init back in charge)
 

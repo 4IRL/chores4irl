@@ -136,7 +136,7 @@ Once the containers are running, configure the Pi host so it boots straight into
   - **Wayland** (Bookworm default): `wlr-randr --output <name> --transform 90` (discover `<name>` by running `wlr-randr` with no args). Add the command to the autostart `.desktop` `Exec=` line before `chromium-browser` so rotation applies every login.
   - **X11**: `display_rotate=1` in `/boot/firmware/config.txt` for DSI panels (rotates both framebuffer and touch); `xrandr --output HDMI-1 --rotate left` for HDMI.
 - **Autostart on boot** — a systemd unit (`/etc/systemd/system/chores4irl.service`) brings the Compose stack up before the desktop autostart launches Chromium.
-- **Reaching the app by name** — run `deploy/pi/set-hostname.sh` (then reboot) so the Pi is named `c4i` and answers as `http://c4i.local/` (mDNS) and `http://c4i/` (router DNS) from LAN clients; see `deploy/pi/README.md` § LAN name. The kiosk itself stays on `http://localhost/`.
+- **Reaching the app by name** — run `deploy/pi/set-hostname.sh` (then reboot) so the Pi is named `c4i` and reachable by name from LAN clients (the `c4i.local` / `c4i` URLs above); see [`deploy/pi/README.md`](deploy/pi/README.md) § LAN name. The kiosk itself stays on `http://localhost/`.
 
 Full copy-pasteable snippets for all of the above are in the deployment plan.
 

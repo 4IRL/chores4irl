@@ -6,13 +6,13 @@
 # Idempotent: safe to re-run. The Pi hostname is cloud-init-managed via
 # /boot/firmware/user-data (`hostname:` + `manage_etc_hosts: true`), which would
 # re-render /etc/hosts with the previous name on every boot. So this script:
-#   (a) installs the drop-in cloud-init/99-c4i-hostname.cfg -> /etc/cloud/cloud.cfg.d/
-#       (`preserve_hostname: true`, `manage_etc_hosts: false`) so cloud-init stops
-#       touching /etc/hostname and /etc/hosts;
-#   (b) rewrites user-data's `hostname:` line AND flips its `manage_etc_hosts:` to
+#   (a) rewrites user-data's `hostname:` line AND flips its `manage_etc_hosts:` to
 #       `false` — user-data out-ranks cloud.cfg.d for that key, so the drop-in
 #       alone would be overridden;
-#   (c) applies the change immediately: /etc/hosts first, then hostnamectl.
+#   (b) applies the change immediately: /etc/hosts first, then hostnamectl;
+#   (c) installs the drop-in cloud-init/99-c4i-hostname.cfg -> /etc/cloud/cloud.cfg.d/
+#       (`preserve_hostname: true`, `manage_etc_hosts: false`) so cloud-init stops
+#       touching /etc/hostname and /etc/hosts.
 # Both Avahi (<name>.local) and the router's DHCP-registered name follow the
 # hostname; reboot afterwards so DHCP re-registers the new name.
 #
@@ -48,6 +48,8 @@ APPLY_LIVE="${APPLY_LIVE:-1}"
 
 info() { printf '  %s\n' "$*"; }
 warn() { printf '  WARNING: %s\n' "$*" >&2; }
+# Separate statements (not an &&-chain) so a failed cp aborts under set -e.
+backup() { $SUDO cp "$1" "$1.bak"; info "backed up -> $1.bak"; }
 
 # --- pre-flight: validate the name, read the current one, check the source ----
 NEW="${1:-c4i}"
@@ -74,8 +76,13 @@ fi
 if [ ! -f "$USER_DATA_FILE" ]; then
   warn "no cloud-init user-data at $USER_DATA_FILE — skipping (hostname persists only if cloud-init is not managing it)"
 else
-  if ! $SUDO grep -qE '^hostname:' "$USER_DATA_FILE"; then
+  rc=0
+  $SUDO grep -qE '^hostname:' "$USER_DATA_FILE" || rc=$?
+  if [ "$rc" -eq 1 ]; then
     warn "no 'hostname:' key in $USER_DATA_FILE — cloud-init would re-apply the old name on reboot; add one and re-run"
+    exit 1
+  elif [ "$rc" -ne 0 ]; then
+    warn "could not read $USER_DATA_FILE (permissions/sudo?)"
     exit 1
   fi
   need_hostname=1
@@ -93,9 +100,7 @@ else
   if [ "$need_hostname" = 0 ] && [ "$need_meh" = 0 ]; then
     info "user-data already up to date."
   else
-    # Separate statements (not an &&-chain) so a failed backup aborts under set -e.
-    $SUDO cp "$USER_DATA_FILE" "$USER_DATA_FILE.bak"
-    info "backed up -> $USER_DATA_FILE.bak"
+    backup "$USER_DATA_FILE"
     # One sed -i so both keys change in a single temp-file rename (no half state).
     exprs=()
     if [ "$need_hostname" = 1 ]; then exprs+=(-e "s/^(hostname:[[:space:]]*).*/\1$NEW/"); fi
@@ -108,11 +113,18 @@ fi
 
 # --- 2. /etc/hosts FIRST, then hostname (so sudo resolves the new name) -------
 echo "[2/4] /etc/hosts + hostname -> $HOSTS_FILE / $HOSTNAME_FILE"
-if [ -f "$HOSTS_FILE" ] && grep -qiE "^[[:space:]]*127\.0\.1\.1[[:space:]]+$NEW([[:space:]]+$NEW)?[[:space:]]*$" "$HOSTS_FILE"; then
+# Up to date only when EVERY 127.0.1.1 line already carries the target name — a
+# stale second line must not be masked by a correct one. `|| true`: grep -c
+# still prints 0 on no match but exits 1, which set -e would otherwise abort on.
+hosts_total=0; hosts_ok=0
+if [ -f "$HOSTS_FILE" ]; then
+  hosts_total="$(grep -cE '^[[:space:]]*127\.0\.1\.1[[:space:]]' "$HOSTS_FILE" || true)"
+  hosts_ok="$(grep -ciE "^[[:space:]]*127\.0\.1\.1[[:space:]]+$NEW([[:space:]]+$NEW)?[[:space:]]*$" "$HOSTS_FILE" || true)"
+fi
+if [ "$hosts_total" -gt 0 ] && [ "$hosts_ok" -eq "$hosts_total" ]; then
   info "hosts already up to date."
-elif [ -f "$HOSTS_FILE" ] && grep -qE '^[[:space:]]*127\.0\.1\.1[[:space:]]' "$HOSTS_FILE"; then
-  $SUDO cp "$HOSTS_FILE" "$HOSTS_FILE.bak"
-  info "backed up -> $HOSTS_FILE.bak"
+elif [ "$hosts_total" -gt 0 ]; then
+  backup "$HOSTS_FILE"
   # cloud-init's hosts.debian.tmpl shape: `127.0.1.1 {{fqdn}} {{hostname}}`.
   $SUDO sed -i -E "s/^[[:space:]]*127\.0\.1\.1[[:space:]].*/127.0.1.1 $NEW $NEW/" "$HOSTS_FILE"
   info "127.0.1.1 -> $NEW $NEW"
@@ -142,8 +154,7 @@ if [ -f "$CLOUD_CFG_D_FILE" ] && cmp -s "$CLOUD_INIT_DROPIN_SRC" "$CLOUD_CFG_D_F
   info "cloud-init drop-in already up to date."
 else
   if [ -f "$CLOUD_CFG_D_FILE" ]; then
-    $SUDO cp "$CLOUD_CFG_D_FILE" "$CLOUD_CFG_D_FILE.bak"
-    info "backed up -> $CLOUD_CFG_D_FILE.bak"
+    backup "$CLOUD_CFG_D_FILE"
   fi
   $SUDO cp "$CLOUD_INIT_DROPIN_SRC" "$CLOUD_CFG_D_FILE"
   info "installed."
@@ -153,11 +164,15 @@ fi
 echo "[4/4] verify"
 if [ -f "$USER_DATA_FILE" ]; then
   # grep only — never cat: the file carries credentials.
-  $SUDO grep -E '^(hostname|manage_etc_hosts):' "$USER_DATA_FILE" || true
+  $SUDO grep -E '^(hostname|manage_etc_hosts):' "$USER_DATA_FILE" || warn "could not read hostname/manage_etc_hosts from $USER_DATA_FILE — verify by hand"
 fi
 cat "$HOSTNAME_FILE" 2>/dev/null || warn "no $HOSTNAME_FILE"
 grep -E '^127\.0\.1\.1' "$HOSTS_FILE" || warn "no 127.0.1.1 line in $HOSTS_FILE"
-grep -E '^(preserve_hostname|manage_etc_hosts):' "$CLOUD_CFG_D_FILE" || true
+if [ -f "$CLOUD_CFG_D_FILE" ]; then
+  $SUDO grep -E '^(preserve_hostname|manage_etc_hosts):' "$CLOUD_CFG_D_FILE" || warn "could not read $CLOUD_CFG_D_FILE — verify by hand"
+else
+  warn "no $CLOUD_CFG_D_FILE"
+fi
 if [ "$APPLY_LIVE" = 1 ]; then
   # Avahi 0.8 follows hostname changes on its own; no restart needed.
   systemctl is-active avahi-daemon || warn "avahi-daemon is not active — $NEW.local will not be advertised"
