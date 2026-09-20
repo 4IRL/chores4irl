@@ -38,9 +38,8 @@
 runnable now; `/run-feature F21`, branch `feature/form-polish-date-fix`) — see *Shortest path
 to the focus feature* below. *(Set 2026-09-20 at the close of the `features/meta-plan-additions-260920`
 capture batch: the user deferred the ★ re-evaluation to the batch's last `/new-feature`, and
-`F21` was that add. `F15` — the previous ★, advanced from `F6` earlier the same day — stays
-**gated** on external pi-kiosk Phase 2 parity and remains the kiosk-track head; `F11`/`F12`
-wait on Phase 4. `/run-feature F15` must still refuse until parity is verified on the Pi.)*
+`F21` was that add. `F15` — the previous ★ — stays **gated** on external pi-kiosk Phase 2
+parity as the kiosk-track head; see *Shortest path to the focus feature* below.)*
 **`F21` (form polish + date-math fix), `F16` (status-bucketed midnight re-sort), `F17`
 (status-count strip), `F18` (floating scroll-to-top button), `F19` (lock-time view reset)
 and `F20` (permissive touch lock), all added 2026-09-20 via `/new-feature`, are the
@@ -330,27 +329,12 @@ pi-kiosk repo's own planning, not here.
 | F12 — redo *(re-scoped 2026-07-15)* | pending *(gated on F11 + same external gate)* | `feature/redo` | — |
 | F3 · F7 · F8 · F9 · F10 · F13 — device-control console + controls | **superseded** *(2026-07-15 — migrated to pi-kiosk; branches never created)* | — | — |
 
-**Branch/dir cleanup:** outstanding as of the 2026-09-20 `F6` fold-back — three merged
-features have not been swept yet. `F4` (#38): its local branch
-`feature/remove-details-longterm`, its `/worktree` checkout
-`c4i-wt-remove-details-longterm`, and its plan dir `plans/feature/remove-details-longterm/`
-(whose `reviews/push-review-feature-remove-details-longterm.md` holds four non-blocking
-minors — count-alias naming, a greppable log tag before the migration rethrows, an optional
-two-connection `BEGIN IMMEDIATE` test, an optional loop inlining). `F5` (#39): its local
-branch `feature/translucent-add-deck`, its `/worktree` checkout
-`c4i-wt-translucent-add-deck`, and its plan dir `plans/feature/translucent-add-deck/`
-(whose `reviews/push-review-feature-translucent-add-deck.md` Review 2 holds three
-non-blocking minors — assert the backing's `inset-x-0`/`bottom-0`, tie the
-`-top-16`/`black_4rem`/`scroll-pb-40` numbers together in the test, and an
-only-if-re-verified-on-the-Pi `isolate`+`-z-10` alternative to the button's `relative`
-wrapper). `F6` (#43): its local branch `feature/local-url-alias` and its plan dir
-`plans/feature/local-url-alias/` (whose `reviews/push-review-feature-local-url-alias.md`
-carries eight review rounds; the still-open items are optional — redacting the LAN IP/MAC in
-the planning docs if the repo goes public, anchoring the unanchored `*.sh` gitignore rule so
-future `deploy/pi/*.sh` scripts need no `git add -f`, and fixture cases for the
-`hostnamectl`/avahi-inactive/`readlink`-failure branches of `set-hostname.sh`). All of it —
-plus harvesting those minors into `plans/PUSH-REVIEW-FINDINGS.md` — awaits the next
-`/compact-plans` sweep. Everything older is clean: every earlier merged plan dir is frozen under `plans/completed/`. Sweep
+**Branch/dir cleanup:** nothing outstanding as of the 2026-09-20 `/compact-plans` sweep
+(branch `features/meta-plan-additions-260920`). `F4` (#38) and `F5` (#39) were frozen under
+`plans/completed/` by the 2026-09-19 sweep (#42); `F6` (#43) by the 2026-09-20 sweep, which
+also pruned `feature/local-url-alias` and the #42/#44 chore branches. Their non-blocking
+push-review minors are harvested in `plans/PUSH-REVIEW-FINDINGS.md` (sections F4, F5 and
+F6 — current numbering). Everything older is clean: every earlier merged plan dir is frozen under `plans/completed/`. Sweep
 history lives in git (PRs #22, #26, #29 and the sweep commits on later branches), not here. Run
 `/compact-plans` after each merge, then `/run-feature <F-ID>` on the merged feature so its
 Phase C fold-back (ledger row deleted, Baseline/ID-map/★FOCUS refreshed) lands — never
@@ -460,7 +444,7 @@ migrated to 7 columns.
 1. **Resolved (F4, shipped #38):** `better-sqlite3` bundles SQLite 3.51.3 (≥ 3.35), so `ALTER TABLE … DROP COLUMN` is available and the boot migration uses it — no table-rebuild fallback was needed. Re-verify only if `better-sqlite3` is ever downgraded.
 2. Tap-to-complete + the simulation pointer-events guard + the SSE re-pull gate are primary; no new feature may regress them. `F1` (shipped) already coordinates this; `F2`'s implementation resolved the same concern for its own overlay (see item 7 below).
 3. **Resolved (F4, shipped #38):** `details` was never rendered, and its removal shipped without a display change; the one user-visible change was the sort (long-term chores no longer pin to the bottom — Standing invariant 11).
-4. **Resolved (F6, shipped #43):** its out-of-repo end state (the Pi/LAN rename) is applied and verified live; the deployment docs live in `deploy/pi/README.md` § LAN name and `plans/feature/local-url-alias/research/` (frozen under `plans/completed/` after the next sweep). The frozen Dockerization plan lives at `plans/completed/docker-raspberry-pi/`. *(The former host-bridge controls `F13`/`F7`/`F8`/`F10` migrated to pi-kiosk 2026-07-15 — their host-side end states are now that repo's concern; `F15`'s external gate — "pi-kiosk Phase 2 parity verified on the Pi" — is likewise verified outside this repo and recorded in `F15`'s own plan docs.)*
+4. **Resolved (F6, shipped #43):** its out-of-repo end state (the Pi/LAN rename) is applied and verified live; the deployment docs live in `deploy/pi/README.md` § LAN name and `plans/completed/local-url-alias/research/` (frozen 2026-09-20). The frozen Dockerization plan lives at `plans/completed/docker-raspberry-pi/`. *(The former host-bridge controls `F13`/`F7`/`F8`/`F10` migrated to pi-kiosk 2026-07-15 — their host-side end states are now that repo's concern; `F15`'s external gate — "pi-kiosk Phase 2 parity verified on the Pi" — is likewise verified outside this repo and recorded in `F15`'s own plan docs.)*
 5. **Kiosk-only concerns now live in pi-kiosk** (2026-07-15): the device-control track migrated there, so no remaining chores4irl feature is kiosk-only — the app must simply stay embeddable (`F15`'s guarantee) and keep working standalone at `IP:port` off-kiosk. *(The old "F3–F13 degrade gracefully off-kiosk" note is retired with the migration.)*
 5b. **The compose `name:` pin question survives `F13`'s supersession** as an optional, detached infra hardening (DB-volume path determinism) — re-raise it on its own merits if ever needed; nothing depends on it now.
 6. **`deploy/pi/` currently has no screen-blank/DPMS/idle config** (verified — no `dpms`/`screen-blank`/`xset`/idle-inhibit files exist there). `F1` shipped without needing to touch this; if host-side auto-blank is later found enabled, disabling it is a deploy-doc note, not a blocker.
@@ -981,7 +965,8 @@ empty/all-one-bucket inputs). No `App.tsx`, form, bar, backend or schema change.
   larger `overdueRatio` always ranks higher regardless of duration; green ordering is most-
   recent-first; quota fill 4/2/2 on a mixed board; donation when a bucket is short;
   escalation to an all-red fold at `pressure ≥ 4`; `high` vs `low` urgency flips rank and
-  pressure at the same `daysSince`; `frequency === 0`; empty input; stable ties.
+  pressure at the same `daysSince`; a chore with `urgency` omitted scores identically to
+  `urgency: 'medium'` (×1); `frequency === 0`; empty input; stable ties.
 - README's "sort" paragraph (currently *`score = duration × (daysSince / frequency)`*)
   rewritten to describe buckets, quota, escalation and the urgency multiplier, and to say
   plainly that the order changes only at midnight.
@@ -1225,7 +1210,13 @@ days out). Ledger item: `F19` in `plans/ledger/260920_feature_ledger.md`.
   like any other). If `F19` runs before `F20` it keys off `isLocked` alone and `F20` re-keys
   it to the tick — hence the soft order `F20` → `F19`. "Instant, never smooth" still holds:
   with `F20` the app is no longer `inert` under the lock, but the reset happens at an idle
-  expiry, so nobody is watching.
+  expiry, so nobody is watching. **Step 0 on every tick — close any open dialog.** `F20`
+  lets the Add modal open *under* the lock, and the existing force-close-dialogs effect
+  only fires on the `isLocked` transition, so a form opened after the lock engaged and then
+  abandoned would otherwise stay open across every later reset. Each idle-expiry tick
+  therefore also force-closes the Add modal (the only dialog reachable while locked — `F20`
+  Open risks (c)) before the four resets, on the same abandonment reasoning as the engage
+  case (`F20` Open risks (b)).
 - **Rejected alternatives** (recorded so they aren't re-proposed): resetting on *unlock*
   (the wall display would show stale state behind the padlock for the whole locked period,
   and the unlocking person would see the view jump under their finger); an app-owned
@@ -1254,13 +1245,15 @@ line. No backend, data, sort, component or styling change.
 - `App.tsx` contains a lock-engage effect that sets `scrollTop = 0` on the scroll container,
   `selectedRoom` to `'all'`, `searchQuery` to `''` and `dayOffset` to `0`; it does not run on
   `isBlanked` and does not run on unlock. **With `F20` present**, the same effect also runs
-  on each idle-expiry tick while locked and on a manual lock from the indicator control.
+  on each idle-expiry tick while locked and on a manual lock from the indicator control,
+  and each tick first closes an Add modal left open under the lock.
 - Tests (App-level, fake timers): after scrolling, picking a room, typing a search and
   stepping the day forward, advancing 5 minutes idle → all four reset and
   `scrollTop === 0`; unlocking (double-tap) does *not* re-run the reset; blanking alone
   (21:00 without the lock timer elapsing) does *not* reset; the re-sort effect fires on
   lock only when `dayOffset` was non-zero (spy on `orderChores` or assert the order);
-  `F18`'s button (if present) is hidden after the reset.
+  `F18`'s button (if present) is hidden after the reset; **with `F20`**: Add form opened
+  while locked and left open across a second idle tick → closed (and the four resets ran).
 - README's touch-lock paragraph gains one line ("locking also returns the view to the top /
   All / today").
 - `.overflow-y-auto` keeps its exact class string; e2e unaffected.
@@ -1359,7 +1352,7 @@ first tap; overlay mounted on attempt), the `F2` test suites (`useTouchLock`, `T
 Verify:
 - `App.tsx`: `inert={isBlanked || isLocked}` on the app root; `TouchLockOverlay` rendered
   when `(isLocked || isClosing) && !isBlanked`; `TouchLockIndicator` is `pointer-events-none`.
-- `ChoreTimerBar.tsx`: `isSimulating` guard on `resetTask` and the three swipe callbacks
+- `ChoreTimerBar.tsx`: `isSimulating` guard on `resetTask`, `onSwiping` and `onSwiped` (not on `onTouchStartOrOnMouseDown`, which only resets `swipingRef`)
   (the pattern to mirror for `isLocked`, minus the dimming classes).
 - `useTouchLock.ts`: activity listeners attached only while `!isLocked` (the line to change).
 - If `F18` shipped, its button lives outside `.overflow-y-auto` and must stay usable under
@@ -1396,7 +1389,9 @@ bar qualifies within 60 px. (b) **Lock engaging with the Add form open:** the ex
 force-close-dialogs effect closes it on engage; keep that (5 minutes idle with a half-typed
 form is abandonment, and `F19` resets the view at the same moment) — but do **not** close
 it on a *manual* lock from the indicator if the form is open (the person is present);
-decide at planning, default: manual lock also closes it for simplicity. (c) **Dialogs
+decide at planning, default: manual lock also closes it for simplicity. The same
+abandonment rule covers a form opened *under* the lock: every subsequent idle-expiry tick
+closes it too (`F19`'s step 0), since the transition-keyed effect never re-fires. (c) **Dialogs
 reachable while locked:** none — edit/delete are guarded, so `ConfirmDialog` and the edit
 modal cannot open under the lock; the add modal can, and that is intended. (d) **Overlay
 mount strategy:** mount-on-attempt is simplest but the entrance must be instant (no
@@ -1554,7 +1549,7 @@ added while simulating gets today's real date (state the choice in the README li
 
 ```
 CHORE-LIST TRACK (re-opened 2026-09-20; F14 shipped #34, F4 shipped #38, F5 shipped #39 — the 2026-07-08 order F14 → F4 → F5 is honored by history)
-  ★ F21 (add/edit form polish + UTC-vs-local date-math fix + success/error toast) — no prerequisites, ★FOCUS, runnable now
+  ★ F21 (add/edit form polish + UTC-vs-local date-math fix + success/error toast) — no prerequisites, runnable now
     ─soft→ F16 (status-bucketed midnight re-sort + red-quota escalation + Urgency weighting) — no prerequisites; F21 first retires the off-by-one it would inherit
     ─soft→ F17 (status-count strip under the room tabs) — no prerequisites; shares F16's status classifier
     ─soft→ F18 (floating scroll-to-top button) — no prerequisites; must clear the F5 deck
