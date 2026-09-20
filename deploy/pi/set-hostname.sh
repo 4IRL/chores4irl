@@ -118,8 +118,8 @@ echo "[2/4] /etc/hosts + hostname -> $HOSTS_FILE / $HOSTNAME_FILE"
 # still prints 0 on no match but exits 1, which set -e would otherwise abort on.
 hosts_total=0; hosts_ok=0
 if [ -f "$HOSTS_FILE" ]; then
-  hosts_total="$(grep -cE '^[[:space:]]*127\.0\.1\.1[[:space:]]' "$HOSTS_FILE" || true)"
-  hosts_ok="$(grep -ciE "^[[:space:]]*127\.0\.1\.1[[:space:]]+$NEW([[:space:]]+$NEW)?[[:space:]]*$" "$HOSTS_FILE" || true)"
+  hosts_total="$($SUDO grep -cE '^[[:space:]]*127\.0\.1\.1[[:space:]]' "$HOSTS_FILE" || true)"
+  hosts_ok="$($SUDO grep -ciE "^[[:space:]]*127\.0\.1\.1[[:space:]]+$NEW([[:space:]]+$NEW)?[[:space:]]*$" "$HOSTS_FILE" || true)"
 fi
 if [ "$hosts_total" -gt 0 ] && [ "$hosts_ok" -eq "$hosts_total" ]; then
   info "hosts already up to date."

@@ -51,3 +51,55 @@ Disciplined overall: pre-flight checks before any write, backups before every ed
 - [x] **Distinguish "key missing" from "could not read" in the user-data precondition** — `deploy/pi/set-hostname.sh:77-80` — run the `$SUDO grep` once capturing its exit status; exit 1 → the existing "no `hostname:` key … add one and re-run" warn; exit ≥ 2 → a new warn naming the file and "could not read (permissions/sudo?)", then exit 1 as today.
 - [x] **(Optional) Extract a `backup()` helper** — `deploy/pi/set-hostname.sh:98-99,115-116,146-147` — `backup() { $SUDO cp "$1" "$1.bak"; info "backed up -> $1.bak"; }` and call it at the three sites; the printed strings must stay byte-identical.
 - [ ] **(Optional, repo-visibility dependent) Redact the LAN IP/MAC in planning docs** — `plans/feature/local-url-alias/**` — only if the repo is or becomes public; the deploy docs already use `<pi-ip>`-style placeholders. — deferred: repo-visibility decision for the user
+
+## Review 2
+Generated: 2026-09-19 21:40
+Comparison: origin/main (f007927)...HEAD (885e2f3)
+Verdict: **BLOCKED**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+All Review 1 fixes applied with no new issues; `set-hostname.sh` remains injection-safe (anchored RFC 1123 validation before any side effect, `$NEW` restricted to `[A-Za-z0-9-]`), backups before every write, credential-safe grep-only reads of user-data.
+
+#### 2. Correctness — PASS
+All Review 1 fixes present and correct (`hosts_total`/`hosts_ok` guard, `rc=$?` split, `backup()`, verify warns, header/README order, "probed" rewording, README link dedup).
+- minor — `deploy/pi/set-hostname.sh` `[4/4]` user-data check: the "could not read" warn also fires when grep simply finds neither key (exit 1). Step 1 already guarantees `hostname:` is present; optional rewording to "could not confirm".
+- minor — `[4/4]` `grep -E '^127\.0\.1\.1'` display check is not leading-whitespace-tolerant like the step-2 guard. Cosmetic.
+- minor — `hosts_ok` uses `grep -ci`; a differently-cased existing line counts as correct and keeps its casing. Documented/intentional.
+
+#### 3. Simplicity & Conciseness — PASS
+`backup()` dedup and README link fix cleanly applied; no new over-engineering or dead code.
+
+#### 4. Test Coverage — PASS
+The two Review 1 behavior changes check out by inspection.
+- minor — `plans/feature/local-url-alias/local-url-alias.md:204`: the Step 2 dry-run matrix text was not extended with the two new fixture cases (two-`127.0.1.1`-lines hosts guard; unreadable user-data `rc≥2` branch) that the fix pass actually ran (63/63).
+- minor — `plans/feature/local-url-alias/local-url-alias.md:212`: the plan's own README instruction still carries the pre-fix "`docker ps` … — probed 2026-09-19" claim that the shipped README corrected to "inferred from config".
+
+#### 5. Completeness & Cleanup — FAIL
+Review 1's header/README order fix is correctly applied; the other Review 1 fixes verified present. No TODO/debug/placeholder/temp artifacts; old-hostname references confined to the intended lines.
+- **major** — `plans/feature/local-url-alias/research/lan-name-resolution.md:90-102`: the `## Decision` → **Mechanism** numbered list still enumerates the three edits in the pre-fix order (1 drop-in → 2 user-data → 3 hosts/hostnamectl) versus the script's real `[1/4]` user-data → `[2/4]` hosts+hostnamectl → `[3/4]` drop-in.
+- **major** — `plans/feature/local-url-alias/local-url-alias.md:54-67`: the Research Findings "Mechanism (DD-6, option 3 + refinement)" (1)/(2)/(3) list has the same stale drop-in-first order.
+
+#### 6. Consistency & Style — PASS
+Script and docs consistent with `install-display-config.sh` naming, quoting, header, exit-code conventions.
+- minor — `deploy/pi/set-hostname.sh:79,92`: `rc` / `need_meh` are terse next to `hosts_total`/`need_hostname`; not a single-letter violation.
+- minor — `deploy/pi/README.md:150`: new `###` subsections vs the older section's bold-inline style; defensible given length (matches the `### Port-independent output matching` precedent). No action.
+
+#### 7. Integration Risk — PASS
+No stray old-hostname references; force-add tracked at 100755 and no longer reported by `git check-ignore`; cloud-init precedence verified against upstream; pi-kiosk `target_url` hand-off documented.
+- minor — `.gitignore:55`: the unanchored `*.sh` rule means every future `deploy/pi/*.sh` needs the same `git add -f` workaround (`deploy/pi/display/rotate-display.sh` is silently ignored today). Optional follow-up: anchor the rule.
+
+#### 8. Error Handling & Silent Failures — PASS
+Review 1's major confirmed fixed (`[ -f ]` guards, `$SUDO`, `warn` fallbacks); `rc=$?` split correct; `hosts_total`/`hosts_ok` `|| true` justified (`grep -c` exits 1 on zero matches); `backup()` still aborts under `set -e` on a failed `cp`.
+- minor — `deploy/pi/set-hostname.sh:121-122`: the two hosts-count greps have no `$SUDO`, unlike the other file reads; an unreadable `/etc/hosts` would leave the counters empty and `[ -gt ]` would error inside the `if` condition. `/etc/hosts` is world-readable in practice.
+
+### To-Do: Required Changes
+
+- [x] **Reorder the decision record's Mechanism list to the real execution order** — `plans/feature/local-url-alias/research/lan-name-resolution.md:90-102` — renumber so 1 = user-data in-place edit (`hostname:` → new name, `manage_etc_hosts: true → false`, user-data out-ranks cloud.cfg.d), 2 = `/etc/hosts` first then `hostnamectl set-hostname`, 3 = the cloud-init drop-in. Keep each bullet's wording; only order/numbers change.
+- [x] **Reorder the plan's Research Findings Mechanism (1)/(2)/(3) to match** — `plans/feature/local-url-alias/local-url-alias.md:54-67` — (1) user-data precedence flip + `hostname:` rewrite, (2) `/etc/hosts` then `hostnamectl` (DD-9), (3) the drop-in. Keep wording; renumber only. Note the parenthetical "user-data precedence caveat" still reads correctly as item (1) since it explains why the drop-in alone is insufficient.
+- [x] **Record the two new dry-run cases in the plan's Step 2 matrix line** — `plans/feature/local-url-alias/local-url-alias.md:204` — append: a hosts fixture with two `127.0.1.1` lines (one stale, one correct) → not reported up to date, both rewritten to `127.0.1.1 <new> <new>`, re-run reports `hosts already up to date.`; and a `chmod 000` user-data fixture → exit 1 with the `could not read … (permissions/sudo?)` warn, not the missing-key warn. Mark the matrix as re-run after the push-review fixes (63 assertions).
+- [x] **Drop the "probed 2026-09-19" wording from the plan's README instruction** — `plans/feature/local-url-alias/local-url-alias.md:212` — match the shipped `deploy/pi/README.md`: the IPv4-only publish is inferred from `docker-compose.yml`'s `"80:80"` and `nginx.conf`'s `listen 80;`, not a logged probe.
+- [x] **Prefix the two hosts-count greps with `$SUDO`** — `deploy/pi/set-hostname.sh:121-122` — for consistency with the script's other file reads (`$SUDO grep -cE …`, `$SUDO grep -ciE …`); the dry-run matrix runs with `SUDO=` so output is unchanged.
+- [ ] **(Optional) Rename `rc` → `grep_status` and `need_meh` → `need_manage_etc_hosts`** — `deploy/pi/set-hostname.sh:79-92`. — deferred: cosmetic
+- [ ] **(Optional, follow-up F-ID) Anchor the `*.sh` gitignore rule** — `.gitignore:55` — so future `deploy/pi/*.sh` scripts don't need `git add -f`; out of scope for this PR. — deferred: separate F-ID

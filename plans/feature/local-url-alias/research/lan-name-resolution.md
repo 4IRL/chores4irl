@@ -89,17 +89,18 @@ Windows/WSL/iOS) instead of `http://192.168.1.214/`, with:
   search domain). Lower-case, single label, DNS/mDNS-safe.
 - **Mechanism**: rename the Pi's hostname to `c4i`, held by three edits (each load-bearing
   for a different failure mode, see Probe results):
-  1. a versioned cloud-init drop-in `/etc/cloud/cloud.cfg.d/99-c4i-hostname.cfg`
-     (`preserve_hostname: true`, `manage_etc_hosts: false`) — takes cloud-init's
-     `set_hostname` / `update_hostname` / `update_etc_hosts` modules out of the loop on
-     every boot, whether or not the seed is re-read;
-  2. an in-place edit of `/boot/firmware/user-data` — `hostname:` → `c4i` and
+  1. an in-place edit of `/boot/firmware/user-data` — `hostname:` → `c4i` and
      `manage_etc_hosts: true` → `false` — because user-data out-ranks `cloud.cfg.d` for
      that key, and so a later `cloud-init clean` or seed re-read cannot resurrect the old
      name;
-  3. `/etc/hosts` (`127.0.1.1` line) first, then `hostnamectl set-hostname c4i`, to apply
+  2. `/etc/hosts` (`127.0.1.1` line) first, then `hostnamectl set-hostname c4i`, to apply
      the change now (hosts first so every `sudo` after the rename still resolves the host);
-     a reboot afterwards makes DHCP re-register the new name with the router.
+     a reboot afterwards makes DHCP re-register the new name with the router;
+  3. a versioned cloud-init drop-in `/etc/cloud/cloud.cfg.d/99-c4i-hostname.cfg`
+     (`preserve_hostname: true`, `manage_etc_hosts: false`) — takes cloud-init's
+     `set_hostname` / `update_hostname` / `update_etc_hosts` modules out of the loop on
+     every boot, whether or not the seed is re-read.
+  (The order matches the script's `[1/4]` → `[3/4]` steps.)
   Shipped as `deploy/pi/set-hostname.sh <name>` (idempotent, backup-then-write, mirrors
   `install-display-config.sh`) plus the tracked drop-in
   `deploy/pi/cloud-init/99-c4i-hostname.cfg`.
