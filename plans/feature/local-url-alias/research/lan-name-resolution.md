@@ -197,6 +197,29 @@ Not verifiable from the laptop CLI (DD-5) — confirm at the `/run-feature` Phas
 - phone → `http://c4i.local/` (iOS/Android 12+ — mDNS)
 - Windows browser → `http://c4i/` (type `c4i/` or `http://c4i` the first time) and `http://c4i.local/`
 
+### Post-rename findings (2026-09-20, user verification)
+
+- `http://c4i.local/` confirmed working from the user's phone (Android; `PUT` requests
+  logged by nginx with referer `http://c4i.local/`).
+- **Kiosk did not start after the rename reboot** — `~/.xsession-errors`: "The profile
+  appears to be in use by another Chromium process (1447) on another computer
+  (MilarachiC4I)". Chromium's `~/.config/chromium/SingletonLock` is a symlink to
+  `<hostname>-<pid>`; a lock left over from a session killed at shutdown is normally
+  reclaimed on the next start because the hostname matches and the pid is dead, but after a
+  rename the hostname no longer matches, so Chromium treats it as another machine's live
+  lock and exits. Fixed on the Pi by `rm -f ~/.config/chromium/Singleton{Lock,Socket,Cookie}`
+  (no Chromium running) + `sudo reboot` at 07:56 — kiosk up, lock now `c4i-1495`, zero
+  "another computer" lines in the new session log. `set-hostname.sh` step `[2/4]` now removes
+  the stale lock trio when its target hostname differs from the new name (`APPLY_LIVE=1`
+  only; fixture-tested live-with-stale-lock / re-run / lock-already-new-name / dry-run).
+- **`PUT /api/chores/:id` → 500 "Failed to update chore"** from both `http://c4i.local/`
+  and `http://192.168.1.214/` — **not F6**: the Pi's `~/chores4irl` tree (shipped 2026-09-19
+  08:53) is pre-F4 (`UPDATE … SET details = …, long_term_task = …`) while the live DB is
+  post-F4 (columns dropped), so SQLite throws and `app.ts`'s bare `catch` returns 500 without
+  logging. Mark-complete (`PATCH …/complete`) touches only `date_last_completed`, hence works.
+  Remedy: redeploy current `main` (`deploy.sh` → `git archive HEAD` → rebuild). Not applied
+  during F6 (user's call).
+
 ## Rollback
 
 - Name rollback: on the Pi run `deploy/pi/set-hostname.sh MilarachiC4I` then `sudo reboot`

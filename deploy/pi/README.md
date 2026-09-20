@@ -147,10 +147,19 @@ deploy/pi/set-hostname.sh c4i && sudo reboot   # reboot so DHCP re-registers the
 The script is idempotent (a re-run reports "already up to date" for each target and
 changes nothing) and backs up each file it rewrites to `<file>.bak`.
 
-`deploy.sh` ships only the app, so `deploy/pi/` artifacts are not synced by a normal
-redeploy: before a re-apply or rollback, `scp deploy/pi/set-hostname.sh` and
-`deploy/pi/cloud-init/99-c4i-hostname.cfg` from the repo into `~/chores4irl/deploy/pi/` on
-the Pi first (the copy applied on 2026-09-19 predates later hardening of the script).
+A redeploy re-extracts the whole tracked tree into `~/chores4irl`, so the tracked
+`deploy/pi/set-hostname.sh` and `deploy/pi/cloud-init/99-c4i-hostname.cfg` land on the Pi
+with every deploy. Between deploys the Pi's copy can lag the repo (the copy applied on
+2026-09-19 predates later hardening of the script) — `scp` the two files into
+`~/chores4irl/deploy/pi/` before a re-apply or rollback if you need the current version.
+
+The script also removes Chromium's stale profile lock after the rename: the lock symlink
+`~/.config/chromium/SingletonLock` targets `<hostname>-<pid>`, and after a rename the kiosk
+refuses to start ("profile appears to be in use by another Chromium process … on another
+computer (<old name>)" in `~/.xsession-errors`) instead of clearing it. Observed on
+2026-09-20 after the first rename, before this step existed. If the kiosk ever fails to
+come up after a hostname change, run `rm -f ~/.config/chromium/Singleton{Lock,Socket,Cookie}`
+as the kiosk user (with Chromium not running) and reboot.
 
 ### Verify
 
@@ -201,6 +210,9 @@ From Windows, use `ping.exe -4 -n 1 c4i.local` or open `http://c4i.local/` in a 
   pinning `[server] allow-interfaces=wlan0` (or `deny-interfaces=` for the bridge, whose
   name is Compose-generated) in `/etc/avahi/avahi-daemon.conf` would fix the answer but
   adds a config file to keep in step with the network layout.
+- The kiosk's Chromium keeps a profile lock keyed on the hostname — see "Apply / re-apply"
+  above; `set-hostname.sh` clears it, and the symptom of a stale one is a blank kiosk
+  screen after the reboot with no Chromium process running.
 - IPv6-only clients are not served: the stack is reachable over IPv4 only on this Pi
   (this follows from `docker-compose.yml`'s `"80:80"` mapping and `nginx.conf`'s
   `listen 80;` — an IPv4-only publish, inferred from config rather than a logged probe).

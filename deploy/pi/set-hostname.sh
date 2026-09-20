@@ -148,6 +148,22 @@ else
   info "(dry run) wrote $HOSTNAME_FILE"
 fi
 
+# Chromium's profile lock is a symlink whose target is "<hostname>-<pid>". After a
+# rename the kiosk refuses to start — "profile appears to be in use by another
+# Chromium process on another computer (<old name>)" — and never cleans it up
+# itself, so drop the lock trio here (the profile data is untouched; a running
+# Chromium keeps its own copy of the lock and is not affected).
+CHROMIUM_DIR="${CHROMIUM_DIR:-$HOME/.config/chromium}"
+if [ "$APPLY_LIVE" = 1 ] && [ -L "$CHROMIUM_DIR/SingletonLock" ]; then
+  lock_target="$(readlink "$CHROMIUM_DIR/SingletonLock")"
+  if [ "${lock_target%-*}" != "$NEW" ]; then
+    rm -f "$CHROMIUM_DIR/SingletonLock" "$CHROMIUM_DIR/SingletonSocket" "$CHROMIUM_DIR/SingletonCookie"
+    info "removed stale Chromium profile lock ($lock_target) so the kiosk starts after the reboot"
+  fi
+elif [ "$APPLY_LIVE" != 1 ]; then
+  info "(dry run) Chromium profile-lock check skipped"
+fi
+
 # --- 3. cloud-init drop-in (takes cloud-init out of the hostname loop) --------
 echo "[3/4] cloud-init drop-in -> $CLOUD_CFG_D_FILE"
 if [ -f "$CLOUD_CFG_D_FILE" ] && cmp -s "$CLOUD_INIT_DROPIN_SRC" "$CLOUD_CFG_D_FILE"; then
