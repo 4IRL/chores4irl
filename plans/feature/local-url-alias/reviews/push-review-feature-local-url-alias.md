@@ -103,3 +103,50 @@ Review 1's major confirmed fixed (`[ -f ]` guards, `$SUDO`, `warn` fallbacks); `
 - [x] **Prefix the two hosts-count greps with `$SUDO`** — `deploy/pi/set-hostname.sh:121-122` — for consistency with the script's other file reads (`$SUDO grep -cE …`, `$SUDO grep -ciE …`); the dry-run matrix runs with `SUDO=` so output is unchanged.
 - [ ] **(Optional) Rename `rc` → `grep_status` and `need_meh` → `need_manage_etc_hosts`** — `deploy/pi/set-hostname.sh:79-92`. — deferred: cosmetic
 - [ ] **(Optional, follow-up F-ID) Anchor the `*.sh` gitignore rule** — `.gitignore:55` — so future `deploy/pi/*.sh` scripts don't need `git add -f`; out of scope for this PR. — deferred: separate F-ID
+
+## Review 3
+Generated: 2026-09-19 22:15
+Comparison: origin/main (f007927)...HEAD (a2edb73)
+Verdict: **BLOCKED**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+Injection-safe (anchored RFC 1123 gate before any `$NEW` use), user-data grep-only for two keys, backup-before-mutation under `set -euo pipefail`; the Review 2 `$SUDO` change introduced nothing new.
+
+#### 2. Correctness — PASS
+`$SUDO grep -c … || true` inside `$(…)` yields a clean integer in both `SUDO=` and `SUDO=sudo` modes; the header, README, decision record and plan Research Findings mechanism lists now all match `[1/4]`→`[3/4]`.
+
+#### 3. Simplicity & Conciseness — PASS
+No new over-engineering, dead code or duplicated sections.
+
+#### 4. Test Coverage — PASS
+Review 2's two minors confirmed fixed; the 63-assertion matrix + line-by-line live-Pi log exceed the repo's precedent.
+- minor — `deploy/pi/set-hostname.sh` `hostnamectl` failure fallback (warn + direct `/etc/hostname` write) is exercised by neither the matrix (`APPLY_LIVE=0` skips it) nor the live run (it succeeded). Accepted risk.
+- minor — a fully nonexistent `$HOSTS_FILE` is untested (falls through to the `tee -a` append). Cannot occur on a real Debian/Pi target.
+
+#### 5. Completeness & Cleanup — FAIL
+Decision record, plan Research Findings, script header and `deploy/pi/README.md` confirmed reordered per Reviews 1–2.
+- **major** — `plans/feature/local-url-alias/local-url-alias.md:161` (Step 1 ticked to-do): parenthetical still narrates "held by the cloud-init drop-in + user-data edit + hostnamectl/hosts".
+- **major** — `plans/feature/local-url-alias/local-url-alias.md:178` (Step 2 ticked to-do): the header-comment instruction still lists (a) drop-in, (b) user-data, (c) hosts/hostnamectl.
+- **major** — `plans/feature/local-url-alias/local-url-alias.md:214` (Step 2 ticked to-do): the README-section instruction leads with the drop-in.
+
+#### 6. Consistency & Style — PASS
+Helpers/header/`.bak`/`[n/N]` conventions mirror the sibling; headings/tables/fences/links consistent.
+- minor — `deploy/pi/README.md:21`: `/etc/hosts` in the Files-table Purpose cell lacks backticks unlike the rest of the column.
+
+#### 7. Integration Risk — PASS
+No stray old-hostname references; cloud-init precedence handled per cloud-init's real merge order; pi-kiosk `target_url` hand-off consistent with META-PLAN; app surface untouched.
+- minor — `deploy/pi/README.md:138`: the Pi's live copy of `set-hostname.sh` predates the push-review hardening (885e2f3, a2edb73); `deploy/pi/` artifacts are not synced by a normal redeploy, so the docs should say to `scp` the script + drop-in before a re-apply/rollback.
+
+#### 8. Error Handling & Silent Failures — PASS
+Review 2's major and minor confirmed fixed; fail-fast validation, `rc=$?` split, `backup()` abort semantics, and the communicated `hostnamectl` fallback all sound.
+- minor — `deploy/pi/set-hostname.sh:169-170`: the verify-step `cat "$HOSTNAME_FILE"` and `grep … "$HOSTS_FILE"` reads omit `$SUDO`, inconsistent with the block's other checks and the step-2 counting greps.
+
+### To-Do: Required Changes
+
+- [x] **Reorder the three stale to-do narrations in the plan** — `plans/feature/local-url-alias/local-url-alias.md:161,178,214` — line 161: "held by the user-data edit + hostnamectl/hosts + the cloud-init drop-in"; line 178: relabel (a) = user-data `hostname:`/`manage_etc_hosts:` edit, (b) = `/etc/hosts` then `hostnamectl`, (c) = drop-in install; line 214: lead with the user-data edit, then hosts+hostnamectl, then the drop-in. Sweep the rest of the plan and decision record for any other drop-in-first narration.
+- [x] **Prefix the two verify-step reads with `$SUDO`** — `deploy/pi/set-hostname.sh:169-170` — `$SUDO cat "$HOSTNAME_FILE" 2>/dev/null || warn …` and `$SUDO grep -E '^127\.0\.1\.1' "$HOSTS_FILE" || warn …`; printed strings unchanged.
+- [x] **Backtick `/etc/hosts` in the Files-table row** — `deploy/pi/README.md:21`.
+- [x] **Note that `deploy/pi/` artifacts are not synced by a normal redeploy** — `deploy/pi/README.md` § Apply / re-apply — one sentence: `scp` `deploy/pi/set-hostname.sh` and `deploy/pi/cloud-init/99-c4i-hostname.cfg` to `~/chores4irl/deploy/pi/` on the Pi before a re-apply or rollback, since `deploy.sh` ships only the app.
+- [ ] **(Optional, accepted risk) Exercise the `hostnamectl` fallback in the matrix** — `deploy/pi/set-hostname.sh:384-390` — an `APPLY_LIVE=1` case with `hostnamectl` shadowed on `PATH`. — deferred: accepted risk

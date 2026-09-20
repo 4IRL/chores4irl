@@ -166,8 +166,8 @@ if [ -f "$USER_DATA_FILE" ]; then
   # grep only — never cat: the file carries credentials.
   $SUDO grep -E '^(hostname|manage_etc_hosts):' "$USER_DATA_FILE" || warn "could not read hostname/manage_etc_hosts from $USER_DATA_FILE — verify by hand"
 fi
-cat "$HOSTNAME_FILE" 2>/dev/null || warn "no $HOSTNAME_FILE"
-grep -E '^127\.0\.1\.1' "$HOSTS_FILE" || warn "no 127.0.1.1 line in $HOSTS_FILE"
+$SUDO cat "$HOSTNAME_FILE" 2>/dev/null || warn "no $HOSTNAME_FILE"
+$SUDO grep -E '^127\.0\.1\.1' "$HOSTS_FILE" || warn "no 127.0.1.1 line in $HOSTS_FILE"
 if [ -f "$CLOUD_CFG_D_FILE" ]; then
   $SUDO grep -E '^(preserve_hostname|manage_etc_hosts):' "$CLOUD_CFG_D_FILE" || warn "could not read $CLOUD_CFG_D_FILE — verify by hand"
 else

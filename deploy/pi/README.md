@@ -20,7 +20,7 @@ panel `yldzkj USB2IIC_CTP_CONTROL`.
 | `display/labwc-rc.xml.fragment` | merge into `~/.config/labwc/rc.xml` | Touch rotation (libinput `calibrationMatrix`) |
 | `install-display-config.sh` | run on the Pi | Idempotently apply both of the above |
 | `set-hostname.sh` | run on the Pi | Hostname → `c4i` (LAN name: `c4i.local` / `c4i`) |
-| `cloud-init/99-c4i-hostname.cfg` | `/etc/cloud/cloud.cfg.d/` | Stop cloud-init managing hostname / /etc/hosts |
+| `cloud-init/99-c4i-hostname.cfg` | `/etc/cloud/cloud.cfg.d/` | Stop cloud-init managing hostname / `/etc/hosts` |
 
 ## Display rotation & touch alignment
 
@@ -146,6 +146,11 @@ deploy/pi/set-hostname.sh c4i && sudo reboot   # reboot so DHCP re-registers the
 
 The script is idempotent (a re-run reports "already up to date" for each target and
 changes nothing) and backs up each file it rewrites to `<file>.bak`.
+
+`deploy.sh` ships only the app, so `deploy/pi/` artifacts are not synced by a normal
+redeploy: before a re-apply or rollback, `scp deploy/pi/set-hostname.sh` and
+`deploy/pi/cloud-init/99-c4i-hostname.cfg` from the repo into `~/chores4irl/deploy/pi/` on
+the Pi first (the copy applied on 2026-09-19 predates later hardening of the script).
 
 ### Verify
 
