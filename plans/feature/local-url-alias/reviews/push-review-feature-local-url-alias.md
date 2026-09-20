@@ -295,3 +295,38 @@ Every `|| true`/`2>/dev/null` in the new block is load-bearing; `rm -f` still ab
 - [x] **Announce a missing profile dir instead of skipping silently** — `deploy/pi/set-hostname.sh` — `info "no Chromium profile at $CHROMIUM_DIR — nothing to clean."` (case V).
 - [ ] **(Optional, accepted risk) Fixture the `readlink`-failure warn branch** — TOCTOU-only path.
 - [ ] **(Optional) Header note that the invoker/`SUDO_USER` must be the kiosk user** — relevant only if the Pi gains a second account.
+
+## Review 7
+Generated: 2026-09-20 10:20
+Comparison: origin/feature/local-url-alias (e3c4abb, PR #43 head)...HEAD (a51ea64) — delta only
+Verdict: **BLOCKED**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+- minor — carry-over: set-but-empty `HOME` + no `kiosk_home` → `/.config/chromium` (not attacker-influenced; skipped with the info line).
+
+#### 2. Correctness — PASS
+
+#### 3. Simplicity & Conciseness — PASS
+- minor — the missing-dir branch guards an unobserved edge; the "nothing else may launch Chromium" comment line reads as an operational caveat. Accepted.
+
+#### 4. Test Coverage — FAIL
+- **major** — plan matrix case T: the recorded `getent` stub single-quoted `$D` inside the printf format, so the literal command would bake `/home-a` (empty `$D`) and fall into the "no profile" branch instead of reproducing the claimed removal. (The run that produced the result used `printf … %s … "$D/home-a"`; the transcription was wrong.)
+
+#### 5. Completeness & Cleanup — PASS
+
+#### 6. Consistency & Style — PASS
+- minor — `deploy/pi/README.md:161`: dangling "instead of clearing it".
+- minor — `deploy/pi/README.md:215`: straight-quoted section reference vs the file's `§` style.
+
+#### 7. Integration Risk — PASS
+- minor — the lock cleanup has no `[N/4]` header of its own (it's part of step 2's "apply now"). Accepted.
+
+#### 8. Error Handling & Silent Failures — PASS
+- minor — no catch-all `else` after `-L`/`-e`/`! -d` (dir exists, no lock → silent). Accepted: that is the normal post-reboot state.
+
+### To-Do: Required Changes
+
+- [x] **Record case T's stub exactly as run** — plan Step 2 matrix — `printf '…%s…' "$D/home-a" > $D/bin/getent`, with a note on why `$D` must be interpolated at stub-creation time; re-proved literally 2026-09-20.
+- [x] **Reword the two README phrases** — `deploy/pi/README.md:161,215`.

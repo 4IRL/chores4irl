@@ -158,9 +158,9 @@ with every deploy. Between deploys the Pi's copy can lag the repo (the copy appl
 The script also removes Chromium's stale profile lock after the rename: the lock symlink
 `~/.config/chromium/SingletonLock` targets `<hostname>-<pid>`, and after a rename the kiosk
 refuses to start ("profile appears to be in use by another Chromium process … on another
-computer (<old name>)" in `~/.xsession-errors`) instead of clearing it. Observed on
-2026-09-20 after the first rename, before this step existed. If the kiosk ever fails to
-come up after a hostname change, run `rm -f ~/.config/chromium/Singleton{Lock,Socket,Cookie}`
+computer (<old name>)" in `~/.xsession-errors`) — Chromium leaves the stale lock in place
+rather than clearing it. Observed on 2026-09-20 after the first rename, before this step
+existed. If the kiosk ever fails to come up after a hostname change, run `rm -f ~/.config/chromium/Singleton{Lock,Socket,Cookie}`
 as the kiosk user (with Chromium not running) and reboot.
 
 ### Verify
@@ -212,7 +212,7 @@ From Windows, use `ping.exe -4 -n 1 c4i.local` or open `http://c4i.local/` in a 
   pinning `[server] allow-interfaces=wlan0` (or `deny-interfaces=` for the bridge, whose
   name is Compose-generated) in `/etc/avahi/avahi-daemon.conf` would fix the answer but
   adds a config file to keep in step with the network layout.
-- The kiosk's Chromium keeps a profile lock keyed on the hostname — see "Apply / re-apply"
+- The kiosk's Chromium keeps a profile lock keyed on the hostname — see § Apply / re-apply
   above; `set-hostname.sh` clears it, and the symptom of a stale one is a blank kiosk
   screen after the reboot with no Chromium process running.
 - IPv6-only clients are not served: the stack is reachable over IPv4 only on this Pi
