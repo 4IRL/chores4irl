@@ -34,20 +34,24 @@
 
 ## Where the rollout stands
 
-**Current focus: `F6`** (local URL alias instead of IP:port) — see *Shortest path to
-the focus feature* below. *(Advanced from `F5` on 2026-09-19, once `F5`'s PR #39 was
-verified merged; the user chose `F6` over holding for the pi-kiosk gates — it is the only
-unblocked feature left in this repo.)*
+**Current focus: `F15`, held on its external gate** (adopt kiosk-shell) — see *Shortest
+path to the focus feature* below. *(Advanced from `F6` on 2026-09-20, once `F6`'s PR #43 was
+verified merged. Nothing in this repo is runnable right now: `F15`, `F11` and `F12` all wait
+on pi-kiosk phases, so `★FOCUS` marks the next feature to run — `/run-feature F15` must
+refuse until pi-kiosk Phase 2 parity is verified on the Pi. New chore-list or infra work
+enters via `/new-feature`.)*
 
-**Shipped through PR #39** — merged work is recorded by git, not re-tabulated here
-(`gh pr list --state merged` / `git log --oneline main`). Since #32: #33, #35, #36, #37 and
-#40 were docs/skills-only (META-PLAN reconciles and fold-backs, and the replacement of the
-`plans/*-PROMPT.md` templates by the `/run-feature`, `/worktree`, `/compact-plans` skills);
-the three app-code merges are **#34 — `F14`, the clear-✕ affordance** (Standing invariant 10),
-**#38 — `F4`, the removal of the *Details* / *Long-term task* fields plus the first
-`db.ts` boot migration** (Standing invariant 11), and **#39 — `F5`, the frosted sticky
-*Add Task* deck** (Standing invariant 12), all now folded into the Baseline below. With
-`F5` the **chore-list track is complete**. What each merge left behind that still matters
+**Shipped through PR #43** — merged work is recorded by git, not re-tabulated here
+(`gh pr list --state merged` / `git log --oneline main`). Since #32: #33, #35, #36, #37,
+#40, #41 and #42 were docs/skills-only (META-PLAN reconciles and fold-backs, the replacement
+of the `plans/*-PROMPT.md` templates by the `/run-feature`, `/worktree`, `/compact-plans`
+skills, and a plans sweep); the app-code merges are **#34 — `F14`, the clear-✕ affordance**
+(Standing invariant 10), **#38 — `F4`, the removal of the *Details* / *Long-term task* fields
+plus the first `db.ts` boot migration** (Standing invariant 11), and **#39 — `F5`, the frosted
+sticky *Add Task* deck** (Standing invariant 12); the one deploy-side merge is **#43 — `F6`,
+the LAN name `c4i` / `c4i.local`** (no app code; `deploy/pi/set-hostname.sh` + a cloud-init
+drop-in + deploy docs — Standing invariant 13), all now folded into the Baseline below. With
+`F5` the **chore-list track is complete**; with `F6` the **infra track is complete**. What each merge left behind that still matters
 is captured
 *forward*: in the Baseline, the Standing invariants, and the few completed-feature
 contracts kept below because a remaining feature builds on or must remove them. **History
@@ -98,8 +102,8 @@ Kiosk extraction track (2026-07-15 — see plans/feature/kiosk-shell-extraction/
     F11 (undo) ─→ F12 (redo) ── remain here, re-scoped onto the kiosk/v1 postMessage
         contract; deferred until pi-kiosk Phase 4 delivers the contract
 
-Infra track:
-    F6 (local URL alias, M–L · research-first ★FOCUS) ── independent; different surface entirely
+Infra track (complete):
+    (F6 — local URL alias c4i / c4i.local — shipped #43)
 ```
 
 - **Chore-list track: complete.** `F14` (#34), `F4` (#38) and `F5` (#39) shipped in the
@@ -116,34 +120,32 @@ Infra track:
   `F1`/`F2` overlay code; Standing invariants 8–9 hold until then), and `F11`/`F12`
   (app-data undo/redo, re-scoped onto the `kiosk/v1` contract, gated on the external
   Phase 4).
-- **Infra track:** `F6` (renumbered from legacy `F8-L`) is now the ★FOCUS — LAN name
-  resolution, shares no files with app code. If `F6` lands, its alias becomes the natural
-  `target_url` in the pi-kiosk config.
+- **Infra track: complete.** `F6` (#43) renamed the Pi to `c4i`, so the app answers at
+  `http://c4i.local/` (mDNS) and `http://c4i/` (router DNS) — Standing invariant 13 and
+  the Baseline's *Deployment* paragraph record the mechanism. Its alias is the natural
+  `target_url` for pi-kiosk (see `F15`'s Open risks (d)).
 
-### Shortest path to the focus feature (`F6`)
+### Shortest path to the focus feature (`F15`)
 
-**`F6` is the current ★FOCUS** (local URL alias instead of IP:port) — chosen by the user
-at `F5`'s 2026-09-19 fold-back over the alternative of holding with no focus until the
-pi-kiosk gates open. It is the only unblocked feature in this repo: the chore-list track is
-complete (`F14` #34, `F4` #38, `F5` #39), and the kiosk-extraction features (`F15`, `F11`,
-`F12`) cannot start until their **external** pi-kiosk phases land regardless of local
-appetite. `F6` shares no files with app code — its surface is LAN name resolution and the
-Pi/Docker deployment — and it is **research-first**: `/run-feature F6` begins with the
-spike its section describes (mDNS/Avahi `c4i.local` vs LAN DNS vs rejected hosts-file),
-and its end state is deployment docs in `plans/feature/local-url-alias/` plus whatever
-config the chosen mechanism needs. The sandbox cannot reach the Pi LAN (memory
-`sandbox-cannot-reach-pi-lan`) — every Pi-side step runs unsandboxed, as `F5`'s Phase B
-Pi deploy did.
+**`F15` is the current ★FOCUS — gated.** Advanced from `F6` at its 2026-09-20 fold-back
+because it is order 1 of the only remaining track; it **cannot start** until pi-kiosk
+Phase 2 parity (blank window, wake-tap swallow, 5-min re-blank, lock re-arm, double-tap
+unlock) is verified on the wall Pi and recorded in `plans/feature/kiosk-shell-adoption/`.
+`/run-feature F15` must check that gate in its cold survey and refuse — not proceed on a
+partial parity. `F11`/`F12` wait on pi-kiosk Phase 4. Until a gate opens there is nothing
+to run in this repo: new work enters via `/new-feature` (chore-list polish, infra), or
+happens in `rehankalu/pi-kiosk`. `F6`'s alias is live — pi-kiosk's `target_url` question
+now belongs to `F15`'s Open risks (d).
 
 - **Do not** re-open the chore-list track's scope — the *Details* / *Long-term task* fields
   are gone (#38, with the `db.ts` boot migration), the clear-✕ affordance shipped (#34), and
   the frosted deck shipped (#39); Standing invariants 10–12 record all three as
   verified-shipped facts. Follow-up polish on any of them enters via `/new-feature`, not by
   reopening the F-ID.
-- **When a pi-kiosk gate opens while `F6` is in flight**, `F15` does not displace `F6` —
-  run them in parallel via `/worktree` (disjoint surfaces: `F15` is app code + `nginx.conf`,
-  `F6` is deploy docs/config), and let `F6`'s or `F15`'s fold-back, whichever comes first,
-  re-evaluate ★FOCUS.
+- **Do not** re-open `F6`'s surface — the Pi is `c4i`; `deploy/pi/set-hostname.sh` is
+  idempotent and re-applies/rolls back; `http://192.168.1.214/` still works; the kiosk
+  keeps `http://localhost/`. Standing invariant 13 records it; follow-ups (e.g. pinning Avahi
+  to `wlan0`, anchoring the `*.sh` gitignore rule) enter via `/new-feature`.
 - **Do not** start `F3`/`F7`/`F8`/`F9`/`F10`/`F13` in this repo at all — they are
   superseded (migrated to pi-kiosk, 2026-07-15). `F15` cannot start until pi-kiosk
   Phase 2 parity is verified on the Pi; `F11`/`F12` cannot start until pi-kiosk Phase 4
@@ -161,19 +163,18 @@ Pi deploy did.
 > where it steers future work: the Baseline, the Standing invariants, the Legacy →
 > current ID map, and the kept contracts under Completed-Feature Contracts below.
 
-### Remaining (current numbering, incl. `F15`; reassessed against current `main` after the 2026-09-19 `F5` fold-back)
+### Remaining (current numbering, incl. `F15`; reassessed against current `main` after the 2026-09-20 `F6` fold-back)
 
 | Order | Feature | Effort | Depends on | Track |
 |---|---|---|---|---|
-| ★ | **F6** — Local URL alias instead of IP:port **[FOCUS]** | **M–L** *(research spike)* | deployment stack (Pi/Docker); independent — the only unblocked feature | Infra (parallel) |
-| 1 | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee *(added 2026-07-15)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi | Kiosk extraction |
+| ★ 1 | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee **[FOCUS — gated]** *(added 2026-07-15)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi | Kiosk extraction |
 | 2 | **F11** — Undo *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* | **M–L** | **external:** pi-kiosk Phase 4 (`kiosk/v1` contract) | Kiosk extraction |
 | 3 | **F12** — Redo *(re-scoped 2026-07-15)* | **M** | F11 + same external gate | Kiosk extraction |
 | ~~—~~ | ~~**F3 · F7 · F8 · F9 · F10 · F13** — device-control console + its controls~~ | — | **superseded 2026-07-15** — migrated to pi-kiosk (shell console / agent controls / settings; `F13`'s plan harvested, see its banner) | *(migrated)* |
 
-**Effort tally (remaining, in this repo).** Chore-list track: **0 pts** (complete).
-Kiosk extraction track: F15 (M=2) + F11 (M–L≈2–3) + F12 (M=2) ≈ **6–7 pts**,
-all gated on external pi-kiosk phases. Infra: F6 ≈ **2–3 pts** (★FOCUS). (S=1 / M=2 / L=3 / XL=5.)
+**Effort tally (remaining, in this repo).** Chore-list track: **0 pts** (complete). Infra
+track: **0 pts** (complete). Kiosk extraction track: F15 (M=2) + F11 (M–L≈2–3) + F12 (M=2)
+≈ **6–7 pts**, all gated on external pi-kiosk phases. (S=1 / M=2 / L=3 / XL=5.)
 The former device-control tally (~11 pts placeholder-ship + connections) now lives in the
 pi-kiosk repo's own planning, not here.
 
@@ -192,7 +193,7 @@ pi-kiosk repo's own planning, not here.
 |---|---|
 | F1-L remove Details/Long-term | → **F4** *(shipped #38 — folded into Baseline / Standing invariant 11)* |
 | F7-L blur Add-Task deck | → **F5** *(shipped #39 — folded into Baseline / Standing invariant 12)* |
-| F8-L local URL alias | → **F6** |
+| F8-L local URL alias | → **F6** *(shipped #43 — folded into Baseline / Standing invariant 13)* |
 | F11-L settings panel container | → **F3** *(superseded 2026-07-15 — migrated to pi-kiosk)* |
 | F12-L brightness | → **F7** *(superseded 2026-07-15 — migrated to pi-kiosk)* |
 | F13-L screen-blank/wake toggle | → **F8** *(superseded 2026-07-15 — migrated to pi-kiosk)* |
@@ -221,10 +222,9 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| F15 — adopt kiosk-shell *(added 2026-07-15)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — |
+| **F15 — adopt kiosk-shell** ★FOCUS *(added 2026-07-15)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — |
 | F11 — undo *(re-scoped 2026-07-15: `kiosk/v1` contract)* | pending *(gated on external pi-kiosk Phase 4)* | `feature/undo` | — |
 | F12 — redo *(re-scoped 2026-07-15)* | pending *(gated on F11 + same external gate)* | `feature/redo` | — |
-| **F6 — local URL alias** ★FOCUS | in-review | `feature/local-url-alias` | [#43](https://github.com/4IRL/chores4irl/pull/43) |
 | F3 · F7 · F8 · F9 · F10 · F13 — device-control console + controls | **superseded** *(2026-07-15 — migrated to pi-kiosk; branches never created)* | — | — |
 
 **Branch/dir cleanup:** outstanding as of the 2026-09-19 `F5` fold-back — two merged
@@ -240,8 +240,14 @@ branch `feature/translucent-add-deck`, its `/worktree` checkout
 non-blocking minors — assert the backing's `inset-x-0`/`bottom-0`, tie the
 `-top-16`/`black_4rem`/`scroll-pb-40` numbers together in the test, and an
 only-if-re-verified-on-the-Pi `isolate`+`-z-10` alternative to the button's `relative`
-wrapper). All of it — plus harvesting those minors into `plans/PUSH-REVIEW-FINDINGS.md` —
-awaits the next `/compact-plans` sweep. Everything older is clean: every earlier merged plan dir is frozen under `plans/completed/`. Sweep
+wrapper). `F6` (#43): its local branch `feature/local-url-alias` and its plan dir
+`plans/feature/local-url-alias/` (whose `reviews/push-review-feature-local-url-alias.md`
+carries eight review rounds; the still-open items are optional — redacting the LAN IP/MAC in
+the planning docs if the repo goes public, anchoring the unanchored `*.sh` gitignore rule so
+future `deploy/pi/*.sh` scripts need no `git add -f`, and fixture cases for the
+`hostnamectl`/avahi-inactive/`readlink`-failure branches of `set-hostname.sh`). All of it —
+plus harvesting those minors into `plans/PUSH-REVIEW-FINDINGS.md` — awaits the next
+`/compact-plans` sweep. Everything older is clean: every earlier merged plan dir is frozen under `plans/completed/`. Sweep
 history lives in git (PRs #22, #26, #29 and the sweep commits on later branches), not here. Run
 `/compact-plans` after each merge, then `/run-feature <F-ID>` on the merged feature so its
 Phase C fold-back (ledger row deleted, Baseline/ID-map/★FOCUS refreshed) lands — never
@@ -255,11 +261,13 @@ in the feature's own commits/PR.
 
 ---
 
-## Baseline: the codebase as it exists today (`main` at PR #39, `a1705b3`)
+## Baseline: the codebase as it exists today (`main` at PR #43, `1c63e0a`)
 
-> **This Baseline reflects `main` after PR #39 (`a1705b3`).** It is the literal current
+> **This Baseline reflects `main` after PR #43 (`1c63e0a`).** It is the literal current
 > state and the **assumed starting state for every remaining feature.** (PRs #33, #35, #36,
-> #37 and #40 touched only `plans/` docs and `.claude/skills/`; the app-code deltas since #32
+> #37, #40, #41 and #42 touched only `plans/` docs and `.claude/skills/`; **#43 (`1c63e0a`) —
+> `F6`** touched no app code — `deploy/pi/set-hostname.sh`, `deploy/pi/cloud-init/`,
+> `deploy/pi/README.md`, root `README.md` and `plans/`; the app-code deltas since #32
 > are **#34 (`3533b67`) — `F14`**, all under `frontend/src/`, **#38 (`d728989`) — `F4`**,
 > spanning `types/SharedTypes.d.ts`, `backend/src/` (`db.ts`, `chores.ts`, tests),
 > `frontend/src/` (`ChoreForm.tsx`, `utils/choreSort.ts`, the deleted dead reference file
@@ -278,6 +286,33 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 - **Shared types**: `types/SharedTypes.d.ts` — declaration-only, imported as `import type` (alias `@customTypes/SharedTypes`).
 - **SQLite**: file `data.db` (WAL). Schema is created with `CREATE TABLE IF NOT EXISTS` in `db.ts`, followed at module load by **`dropLegacyChoreColumns(db)` — an idempotent, `pragma table_info('chores')`-guarded boot migration** (`F4`, #38) that issues one `ALTER TABLE chores DROP COLUMN` per still-present legacy column (`LEGACY_CHORE_COLUMNS = ['details', 'long_term_task']`) inside a `BEGIN IMMEDIATE` transaction (`db.transaction(...).immediate()`, so two processes booting the same un-migrated file serialise), then the seed guard. It is deliberately **crash-loud** (no try/catch): a failed `ALTER` aborts the backend before `listen`, the container `HEALTHCHECK` never passes, and compose gives up after `on-failure:5` — the README's "Updating an existing Pi deployment" section now tells the operator to snapshot first and check `docker compose logs backend`. **There is still no general migration framework** — editing the `CREATE TABLE` text never alters an existing `data.db`; any future schema change must add its own guarded step beside `dropLegacyChoreColumns` (SQLite ≥ 3.35 is verified: `better-sqlite3` bundles 3.51.3, so `DROP COLUMN` is available). **Whether the live Pi's `data.db` has been migrated yet is a deployment fact outside this repo** — it happens on the backend container's first boot after the next Pi deploy; the full runbook (inspect `details` values to keep → snapshot via `chores4irl-backup.service` → deploy → verify 7 columns → rollback = snapshot + old image together) is `pr-description.md` in `F4`'s plan dir (`plans/feature/remove-details-longterm/`, or wherever `/compact-plans` freezes it), with the short form in the README.
 - **Path aliases**: `@customTypes/*`, `@utils/*`.
+
+**Deployment / LAN name (`F6`, #43).** The Pi's hostname is **`c4i`** (was `MilarachiC4I`
+until 2026-09-19), so the app answers at `http://c4i.local/` (Avahi mDNS — already on the
+Pi, advertises `<hostname>.local`) and `http://c4i/` (the FiOS router registers each DHCP
+client's hostname under its `mynetworksettings.com` zone and pushes that search domain);
+`http://192.168.1.214/` still works (DHCP-reserved). The rename is held against cloud-init
+by three edits, all made by the idempotent **`deploy/pi/set-hostname.sh <name>`**
+(force-tracked past the unanchored `.gitignore:55` `*.sh` rule, mode 100755) in its `[1/4]`→
+`[3/4]` order: user-data's `hostname:` rewritten + `manage_etc_hosts:` flipped to `false`
+(user-data out-ranks `cloud.cfg.d` for that key); `/etc/hosts` `127.0.1.1` first, then
+`hostnamectl`; then the drop-in `deploy/pi/cloud-init/99-c4i-hostname.cfg` →
+`/etc/cloud/cloud.cfg.d/` (`preserve_hostname: true`, `manage_etc_hosts: false`). It also
+clears Chromium's hostname-keyed profile lock (`~/.config/chromium/SingletonLock →
+<hostname>-<pid>`), which otherwise blocks the kiosk after a rename. Nothing in the app is
+name-aware (`nginx.conf` `server_name _`, relative `/api` URLs); the kiosk keeps
+`http://localhost/`. Caveats: single-label `c4i` needs `c4i/` or `http://c4i` in a browser
+the first time; Android < 12 needs the IP; WSL's CLI has no `nss-mdns`; the Pi resolves its
+own `c4i.local` to its Docker bridge `172.18.0.1` (Avahi publishes on every interface —
+still served by nginx on `0.0.0.0:80`). A redeploy (`deploy.sh` = `git archive HEAD` →
+tarball → `docker compose up -d --build`) re-extracts the tracked `deploy/pi/` copies but
+never touches the installed system files. Runbook + rollback (`set-hostname.sh MilarachiC4I
+&& sudo reboot`): `deploy/pi/README.md` § LAN name; decision record + live verification log:
+`plans/feature/local-url-alias/research/lan-name-resolution.md` (or its frozen copy under
+`plans/completed/`). **Deployment fact (outside the repo):** as of 2026-09-20 the Pi runs
+`main` at `1c63e0a`'s app code (the pre-F4 tree it had been running since 2026-09-19 was
+replaced, so the `F4` migration + `PUT` edits are verified live) and its `data.db` is
+migrated to 7 columns.
 
 **Domain model** (`Chore`): `id, name, room, dateLastCompleted, duration, frequency, urgency?`. The DB `chores` table columns (7): `id, name, room, date_last_completed, duration, frequency, urgency`. **`details` and `long_term_task` are gone (`F4`, #38)** — `grep -rn "longTermTask\|long_term_task" backend frontend types` matches only (a) the `LEGACY_CHORE_COLUMNS` migration list + comment in `backend/src/db.ts`, (b) `backend/src/__tests__/db-migration.test.ts` (legacy DDL + legacy INSERTs), and (c) the stale-client tests in `backend/src/__tests__/chores.test.ts`, `backend/src/__tests__/routes.test.ts`, `frontend/src/__tests__/components/ChoreForm.test.tsx` and `frontend/src/__tests__/utils/choreSort.test.ts`; nothing in `app.ts`, `chores.ts`, `SharedTypes.d.ts`, or any non-test frontend file. `createChore`/`updateChore` build explicit named-param literals, so legacy `details`/`longTermTask` keys from a stale client (e.g. a kiosk page not yet reloaded) are **silently dropped, not rejected** (deliberate — a 400 would break a kiosk page still running the old form until it reloads; accepted as the right call in `F4`'s push review). `urgency` is retained permanently. `frontend/src/__tests__/fixtures/chore.ts`'s `makeChore` never defaulted the removed fields, so it needed no change.
 
@@ -316,12 +351,13 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 10. **Clear-✕ affordance on every free-text input**: search bar, form Name, form Room each render the shared `ClearButton` only when non-empty; clicking clears that field's local state only (never submits/closes) and refocuses the input; `FormField`'s affordance is opt-in via `clearable` (default off), so no other `FormField` usage (Last Completed, Duration, Frequency) gains it (F14, shipped #34; verified intact after F4 — `ClearButton.tsx`, `ChoreSearchInput.tsx`, `FormField.tsx` had no diff in #38).
 11. **No `details` / `longTermTask` anywhere in the live model**: `Chore` is `id, name, room, dateLastCompleted, duration, frequency, urgency?`; the shared `ChoreForm` has no Details field or Long-term checkbox; `app.ts`/`chores.ts` never read or write them (stale keys from old clients are dropped silently, never rejected — deliberate, so a not-yet-reloaded kiosk page keeps working through the rollout; don't "fix" it with a 400); `db.ts` runs the idempotent, crash-loud `dropLegacyChoreColumns` boot migration (`pragma table_info` guard, `BEGIN IMMEDIATE`) so an existing 9-column `data.db` migrates itself to 7 columns on first boot and later boots are no-ops; `orderChores` is a single duration-weighted sort with no long-term partition (F4, shipped #38). Any future schema change adds its own guarded step beside that migration — `CREATE TABLE IF NOT EXISTS` never alters an existing `data.db`. The pre-F4 image cannot write to a migrated DB (its SQL still names the dropped columns), so a rollback restores the pre-deploy snapshot together with the old image.
 12. **Frosted sticky *Add Task* deck**: the deck lives *inside* the scroll region as its `sticky bottom-0 mt-auto` last child with no border/background of its own; tint + blur come from a masked, `aria-hidden`, `pointer-events-none` backing layer that overhangs the deck by 4rem and fades in (`bg-gray-900/60 backdrop-blur-sm` + `mask-image` gradient); `AddChoreButton` is fully opaque and paints above the backing; the scroll container carries `scroll-pb-40` so focus/scrollIntoView never rest a bar under the deck or its fade; `.overflow-y-auto` stays the single scrolling element and `ChoreSearchInput` stays outside it (F5, shipped #39). Any change to the deck's height or overhang must re-check `scroll-pb-*` (≥ deck + overhang) and the Tab-focus clearance measured in `plans/feature/translucent-add-deck/` (or its frozen copy under `plans/completed/`).
+13. **LAN name `c4i`**: the Pi's hostname is `c4i`, reachable as `http://c4i.local/` and `http://c4i/` with `http://192.168.1.214/` still working; the mechanism is `deploy/pi/set-hostname.sh` + `deploy/pi/cloud-init/99-c4i-hostname.cfg` (idempotent, backup-then-write, crash-safe re-run, rollback = run it with the old name) and nothing in the app is name-aware — no feature may hard-code a hostname or IP in app code, `nginx.conf`, or the kiosk `.desktop` (which stays `http://localhost/`), and any future Pi rename runs the script (it also clears Chromium's hostname-keyed profile lock) rather than `hostnamectl` alone (F6, shipped #43). The deployed `deploy/pi/` copies are refreshed by every redeploy; the installed system files are not.
 
 **Assumptions to revisit at planning time**
 1. **Resolved (F4, shipped #38):** `better-sqlite3` bundles SQLite 3.51.3 (≥ 3.35), so `ALTER TABLE … DROP COLUMN` is available and the boot migration uses it — no table-rebuild fallback was needed. Re-verify only if `better-sqlite3` is ever downgraded.
 2. Tap-to-complete + the simulation pointer-events guard + the SSE re-pull gate are primary; no new feature may regress them. `F1` (shipped) already coordinates this; `F2`'s implementation resolved the same concern for its own overlay (see item 7 below).
 3. **Resolved (F4, shipped #38):** `details` was never rendered, and its removal shipped without a display change; the one user-visible change was the sort (long-term chores no longer pin to the bottom — Standing invariant 11).
-4. **`F6` has an end state partly outside the repo** (Pi/LAN config) — capture outcomes as deployment docs in `plans/feature/local-url-alias/`. The frozen Dockerization plan lives at `plans/completed/docker-raspberry-pi/`. *(The former host-bridge controls `F13`/`F7`/`F8`/`F10` migrated to pi-kiosk 2026-07-15 — their host-side end states are now that repo's concern; `F15`'s external gate — "pi-kiosk Phase 2 parity verified on the Pi" — is likewise verified outside this repo and recorded in `F15`'s own plan docs.)*
+4. **Resolved (F6, shipped #43):** its out-of-repo end state (the Pi/LAN rename) is applied and verified live; the deployment docs live in `deploy/pi/README.md` § LAN name and `plans/feature/local-url-alias/research/` (frozen under `plans/completed/` after the next sweep). The frozen Dockerization plan lives at `plans/completed/docker-raspberry-pi/`. *(The former host-bridge controls `F13`/`F7`/`F8`/`F10` migrated to pi-kiosk 2026-07-15 — their host-side end states are now that repo's concern; `F15`'s external gate — "pi-kiosk Phase 2 parity verified on the Pi" — is likewise verified outside this repo and recorded in `F15`'s own plan docs.)*
 5. **Kiosk-only concerns now live in pi-kiosk** (2026-07-15): the device-control track migrated there, so no remaining chores4irl feature is kiosk-only — the app must simply stay embeddable (`F15`'s guarantee) and keep working standalone at `IP:port` off-kiosk. *(The old "F3–F13 degrade gracefully off-kiosk" note is retired with the migration.)*
 5b. **The compose `name:` pin question survives `F13`'s supersession** as an optional, detached infra hardening (DB-volume path determinism) — re-raise it on its own merits if ever needed; nothing depends on it now.
 6. **`deploy/pi/` currently has no screen-blank/DPMS/idle config** (verified — no `dpms`/`screen-blank`/`xset`/idle-inhibit files exist there). `F1` shipped without needing to touch this; if host-side auto-blank is later found enabled, disabling it is a deploy-doc note, not a blocker.
@@ -503,7 +539,8 @@ local-to-the-kiosk semantics forward).
 > and `F2` (#28) shipped — their implemented contracts are kept under Completed-Feature
 > Contracts (below) because `F15` targets them; `F14` (#34), `F4` (#38) and `F5` (#39) shipped
 > and live entirely in the Baseline + Standing invariants 10–12 (no remaining feature builds on
-> them). The **focus feature is `F6`** (see "Shortest path" above). `F3`/`F7`/`F8`/`F9`/`F10`/`F13`
+> them); `F6` (#43) shipped and lives in the Baseline's *Deployment* paragraph + Standing
+> invariant 13. The **focus feature is `F15` — gated** (see "Shortest path" above). `F3`/`F7`/`F8`/`F9`/`F10`/`F13`
 > are **superseded — migrated to `rehankalu/pi-kiosk`** (2026-07-15, see
 > `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`); their sections below
 > are retained as banners + history only. `F11`/`F12` remain here, re-scoped; `F15` is new.
@@ -690,53 +727,15 @@ possible trivial nginx-config assertion.
 and this PR, both overlay layers run (shell + in-app) — functional but annoying; keep the
 window to one deploy cycle (design doc DD-9). (b) Do **not** carry the removal into a
 feature flag — outright deletion per DD-9. (c) If parity verification finds gaps, fix
-them in pi-kiosk first; this feature never starts on partial parity.
+them in pi-kiosk first; this feature never starts on partial parity. (d) **pi-kiosk
+`target_url` after `F6` (#43):** the LAN alias `http://c4i.local/` is live and is the
+natural `target_url` for any *remote* kiosk; on the wall Pi itself keep `http://localhost/`
+— the kiosk would otherwise depend on Avahi + `nss-mdns` being up at login (boot-order
+risk), and the Pi resolves its own `c4i.local` to the Docker bridge `172.18.0.1`
+(served, but pointless). Record the choice in pi-kiosk's config when Phase 1/2 land.
 
 **Session loop.** Run the Per-Feature Session Contract on branch
 `feature/kiosk-shell-adoption`.
-
----
-
-## F6 — Local URL alias instead of IP:port  ·  ★ FOCUS  ·  Infra track (parallel)  ·  Effort M–L (research spike)  ·  (260707 item 6, = legacy `F8-L`)
-
-**Goal.** Let LAN users reach the app by a memorable name instead of the raw IP — e.g. `c4i`
-instead of `[local_IP_address]:[port]`. Explore viable options; implement the best fit for
-the Pi/Docker deployment.
-
-**Rank rationale.** The current ★FOCUS (advanced from `F5` on 2026-09-19 by user choice —
-the chore-list track is complete and everything else waits on external pi-kiosk gates).
-Entirely separate surface from app code; touches LAN name resolution / the Pi deployment.
-Blocks nothing, blocked by nothing. Least-confident estimate (research spike).
-
-**Effort: M–L (research-first).** Candidates to evaluate at planning time: mDNS/Avahi
-(`c4i.local`, low-friction, `.local` suffix required), LAN DNS (router static entry or
-`dnsmasq` on the Pi, can resolve a bare `c4i` with a search domain, more setup), hosts-file
-entries (rejected — doesn't scale). Confirmed unchanged: no avahi/dnsmasq/`.local` config
-exists in the repo today (verified).
-
-**Dependencies.** The deployment stack (Pi, Docker; frozen Dockerization plan at
-`plans/completed/docker-raspberry-pi/`). No app-feature dependency.
-
-**Assumed starting state** = **Baseline** + existing Pi deployment (app served at LAN IP on
-port 80). Review `plans/completed/docker-raspberry-pi/` and the live compose/nginx config
-before planning.
-
-**Expected end state** (repo-checkable **+ deployment-doc-anchored**):
-- A documented, reproducible mechanism by which a LAN client reaches the app via a name,
-  recorded as deployment docs/config in `plans/feature/local-url-alias/`.
-- The chosen name resolves from at least the primary target client(s); raw IP:port still works.
-- Decision (mechanism, name, why) and client-side caveats written into the deployment docs.
-
-**Test-suite deltas.** None in app test suites. Manual/operational verification on the Pi +
-a LAN client, documented in the deploy docs.
-
-**Open risks / decisions.** Bare `c4i` vs `c4i.local` (single-label names are treated as a
-search query by many browsers — `.local` is the low-effort path); client coverage
-(iOS/Android/Windows/macOS mDNS support varies); sandbox cannot reach the Pi LAN — verify
-unsandboxed; keep additive; deploy-doc capture is mandatory.
-
-**Session loop.** Run the Per-Feature Session Contract on branch `feature/local-url-alias`
-(planning begins with a research spike).
 
 ---
 
@@ -752,8 +751,7 @@ KIOSK EXTRACTION TRACK (2026-07-15 — external gates; see plans/feature/kiosk-s
   [pi-kiosk Phase 3: console + agent controls  ·  absorbs F3/F7/F8/F10/F13 — superseded here]
   [pi-kiosk Phase 4: settings (absorbs F9) + kiosk/v1 contract] ──► F11 (undo) ─→ F12 (redo)
 
-INFRA TRACK
-  Baseline ─★F6★ (LAN alias; independent — if it lands, it becomes pi-kiosk's target_url)
+INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i / c4i.local is live; see F15's Open risks (d) for pi-kiosk's target_url)
 ```
 
 - **No hard chain remains inside this repo.** The old device-control edge (`F3` gates
@@ -761,11 +759,9 @@ INFRA TRACK
   sequencing now. What remains here: the chore-list track is complete (its soft `F14` →
   `F4` → `F5` preference of 2026-07-08 was honored — #34, #38, #39), and two **external**
   gates (`F15` on pi-kiosk Phase 2 parity; `F11`/`F12` on Phase 4's `kiosk/v1` contract,
-  with `F12` also following `F11`). `F6` is fully parallel.
-- **Focus path:** `F6` — the only unblocked feature; chosen by the user at `F5`'s fold-back
-  over holding for the pi-kiosk gates. The kiosk-extraction features still cannot start until
-  their external gates open, regardless of local appetite; if one opens mid-`F6`, see the
-  parallel-via-`/worktree` rule under "Shortest path" above.
+  with `F12` also following `F11`). The infra track completed with `F6` (#43).
+- **Focus path:** `F15` — ★FOCUS held on its external gate (pi-kiosk Phase 2 parity);
+  nothing in this repo runs until it opens. `F11`/`F12` follow on Phase 4.
 - **Cross-feature couplings to honor:**
   - **F1 ↔ F2 — shipped and resolved.** `ScreenBlankOverlay` (`z-[100]`) always wins over
     `TouchLockOverlay` (`z-[90]`); the pi-kiosk port must preserve this precedence, and
@@ -778,7 +774,6 @@ INFRA TRACK
     *triggered*, not what they *are*).
   - **F15 ↔ e2e:** check `e2e/smoke.spec.ts` for overlay dependencies before deleting the
     F1/F2 suites.
-  - **F6** shares no files with any of them.
 - Cumulative invariants that must hold from each feature onward:
   - From **F1**/**F2** *(shipped — Standing invariants 8–9)*: blank + lock contracts as
     recorded under Completed-Feature Contracts; **held until `F15` relocates the behavior to
@@ -788,7 +783,8 @@ INFRA TRACK
     standalone at `IP:port` and inside the pi-kiosk shell.
   - From **F11**: bounded undo cache; undo emits on the SSE bus. From **F12**: redo pairs
     with F11's cache.
-  - From **F6**: a documented LAN name-alias to the app; IP:port still works.
+  - From **F6** *(shipped — Standing invariant 13)*: the Pi is `c4i`, reachable by
+    `c4i.local` / `c4i`; IP:port still works; nothing in the app is name-aware.
   - **Already holding (legacy, unchanged):** delete-confirm, `PUT`/edit, swipe infra
     (now edit-left/delete-right + 25% reveal), shorter grid bar, SSE re-pull gate, Room
     `<datalist>`, persistent name-search filter, clear-✕ on search/Name/Room with
