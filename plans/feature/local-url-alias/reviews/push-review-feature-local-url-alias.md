@@ -193,3 +193,59 @@ Review 3's `$SUDO` minor confirmed fixed.
 - [ ] **(Optional) Broaden the findmnt guard message** — `deploy/pi/set-hostname.sh:74` — "could not confirm /boot/firmware is mounted read-write".
 - [ ] **(Optional) Unify guard-and-exit shape** — `deploy/pi/set-hostname.sh:59-87` — one style throughout.
 - [ ] **(Optional, accepted risk) Matrix case for the avahi-inactive branch** — `deploy/pi/set-hostname.sh:429`.
+
+## Review 5
+Generated: 2026-09-20 08:40
+Comparison: origin/feature/local-url-alias (e3c4abb, PR #43 head)...HEAD (cffcf85) — delta only: Chromium profile-lock cleanup after the live rename broke the kiosk
+Verdict: **BLOCKED**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+`rm -f` targets three literal filenames under `$CHROMIUM_DIR`; `lock_target` is compared, never used as a path.
+- minor — `deploy/pi/set-hostname.sh:156`: first use of `$HOME`; under `sudo ./set-hostname.sh` (which the header calls harmless) `env_reset` makes it root's home and the step silently no-ops.
+
+#### 2. Correctness — PASS
+`${lock_target%-*}` strips only the trailing `-<pid>` even for hyphenated hostnames (verified).
+- minor — `:159`: comparison is case-sensitive while the rest of the script is deliberately case-insensitive.
+- minor — `:158`: `readlink` command substitution unguarded under `set -e` (TOCTOU only).
+- minor — `:20`: header's "double sudo is harmless" no longer covers the `$HOME`-based step.
+
+#### 3. Simplicity & Conciseness — PASS
+- minor — `:157-165`: `if … && …; elif [ "$APPLY_LIVE" != 1 ]` re-tests the negation; the file's idiom is plain if/else on `APPLY_LIVE`.
+- minor — README's two mentions serve different readers (procedure vs symptom); no change required.
+
+#### 4. Test Coverage — FAIL
+Core logic sound; cases M–P cover symlink/no-lock/new-name/dry-run.
+- **major** — `:157`: the block only fires on `-L`; a regular-file `SingletonLock` (crash/manual `touch`/partial cleanup) silently no-ops — no rm, no info, no warn.
+- minor — plan `:86`: cases M–P recorded as prose without literal fixture commands/assertions.
+- minor — no hyphenated-hostname case through `${lock_target%-*}`.
+- minor — case-sensitivity (as Correctness).
+
+#### 5. Completeness & Cleanup — PASS
+- minor — `:33`: `CHROMIUM_DIR` missing from the header's "Overridable paths" list.
+
+#### 6. Consistency & Style — PASS
+- minor — `CHROMIUM_DIR` default not grouped with the other overridable defaults / header list.
+- minor — `:161`: full-sentence info line lacks the trailing period the file's other state messages use.
+
+#### 7. Integration Risk — PASS
+Removing the lock while the kiosk Chromium runs is safe (lock read only at startup); the reboot follows immediately.
+- minor — `deploy/pi/README.md:3-7` vs `:150`: the opening paragraph still says a redeploy "never touches" these files, contradicting the corrected Apply/re-apply paragraph (a redeploy re-extracts the tracked copies; only the *installed* system files are untouched).
+- minor — header "Overridable paths" (as above).
+- minor — optional comment that nothing else must launch Chromium against the profile before the reboot.
+
+#### 8. Error Handling & Silent Failures — PASS
+- minor — `:158`: unguarded `readlink` (as Correctness).
+- minor — `:156`: `$HOME` under `sudo` (as Safety).
+- info — the "lock already targets `$NEW`" path prints nothing, unlike the script's other idempotent no-ops.
+
+### To-Do: Required Changes
+
+- [x] **Handle a non-symlink `SingletonLock`** — `deploy/pi/set-hostname.sh:157` — test `-e`; if present but not `-L`, `warn "… SingletonLock is not a symlink — left in place; remove it by hand if the kiosk does not start"`; add fixture case Q (regular file) to the matrix.
+- [x] **Compare hostnames case-insensitively and guard `readlink`** — `:158-159` — `lock_target="$(readlink … 2>/dev/null || true)"`; skip when empty; compare `${lock_host,,}` with `${NEW,,}`; add fixture case R (hyphenated `$NEW`, e.g. `c4i-test`) and S (lock differs only by case → kept).
+- [x] **Resolve the kiosk user's home instead of `$HOME`** — `:156` — `getent passwd "${SUDO_USER:-$(id -un)}"` (guarded `|| true`, fall back to `$HOME`) so `sudo ./set-hostname.sh` still finds the lock; keep the header's "double sudo" claim true.
+- [x] **Group `CHROMIUM_DIR` with the other overridable defaults and list it in the header** — `:32-36`.
+- [x] **Use the file's if/else idiom, add the trailing period, and announce the idempotent no-op** — `:157-165` — `info "Chromium profile lock already targets $NEW."` when kept.
+- [x] **Fix the README opening paragraph** — `deploy/pi/README.md:3-7` — a redeploy overwrites the tracked copies under `~/chores4irl/deploy/pi/`; the *installed* system files (`/etc/cloud/cloud.cfg.d/…`, labwc config, etc.) are what a redeploy never touches.
+- [x] **Record cases M–S in the plan's matrix with literal commands** — `plans/feature/local-url-alias/local-url-alias.md` Step 2 matrix line.

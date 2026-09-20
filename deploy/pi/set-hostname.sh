@@ -30,7 +30,7 @@
 #   sudo reboot                                # so DHCP re-registers the name
 #
 # Overridable paths (for dry runs against temp files):
-#   HOSTNAME_FILE, HOSTS_FILE, USER_DATA_FILE, CLOUD_CFG_D_FILE
+#   HOSTNAME_FILE, HOSTS_FILE, USER_DATA_FILE, CLOUD_CFG_D_FILE, CHROMIUM_DIR
 #   SUDO=            disables sudo
 #   APPLY_LIVE=0     skips hostnamectl / findmnt / avahi checks
 #
@@ -43,6 +43,10 @@ HOSTNAME_FILE="${HOSTNAME_FILE:-/etc/hostname}"
 HOSTS_FILE="${HOSTS_FILE:-/etc/hosts}"
 USER_DATA_FILE="${USER_DATA_FILE:-/boot/firmware/user-data}"
 CLOUD_CFG_D_FILE="${CLOUD_CFG_D_FILE:-/etc/cloud/cloud.cfg.d/99-c4i-hostname.cfg}"
+# Chromium profile of the kiosk user — the invoking user, or SUDO_USER when the whole
+# script was run under sudo (so $HOME would be root's). Falls back to $HOME.
+kiosk_home="$(getent passwd "${SUDO_USER:-$(id -un)}" 2>/dev/null | cut -d: -f6 || true)"
+CHROMIUM_DIR="${CHROMIUM_DIR:-${kiosk_home:-$HOME}/.config/chromium}"
 SUDO="${SUDO-sudo}"
 APPLY_LIVE="${APPLY_LIVE:-1}"
 
@@ -153,14 +157,23 @@ fi
 # Chromium process on another computer (<old name>)" — and never cleans it up
 # itself, so drop the lock trio here (the profile data is untouched; a running
 # Chromium keeps its own copy of the lock and is not affected).
-CHROMIUM_DIR="${CHROMIUM_DIR:-$HOME/.config/chromium}"
-if [ "$APPLY_LIVE" = 1 ] && [ -L "$CHROMIUM_DIR/SingletonLock" ]; then
-  lock_target="$(readlink "$CHROMIUM_DIR/SingletonLock")"
-  if [ "${lock_target%-*}" != "$NEW" ]; then
-    rm -f "$CHROMIUM_DIR/SingletonLock" "$CHROMIUM_DIR/SingletonSocket" "$CHROMIUM_DIR/SingletonCookie"
-    info "removed stale Chromium profile lock ($lock_target) so the kiosk starts after the reboot"
+# Nothing else may launch Chromium against this profile between here and the reboot.
+if [ "$APPLY_LIVE" = 1 ]; then
+  if [ -L "$CHROMIUM_DIR/SingletonLock" ]; then
+    lock_target="$(readlink "$CHROMIUM_DIR/SingletonLock" 2>/dev/null || true)"
+    lock_host="${lock_target%-*}"
+    if [ -z "$lock_target" ]; then
+      warn "could not read $CHROMIUM_DIR/SingletonLock — left in place; remove it by hand if the kiosk does not start"
+    elif [ "${lock_host,,}" != "${NEW,,}" ]; then
+      rm -f "$CHROMIUM_DIR/SingletonLock" "$CHROMIUM_DIR/SingletonSocket" "$CHROMIUM_DIR/SingletonCookie"
+      info "removed stale Chromium profile lock ($lock_target) so the kiosk starts after the reboot."
+    else
+      info "Chromium profile lock already targets $NEW."
+    fi
+  elif [ -e "$CHROMIUM_DIR/SingletonLock" ]; then
+    warn "$CHROMIUM_DIR/SingletonLock is not a symlink — left in place; remove it by hand if the kiosk does not start"
   fi
-elif [ "$APPLY_LIVE" != 1 ]; then
+else
   info "(dry run) Chromium profile-lock check skipped"
 fi
 

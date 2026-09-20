@@ -1,10 +1,12 @@
 # Pi host artifacts (`deploy/pi/`)
 
 Host-side configuration that lives **on the Raspberry Pi**, outside Docker. These
-files are **not** part of the container images and are **never touched by a
-redeploy** (`git archive` → tarball → `docker compose build` only rebuilds the
-two containers). They are version-controlled here so a wiped or drifted Pi can be
-restored with one command — the canonical copies are the live files on the Pi.
+files are **not** part of the container images: a redeploy (`git archive` → tarball →
+`docker compose build`) re-extracts the tracked copies under `~/chores4irl/deploy/pi/`
+and rebuilds the two containers, but **never touches the installed system files** they
+describe (`/etc/cloud/cloud.cfg.d/…`, the labwc config, …). They are version-controlled
+here so a wiped or drifted Pi can be restored with one command — the canonical copies
+are the live files on the Pi.
 
 Target Pi: hostname `c4i` (LAN names `c4i.local` / `c4i`; formerly `MilarachiC4I`),
 Debian 13 (trixie) / RPi PIXEL desktop, compositor **labwc**, user
