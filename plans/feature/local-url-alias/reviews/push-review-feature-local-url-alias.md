@@ -249,3 +249,49 @@ Removing the lock while the kiosk Chromium runs is safe (lock read only at start
 - [x] **Use the file's if/else idiom, add the trailing period, and announce the idempotent no-op** — `:157-165` — `info "Chromium profile lock already targets $NEW."` when kept.
 - [x] **Fix the README opening paragraph** — `deploy/pi/README.md:3-7` — a redeploy overwrites the tracked copies under `~/chores4irl/deploy/pi/`; the *installed* system files (`/etc/cloud/cloud.cfg.d/…`, labwc config, etc.) are what a redeploy never touches.
 - [x] **Record cases M–S in the plan's matrix with literal commands** — `plans/feature/local-url-alias/local-url-alias.md` Step 2 matrix line.
+
+## Review 6
+Generated: 2026-09-20 09:35
+Comparison: origin/feature/local-url-alias (e3c4abb, PR #43 head)...HEAD (fa536b2) — delta only
+Verdict: **BLOCKED**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+`SUDO_USER` is set by sudo itself; `getent` output parsing safe; `rm -f` scope unchanged.
+- minor — `deploy/pi/set-hostname.sh:49`: if `kiosk_home` is empty and `HOME` is set-but-empty, `CHROMIUM_DIR` becomes `/.config/chromium` (skipped silently).
+
+#### 2. Correctness — PASS
+All seven Review 5 items applied correctly.
+- minor — `:49`: `$HOME` under `set -u` when `HOME` is unset would abort; use `${HOME:-}`.
+
+#### 3. Simplicity & Conciseness — PASS
+Four-branch block proportionate; comment length matches the file's idiom; README split intentional.
+
+#### 4. Test Coverage — FAIL
+Cases Q/R/S genuinely closed.
+- **major** — plan matrix line: claimed "incl. the `SUDO_USER` home-resolution check", but every recorded case overrides `CHROMIUM_DIR`, so the `getent`/`SUDO_USER` default path was never exercised through the script.
+- minor — the `readlink`-failure warn branch has no case (TOCTOU only; accepted risk).
+
+#### 5. Completeness & Cleanup — PASS
+- minor — the `SUDO_USER` check narrated without a case letter/literal command (same root as the Test Coverage major).
+
+#### 6. Consistency & Style — PASS
+Review 5's style items confirmed applied.
+
+#### 7. Integration Risk — PASS
+README intro and Apply/re-apply now agree.
+- minor — the script assumes invoker/`SUDO_USER` == the kiosk user (true today; single account).
+- info — `plans/feature/kiosk-shell-extraction/` predates the lock discovery; carry the knowledge into pi-kiosk Phase 1.
+
+#### 8. Error Handling & Silent Failures — PASS
+Every `|| true`/`2>/dev/null` in the new block is load-bearing; `rm -f` still aborts loudly.
+- minor — an inaccessible `$CHROMIUM_DIR` makes both `-L`/`-e` false → silent skip.
+
+### To-Do: Required Changes
+
+- [x] **Exercise the `getent`/`SUDO_USER` resolution through the script and record it** — plan Step 2 matrix — cases T (getent stub → SUDO_USER's home), U (getent fails → `$HOME`), V (no profile dir → info line), with literal commands; unsupported claim removed.
+- [x] **`${HOME:-}` in the `CHROMIUM_DIR` default** — `deploy/pi/set-hostname.sh:49`.
+- [x] **Announce a missing profile dir instead of skipping silently** — `deploy/pi/set-hostname.sh` — `info "no Chromium profile at $CHROMIUM_DIR — nothing to clean."` (case V).
+- [ ] **(Optional, accepted risk) Fixture the `readlink`-failure warn branch** — TOCTOU-only path.
+- [ ] **(Optional) Header note that the invoker/`SUDO_USER` must be the kiosk user** — relevant only if the Pi gains a second account.

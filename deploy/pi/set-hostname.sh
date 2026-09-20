@@ -46,7 +46,7 @@ CLOUD_CFG_D_FILE="${CLOUD_CFG_D_FILE:-/etc/cloud/cloud.cfg.d/99-c4i-hostname.cfg
 # Chromium profile of the kiosk user — the invoking user, or SUDO_USER when the whole
 # script was run under sudo (so $HOME would be root's). Falls back to $HOME.
 kiosk_home="$(getent passwd "${SUDO_USER:-$(id -un)}" 2>/dev/null | cut -d: -f6 || true)"
-CHROMIUM_DIR="${CHROMIUM_DIR:-${kiosk_home:-$HOME}/.config/chromium}"
+CHROMIUM_DIR="${CHROMIUM_DIR:-${kiosk_home:-${HOME:-}}/.config/chromium}"
 SUDO="${SUDO-sudo}"
 APPLY_LIVE="${APPLY_LIVE:-1}"
 
@@ -172,6 +172,8 @@ if [ "$APPLY_LIVE" = 1 ]; then
     fi
   elif [ -e "$CHROMIUM_DIR/SingletonLock" ]; then
     warn "$CHROMIUM_DIR/SingletonLock is not a symlink — left in place; remove it by hand if the kiosk does not start"
+  elif [ ! -d "$CHROMIUM_DIR" ]; then
+    info "no Chromium profile at $CHROMIUM_DIR — nothing to clean."
   fi
 else
   info "(dry run) Chromium profile-lock check skipped"
