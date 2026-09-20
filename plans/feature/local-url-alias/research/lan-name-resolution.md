@@ -217,8 +217,14 @@ Not verifiable from the laptop CLI (DD-5) — confirm at the `/run-feature` Phas
   08:53) is pre-F4 (`UPDATE … SET details = …, long_term_task = …`) while the live DB is
   post-F4 (columns dropped), so SQLite throws and `app.ts`'s bare `catch` returns 500 without
   logging. Mark-complete (`PATCH …/complete`) touches only `date_last_completed`, hence works.
-  Remedy: redeploy current `main` (`deploy.sh` → `git archive HEAD` → rebuild). Not applied
-  during F6 (user's call).
+  Root cause of the stale tree: the Pi's files were stamped 2026-09-19 08:53 — the F5
+  worktree *before* it was rebased onto post-F4 `main` (PR #39's commits now read 09:19) —
+  i.e. F5 was deployed to the Pi for a look at 08:53 and nothing was redeployed after the
+  merges. Remedy applied 2026-09-20 with the user's go-ahead: `git archive main` → `scp` →
+  `docker compose down && up -d --build` on the Pi (post-F4 source confirmed: `grep -c
+  details backend/src/chores.ts` → 0), then the two F6 `deploy/pi/` files re-shipped
+  (`main` does not carry them yet). Verified: `PUT /api/chores/34` with its own current
+  values → `200` via `http://c4i/`, record unchanged.
 
 ## Rollback
 
