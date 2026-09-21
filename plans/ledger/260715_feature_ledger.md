@@ -1,3 +1,14 @@
+> **PREDECESSOR — superseded by `plans/ledger/260920_feature_ledger.md`.** F4 (#38), F5 (#39)
+> and F6 (#43) shipped since this file was written and are dropped from the successor;
+> F16 (status-bucketed midnight re-sort with red-quota escalation + Urgency weighting),
+> F17 (status-count strip under the room tabs), F18 (floating scroll-to-top button),
+> F19 (lock-time view reset: scroll-to-top, room → All, search cleared, day → today),
+> F20 (permissive touch lock: padlock only on a blocked complete/edit/delete; scroll,
+> search, rooms, day-sim and Add Task stay usable; indicator becomes a lock/unlock
+> control) and F21 (add/edit form polish + the UTC-vs-local date-math fix — the F2-L
+> follow-up list promoted to an F-ID) were added 2026-09-20. Read the successor for the current backlog; this file loses on any
+> disagreement.
+
 - [ ] F4: Remove 'Details' and 'Long-term task' toggle from the Add Task form. Propagate the removal from the database and other associated schema related to these fields.
 - [ ] F5: Make 'Add Task' button deck transparent blur background, allowing the chores list visible slightly visible beneath for a more modern, fluid feel. The button will remain locked at the bottom and opaque as the chores list scrolls, but you should be able to see the chore bars on the sides of the button.
 - [ ] F6: Explore options by which local users can access a URL alias rather than an IP address and port. e.g. users connected to the local network can type 'C4I' in their browser, instead of [local_IP_address]:[port]
