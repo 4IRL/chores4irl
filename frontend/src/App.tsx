@@ -15,10 +15,13 @@ import AddChoreButton from './components/form/AddChoreButton';
 import ChoreFormModal from './components/form/ChoreFormModal';
 import ConfirmDialog from './components/common/ConfirmDialog';
 import ScreenBlankOverlay from './components/common/ScreenBlankOverlay';
+import Toast from './components/common/Toast';
 import TouchLockIndicator from './components/common/TouchLockIndicator';
 import TouchLockOverlay, { CLOSING_SETTLE_MS } from './components/common/TouchLockOverlay';
 import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from './services/choreApi';
 import type { Chore } from '@customTypes/SharedTypes';
+
+type ToastState = { id: number; tone: 'success' | 'error'; message: string };
 
 export default function App() {
     const realToday = useMidnightClock();
@@ -39,7 +42,8 @@ export default function App() {
     const [showForm, setShowForm] = useState<boolean>(false);
     const [choreData, setChoreData] = useState<Chore[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+    const [toast, setToast] = useState<ToastState | null>(null);
+    const toastIdRef = useRef<number>(0);
     const [sortedIds, setSortedIds] = useState<number[]>([]);
     const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -55,6 +59,14 @@ export default function App() {
     // Set when a "chores changed" signal arrives while the re-pull is gated; the
     // deferred refresh runs once the gate clears.
     const pendingRefreshRef = useRef<boolean>(false);
+
+    // F21: one toast at a time — a new one replaces the current. The id keys
+    // the element so an identical message remounts it and restarts its timer.
+    const showToast = useCallback((tone: ToastState['tone'], message: string) => {
+        toastIdRef.current += 1;
+        setToast({ id: toastIdRef.current, tone, message });
+    }, []);
+    const dismissToast = useCallback(() => setToast(null), []);
 
     // Re-pulls clobber local state, so defer them while a write is in flight or a
     // form/dialog is open (those hold un-committed user input or optimistic values).
@@ -88,11 +100,11 @@ export default function App() {
             })
             .catch((err: unknown) => {
                 if (initial) {
-                    setError(err instanceof Error ? err.message : 'Failed to load chores');
+                    showToast('error', err instanceof Error ? err.message : 'Failed to load chores');
                     setLoading(false);
                 }
             }),
-        [reconcileChores]
+        [reconcileChores, showToast]
     );
 
     // Run a deferred re-pull if one is pending and the gate has cleared. Called
@@ -178,11 +190,12 @@ export default function App() {
         isMutatingRef.current = true;
         try {
             const created = await addChore(newChore);
+            showToast('success', `Added "${created.name}"`);
             setChoreData(prev => [...prev, created]);
             setSortedIds(prev => [...prev, created.id]);
             setShowForm(false);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to add chore');
+            showToast('error', err instanceof Error ? err.message : 'Failed to add chore');
         } finally {
             isMutatingRef.current = false;
             flushPendingRefresh();
@@ -198,10 +211,11 @@ export default function App() {
         isMutatingRef.current = true;
         try {
             await removeChore(id);
+            showToast('success', `Deleted "${deletedChore.name}"`);
         } catch (err) {
             setChoreData(curr => curr.some(chore => chore.id === id) ? curr : [...curr, deletedChore]);
             setSortedIds(prevSortedIds);
-            setError(err instanceof Error ? err.message : 'Failed to delete chore');
+            showToast('error', err instanceof Error ? err.message : 'Failed to delete chore');
         } finally {
             isMutatingRef.current = false;
             flushPendingRefresh();
@@ -232,10 +246,14 @@ export default function App() {
         isMutatingRef.current = true;
         try {
             const updated = await completeChore(id, date);
+            // F21: no success toast for a bar tap (scope is the three form-driven
+            // mutations), but a successful retry must retire a standing failure —
+            // META-PLAN: the next successful mutation replaces it.
+            setToast(prev => (prev?.tone === 'error' ? null : prev));
             setChoreData(curr => curr.map(chore => chore.id === id ? updated : chore));
         } catch (err) {
             setChoreData(curr => curr.map(chore => chore.id === id ? originalChore : chore));
-            setError(err instanceof Error ? err.message : 'Failed to mark chore complete');
+            showToast('error', err instanceof Error ? err.message : 'Failed to mark chore complete');
         } finally {
             isMutatingRef.current = false;
             flushPendingRefresh();
@@ -259,10 +277,11 @@ export default function App() {
         isMutatingRef.current = true;
         try {
             const updated = await updateChore(id, edited);
+            showToast('success', `Saved "${updated.name}"`);
             setChoreData(curr => curr.map(chore => chore.id === id ? updated : chore));
         } catch (err) {
             setChoreData(curr => curr.map(chore => chore.id === id ? originalChore : chore));
-            setError(err instanceof Error ? err.message : 'Failed to update chore');
+            showToast('error', err instanceof Error ? err.message : 'Failed to update chore');
         } finally {
             isMutatingRef.current = false;
             flushPendingRefresh();
@@ -316,12 +335,6 @@ export default function App() {
         <div className="App h-full flex flex-col overflow-hidden" inert={isBlanked || isLocked}>
             <TouchLockIndicator isLocked={isLocked} />
             <div className="flex flex-col h-full overflow-hidden bg-gray-900 px-4 pt-4">
-                {error && (
-                    <div className="mb-4 p-3 bg-red-700 text-white rounded-lg text-sm flex justify-between items-center flex-shrink-0">
-                        <span>{error}</span>
-                        <button onClick={() => setError(null)} className="ml-4 underline">Dismiss</button>
-                    </div>
-                )}
                 <NavBar rooms={uniqueRooms} selectedRoom={selectedRoom} onSelect={setSelectedRoom} />
                 <DateNavigationBanner
                     simulatedDate={simulatedDate}
@@ -356,6 +369,9 @@ export default function App() {
                     </div>
                 </div>
             </div>
+            {/* F21: inline (not portaled) so the root's inert covers it while blanked/locked,
+                like the strip it replaces; fixed, so DOM position is layout-neutral. */}
+            {toast && <Toast key={toast.id} tone={toast.tone} message={toast.message} onDismiss={dismissToast} />}
             {showForm && (
                 <ChoreFormModal
                     rooms={uniqueRooms}

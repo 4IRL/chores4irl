@@ -473,7 +473,7 @@ Build the single toast surface as a unit before touching `App.tsx`.
       green. Run `npm run lint` — the `react-refresh/only-export-components` rule accepts
       the constant export (`allowConstantExport`, same as `TouchLockOverlay`).
 
-### 5. Red → Green — replace the error strip with the toast; success toasts on resolved mutations; toast-proof the smoke spec
+### 5. Red → Green — replace the error strip with the toast; success toasts on resolved mutations; toast-proof the smoke spec — COMPLETE (2026-09-22)
 
 Swap `error` state for a single `toast` state in `App.tsx`; raise success toasts only
 after the awaited request resolves. The e2e edits land here too (not in Step 6): `/run-plan`
@@ -481,7 +481,7 @@ runs the Playwright smoke suite after every UI-affecting step, and the success t
 otherwise turn four `text=<name>` assertions into strict-mode violations (review DD-2).
 
 **To-do:**
-- [ ] **Red.** In `frontend/src/__tests__/App.test.tsx`, first hoist `openAndFillForm`
+- [x] **Red.** In `frontend/src/__tests__/App.test.tsx`, first hoist `openAndFillForm`
       (L376-384 pre-edit; by now one line longer with Step 2's `user.clear`) to module
       scope immediately after `stubBarWidth` (ends L46), body unchanged, and remove it from
       the `handleAddChore` describe (its two callers at L392/L404 pre-edit keep working —
@@ -568,7 +568,7 @@ otherwise turn four `text=<name>` assertions into strict-mode violations (review
       expect(completeChore).toHaveBeenCalled())`, `expect(screen.queryByTestId('toast')).toBeNull()`.
       All fail (no toast rendered by App) except (xi), a negative pin that also passes
       pre-change — keep it; it guards the scope rule once the toast exists.
-- [ ] **Green — state.** In `frontend/src/App.tsx`: `import Toast from
+- [x] **Green — state.** In `frontend/src/App.tsx`: `import Toast from
       './components/common/Toast';` (between the `ScreenBlankOverlay` and
       `TouchLockIndicator` imports at L17-18, keeping the `./components/common/*` group
       alphabetical); add `type ToastState = { id: number; tone:
@@ -581,7 +581,7 @@ otherwise turn four `text=<name>` assertions into strict-mode violations (review
       toastIdRef.current += 1; setToast({ id: toastIdRef.current, tone, message }); }, []);`
       `const dismissToast = useCallback(() => setToast(null), []);`. Toast state is **not**
       added to `isRepullGated` (L61-64) — leave that line untouched.
-- [ ] **Green — error paths.** Replace every `setError(<expr>)` with `showToast('error',
+- [x] **Green — error paths.** Replace every `setError(<expr>)` with `showToast('error',
       <expr>)`, keeping each message expression exactly: `loadChores` L91 (`'Failed to load
       chores'` fallback), **and change `loadChores`'s dependency array (L95) from
       `[reconcileChores]` to `[reconcileChores, showToast]`** — `showToast` is a `useCallback`
@@ -592,7 +592,7 @@ otherwise turn four `text=<name>` assertions into strict-mode violations (review
       declared before `loadChores` (L83), so the reference resolves; `handleAddChore` L185, `handleDeleteChore` L204,
       `handleCompleteChore` L238, `handleEditChore` L265. Confirm `! grep -qE "setError|error &&"
       frontend/src/App.tsx` (exit 0 = clean).
-- [ ] **Green — success paths.** Insert after `const created = await addChore(newChore);`
+- [x] **Green — success paths.** Insert after `const created = await addChore(newChore);`
       (L180): `showToast('success', \`Added "${created.name}"\`);`; after `await
       removeChore(id);` (L200): `showToast('success', \`Deleted "${deletedChore.name}"\`);`;
       after `const updated = await updateChore(id, edited);` (L261): `showToast('success',
@@ -603,7 +603,7 @@ otherwise turn four `text=<name>` assertions into strict-mode violations (review
       mutations), but a successful retry must retire a standing failure — META-PLAN: the
       next successful mutation replaces it.` (a standing *success* toast is left alone).
       No toast at the optimistic writes L196-197 / L257-258.
-- [ ] **Green — JSX.** Delete the strip block L319-324 (`{error && (<div className="mb-4 p-3
+- [x] **Green — JSX.** Delete the strip block L319-324 (`{error && (<div className="mb-4 p-3
       bg-red-700 …">…Dismiss…</div>)}`). Insert `{toast && <Toast key={toast.id}
       tone={toast.tone} message={toast.message} onDismiss={dismissToast} />}` inside the
       `.App` root of the **main** return, immediately after the closing `</div>` of the
@@ -613,7 +613,7 @@ otherwise turn four `text=<name>` assertions into strict-mode violations (review
       position is layout-neutral. The scroll region's class string `flex-1 overflow-y-auto
       min-h-0 flex flex-col scroll-pb-40` is unchanged — verify with `grep -c "flex-1
       overflow-y-auto min-h-0 flex flex-col scroll-pb-40" frontend/src/App.tsx` → `1`.
-- [ ] **e2e — error-strip selectors.** In `e2e/smoke.spec.ts` add near the top (after
+- [x] **e2e — error-strip selectors.** In `e2e/smoke.spec.ts` add near the top (after
       imports) `const ERROR_TOAST = '[data-testid="toast"][data-tone="error"]';`. Replace
       `page.locator('.bg-red-700')` with `page.locator(ERROR_TOAST)` at every
       `page.locator('.bg-red-700')` occurrence used with `not.toBeVisible()` (L86, 108, 122,
@@ -623,7 +623,7 @@ otherwise turn four `text=<name>` assertions into strict-mode violations (review
       comment so it no longer contains the token `bg-red-700` (e.g. `// App shows the error
       in the red toast with the error message`) — it would otherwise be the last match.
       Confirm `! grep -q "bg-red-700" e2e/smoke.spec.ts` (exit 0 = no match).
-- [ ] **e2e — toast-proof the `text=<name>` assertions.** The success toasts contain the
+- [x] **e2e — toast-proof the `text=<name>` assertions.** The success toasts contain the
       chore name and Playwright's legacy `text=` engine is a case-insensitive substring
       match, so the strict `expect(page.locator('text=<name>'))` assertions would resolve to
       two elements (bar + toast) and throw a non-retriable strict-mode violation. Re-scope
@@ -648,7 +648,7 @@ otherwise turn four `text=<name>` assertions into strict-mode violations (review
       (exit 0; scoped to the four names because the file-wide form would still match
       L98/L107 — dry-run: exits 1 on the pre-edit file, 0 on a scratch copy with the four
       lines rewritten).
-- [ ] Run `npm test --workspace frontend -- src/__tests__/App.test.tsx src/__tests__/App.sync.test.tsx src/__tests__/App.search.test.tsx src/__tests__/App.touchLock.test.tsx src/__tests__/App.screenBlank.test.tsx src/__tests__/App.screenBlank.realClock.test.tsx`
+- [x] Run `npm test --workspace frontend -- src/__tests__/App.test.tsx src/__tests__/App.sync.test.tsx src/__tests__/App.search.test.tsx src/__tests__/App.touchLock.test.tsx src/__tests__/App.screenBlank.test.tsx src/__tests__/App.screenBlank.realClock.test.tsx`
       — green, including the six pre-existing error-text assertions (`'Network error'`,
       `'Delete failed'` ×2, `'Complete failed'`, `'Edit failed'`, `'Add failed'`) and the
       F5 deck describe unchanged. Then `npx tsc -p frontend/tsconfig.json --noEmit` and

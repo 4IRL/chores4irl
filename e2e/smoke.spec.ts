@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+const ERROR_TOAST = '[data-testid="toast"][data-tone="error"]';
+
 test.describe('Chores App Smoke Tests', () => {
 
     // e2e strategy (F6): F6 removed the visible ✕/pencil buttons from the chore bar.
@@ -83,7 +85,7 @@ test.describe('Chores App Smoke Tests', () => {
         expect(completePatchFired).toBe(false);
         page.off('request', completeListener);
 
-        await expect(page.locator('.bg-red-700')).not.toBeVisible();
+        await expect(page.locator(ERROR_TOAST)).not.toBeVisible();
         // The overlay's own tap-to-wake handler fires because the click landed on
         // the overlay, not the chore bar underneath — this is the positive signal
         // that real-browser stacking/hit-testing routed the click to the overlay.
@@ -105,7 +107,7 @@ test.describe('Chores App Smoke Tests', () => {
         await firstChoreBar.click();
         // The timer bar resets — verify no error message appeared
         await expect(page.locator('text=Failed to mark chore complete')).not.toBeVisible();
-        await expect(page.locator('.bg-red-700')).not.toBeVisible();
+        await expect(page.locator(ERROR_TOAST)).not.toBeVisible();
     });
 
     test('persists completed chore date after page reload', async ({ page }) => {
@@ -119,7 +121,7 @@ test.describe('Chores App Smoke Tests', () => {
         await patchDone;
         await page.reload();
         await page.waitForSelector('text=Vacuum Bedroom Floor', { timeout: 10_000 });
-        await expect(page.locator('.bg-red-700')).not.toBeVisible();
+        await expect(page.locator(ERROR_TOAST)).not.toBeVisible();
     });
 
     test('adds a new chore via the form', async ({ page }) => {
@@ -134,7 +136,10 @@ test.describe('Chores App Smoke Tests', () => {
         // Submit button text is "Save"
         await page.locator('button[type="submit"]', { hasText: /save/i }).click();
         try {
-            await expect(page.locator('text=E2E Test Chore')).toBeVisible({ timeout: 5_000 });
+            const addedBar = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Test Chore' }).first();
+            await expect(addedBar).toBeVisible({ timeout: 5_000 });
+            await expect(page.getByTestId('toast')).toHaveText('Added "E2E Test Chore"');
+            await expect(page.getByTestId('toast')).toHaveAttribute('data-tone', 'success');
         } finally {
             // Delete all copies of E2E Test Chore — including any left over from prior failed runs
             const testChores = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Test Chore' });
@@ -164,7 +169,7 @@ test.describe('Chores App Smoke Tests', () => {
         const targetChore = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Delete Target' });
         await swipeBar(page, targetChore, 'right');
         await page.getByTestId('confirm-dialog-confirm').click();
-        await expect(page.locator('text=E2E Delete Target')).not.toBeVisible({ timeout: 5_000 });
+        await expect(page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Delete Target' })).toHaveCount(0, { timeout: 5_000 });
     });
 
     test('edits a chore via swipe-left', async ({ page }) => {
@@ -196,7 +201,7 @@ test.describe('Chores App Smoke Tests', () => {
             await page.locator('button[type="submit"]', { hasText: /save/i }).click();
             await putResponse;
 
-            await expect(page.locator('text=E2E Edited')).toBeVisible({ timeout: 5_000 });
+            await expect(page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Edited' }).first()).toBeVisible({ timeout: 5_000 });
             // Modal closed after a successful save
             await expect(page.getByTestId('chore-modal-backdrop')).not.toBeVisible();
         } finally {
@@ -265,7 +270,7 @@ test.describe('Chores App Smoke Tests', () => {
         // Swipe-right routes through onDelete -> the F4 confirmation dialog.
         await expect(page.getByTestId('confirm-dialog-confirm')).toBeVisible({ timeout: 5_000 });
         await page.getByTestId('confirm-dialog-confirm').click();
-        await expect(page.locator(`text=${name}`)).not.toBeVisible({ timeout: 5_000 });
+        await expect(page.locator('.bg-gray-800.rounded-full', { hasText: name })).toHaveCount(0, { timeout: 5_000 });
     });
 
     test('swipe-left opens the pre-filled edit modal', async ({ page }) => {
@@ -311,8 +316,9 @@ test.describe('Chores App Smoke Tests', () => {
         // Click the first chore bar to trigger complete (which will be intercepted)
         const firstChoreBar = page.locator('.bg-gray-800.rounded-full').first();
         await firstChoreBar.click();
-        // App shows error in bg-red-700 div with the error message
-        await expect(page.locator('.bg-red-700').first()).toBeVisible({ timeout: 5_000 });
+        // App shows the error in the red toast with the error message
+        await expect(page.locator(ERROR_TOAST)).toBeVisible({ timeout: 5_000 });
+        await expect(page.locator(ERROR_TOAST)).toContainText('Forced error');
     });
 
     test('portrait-enforcement overlay toggles with viewport orientation', async ({ page }) => {
@@ -360,7 +366,7 @@ test.describe('Chores App Smoke Tests', () => {
         // Give the click a chance to propagate; confirm no network request and no error banner.
         await page.waitForTimeout(250);
         expect(completePatchFired).toBe(false);
-        await expect(page.locator('.bg-red-700')).not.toBeVisible();
+        await expect(page.locator(ERROR_TOAST)).not.toBeVisible();
 
         page.off('request', completeListener);
 
@@ -509,7 +515,7 @@ test.describe('Chores App Smoke Tests', () => {
         await page.waitForTimeout(250);
         expect(completePatchFired).toBe(false);
         page.off('request', completeListener);
-        await expect(page.locator('.bg-red-700')).not.toBeVisible();
+        await expect(page.locator(ERROR_TOAST)).not.toBeVisible();
         await expect(page.getByTestId('touch-lock-overlay')).toBeVisible();
 
         // Qualifying double-tap: same coordinates, fired in quick succession —
@@ -540,6 +546,6 @@ test.describe('Chores App Smoke Tests', () => {
         );
         await firstChoreBar.click();
         await patchDone;
-        await expect(page.locator('.bg-red-700')).not.toBeVisible();
+        await expect(page.locator(ERROR_TOAST)).not.toBeVisible();
     });
 });
