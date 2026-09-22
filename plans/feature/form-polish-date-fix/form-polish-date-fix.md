@@ -688,13 +688,13 @@ already landed in Step 5).
       `/run-plan` treats this as a test failure it cannot auto-fix and stops for the user,
       who re-runs `/run-plan form-polish-date-fix` once the ports are free). All tests green.
 
-### 7. README
+### 7. README — COMPLETE (2026-09-22)
 
 Document the form's date semantics, defaults, and the feedback toast — one line each,
 without changing the "N days ago" wording.
 
 **To-do:**
-- [ ] In the root `README.md` (not `deploy/pi/README.md`), after the paragraph ending "…preview how the bars will look on future
+- [x] In the root `README.md` (not `deploy/pi/README.md`), after the paragraph ending "…preview how the bars will look on future
       days." (L31) and before `### Data model` (L33), insert a `### Adding and editing
       chores` H3 with three bullets in the file's `- **Bold lead-in** — explanation` style:
       - `**Dates are local calendar days** — the form's Last Completed field is parsed and
@@ -709,12 +709,12 @@ without changing the "N days ago" wording.
         bottom of the screen for ~2.5 s; failures show a red pill that stays until it is
         dismissed with a tap (or its ✕) or a later add/save/delete/tap-to-complete succeeds
         (\`frontend/src/components/common/Toast.tsx\`).`
-- [ ] Append to the `- **Timezone** —` bullet under `### First-boot Pi setup` (L131,
+- [x] Append to the `- **Timezone** —` bullet under `### First-boot Pi setup` (L131,
       pre-edit; verified 2026-09-21 from the repo root with `sed -n '131p' README.md`): after "Chore
       urgency/completion dates depend on this" insert " (the add/edit form stores the
       browser's local calendar day — see § Adding and editing chores above)", keeping the
       rest of the sentence.
-- [ ] From the repo root, confirm `grep -n "days ago" README.md` (root README) shows no change to any pre-existing wording
+- [x] From the repo root, confirm `grep -n "days ago" README.md` (root README) shows no change to any pre-existing wording
       (the phrase did not exist before; only the new bullet introduces it).
 
 ### 8. Verify All Tests Pass
