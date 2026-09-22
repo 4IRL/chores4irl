@@ -155,7 +155,7 @@ Flag any mismatch before reporting. Then report: what was frozen (with SHAs/PRs)
 ## Important Notes
 
 - Reorganizes planning docs only — never source files, never plans/implements a feature.
-- Batched, not per-feature (see the intro). Two reasons that is the default rather than merely the cheaper option: Step 7's whole-ledger scan is forward-only, so a missed fold-back resurfaces on every later sweep and sweeping less often delays that catch without weakening it; and `/worktree` hands off to one `/run-feature` per worktree while its teardown leaves merged remote refs to Step 5 — so a parallel batch wants one sweep covering N features, not N sweeps racing each other's prunes and fetches.
+- Batched, not per-feature (see the intro) — safe because Step 7's whole-ledger scan is forward-only, so a missed fold-back resurfaces on every later sweep; and preferable under `/worktree`, whose teardown leaves merged remote refs to Step 5, so a parallel batch wants one sweep rather than N racing each other's prunes.
 - Never deletes a `plans/META-PLAN.md` Status-ledger row (see Step 5 and Step 7's "Phase C pending" checks) — that fold-back belongs to `/run-feature` Phase C or a full `/new-feature` run, never to this sweep.
 - Deletion is irreversible for anything not in git history — peek at any non-standard file before removing it.
 - Every branch/remote deletion and the tracking decision go through `AskUserQuestion` — never assume. Step 5's local delete is `-D`, so the PR/merge-commit/tip verification plus that confirmation is the only gate — there is no `-d` refusal behind it.

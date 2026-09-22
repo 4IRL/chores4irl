@@ -47,3 +47,31 @@ The mandatory instructions in Step 5's Status-ledger paragraph ("leave it in pla
 - [ ] **Remove the free-floating `## Sweep frequency` section** — same skill file — fold the one behavioural sentence into the intro paragraph and move the two-reason rationale into `## Important Notes`, whose bullet style it matches. Resolves the placement major, the voice major and both Simplicity minors together.
 - [ ] **Soften "`/worktree` requires it"** — to what the source supports: `/worktree` hands off one `/run-feature` per worktree and leaves merged remote refs to Step 5, so a parallel batch wants one sweep rather than N.
 - [ ] **Drop the italicised section cross-reference** — replace "see *Sweep frequency* above" with plain-text phrasing matching the file's other cross-references.
+
+## Review 2
+Generated: 2026-09-22 10:32
+Comparison: origin/main (`85f8a55`)...HEAD (`27d1524` + the minor below) — all five of Review 1's To-Do items landed in `27d1524`; per the append-only convention adopted in #42, Review 1's boxes stay `[ ]` and this line is the record. Re-ran the five reviewers that failed or raised the substantive findings, plus Integration Risk (the diff grew to include `plans/META-PLAN.md`). Safety & Security, Simplicity and Test Coverage were not re-run: their Review 1 verdicts were PASS and this delta only removes text they had flagged as excess.
+Verdict: **PUSHED WITH MINOR FINDINGS**
+
+### Results by Reviewer
+
+#### 2. Correctness — PASS
+The blocking major is resolved: grep confirms zero hits for "Sweep frequency", "hard ordering" or "requires it" in the skill. Step 5's paragraph now ends "A hit here is a signal, not a cleanup task, and not a reason to hold back the prune" — consistent with, rather than contradicting, the unchanged "Pruning the branch itself is still safe" in the same paragraph. The `/worktree` overstatement is gone and the new wording matches `worktree/SKILL.md:9` and `:169`. Surviving claims re-verified true. META-PLAN's rewritten passage is descriptive of rhythm, not a pre-prune gate, and its "never hand-delete a merged row" warning survived intact and still matches `run-feature/SKILL.md:31-32`'s resume table exactly.
+
+#### 5. Completeness & Cleanup — PASS
+META-PLAN now states Phase C first and the sweep as batched, fixing both the contradiction and the backwards ordering; surrounding context preserved. A fresh repo-wide re-sweep found no other text implying a per-feature cadence — all remaining "sweep" mentions are dated historical narrative. No debris from the deleted section: the only surviving "Sweep frequency" strings are in this review record documenting the fixed finding, not live cross-references. No placeholders, no TODO/FIXME, `git diff --check` clean, reviewer scratch correctly gitignored under `plans/**/tmp/`.
+
+#### 6. Consistency & Style — PASS
+All three Review 1 findings resolved: the section is gone (intro now runs straight into `## Branch Guard`), the rationale is welded to an instruction bullet, and the italicised cross-reference is plain text. Two bold sentences in a row at the intro were checked explicitly and match the file's existing "**Bold lead-in:** explanation" pattern. META-PLAN's rewrite matches the surrounding paragraph's wrap and voice; the review file matches sibling `push-review-*.md` structure; commit messages match `[tag] imperative`.
+- minor — `.claude/skills/compact-plans/SKILL.md:158` — the new Important Notes bullet was a length/shape outlier (504 chars vs 250 for the list's next-longest, with a "Two reasons …:" preamble no sibling bullet uses) — **fixed before push** (rewritten to the list's one-rule-plus-em-dash-clause shape, ~310 chars).
+
+#### 7. Integration Risk — PASS
+`git diff -- plans/META-PLAN.md` is a single prose hunk in the "Branch/dir cleanup" narrative beneath the Status-ledger table; no added line begins `| `, and no `[#N](` syntax exists anywhere in the file — so neither `/run-feature` Phase A step 3's row grep nor `/compact-plans` Step 7's whole-ledger scan can match it. ★FOCUS and the Baseline header are outside the hunk. Nothing in `/run-feature`, `/worktree` or `/new-feature` depends on prompt archival. The new review file follows the topic-inference path convention, so Step 3's harvest and `/run-review`'s auto-detect resolve it. `PUSH-REVIEW-FINDINGS.md` has no scheduled consumer — only `/compact-plans` writes it.
+- note — this branch's own `plans/chore/compact-plans-batched-cadence/` dir will need archiving on a future sweep. Normal lifecycle, same as #42/#44.
+
+#### 8. Error Handling & Silent Failures — PASS
+The rewrite is not an over-correction: "not a reason to hold back the prune" matches Step 5's actual gate, and both mandatory clauses survive verbatim — "leave it in place — do not delete it" and "record the F-ID under a 'Phase C pending' list for Step 7's report". The Phase C pending signal chain (Step 5 → Step 7's two greps → the report bucket) is untouched. The batching rationale is accurate against Step 7's real scan text. META-PLAN's hand-delete warning is preserved verbatim, only reflowed. No instruction anywhere tells the agent to continue past an error.
+
+### To-Do: Required Changes
+
+- [x] **Shorten the Important Notes bullet to the list's shape** — `.claude/skills/compact-plans/SKILL.md:158` — done before push.
