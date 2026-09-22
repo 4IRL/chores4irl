@@ -34,20 +34,20 @@
 
 ## Where the rollout stands
 
-**Current focus: `F21` — add/edit form polish + the UTC-vs-local date-math fix** (★, ungated,
-runnable now; `/run-feature F21`, branch `feature/form-polish-date-fix`) — see *Shortest path
-to the focus feature* below. *(Set 2026-09-20 at the close of the `features/meta-plan-additions-260920`
-capture batch: the user deferred the ★ re-evaluation to the batch's last `/new-feature`, and
-`F21` was that add. `F15` — the previous ★ — stays **gated** on external pi-kiosk Phase 2
-parity as the kiosk-track head; see *Shortest path to the focus feature* below.)*
-**`F21` (form polish + date-math fix), `F16` (status-bucketed midnight re-sort), `F17`
-(status-count strip), `F18` (floating scroll-to-top button), `F19` (lock-time view reset),
-`F20` (permissive touch lock) and `F22` (fading overlay scrollbar + full-bleed scroll
-region), all added 2026-09-20 via `/new-feature`, are the
-features in this repo that are runnable today** — zero prerequisites, chore-list track,
-soft-ordered `F21` → `F16` → `F17` → `F18` → `F22` → `F20` → `F19` (`F21` first because it fixes a
-user-reported bug — a chore added with *Last Completed* = today lands a day early — and
-retires the off-by-one caveat `F16`/`F17` otherwise inherit; `F16`/`F17` share a status
+**Current focus: `F16` — status-bucketed midnight re-sort with red-quota escalation +
+Urgency weighting** (★, ungated, runnable now; `/run-feature F16`, branch
+`feature/status-bucketed-sort`) — see *Shortest path to the focus feature* below. *(Advanced
+2026-09-22 at `F21`'s fold-back (#46): `F21` was the ★ from the close of the
+`features/meta-plan-additions-260920` capture batch; with it shipped, the ★ moves to the
+next item in the chore-list soft order, which has zero prerequisites. `F15` — the ★ before
+`F21` — stays **gated** on external pi-kiosk Phase 2 parity as the kiosk-track head.)*
+**`F16` (status-bucketed midnight re-sort), `F17` (status-count strip), `F18` (floating
+scroll-to-top button), `F19` (lock-time view reset), `F20` (permissive touch lock) and
+`F22` (fading overlay scrollbar + full-bleed scroll region), all added 2026-09-20 via
+`/new-feature`, are the features in this repo that are runnable today** — zero
+prerequisites, chore-list track, soft-ordered `F16` → `F17` → `F18` → `F22` → `F20` → `F19`
+(`F21` — the batch's bug fix, which used to head this order — shipped #46 and retired the
+off-by-one caveat `F16`/`F17` otherwise inherited; `F16`/`F17` share a status
 classifier extracted from `choreBarMath`; `F18`/`F19` share a `ref` on the scroll container;
 `F20` reworks the shipped `F2` lock into a *permissive* lock — padlock only on a blocked
 complete/edit/delete, everything else usable — and exposes the idle-expiry tick `F19`
@@ -57,19 +57,22 @@ indicator in the same positioned frame `F18` floats in and moves the outer colum
 down to the header rows and list content so the `F5` frost reaches both screen edges). The
 capture batch is **closed** — further ideas enter one at a time via `/new-feature`, each
 re-evaluating the ★ on its own; `F22` was the first such single add (later on 2026-09-20)
-and the ★ stayed on `F21`.
+and the ★ stayed on `F21` until it shipped.
 
-**Shipped through PR #44** — merged work is recorded by git, not re-tabulated here
+**Shipped through PR #46** — merged work is recorded by git, not re-tabulated here
 (`gh pr list --state merged` / `git log --oneline main`). Since #32: #33, #35, #36, #37,
-#40, #41, #42 and #44 were docs/skills-only (META-PLAN reconciles and fold-backs, the replacement
+#40, #41, #42, #44 and #45 were docs/skills-only (META-PLAN reconciles and fold-backs, the replacement
 of the `plans/*-PROMPT.md` templates by the `/run-feature`, `/worktree`, `/compact-plans`
-skills, and a plans sweep); the app-code merges are **#34 — `F14`, the clear-✕ affordance**
+skills, and plans sweeps); the app-code merges are **#34 — `F14`, the clear-✕ affordance**
 (Standing invariant 10), **#38 — `F4`, the removal of the *Details* / *Long-term task* fields
-plus the first `db.ts` boot migration** (Standing invariant 11), and **#39 — `F5`, the frosted
-sticky *Add Task* deck** (Standing invariant 12); the one deploy-side merge is **#43 — `F6`,
-the LAN name `c4i` / `c4i.local`** (no app code; `deploy/pi/set-hostname.sh` + a cloud-init
-drop-in + deploy docs — Standing invariant 13), all now folded into the Baseline below. With
-`F5` the **chore-list track is complete**; with `F6` the **infra track is complete**. What each merge left behind that still matters
+plus the first `db.ts` boot migration** (Standing invariant 11), **#39 — `F5`, the frosted
+sticky *Add Task* deck** (Standing invariant 12), and **#46 — `F21`, the form-boundary
+date-math fix + add-mode defaults + the feedback `Toast`** (Standing invariant 14); the one
+deploy-side merge is **#43 — `F6`, the LAN name `c4i` / `c4i.local`** (no app code;
+`deploy/pi/set-hostname.sh` + a cloud-init drop-in + deploy docs — Standing invariant 13),
+all now folded into the Baseline below. With `F6` the **infra track is complete**; the
+chore-list track, re-opened by the 2026-09-20 batch, has six ungated items left after
+`F21`. What each merge left behind that still matters
 is captured
 *forward*: in the Baseline, the Standing invariants, and the few completed-feature
 contracts kept below because a remaining feature builds on or must remove them. **History
@@ -110,8 +113,7 @@ features that shipped without one (F9-L, F3-L).
 
 ```
 Chore-list track (re-opened 2026-09-20 by F16–F22; no prerequisites — runnable now):
-  ★ F21 (add/edit form polish + UTC-vs-local date-math fix; success/error toast, S–M)  [FOCUS — bug fix first; retires the off-by-one F16/F17 inherit]
-      ─soft→ F16 (status-bucketed midnight re-sort + red-quota escalation + Urgency weighting, M)
+  ★ F16 (status-bucketed midnight re-sort + red-quota escalation + Urgency weighting, M)  [FOCUS — first feature after the F21 bug fix]
       ─soft→ F17 (status-count strip under the room tabs, S–M)   [both need the shared status classifier]
       ─soft→ F18 (floating scroll-to-top button over the list, S)  [independent; must clear the F5 deck]
       ─soft→ F22 (fading overlay scrollbar + full-bleed scroll region, S–M)  [reuses F18's frame + container ref; F5 frost reaches the edges]
@@ -119,7 +121,7 @@ Chore-list track (re-opened 2026-09-20 by F16–F22; no prerequisites — runnab
                  [reworks shipped F2; drops the lock's inert gate; timer runs while locked → idle tick]
       ─soft→ F19 (lock-time view reset: top / All / search cleared / today, S)  [keyed off F2/F20's lock signal + idle tick; shares F18's container ref]
     (earlier: F14 — clear-✕ on free-text inputs — shipped #34; F4 — remove Details/Long-term — shipped #38;
-     F5 — frosted Add-Task deck — shipped #39)
+     F5 — frosted Add-Task deck — shipped #39; F21 — form date-math fix + defaults + Toast — shipped #46)
 
 Kiosk extraction track (2026-07-15 — see plans/feature/kiosk-shell-extraction/):
     [external] rehankalu/pi-kiosk Phases 1–4 ──► F15 (adopt kiosk-shell, M) after Phase 2 parity
@@ -138,16 +140,13 @@ Infra track (complete):
   in the user's 2026-07-08 order (`F14` → `F4` → `F5`); the shared `ChoreForm` carries
   exactly Name (`clearable`), the Room `<datalist>`, Last Completed, Duration, Frequency and
   the Urgency `<select>`, and the *Add Task* deck is the frosted sticky surface recorded in
-  Standing invariant 12. **`F21`** (added 2026-09-20, ★FOCUS) is the track's head and the
-  batch's only *bug fix*: a chore added through the form with *Last Completed* = today is
-  stored a day early because `ChoreForm.tsx` parses the bare `yyyy-mm-dd` input as UTC
-  midnight while every `daysSince` diffs against local midnight (and the edit form shows
-  the UTC date back). It fixes both directions at the form boundary with `date-fns`
-  `parse`/`format`, defaults *Last Completed* to today and *Room* to the active room tab in
-  add mode, and adds the success/error **toast** (a new `Toast.tsx` that also replaces the
-  red top-of-page error strip) — the `F2-L` follow-up list of 2026-07-08 promoted to an
-  F-ID, minus its #2 (modal auto-close after add), which was verified already on `main`.
-  **`F16`** (added 2026-09-20) follows: it
+  Standing invariant 12. **`F21`** (added 2026-09-20, the batch's only *bug fix*) shipped
+  #46 on 2026-09-22 and now lives in the Baseline + Standing invariant 14: the form parses
+  and formats `dateLastCompleted` as a *local* calendar day (`utils/formDate.ts`), add mode
+  opens with *Last Completed* = today and *Room* = the active room tab, and every mutation's
+  success/failure surfaces through the bottom `Toast` (the red top-of-page error strip is
+  gone). **`F16`** (added 2026-09-20, ★FOCUS since `F21`'s fold-back) is now the track's
+  head: it
   replaces the pure duration-weighted score in `choreSort.ts` with a status-bucketed,
   quota-filled ordering whose red quota escalates with neglect and with each chore's
   `urgency`. It touches only `choreSort.ts`, its test, a constants entry and the README —
@@ -203,17 +202,18 @@ Infra track (complete):
   the Baseline's *Deployment* paragraph record the mechanism. Its alias is the natural
   `target_url` for pi-kiosk (see `F15`'s Open risks (d)).
 
-### Shortest path to the focus feature (`F21`)
+### Shortest path to the focus feature (`F16`)
 
-**`F21` is the current ★FOCUS — ungated, runnable now.** Set 2026-09-20 when the
-`features/meta-plan-additions-260920` capture batch closed: the ★ was deferred across the
-batch and, at its last add, moved off the gated `F15` to the first runnable item. `F21` is
-first because it is the batch's one *bug fix* (a chore added with *Last Completed* = today
-lands a day early — reported 2026-09-20) plus the small form-polish list that rides the
-same files, and because shipping it first retires the "inherited UTC off-by-one" caveat
-`F16` and `F17` otherwise carry. Path: `/run-feature F21` on branch
-`feature/form-polish-date-fix` — no prerequisites. **Then, in soft order:** `F16`
-(`feature/status-bucketed-sort`), `F17` (`feature/status-count-strip`), `F18`
+**`F16` is the current ★FOCUS — ungated, runnable now.** Advanced 2026-09-22 at `F21`'s
+fold-back (#46): `F21` had taken the ★ when the `features/meta-plan-additions-260920`
+capture batch closed (the batch's one bug fix, first so it retired the "inherited UTC
+off-by-one" caveat `F16`/`F17` carried); with it merged, the next item in the chore-list
+soft order — `F16`, zero prerequisites — is the unambiguous next step. `F16` is the batch's
+biggest behavioural change (the status-bucketed sort) and the user's first feature ask;
+`F17` follows it because both share the `classifyStatus` helper `F16` extracts. Path:
+`/run-feature F16` on branch `feature/status-bucketed-sort` — no prerequisites; the
+`daysSince` values it consumes are now correct in every timezone (Standing invariant 14).
+**Then, in soft order:** `F17` (`feature/status-count-strip`), `F18`
 (`feature/scroll-to-top`), `F22` (`feature/overlay-scrollbar`), `F20`
 (`feature/permissive-lock`), `F19` (`feature/lock-view-reset`) — all ungated. **Gated, not ★:** `F15` (kiosk-track head)
 cannot start until pi-kiosk Phase 2 parity (blank window, wake-tap swallow, 5-min
@@ -224,11 +224,12 @@ Once every ungated chore-list item has shipped and the kiosk gates are still shu
 returns to `F15` (gated) by the usual fold-back. `F6`'s alias is live — pi-kiosk's
 `target_url` question now belongs to `F15`'s Open risks (d).
 
-- **Do not** re-open the chore-list track's scope — the *Details* / *Long-term task* fields
-  are gone (#38, with the `db.ts` boot migration), the clear-✕ affordance shipped (#34), and
-  the frosted deck shipped (#39); Standing invariants 10–12 record all three as
-  verified-shipped facts. Follow-up polish on any of them enters via `/new-feature`, not by
-  reopening the F-ID.
+- **Do not** re-open the shipped chore-list items' scope — the *Details* / *Long-term task*
+  fields are gone (#38, with the `db.ts` boot migration), the clear-✕ affordance shipped
+  (#34), the frosted deck shipped (#39), and the form-boundary date fix + add-mode defaults
+  + feedback `Toast` shipped (#46); Standing invariants 10–12 and 14 record all four as
+  verified-shipped facts. Follow-up polish on any of them (e.g. the six minor push-review
+  notes harvested for `F21`) enters via `/new-feature`, not by reopening the F-ID.
 - **Do not** re-open `F6`'s surface — the Pi is `c4i`; `deploy/pi/set-hostname.sh` is
   idempotent and re-applies/rolls back; `http://192.168.1.214/` still works; the kiosk
   keeps `http://localhost/`. Standing invariant 13 records it; follow-ups (e.g. pinning Avahi
@@ -250,36 +251,33 @@ returns to `F15` (gated) by the usual fold-back. `F6`'s alias is live — pi-kio
 > where it steers future work: the Baseline, the Standing invariants, the Legacy →
 > current ID map, and the kept contracts under Completed-Feature Contracts below.
 
-### Remaining (current numbering, incl. `F15`–`F22`; reassessed against current `main` at the 2026-09-20 `/new-feature` reconciles — batch closed at `F21`; `F22` added singly the same day)
+### Remaining (current numbering, incl. `F15`–`F22`; reassessed against current `main` at the 2026-09-20 `/new-feature` reconciles — batch closed at `F21`; `F22` added singly the same day; `F21` shipped #46 on 2026-09-22 and left the table)
 
 | Order | Feature | Effort | Depends on | Track |
 |---|---|---|---|---|
-| ★ 1 *(runnable now)* | **F21** — Add/edit form polish + date-math fix: parse/format the form date as *local* (fixes "added today → 1 day ago" and the edit form's UTC date), default Last Completed = today and Room = active tab in add mode, success/error toast replacing the red error strip **[FOCUS]** *(added 2026-09-20; promotes the F2-L follow-up list)* | **S–M** | none | Chore-list |
-| 2 *(runnable now)* | **F16** — Status-bucketed midnight re-sort: red/orange/green buckets, per-bucket ranking, fold quota with red escalation, Urgency weighting *(added 2026-09-20)* | **M** | none | Chore-list |
-| 3 *(runnable now)* | **F17** — Status-count strip under the room tabs: done-today / due-soon / overdue for the visible list, live *(added 2026-09-20)* | **S–M** | none hard; soft after F16 (shared status classifier) | Chore-list |
-| 4 *(runnable now)* | **F18** — Floating scroll-to-top button over the list, shown only once scrolled *(added 2026-09-20)* | **S** | none hard; must clear the F5 deck (Standing invariant 12) | Chore-list |
-| 5 *(runnable now)* | **F22** — Fading overlay scrollbar + full-bleed scroll region: native scrollbar hidden, in-app indicator-only thumb over the list (and the form's scroll box) that shows while scrolling and fades ≈ 1 s after; outer `px-4` moves to header rows + list content so the container, deck backing and thumb reach the screen edges *(added 2026-09-20, after the batch closed)* | **S–M** | none hard; shares F18's frame + F19's container ref; keeps Standing invariant 12's scroller/deck contract | Chore-list |
-| 6 *(runnable now)* | **F20** — Permissive touch lock: padlock only on a blocked complete/edit/delete; scroll, search, rooms, day-sim, Add Task usable while locked; indicator = single-tap lock/unlock control *(added 2026-09-20; reworks shipped F2)* | **M** | none hard; amends the shipped `F2` contract (Standing invariant 9) | Chore-list |
-| 7 *(runnable now)* | **F19** — Lock-time view reset: on lock-engage (and each 5-min idle expiry while locked) scroll to top, room → All, search cleared, day → today *(added 2026-09-20; trigger amended by F20)* | **S** | none hard; keyed off the lock signal + idle tick (Standing invariant 9 / F20); soft after F18 (shared ref) and F20 (tick) | Chore-list |
-| 8 *(gated)* | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee **[kiosk-track head — gated]** *(added 2026-07-15)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi | Kiosk extraction |
-| 9 | **F11** — Undo *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* | **M–L** | **external:** pi-kiosk Phase 4 (`kiosk/v1` contract) | Kiosk extraction |
-| 10 | **F12** — Redo *(re-scoped 2026-07-15)* | **M** | F11 + same external gate | Kiosk extraction |
+| ★ 1 *(runnable now)* | **F16** — Status-bucketed midnight re-sort: red/orange/green buckets, per-bucket ranking, fold quota with red escalation, Urgency weighting **[FOCUS]** *(added 2026-09-20)* | **M** | none | Chore-list |
+| 2 *(runnable now)* | **F17** — Status-count strip under the room tabs: done-today / due-soon / overdue for the visible list, live *(added 2026-09-20)* | **S–M** | none hard; soft after F16 (shared status classifier) | Chore-list |
+| 3 *(runnable now)* | **F18** — Floating scroll-to-top button over the list, shown only once scrolled *(added 2026-09-20)* | **S** | none hard; must clear the F5 deck (Standing invariant 12) and sit beside the F21 `Toast` frame (bottom-right vs bottom-centre — Standing invariant 14) | Chore-list |
+| 4 *(runnable now)* | **F22** — Fading overlay scrollbar + full-bleed scroll region: native scrollbar hidden, in-app indicator-only thumb over the list (and the form's scroll box) that shows while scrolling and fades ≈ 1 s after; outer `px-4` moves to header rows + list content so the container, deck backing and thumb reach the screen edges *(added 2026-09-20, after the batch closed)* | **S–M** | none hard; shares F18's frame + F19's container ref; keeps Standing invariant 12's scroller/deck contract | Chore-list |
+| 5 *(runnable now)* | **F20** — Permissive touch lock: padlock only on a blocked complete/edit/delete; scroll, search, rooms, day-sim, Add Task usable while locked; indicator = single-tap lock/unlock control *(added 2026-09-20; reworks shipped F2)* | **M** | none hard; amends the shipped `F2` contract (Standing invariant 9) | Chore-list |
+| 6 *(runnable now)* | **F19** — Lock-time view reset: on lock-engage (and each 5-min idle expiry while locked) scroll to top, room → All, search cleared, day → today *(added 2026-09-20; trigger amended by F20)* | **S** | none hard; keyed off the lock signal + idle tick (Standing invariant 9 / F20); soft after F18 (shared ref) and F20 (tick) | Chore-list |
+| 7 *(gated)* | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee **[kiosk-track head — gated]** *(added 2026-07-15)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi | Kiosk extraction |
+| 8 | **F11** — Undo *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* | **M–L** | **external:** pi-kiosk Phase 4 (`kiosk/v1` contract) | Kiosk extraction |
+| 9 | **F12** — Redo *(re-scoped 2026-07-15)* | **M** | F11 + same external gate | Kiosk extraction |
 | ~~—~~ | ~~**F3 · F7 · F8 · F9 · F10 · F13** — device-control console + its controls~~ | — | **superseded 2026-07-15** — migrated to pi-kiosk (shell console / agent controls / settings; `F13`'s plan harvested, see its banner) | *(migrated)* |
 
-**Effort tally (remaining, in this repo).** Chore-list track: F21 (S–M≈1–2) + F16 (M=2) + F17 (S–M≈1–2)
-+ F18 (S=1) + F22 (S–M≈1–2) + F20 (M=2) + F19 (S=1) ≈ **9–12 pts**, ungated. Infra track: **0 pts** (complete). Kiosk extraction track: F15
+**Effort tally (remaining, in this repo).** Chore-list track: F16 (M=2) + F17 (S–M≈1–2)
++ F18 (S=1) + F22 (S–M≈1–2) + F20 (M=2) + F19 (S=1) ≈ **8–10 pts**, ungated. Infra track: **0 pts** (complete). Kiosk extraction track: F15
 (M=2, re-check at planning — see below) + F11 (M–L≈2–3) + F12 (M=2) ≈ **6–7 pts**, all gated on external pi-kiosk phases.
-Total ≈ **15–19 pts**. (S=1 / M=2 / L=3 / XL=5.) F15/F16/F17/F18/F19/F20/F11/F12 were re-checked
-against `main` at #44 for `F21`'s add, and all of them plus `F21` again for `F22`'s: nothing
-landed since their last estimate (same day), so their scores stand. `F22` is **S–M**: one
+Total ≈ **14–17 pts**. (S=1 / M=2 / L=3 / XL=5.) F15/F16/F17/F18/F19/F20/F11/F12 were re-checked
+against `main` at #44 for `F21`'s add, and all of them again for `F22`'s: nothing
+landed since their last estimate (same day), so their scores stand; `F21` itself shipped
+#46 (2026-09-22) at its estimated S–M and left the tally. `F22` is **S–M**: one
 `OverlayScrollbar` component + a `useScrollIndicator(ref)` hook (scroll metrics → thumb
 geometry, idle-fade timer, `ResizeObserver` refresh), applied to the list scroller and the
 form's scroll box, plus the mechanical `px-4` relocation across `App.tsx`, `NavBar`,
 `DateNavigationBanner`, `ReturnToTodayButton`, `ChoreSearchInput` and `ChoreList`; jsdom
-tests need stubbed scroll metrics + fake timers, which is the only non-trivial part. `F21` is **S–M**: two form-boundary date helpers + two add-mode
-defaults in `ChoreForm.tsx`, one new `Toast.tsx`, and an `App.tsx` change that swaps the
-error strip for the toast and adds three success calls — no backend, sort or data change;
-the TZ-pinned tests are the only non-trivial part. `F15` stays **M** on paper but changes *shape*: after `F20` its lock
+tests need stubbed scroll metrics + fake timers, which is the only non-trivial part. `F15` stays **M** on paper but changes *shape*: after `F20` its lock
 half is no longer "delete the overlay" — the in-app guard/padlock stays, and only the
 timer, lock state and indicator control move to the shell over a `kiosk/v1` addition
 (`kiosk-state { locked }` in, `lock-request { locked }` out) that pi-kiosk schedules for
@@ -322,7 +320,7 @@ pi-kiosk repo's own planning, not here.
 | *(none — new, added 2026-09-20)* | **F18** — floating scroll-to-top button over the list (shown only once scrolled) |
 | *(none — new, added 2026-09-20)* | **F19** — lock-time view reset (on lock-engage + each idle expiry while locked: scroll to top, room → All, search cleared, day → today) |
 | *(none — new, added 2026-09-20)* | **F20** — permissive touch lock (reworks shipped `F2`: padlock only on a blocked complete/edit/delete; scroll, search, rooms, day-sim, Add Task usable while locked; indicator = lock/unlock control) |
-| *(none — new, added 2026-09-20; promotes the `F2-L` follow-up list of 2026-07-08)* | **F21** — add/edit form polish + date-math fix (local parse/format of the form date; Last Completed = today + Room = active tab defaults in add mode; success/error toast replacing the red error strip) |
+| *(none — new, added 2026-09-20; promotes the `F2-L` follow-up list of 2026-07-08)* | **F21** — add/edit form polish + date-math fix *(shipped #46 — folded into Baseline / Standing invariant 14; the `F2-L` kept contract it targeted was deleted with it)* |
 | *(none — new, added 2026-09-20 after the batch closed)* | **F22** — fading overlay scrollbar + full-bleed scroll region (native scrollbar hidden; indicator-only overlay thumb on the list + form scroll box, shown while scrolling, fades ≈ 1 s after; outer `px-4` moved to header rows + list content so the container, deck backing and thumb reach the screen edges) |
 
 ---
@@ -340,8 +338,7 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| **F21 — add/edit form polish + date-math fix** ★FOCUS *(added 2026-09-20)* | in-review | `feature/form-polish-date-fix` | [#46](https://github.com/4IRL/chores4irl/pull/46) |
-| F16 — status-bucketed midnight re-sort *(added 2026-09-20)* | pending *(ungated; soft after F21)* | `feature/status-bucketed-sort` | — |
+| **F16 — status-bucketed midnight re-sort** ★FOCUS *(added 2026-09-20)* | pending *(ungated — runnable now)* | `feature/status-bucketed-sort` | — |
 | F17 — status-count strip *(added 2026-09-20)* | pending *(ungated; soft after F16)* | `feature/status-count-strip` | — |
 | F18 — scroll-to-top button *(added 2026-09-20)* | pending *(ungated; soft after F17)* | `feature/scroll-to-top` | — |
 | F22 — fading overlay scrollbar + full-bleed scroll region *(added 2026-09-20, after the batch closed)* | pending *(ungated; soft after F18)* | `feature/overlay-scrollbar` | — |
@@ -352,12 +349,17 @@ pi-kiosk repo's own planning, not here.
 | F12 — redo *(re-scoped 2026-07-15)* | pending *(gated on F11 + same external gate)* | `feature/redo` | — |
 | F3 · F7 · F8 · F9 · F10 · F13 — device-control console + controls | **superseded** *(2026-07-15 — migrated to pi-kiosk; branches never created)* | — | — |
 
-**Branch/dir cleanup:** nothing outstanding as of the 2026-09-20 `/compact-plans` sweep
-(branch `features/meta-plan-additions-260920`). `F4` (#38) and `F5` (#39) were frozen under
-`plans/completed/` by the 2026-09-19 sweep (#42); `F6` (#43) by the 2026-09-20 sweep, which
-also pruned `feature/local-url-alias` and the #42/#44 chore branches. Their non-blocking
-push-review minors are harvested in `plans/PUSH-REVIEW-FINDINGS.md` (sections F4, F5 and
-F6 — current numbering).
+**Branch/dir cleanup:** `F21` (#46, merged 2026-09-22) is the one outstanding sweep —
+`plans/feature/form-polish-date-fix/` (plan + review + push-review) awaits its
+`/compact-plans` freeze under `plans/completed/`, and its six non-blocking push-review
+minors (in `reviews/push-review-feature-form-polish-date-fix.md`) await harvesting into
+`plans/PUSH-REVIEW-FINDINGS.md`; the local `feature/form-polish-date-fix` branch is
+prunable (GitHub auto-deleted the remote side on merge). Everything before it was clean as
+of the 2026-09-20 sweep (branch `features/meta-plan-additions-260920`): `F4` (#38) and `F5`
+(#39) were frozen under `plans/completed/` by the 2026-09-19 sweep (#42); `F6` (#43) by the
+2026-09-20 sweep, which also pruned `feature/local-url-alias` and the #42/#44 chore
+branches. Their non-blocking push-review minors are harvested in
+`plans/PUSH-REVIEW-FINDINGS.md` (sections F4, F5 and F6 — current numbering).
 Everything older is clean: every earlier merged plan dir is frozen under `plans/completed/`. Sweep
 history lives in git (PRs #22, #26, #29 and the sweep commits on later branches), not here. Run
 `/compact-plans` after each merge, then `/run-feature <F-ID>` on the merged feature so its
@@ -372,18 +374,22 @@ in the feature's own commits/PR.
 
 ---
 
-## Baseline: the codebase as it exists today (`main` at PR #44, `a045b11` — app code unchanged since PR #43, `1c63e0a`)
+## Baseline: the codebase as it exists today (`main` at PR #46, `85cf985`)
 
-> **This Baseline reflects `main` after PR #43 (`1c63e0a`).** It is the literal current
+> **This Baseline reflects `main` after PR #46 (`85cf985`) — `F21`.** It is the literal current
 > state and the **assumed starting state for every remaining feature.** (PRs #33, #35, #36,
-> #37, #40, #41 and #42 touched only `plans/` docs and `.claude/skills/`; **#43 (`1c63e0a`) —
+> #37, #40, #41, #42, #44 and #45 touched only `plans/` docs and `.claude/skills/`; **#43 (`1c63e0a`) —
 > `F6`** touched no app code — `deploy/pi/set-hostname.sh`, `deploy/pi/cloud-init/`,
 > `deploy/pi/README.md`, root `README.md` and `plans/`; the app-code deltas since #32
 > are **#34 (`3533b67`) — `F14`**, all under `frontend/src/`, **#38 (`d728989`) — `F4`**,
 > spanning `types/SharedTypes.d.ts`, `backend/src/` (`db.ts`, `chores.ts`, tests),
 > `frontend/src/` (`ChoreForm.tsx`, `utils/choreSort.ts`, the deleted dead reference file
-> `assets/database.ts`, tests) and `README.md`, and **#39 (`a1705b3`) — `F5`**, confined to
-> `frontend/src/App.tsx`, `components/form/AddChoreButton.tsx` and their tests.)
+> `assets/database.ts`, tests) and `README.md`, **#39 (`a1705b3`) — `F5`**, confined to
+> `frontend/src/App.tsx`, `components/form/AddChoreButton.tsx` and their tests, and
+> **#46 (`85cf985`) — `F21`**, confined to `frontend/src/` (`utils/formDate.ts` new,
+> `components/common/Toast.tsx` new, `components/form/ChoreForm.tsx` + `ChoreFormModal.tsx`,
+> `App.tsx`, tests), `e2e/smoke.spec.ts` and root `README.md` — no backend, type or schema
+> change.)
 > Touch-lock is fully on `main`:
 > `frontend/src/hooks/useTouchLock.ts`, `components/common/TouchLockOverlay.tsx` (with the
 > exported `CLOSING_SETTLE_MS` / `App.tsx` `isClosing` unmount handshake), and
@@ -397,6 +403,29 @@ Monorepo using **npm workspaces** (`frontend`, `backend`) with shared types at t
 - **Shared types**: `types/SharedTypes.d.ts` — declaration-only, imported as `import type` (alias `@customTypes/SharedTypes`).
 - **SQLite**: file `data.db` (WAL). Schema is created with `CREATE TABLE IF NOT EXISTS` in `db.ts`, followed at module load by **`dropLegacyChoreColumns(db)` — an idempotent, `pragma table_info('chores')`-guarded boot migration** (`F4`, #38) that issues one `ALTER TABLE chores DROP COLUMN` per still-present legacy column (`LEGACY_CHORE_COLUMNS = ['details', 'long_term_task']`) inside a `BEGIN IMMEDIATE` transaction (`db.transaction(...).immediate()`, so two processes booting the same un-migrated file serialise), then the seed guard. It is deliberately **crash-loud** (no try/catch): a failed `ALTER` aborts the backend before `listen`, the container `HEALTHCHECK` never passes, and compose gives up after `on-failure:5` — the README's "Updating an existing Pi deployment" section now tells the operator to snapshot first and check `docker compose logs backend`. **There is still no general migration framework** — editing the `CREATE TABLE` text never alters an existing `data.db`; any future schema change must add its own guarded step beside `dropLegacyChoreColumns` (SQLite ≥ 3.35 is verified: `better-sqlite3` bundles 3.51.3, so `DROP COLUMN` is available). **Whether the live Pi's `data.db` has been migrated yet is a deployment fact outside this repo** — it happens on the backend container's first boot after the next Pi deploy; the full runbook (inspect `details` values to keep → snapshot via `chores4irl-backup.service` → deploy → verify 7 columns → rollback = snapshot + old image together) is `pr-description.md` in `F4`'s plan dir (`plans/feature/remove-details-longterm/`, or wherever `/compact-plans` freezes it), with the short form in the README.
 - **Path aliases**: `@customTypes/*`, `@utils/*`.
+
+**Date semantics at the form boundary** (`F21`, #46): `dateLastCompleted` is stored and
+transported as an ISO instant (`toISOString()` on the client, verbatim `TEXT` in SQLite,
+`new Date(iso)` on hydration — unchanged), and every consumer diffs it against *local*
+midnight (`differenceInDays(startOfDay(today), startOfDay(date))` in `choreSort.ts` and
+`ChoreTimerBar.tsx`; `CompletionInfo.tsx` renders `toDateString()`). The one place a
+*calendar day* becomes an instant, and back, is `frontend/src/utils/formDate.ts`:
+`parseFormDate(str)` = `date-fns` `parse(str, 'yyyy-MM-dd', new Date())` (local midnight of
+the typed day) and `formatFormDate(date)` = `format(date, 'yyyy-MM-dd')` (local calendar
+day) — `ChoreForm.tsx` uses them in both directions, so a same-day add is `daysSince === 0`
+in every timezone and an evening tap-to-complete round-trips through the edit form on the
+same day. Never `new Date('yyyy-mm-dd')` (UTC midnight) or `toISOString().slice(0, 10)`
+(UTC date) at the form. A form-created row now serialises as local midnight expressed in
+UTC (e.g. `…T04:00:00.000Z` in New York), which the backend neither parses nor validates.
+**Legacy rows** written by the pre-#46 form carry a UTC-midnight instant and can still read
+one day early in zones behind UTC until their next tap-to-complete overwrites them with a
+real instant — no migration was written (deliberate: a server-side shift cannot know the
+creating browser's zone; documented in the README); re-saving one from the edit form
+persists local midnight of the day the bar shows, so they never drift further. Tests pin
+both directions under `America/New_York` *and* `Asia/Tokyo` via
+`frontend/src/__tests__/components/ChoreForm.dateBoundary.test.tsx` (a `describe.each`
+that sets `process.env.TZ` in `beforeAll` — Node re-reads it at runtime; the forks pool
+isolates the assignment per file), which is the mechanism for any future TZ-sensitive test.
 
 **Deployment / LAN name** (`F6`, #43): The Pi's hostname is **`c4i`** (was `MilarachiC4I`
 until 2026-09-19), so the app answers at `http://c4i.local/` (Avahi mDNS — already on the
@@ -434,19 +463,20 @@ migrated to 7 columns.
 **Frontend API** (`frontend/src/services/choreApi.ts`): `fetchAllChores`, `addChore`, `updateChore(id, chore)`, `completeChore`, `removeChore`.
 
 **Key UI**
-- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (`searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`), and the **two kiosk overlays**: `useScreenBlank()` → `{ isBlanked, wake }` rendering `<ScreenBlankOverlay onWake={wake} />` when `isBlanked` (`F1`, shipped #27), and `useTouchLock()` → `{ isLocked, arm }` rendering `TouchLockIndicator` always plus `TouchLockOverlay` when `(isLocked || isClosing) && !isBlanked` (`F2`, shipped #28), the app root `inert` while either is active, with a force-close-dialogs effect on blank/lock. **Both overlays are slated for removal by `F15`** (kiosk-layer extraction — their behavior moves to the pi-kiosk shell). **Add Task deck (`F5`, shipped #39) — a frosted sticky surface *inside* the scroll region:** the scroll container is `flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40` (the literal `overflow-y-auto` token must stay on this element — `App.search.test.tsx` locates it by class), `ChoreList` first, then the deck as its last child: `data-testid="add-task-deck"`, `sticky bottom-0 mt-auto flex-shrink-0 flex justify-center py-4` with **no border or background of its own**. The tint + blur live on an `aria-hidden` `data-testid="add-task-deck-backing"` child — `pointer-events-none absolute inset-x-0 -top-16 bottom-0 bg-gray-900/60 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,transparent,black_4rem)]` — a progressive blur that fades in over a 4rem overhang above the ~81px deck rather than stopping at a hard edge (tuned on the Pi kiosk: 2rem read as abrupt, 4rem accepted). `AddChoreButton` (`bg-blue-500 hover:bg-blue-600`, now **fully opaque**) sits in a `relative` wrapper *after* the backing so it paints on top. `mt-auto` pins the deck to the bottom for short/empty lists, `sticky` while a long list scrolls beneath the blur; `scroll-pb-40` (160px ≥ 81px deck + 64px overhang) declares the deck plus its fade as obscured so `scrollIntoView`/keyboard focus land bars clear of it (Chrome aligns a Tab-focused sr-only pill's *own* rect to the scroll-padding edge — measured). Both the scroll container and the deck sit inside the outer `flex flex-col h-full overflow-hidden bg-gray-900 px-4 pt-4` column (`App.tsx:318`), so today the frost, the container and its native scrollbar stop 16 px short of each screen edge — **`F22` moves that `px-4` down** onto the header rows and `ChoreList`'s content and hides the native scrollbar behind an overlay indicator. `index.css` already defines a `.scrollbar-none` utility (`scrollbar-width: none` + `::-webkit-scrollbar { display: none }`), used only by `NavBar`'s chip row. The deck's own box keeps default pointer events (a frosted surface must not pass taps to half-hidden bars); the overhang is `pointer-events-none` so bars under the fade stay tappable. No z-index anywhere. Tailwind 4.1.18 emits both `-webkit-`/unprefixed `mask-image` and `backdrop-filter`. Note that Tailwind's built-in `mask-t-*` utilities fade the *bottom* edge in (`to top, black <from>, transparent <to>`), so the arbitrary `mask-image` property is the simplest correct form — verified by compiling both (F5 push Review 2). `NavBar` renders room chips **and the persistent search input** above the list. **There is no settings/device-control panel on `main`, and there never will be** — `F3` was superseded 2026-07-15 (migrated to pi-kiosk).
-  - **SSE sync — unchanged contract:** subscribes via `useChoreEvents(onChange)` (`hooks/useChoreEvents.ts`; `new EventSource('/api/events')` + `visibilitychange→visible` re-fire). Re-pulls are gated by `isRepullGated()` (`isMutatingRef` || `showForm` || `editingId` || `pendingDeleteId`); deferred via `pendingRefreshRef`. **Any new frontend feature holding uncommitted user input in `App.tsx` state must be added to this gate.**
+- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (`searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`), **the feedback toast (`F21`, #46)** — a single `toast: { id, tone: 'success' | 'error', message } | null` state (`ToastState`) with `showToast(tone, message)` / `dismissToast` `useCallback`s and a `toastIdRef` counter so `{toast && <Toast key={toast.id} …/>}` remounts (and restarts the timer) on every new toast, rendered **inline inside the `.App` root** (so the root's `inert` covers it like the strip it replaced), after the main column and before the modals; **there is no `error` state and no top-of-page error strip any more** — every former `setError(msg)` is `showToast('error', msg)` with the same message expressions (`loadChores` initial-only, add, delete, complete, edit), `Added "<name>"` / `Saved "<name>"` / `Deleted "<name>"` fire only after the awaited `addChore` / `updateChore` / `removeChore` resolves (never on the optimistic write), and a successful tap-to-complete raises no toast but clears a standing error one (`setToast(prev => prev?.tone === 'error' ? null : prev)`); `loadChores`'s deps are `[reconcileChores, showToast]` — and the **two kiosk overlays**: `useScreenBlank()` → `{ isBlanked, wake }` rendering `<ScreenBlankOverlay onWake={wake} />` when `isBlanked` (`F1`, shipped #27), and `useTouchLock()` → `{ isLocked, arm }` rendering `TouchLockIndicator` always plus `TouchLockOverlay` when `(isLocked || isClosing) && !isBlanked` (`F2`, shipped #28), the app root `inert` while either is active, with a force-close-dialogs effect on blank/lock. **Both overlays are slated for removal by `F15`** (kiosk-layer extraction — their behavior moves to the pi-kiosk shell). **Add Task deck (`F5`, shipped #39) — a frosted sticky surface *inside* the scroll region:** the scroll container is `flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40` (the literal `overflow-y-auto` token must stay on this element — `App.search.test.tsx` locates it by class), `ChoreList` first, then the deck as its last child: `data-testid="add-task-deck"`, `sticky bottom-0 mt-auto flex-shrink-0 flex justify-center py-4` with **no border or background of its own**. The tint + blur live on an `aria-hidden` `data-testid="add-task-deck-backing"` child — `pointer-events-none absolute inset-x-0 -top-16 bottom-0 bg-gray-900/60 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,transparent,black_4rem)]` — a progressive blur that fades in over a 4rem overhang above the ~81px deck rather than stopping at a hard edge (tuned on the Pi kiosk: 2rem read as abrupt, 4rem accepted). `AddChoreButton` (`bg-blue-500 hover:bg-blue-600`, now **fully opaque**) sits in a `relative` wrapper *after* the backing so it paints on top. `mt-auto` pins the deck to the bottom for short/empty lists, `sticky` while a long list scrolls beneath the blur; `scroll-pb-40` (160px ≥ 81px deck + 64px overhang) declares the deck plus its fade as obscured so `scrollIntoView`/keyboard focus land bars clear of it (Chrome aligns a Tab-focused sr-only pill's *own* rect to the scroll-padding edge — measured). Both the scroll container and the deck sit inside the outer `flex flex-col h-full overflow-hidden bg-gray-900 px-4 pt-4` column (`App.tsx:318`), so today the frost, the container and its native scrollbar stop 16 px short of each screen edge — **`F22` moves that `px-4` down** onto the header rows and `ChoreList`'s content and hides the native scrollbar behind an overlay indicator. `index.css` already defines a `.scrollbar-none` utility (`scrollbar-width: none` + `::-webkit-scrollbar { display: none }`), used only by `NavBar`'s chip row. The deck's own box keeps default pointer events (a frosted surface must not pass taps to half-hidden bars); the overhang is `pointer-events-none` so bars under the fade stay tappable. No z-index anywhere. Tailwind 4.1.18 emits both `-webkit-`/unprefixed `mask-image` and `backdrop-filter`. Note that Tailwind's built-in `mask-t-*` utilities fade the *bottom* edge in (`to top, black <from>, transparent <to>`), so the arbitrary `mask-image` property is the simplest correct form — verified by compiling both (F5 push Review 2). `NavBar` renders room chips **and the persistent search input** above the list. **There is no settings/device-control panel on `main`, and there never will be** — `F3` was superseded 2026-07-15 (migrated to pi-kiosk).
+  - **SSE sync — unchanged contract:** subscribes via `useChoreEvents(onChange)` (`hooks/useChoreEvents.ts`; `new EventSource('/api/events')` + `visibilitychange→visible` re-fire). Re-pulls are gated by `isRepullGated()` (`isMutatingRef` || `showForm` || `editingId` || `pendingDeleteId`); deferred via `pendingRefreshRef`. **Any new frontend feature holding uncommitted user input in `App.tsx` state must be added to this gate** — the `F21` toast state is *not* user input and is deliberately outside it (a re-pull while a toast shows is fine).
   - **Visible-list pipeline (three-stage):** `filteredChores = useRoomFilter(choreData, selectedRoom)` → `searchFilteredChores` (substring on `name`, from `F9-L`) → `orderedChores` (maps `sortedIds` over a `Map` of `searchFilteredChores`).
   - **`F1`'s real-clock scheduling (shipped):** `frontend/src/hooks/useScreenBlank.ts` — window-boundary re-arming timeouts driven by `realToday`, **not** `simulatedDate` (adapted from the `useMidnightClock.ts` single-`setTimeout`-to-boundary pattern, which remains available as a precedent for any future real-clock feature).
 - `components/chore/ChoreTimerBar.tsx` — **F10-L's current shape**: `useSwipeable` with **swipe-left → `onEdit`**, **swipe-right → `onDelete`** (reversed from the original F5-L mapping), a controlled swipe offset revealing a behind-the-bar action layer (yellow+pencil for edit, red+trash for delete) with a **25%-of-bar-width threshold** and spring-back below it; colour fades in progressively toward the threshold (added in F10-L's third commit). `delta: 50` remains the swipeable trigger threshold (distinct from the 25%-width confirm threshold). Spread-before-explicit-props order, `touch-pan-y`, `isSimulating` guard, `swipingRef` click-suppression all preserved. Bar math from `@utils/choreBarMath` `computeBar(daysSince, frequency)` — **revised in PR #32** (`790a4ab`, untracked by any F-ID): `barColor` is `bg-red-500` only when `isOverdue`, never pre-due (previously red could appear before the due date); `ProgressBar`'s fill re-gained its `opacity-50` translucency, restoring a Tailwind v4 regression that had silently dropped the dead v3 `bg-opacity-50` utility. `h-20 sm:h-16` grid layout from F6-L unchanged.
 - `components/common/ConfirmDialog.tsx` (F4-L) — unchanged; reused by the swipe-delete path. *(The former "reuse for `F10` restart confirm" plan left with the migration — restart now lives in pi-kiosk.)*
-- `components/form/` — `ChoreFormModal` → **`ChoreForm`** → `FormField`. **Room field is now a `<datalist>` input** (`F3-L`) sourced from `uniqueRooms`, threaded through both Add and Edit — a raw `<input type="text" list="room-options">`, not `FormField`. The form's fields are exactly `Name` (`FormField`, `name="name"`, **`clearable`**), Room (the raw datalist input), `Last Completed` / `Duration (minutes)` / `Frequency (days)` (`FormField`, *not* `clearable`), and `Urgency` (a raw `<select id="urgency">` with blank/low/medium/high, not `FormField`) — the `Details` `FormField` and the `longTermTask` checkbox were deleted by `F4` (#38) without touching `ClearButton.tsx`, `ChoreSearchInput.tsx` or `FormField.tsx` (no diff in #38). **Clear-✕ affordance (`F14`, #34):** `FormField` takes an opt-in `clearable?: boolean` (default `false`; only Name passes it — Last Completed/Duration/Frequency don't) and renders a `ClearButton` when `clearable && value !== ''`; the raw Room `<input>` (`ref={roomInputRef}`, `pr-14`) hand-wires its own `ClearButton` (`anchor="top"`, label `"Clear Room"`). Both clear only that field's local state (no submit/close) and refocus the input.
+- `components/form/` — `ChoreFormModal` → **`ChoreForm`** → `FormField`. **Props (as of `F21`, #46):** `ChoreForm` takes `{ mode?: 'add' | 'edit'; initialChore?: Chore; rooms?: string[]; defaultRoom?: string; onSubmit: (chore: Omit<Chore,'id'>) => void; onCancel: () => void }` (default `mode='add'`, `defaultRoom=''`), `ChoreFormModal` mirrors and forwards them; the form emits `Omit<Chore,'id'>` (`name, room, dateLastCompleted, duration, frequency, urgency?`) and App supplies the id. **Add-mode defaults:** `initialAddState(defaultRoom)` (a function, not a constant) seeds Room with `defaultRoom` and Last Completed with `formatFormDate(new Date())` — the *real* clock, captured when the modal mounts, never `simulatedDate` — and the post-submit reset in add mode re-applies both; `App.tsx` passes `defaultRoom={selectedRoom === 'all' ? '' : selectedRoom}` to the *add* modal only (edit mode pre-fills from `initialChore` via `choreToFormState`, which formats the date with `formatFormDate`). A pre-filled Room shows its clear-✕ on mount (Standing invariant 10 unchanged). Note for tests: `user.type` into a prefilled `<input type="date">` leaves it empty in jsdom — `user.clear` first, as every add-mode test now does. **Room field is now a `<datalist>` input** (`F3-L`) sourced from `uniqueRooms`, threaded through both Add and Edit — a raw `<input type="text" list="room-options">`, not `FormField`. The form's fields are exactly `Name` (`FormField`, `name="name"`, **`clearable`**), Room (the raw datalist input), `Last Completed` / `Duration (minutes)` / `Frequency (days)` (`FormField`, *not* `clearable`), and `Urgency` (a raw `<select id="urgency">` with blank/low/medium/high, not `FormField`) — the `Details` `FormField` and the `longTermTask` checkbox were deleted by `F4` (#38) without touching `ClearButton.tsx`, `ChoreSearchInput.tsx` or `FormField.tsx` (no diff in #38). **Clear-✕ affordance (`F14`, #34):** `FormField` takes an opt-in `clearable?: boolean` (default `false`; only Name passes it — Last Completed/Duration/Frequency don't) and renders a `ClearButton` when `clearable && value !== ''`; the raw Room `<input>` (`ref={roomInputRef}`, `pr-14`) hand-wires its own `ClearButton` (`anchor="top"`, label `"Clear Room"`). Both clear only that field's local state (no submit/close) and refocus the input.
 - `components/chore/ChoreSearchInput.tsx` — the `F9-L` search box (`Search` icon, `placeholder="Search for a chore"`, `pr-14`), pinned above the scroll region. **Has a clear-✕ (`F14`, #34):** renders `ClearButton` (label `"Clear Search"`) when `value !== ''`; clearing calls `onChange('')` and refocuses, restoring the room-filtered list exactly as manual deletion does.
 - `components/common/ClearButton.tsx` (`F14`, #34) — the shared clear-✕ primitive: `{ label: string; onClear: () => void; anchor?: 'center' | 'top' }`; `lucide-react` `X` inside an absolutely-positioned `right-3` 44×44 px touch target (the app's kiosk-touch convention, matching `DateNavigationBanner`); `anchor='center'` (default) vertically centres on a label-less input (search), `anchor='top'` pins to the input's top edge so it clears a `FormField`'s label. `aria-label={label}` — the three current labels are Title Case (`"Clear Search"`/`"Clear Name"`/`"Clear Room"`); sentence-casing them is an open `[a11y]` minor in `plans/PUSH-REVIEW-FINDINGS.md`. Inputs that host it reserve `pr-14`.
+- `components/common/Toast.tsx` (`F21`, #46) — the single feedback surface: `{ tone: 'success' | 'error'; message: string; onDismiss: () => void }` plus the exported `SUCCESS_TOAST_MS = 2500`. Markup is a **click-through frame** (`pointer-events-none fixed inset-x-4 bottom-40 z-[80] flex justify-center` — `bottom-40` = the `F5` deck's ~5 rem footprint + its 4 rem `-top-16` overhang, the same 10 rem `scroll-pb-40` declares; `z-[80]` sits above the `z-50` body-portaled modals and below `TouchLockOverlay` `z-[90]` / `ScreenBlankOverlay` `z-[100]`; positioned against the viewport, **never inside `.overflow-y-auto`**) around the pill (`role="status" aria-live="polite" data-testid="toast" data-tone={tone}`, `min-w-0 max-w-full rounded-full …`, message in a `min-w-0 truncate` span so long text ellipsises rather than wrapping). **Success** (`bg-green-600`) inherits the frame's `pointer-events: none` — a tap passes through to whatever is beneath, so the 2.5 s green pill never blocks the form's Save/Cancel — and self-dismisses via an effect-scoped `setTimeout(onDismiss, SUCCESS_TOAST_MS)` cleared on unmount. **Error** (`bg-red-700`, the token the old strip used) never auto-dismisses: the pill is `pointer-events-auto cursor-pointer` with `onClick={onDismiss}`, and its ✕ (`aria-label="Dismiss"`, 44×44 px, lucide `X` `w-4 h-4`) calls `stopPropagation()` then `onDismiss()`. `onDismiss` is an effect dependency and must be referentially stable (App passes a `useCallback([])`). e2e selects the error pill via `[data-testid="toast"][data-tone="error"]` (`ERROR_TOAST` in `smoke.spec.ts`); the success pill's text (`Added "<name>"`) also matches Playwright's substring `text=<name>` engine, so chore-name assertions there are scoped to `.bg-gray-800.rounded-full` bars.
 
 **Tests**
-- **Vitest** unit tests both sides (backend 43, frontend 254 as of #43 — #43 added no tests), now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`), the reversed swipe mapping + threshold (`F10-L`), the clear-✕ affordance (component-level show/clear/refocus + App-level clear-restores-room-filter, from `F14`), and `F4`'s removal: `backend/src/__tests__/db-migration.test.ts` (7 cases — idempotency on `:memory:`, boot wiring against a legacy 9-column temp file, rows/other columns preserved), stale-client-key drop tests on `POST`/`PUT` and `createChore`/`updateChore`, a `ChoreForm` absence test (no Details / Long-term inputs) and a stale-`longTermTask`-flag-ignored sort test, plus `F5`'s `Add Task deck (F5)` describe in `App.test.tsx` (deck sticky/`mt-auto`/last-child inside `.overflow-y-auto` for populated and empty lists, the masked backing layer's classes and backing-before-button paint order, `scroll-pb-40`) and the opaque-button assertion in `AddChoreButton.test.tsx`.
-- **Playwright e2e**: `e2e/smoke.spec.ts`. `swipeBar(page, bar, 'left')` now triggers **edit**, `'right'` triggers **delete** (flipped by F10-L). Still depends on seed chore `Vacuum Bedroom Floor` and the `+ Add Task` flow.
+- **Vitest** unit tests both sides (backend 43 across 5 files — untouched by `F21`; frontend 296 across 32 files as of #46 — `F21` added 42 frontend tests: `utils/formDate.test.ts`, the TZ-pinned `components/ChoreForm.dateBoundary.test.tsx` (Cases A/B/B2/C/D under New York + Tokyo, each verified red on the pre-fix code), `components/Toast.test.tsx` (7), an add-mode-defaults describe in `ChoreForm.test.tsx`, a `defaultRoom` forwarding test in `ChoreFormModal.test.tsx`, and in `App.test.tsx` two room-tab pre-fill tests plus the 11-test `feedback toast (F21)` describe with a module-scope `openAndFillForm` helper), now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`), the reversed swipe mapping + threshold (`F10-L`), the clear-✕ affordance (component-level show/clear/refocus + App-level clear-restores-room-filter, from `F14`), and `F4`'s removal: `backend/src/__tests__/db-migration.test.ts` (7 cases — idempotency on `:memory:`, boot wiring against a legacy 9-column temp file, rows/other columns preserved), stale-client-key drop tests on `POST`/`PUT` and `createChore`/`updateChore`, a `ChoreForm` absence test (no Details / Long-term inputs) and a stale-`longTermTask`-flag-ignored sort test, plus `F5`'s `Add Task deck (F5)` describe in `App.test.tsx` (deck sticky/`mt-auto`/last-child inside `.overflow-y-auto` for populated and empty lists, the masked backing layer's classes and backing-before-button paint order, `scroll-pb-40`) and the opaque-button assertion in `AddChoreButton.test.tsx`.
+- **Playwright e2e**: `e2e/smoke.spec.ts` (14 tests). `swipeBar(page, bar, 'left')` now triggers **edit**, `'right'` triggers **delete** (flipped by F10-L). Still depends on seed chore `Vacuum Bedroom Floor` and the `+ Add Task` flow. Since `F21` (#46): the error toast is located by the `ERROR_TOAST` constant (`[data-testid="toast"][data-tone="error"]`, replacing every `.bg-red-700` locator), the four post-mutation chore-name assertions are scoped to `.bg-gray-800.rounded-full` bars (the success toast's text would otherwise make the substring `text=<name>` engine resolve to two elements — a non-retriable strict-mode violation), the add test asserts the green `Added "…"` pill's text/tone, and it asserts the added bar shows `Thu Jan 01 2026` (the typed local day; red pre-fix only on a behind-UTC host — the Vitest TZ suite is the real guard). Playwright's `fill()` replaces the pre-filled date default, so the five `fill` lines are unchanged.
 - **CI**: `.github/workflows/ci.yml` unchanged — backend + frontend tests on PRs to `main`; `main` branch-protected.
 
 **Standing invariants now baked into `main` (must not regress):**
@@ -463,6 +493,7 @@ migrated to 7 columns.
 11. **No `details` / `longTermTask` anywhere in the live model**: `Chore` is `id, name, room, dateLastCompleted, duration, frequency, urgency?`; the shared `ChoreForm` has no Details field or Long-term checkbox; `app.ts`/`chores.ts` never read or write them (stale keys from old clients are dropped silently, never rejected — deliberate, so a not-yet-reloaded kiosk page keeps working through the rollout; don't "fix" it with a 400); `db.ts` runs the idempotent, crash-loud `dropLegacyChoreColumns` boot migration (`pragma table_info` guard, `BEGIN IMMEDIATE`) so an existing 9-column `data.db` migrates itself to 7 columns on first boot and later boots are no-ops; `orderChores` is a single duration-weighted sort with no long-term partition (F4, shipped #38). Any future schema change adds its own guarded step beside that migration — `CREATE TABLE IF NOT EXISTS` never alters an existing `data.db`. The pre-F4 image cannot write to a migrated DB (its SQL still names the dropped columns), so a rollback restores the pre-deploy snapshot together with the old image.
 12. **Frosted sticky *Add Task* deck**: the deck lives *inside* the scroll region as its `sticky bottom-0 mt-auto` last child with no border/background of its own; tint + blur come from a masked, `aria-hidden`, `pointer-events-none` backing layer that overhangs the deck by 4rem and fades in (`bg-gray-900/60 backdrop-blur-sm` + `mask-image` gradient); `AddChoreButton` is fully opaque and paints above the backing; the scroll container carries `scroll-pb-40` so focus/scrollIntoView never rest a bar under the deck or its fade; `.overflow-y-auto` stays the single scrolling element and `ChoreSearchInput` stays outside it (F5, shipped #39). Any change to the deck's height or overhang must re-check `scroll-pb-*` (≥ deck + overhang) and the Tab-focus clearance measured in `plans/feature/translucent-add-deck/` (or its frozen copy under `plans/completed/`). **Pending amendment by `F22`** (added 2026-09-20): the outer column loses its `px-4` (the inset moves onto the header rows and `ChoreList`'s content), so the backing's `inset-x-0` reaches the screen edges, and the scroller gains a `scrollbar-none` token while an indicator-only overlay thumb lives in the positioned frame around it; every other clause here (sticky `mt-auto` deck, masked backing, opaque button, `scroll-pb-40`, single scroller with its class tokens) holds unchanged.
 13. **LAN name `c4i`**: the Pi's hostname is `c4i`, reachable as `http://c4i.local/` and `http://c4i/` with `http://192.168.1.214/` still working; the mechanism is `deploy/pi/set-hostname.sh` + `deploy/pi/cloud-init/99-c4i-hostname.cfg` (idempotent, backup-then-write, crash-safe re-run, rollback = run it with the old name) and nothing in the app is name-aware — no feature may hard-code a hostname or IP in app code, `nginx.conf`, or the kiosk `.desktop` (which stays `http://localhost/`), and any future Pi rename runs the script (it also clears Chromium's hostname-keyed profile lock) rather than `hostnamectl` alone (F6, shipped #43). The deployed `deploy/pi/` copies are refreshed by every redeploy; the installed system files are not.
+14. **Local calendar days at the form boundary + one feedback toast**: the form parses and formats `dateLastCompleted` as a *local* calendar day through `utils/formDate.ts` (`parseFormDate` / `formatFormDate`; never `new Date('yyyy-mm-dd')` or `toISOString().slice(0, 10)` in `ChoreForm.tsx`), so a same-day add is `daysSince === 0` in every timezone and an instant round-trips through the edit form on the same day — every `daysSince` consumer keeps its local-`startOfDay` expression and **no consumer may "fix" timezone drift in-band** (that would double-correct); add mode opens with Last Completed = today (real clock, never `simulatedDate`) and Room = the active room tab (blank under *All*), both re-applied by the post-submit reset; **there is no top-of-page error strip** — add/edit/delete success and every failure surface through the single bottom-centre `Toast` (`components/common/Toast.tsx`: click-through frame `fixed inset-x-4 bottom-40 z-[80]`, never inside `.overflow-y-auto`, above the `z-50` modals and below lock/blank; success `bg-green-600` auto-dismisses after `SUCCESS_TOAST_MS` and is click-through, error `bg-red-700` persists until tapped or ✕'d), success fires only after the awaited request (never on an optimistic write), a later successful mutation — including tap-to-complete, which raises no toast of its own — retires a standing error, one toast at a time (keyed remount), and **toast state stays outside `isRepullGated()`** (F21, shipped #46). Any feature that adds bottom real estate (`F18`'s bottom-right button) sits beside the toast's frame at the same `bottom-40` clearance; anything that widens the modal or the blank/lock layers must keep the `z-50 < z-[80] < z-[90] < z-[100]` ladder.
 
 **Assumptions to revisit at planning time**
 1. **Resolved (F4, shipped #38):** `better-sqlite3` bundles SQLite 3.51.3 (≥ 3.35), so `ALTER TABLE … DROP COLUMN` is available and the boot migration uses it — no table-rebuild fallback was needed. Re-verify only if `better-sqlite3` is ever downgraded.
@@ -565,47 +596,6 @@ invariants on its own small follow-up PR. It never starts a second feature.
 > else a merge left behind lives in the Baseline + Standing invariants above; PR/SHA
 > lookups go through git (`gh pr list --state merged`).
 
-## F2-L — Edit Task functionality  ·  merged (#15, `06e0b00`)  ·  kept: **`F21` targets it** — the follow-up list below was promoted to `F21` on 2026-09-20 (delete this entry when `F21` ships; nothing else targets the contract now that `F4` shipped #38)
-**Implemented contract (as built; `F4` (#38) removed `details`/`longTermTask` from every layer of it — the form now emits `Omit<Chore,'id'>` with `name, room, dateLastCompleted, duration, frequency, urgency?`):**
-- **Shared form:** default export **`ChoreForm`** at `frontend/src/components/form/ChoreForm.tsx`. Props: `{ mode?: 'add' | 'edit'; initialChore?: Chore; onSubmit: (chore: Omit<Chore,'id'>) => void; onCancel: () => void }` (default `mode='add'`). Internal helper `choreToFormState(chore)` does the inverse mapping; post-submit reset gated to add mode. Its only importer is `ChoreFormModal`.
-- **Modal:** `ChoreFormModal` accepts `{ mode?, initialChore?, onSubmit, onCancel }` and forwards to `ChoreForm`. The form emits `Omit<Chore,'id'>`; App supplies the id.
-- **Backend:** `PUT /api/chores/:id` (full replace, 200 / 400 `Invalid id` / 400 `Missing required fields` / 404 `Chore not found` / 500); `backend/src/chores.ts` exports `updateChore(id, input): ChoreWire | null`; CORS includes `PUT`. Both handlers and both data-access functions are `details`/`longTermTask`-free since `F4` (#38); stale keys in a request body are dropped, not rejected.
-- **API client:** `choreApi.ts` exports `updateChore(id, chore): Promise<Chore>`.
-- **App:** `editingId` state + derived `editingChore`; optimistic update + rollback. Add/edit modals mutually exclusive.
-
-**Known follow-up (confirmed by user 2026-07-08; promoted to `F21` on 2026-09-20 — items
-1, 3, 4 and 5 are `F21`'s scope, item 2 was found already shipped), UI polish on the
-shared add/edit/delete flow:**
-1. No toast/confirmation feedback is shown after a chore is successfully added, edited, or
-   deleted — success is currently silent.
-2. ~~The **Add New Chore** form modal does not close itself after a successful add; the user
-   must dismiss it manually.~~ **Already on `main`** (verified 2026-09-20): `handleAddChore`
-   in `App.tsx` has called `setShowForm(false)` on success since #15; only a *failed* add
-   leaves the modal open, which is deliberate. Dropped from `F21` — no change.
-3. The **Add New Chore** form's `dateLastCompleted` field (`ChoreForm.tsx`) has no default —
-   should default to today's date.
-4. **Date-math bug:** a chore created with `dateLastCompleted` = today currently renders as
-   "1 day ago" instead of "0 days ago" (displays as if completed the day prior). Likely
-   cause: `ChoreForm.tsx`'s submit builds `new Date(formData.dateLastCompleted)` from a bare
-   `yyyy-mm-dd` string, which `Date` parses as **UTC midnight**; `choreSort.ts`'s
-   `differenceInDays(startOfDay(today), startOfDay(chore.dateLastCompleted))` then compares
-   against **local** midnight — in timezones behind UTC this shifts the parsed date back a
-   day before the diff is taken. Same root cause likely affects `ChoreTimerBar.tsx`'s
-   `daysSince` (feeds `computeBar`) and `CompletionInfo.tsx`'s displayed "days ago" text.
-   **Confirmed 2026-09-20** by the user's report ("on creation of a new task, the task is
-   immediately assigned a last completed date one day before the one used in the form")
-   and by code reading: the mirror bug is in `choreToFormState` (`toISOString().slice(0,
-   10)` shows the UTC date in the edit form). `F21` fixes both at the form boundary
-   (`date-fns` `parse`/`format`, local) and leaves every `daysSince` expression alone.
-   *Coupling with `F16`:* the new sort keeps consuming the same `daysSince` expression, so
-   it must not fix or widen this in-band; if `F21` ships first (the soft order) the
-   caveat is moot, otherwise a green chore completed "today" but parsed as yesterday ranks
-   one day lower in the green bucket — cosmetic, not a bucket-flip, since `F16` classifies
-   status with the same `daysSince` the bar uses.
-5. The **Add New Chore** form's `room` field always defaults to `''` regardless of the
-   currently-selected room filter — should default to the currently-selected room if one is
-   active; when the room filter is `'All'`, keep the current blank-default behavior.
-
 ## Deferred follow-ups from merged features (confirmed, unscheduled — no F-ID yet)
 
 - **Room `<datalist>` on mobile** *(from F3-L, #24; confirmed by user 2026-07-07)*: the
@@ -613,10 +603,15 @@ shared add/edit/delete flow:**
   native `<datalist>` mobile support is inconsistent across browsers; likely needs a
   mobile-specific affordance or a custom-listbox fallback for touch. Small fix; assign an
   F-ID via `/new-feature` when scheduled.
-- The add/edit/delete **UI-polish list** (toasts, date/room defaults, the UTC-vs-local
-  date-math bug) under `F2-L`'s entry above is **no longer deferred — it is `F21`**
-  (2026-09-20). It stays listed there only as `F21`'s source wording until `F21` ships,
-  when the whole `F2-L` entry is deleted.
+- The add/edit/delete **UI-polish list** of 2026-07-08 (toasts, date/room defaults, the
+  UTC-vs-local date-math bug) became `F21` and **shipped #46** (2026-09-22) — the `F2-L`
+  kept contract that carried it was deleted at the fold-back; its facts live in the
+  Baseline and Standing invariant 14. Six non-blocking push-review minors from `F21`
+  (toast assertions on the delete/edit smoke tests; a cross-mutation error-clear unit test;
+  `Toast` robustness to an unstable `onDismiss`; the `defaultRoom` doc-comment wording; a
+  `console.error` for swallowed background re-pull failures in `loadChores`; the accepted
+  mount-time date default) sit in `plans/feature/form-polish-date-fix/reviews/push-review-feature-form-polish-date-fix.md`
+  until `/compact-plans` harvests them into `plans/PUSH-REVIEW-FINDINGS.md`.
 
 ## F1 — Auto screen-blank 9pm–6am  ·  merged (#27, `a633a2a`)  ·  kept: `F15` must remove this code and pi-kiosk Phase 2 must reproduce it (parity checklist)
 
@@ -665,12 +660,15 @@ local-to-the-kiosk semantics forward).
 > Contracts (below) because `F15` targets them; `F14` (#34), `F4` (#38) and `F5` (#39) shipped
 > and live entirely in the Baseline + Standing invariants 10–12 (no remaining feature builds on
 > them); `F6` (#43) shipped and lives in the Baseline's *Deployment* paragraph + Standing
-> invariant 13. The **focus feature is `F21` — ungated, runnable now** (see "Shortest path" above); `F15` is the gated kiosk-track head. `F3`/`F7`/`F8`/`F9`/`F10`/`F13`
+> invariant 13; `F21` (#46) shipped and lives in the Baseline's *Date semantics* paragraph,
+> the `App.tsx` / `components/form/` / `Toast.tsx` Key-UI bullets and Standing invariant 14.
+> The **focus feature is `F16` — ungated, runnable now** (see "Shortest path" above); `F15` is the gated kiosk-track head. `F3`/`F7`/`F8`/`F9`/`F10`/`F13`
 > are **superseded — migrated to `rehankalu/pi-kiosk`** (2026-07-15, see
 > `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`); their sections below
 > are retained as banners + history only. `F11`/`F12` remain here, re-scoped; `F15` is new;
-`F16`–`F21` were added 2026-09-20 (`F20` reworks the shipped `F2` lock; `F21` promotes the
-`F2-L` follow-up list and is ★FOCUS); `F22` was added singly later that day.
+`F16`–`F21` were added 2026-09-20 (`F20` reworks the shipped `F2` lock; `F21` promoted the
+`F2-L` follow-up list, held the ★ and shipped #46 on 2026-09-22, so it has no section
+below); `F22` was added singly later that day.
 
 ## F3 — Settings / device-control panel (container)  ·  SUPERSEDED 2026-07-15 (migrated to pi-kiosk)
 
@@ -807,7 +805,7 @@ for the non-root user service; portrait-only toggle; host-bridge file-watch mech
 
 ---
 
-## F15 — Adopt kiosk-shell (remove F1/F2 overlays + embeddability guarantee)  ·  kiosk-track head — gated (★ moved to `F21` 2026-09-20)  ·  Effort M  ·  (added 2026-07-15)
+## F15 — Adopt kiosk-shell (remove F1/F2 overlays + embeddability guarantee)  ·  kiosk-track head — gated (★ moved to `F21` 2026-09-20, then to `F16` at `F21`'s 2026-09-22 fold-back)  ·  Effort M  ·  (added 2026-07-15)
 
 **Goal.** Complete chores4irl's side of the kiosk-layer extraction: once the pi-kiosk
 shell reproduces the blank/lock behavior in front of the iframe-embedded app, remove the
@@ -908,7 +906,7 @@ not `F2`'s.
 
 ---
 
-## F16 — Status-bucketed midnight re-sort with red-quota escalation + Urgency weighting  ·  runnable now (ungated; soft after `F21`)  ·  Effort M  ·  (added 2026-09-20)
+## F16 — Status-bucketed midnight re-sort with red-quota escalation + Urgency weighting  ·  ★ FOCUS — runnable now (ungated; first in the chore-list soft order since `F21` shipped #46)  ·  Effort M  ·  (added 2026-09-20)
 
 **Goal.** Make the midnight (and day-simulation) re-sort produce the view the user wants
 on the first wake of each day: during normal operation a *balanced spread* of green /
@@ -928,9 +926,10 @@ tasks don't bubble up in simulation" symptom. And recently completed chores scor
 midnight, so the "green on load" the user likes only ever happened by accident (completion
 doesn't re-sort; midnight does).
 
-**Rank rationale.** Ungated; second in the chore-list soft order behind `F21`'s bug fix,
-which took the ★ when the 2026-09-20 capture batch closed (see *Where the rollout stands*)
-— `F16` is the first *feature* after that fix and the batch's biggest behavioural change.
+**Rank rationale.** ★FOCUS since 2026-09-22, when `F21`'s bug fix — which took the ★ at the
+2026-09-20 batch close — shipped #46 and the ★ advanced to the next soft-order item (see
+*Where the rollout stands*); `F16` is the first *feature* after that fix and the batch's
+biggest behavioural change.
 
 **Effort: M.** One utility rewritten (`choreSort.ts` grows from 14 lines to a bucket →
 rank → quota-fill pipeline), a small constants entry, a README paragraph, and a test matrix
@@ -1011,9 +1010,9 @@ the 0.75/1/1.5 multipliers are first guesses — tune on the Pi with real househ
 via the day simulator, and record the final numbers in the constants file, not here.
 (b) With very few chores (< `FOLD`) the quota is moot and the result is simply
 reds-then-oranges-then-greens — acceptable, but the test should say so. (c) The
-UTC-vs-local date-math off-by-one (`F2-L` follow-up #4) is **`F21`'s** to fix, at the form
-boundary — keep it out of scope here; `orderChores` keeps consuming the same `daysSince`
-expression before and after `F21`, so nothing in this feature changes either way. (d) Sort and bar must share one status
+UTC-vs-local date-math off-by-one (`F2-L` follow-up #4) was fixed by `F21` (#46) at the form
+boundary (Standing invariant 14) — `orderChores` keeps consuming the same `daysSince`
+expression, which is now correct in every timezone; nothing in this feature touches it. (d) Sort and bar must share one status
 classifier; if `computeBar`'s thresholds ever move (e.g. a future "sort + bar status"
 urgency reading), the sort follows automatically — that is the point of sharing it.
 
@@ -1103,10 +1102,9 @@ classifier already exists). Verify:
 narrow for its digit — pick a `min-w` per non-zero segment (or let the digit overflow)
 and record the choice; the total must still read as proportional. (b) Opacity: bars are
 `opacity-50`; the strip's white text wants full opacity — same hue tokens either way.
-(c) Done-today uses the same date arithmetic as `daysSince`; until `F21` ships (soft
-order puts it first) a chore added via the form "today" is parsed as yesterday and does
-not count as done today — `F21`'s fix at the form boundary resolves it with no change
-here; out of scope for this feature. (d) If `F16` has not run yet, extract
+(c) Done-today uses the same date arithmetic as `daysSince`; `F21` (#46) fixed the form
+boundary (Standing invariant 14), so a chore added via the form "today" now counts as done
+today with no change here. (d) If `F16` has not run yet, extract
 the shared classifier in this feature and note it for `F16` to reuse.
 
 **Session loop.** Run the Per-Feature Session Contract on branch
@@ -1434,144 +1432,6 @@ visible focus ring and its label must flip with state; the overlay keeps its key
 
 ---
 
-## F21 — Add/edit form polish + UTC-vs-local date-math fix  ·  ★ FOCUS — runnable now (ungated; first in the chore-list soft order)  ·  Effort S–M  ·  (added 2026-09-20; promotes the `F2-L` follow-up list of 2026-07-08)
-
-**Goal.** Fix the bug the user reported 2026-09-20 — *"on creation of a new task, the task
-is immediately assigned a last completed date one day before the one used in the form"* —
-and, in the same session, ship the small add/edit-form polish that was confirmed on
-2026-07-08 and parked under `F2-L`'s kept contract (items 1, 3, 5; item 2 turned out to be
-already on `main`). Ledger item: `F21` in `plans/ledger/260920_feature_ledger.md`. The user
-chose "promote the whole UI-polish list" over "just the date bug" on 2026-09-20.
-
-**Root cause (verified against `main` at #44, 2026-09-20).** `ChoreForm.tsx`'s
-`handleSubmit` builds `dateLastCompleted: new Date(formData.dateLastCompleted)` from the
-`<input type="date">`'s bare `yyyy-mm-dd` string. Per the ECMAScript date-only form, `Date`
-parses that as **UTC midnight**. Every consumer then does
-`differenceInDays(startOfDay(today), startOfDay(chore.dateLastCompleted))` (`choreSort.ts`
-line 5, `ChoreTimerBar.tsx` line 26 → `computeBar` + `CompletionInfo`'s "N days ago") with
-**local** `startOfDay` — in any timezone behind UTC (the household's), UTC midnight is
-still the *previous* local day, so the chore is one day older everywhere: "1 day ago" on a
-same-day add, one day lower in the sort, one day closer to orange/red. The **mirror bug**
-sits in `choreToFormState`: `chore.dateLastCompleted.toISOString().slice(0, 10)` puts the
-*UTC* calendar date into the edit form, so a completion made in the evening (`new Date()`
-from a bar tap, a real instant) opens for edit showing *tomorrow's* date — and saving the
-edit unchanged would then move the chore forward a day. Nothing else is wrong:
-`completeChore` sends a real instant, the backend stores `toISOString()` and hands it back
-as an ISO string the client re-hydrates as the same instant.
-
-**Design (settled with the user 2026-09-20):**
-1. **Date-math fix — at the form boundary only, both directions.** Two tiny helpers (in
-   `ChoreForm.tsx` or a `utils/formDate.ts`): `parseFormDate(str) =
-   parse(str, 'yyyy-MM-dd', new Date())` (local midnight of that calendar day) and
-   `formatFormDate(date) = format(date, 'yyyy-MM-dd')` (local calendar date). `handleSubmit`
-   and `choreToFormState` use them. **Do not** touch the `daysSince` expressions,
-   `computeBar`, `orderChores`, `completeChore`'s `new Date()`, `choreApi`'s hydration or
-   the backend — the stored value is still an instant; only which instant the form means
-   changes. Tests pin it under a behind-UTC *and* an ahead-of-UTC `TZ` (Vitest:
-   `process.env.TZ = 'America/New_York'` at the top of the file, or a dedicated test file
-   per zone — `TZ` must be set before the first `Date` construction in that worker; record
-   the mechanism in the plan), asserting a same-day add yields `daysSince === 0` in
-   `ChoreTimerBar` and that an evening-instant chore round-trips through the edit form
-   unchanged.
-2. **Last Completed defaults to today in add mode.** `initialFormState` becomes a function
-   (or `useState` initializer) that sets `dateLastCompleted: formatFormDate(new Date())`
-   when `mode === 'add'`; edit mode keeps `choreToFormState(initialChore)`. The post-submit
-   reset in add mode re-applies the default (not `''`). The field stays `required` and
-   *not* `clearable` (Standing invariant 10).
-3. **Room defaults to the active room tab in add mode.** `ChoreForm` (and
-   `ChoreFormModal`) gain `defaultRoom?: string`; `App.tsx` passes
-   `selectedRoom === 'all' ? '' : selectedRoom` to the *add* modal only. The `<datalist>`,
-   its `ClearButton` (`"Clear Room"`) and the `pr-14` reservation are unchanged; clearing a
-   pre-filled room behaves exactly like clearing a typed one. Edit mode ignores
-   `defaultRoom`.
-4. **Success feedback + one toast surface** (chosen over `sonner` — no new dependency on
-   the kiosk bundle — and over a green variant of the existing top banner, which shifts
-   the list). New `frontend/src/components/common/Toast.tsx`:
-   `{ tone: 'success' | 'error'; message: string; onDismiss: () => void }`,
-   `data-testid="toast"`, `role="status"` + `aria-live="polite"`, a bottom-centred pill
-   **positioned against the viewport/frame — never inside `.overflow-y-auto`** (that element
-   keeps its exact class list; `App.search.test.tsx` locates it by class), sitting above
-   F5's deck footprint **plus** its 4 rem overhang (Standing invariant 12 — reuse/share
-   `F18`'s bottom-offset constant if `F18` has landed; `F18`'s button stays bottom-*right*,
-   the toast is bottom-*centre*, so they never overlap), `z-[80]` so the lock overlay
-   (`z-[90]`) and blank overlay (`z-[100]`) still paint over it. **Success tone** (green,
-   `bg-green-600`-ish, white text) auto-dismisses after `TOAST_MS ≈ 2500` (a named
-   constant) — "Added «name»" / "Saved «name»" / "Deleted «name»", raised from
-   `handleAddChore` / `handleEditChore` / `handleDeleteChore` **on the resolved request
-   only** (after `await addChore` / `updateChore` / `removeChore`), never on the
-   optimistic update, so a rolled-back mutation shows the error, not a success. **Error
-   tone** (red) **replaces the red top-of-page error strip** in `App.tsx` — same `error`
-   state and messages, a ✕ / tap-to-dismiss, **no auto-dismiss** (a kiosk failure must be
-   seen), and the next successful mutation replaces it. One toast at a time: new replaces
-   current (a single `toast: { tone, message } | null` state, timer cleared on replace/
-   unmount). Toast state is *not* user input — it is **not** added to `isRepullGated()`.
-   The toast renders under `F20`'s permissive lock (Add Task is allowed while locked) and is
-   hidden by blank's `inert` app root exactly as today's strip is.
-
-**Rank rationale.** ★FOCUS since 2026-09-20 (batch close). The only *bug fix* in the batch,
-user-reported, and small; it also removes the "inherited UTC off-by-one" caveat from
-`F16`'s and `F17`'s risk lists, so running it first simplifies both.
-
-**Effort: S–M.** Two helpers + two defaults in `ChoreForm.tsx`; a ~40-line `Toast.tsx`;
-`App.tsx` swaps the strip for the toast and adds three success calls plus one prop; the
-TZ-pinned tests are the only part needing care. No backend, data, sort or route change.
-
-**Dependencies.** None. Soft: if `F18` has landed, share its deck-clearance constant; if
-`F20` has landed, add the "success toast shows for an add made while locked" test.
-
-**Assumed starting state** = **Baseline**. Verify:
-- `ChoreForm.tsx` submits `new Date(formData.dateLastCompleted)` and `choreToFormState`
-  uses `toISOString().slice(0, 10)`; `initialFormState.dateLastCompleted === ''` and
-  `.room === ''`; `date-fns` (^4.1.0) is already a frontend dependency.
-- `App.tsx` renders the `error` strip (`bg-red-700 … Dismiss`) above `NavBar`;
-  `handleAddChore` already calls `setShowForm(false)` on success (follow-up #2 — no change).
-- No toast/snackbar component or dependency exists in `frontend/`.
-
-**Expected end state** (repo-checkable):
-- `ChoreForm.tsx` (or `utils/formDate.ts`) exports/uses `parseFormDate` / `formatFormDate`
-  built on `date-fns` `parse` / `format`; no `new Date(<string>)` or
-  `toISOString().slice` remains in the form.
-- Add-mode form opens with Last Completed = today's local date and Room = the active room
-  tab (blank under *All*); edit mode shows the chore's own local date and room.
-- `components/common/Toast.tsx` exists; `App.tsx` has no `bg-red-700` strip; add/edit/
-  delete success each raise a green toast; every former `setError` path raises the red
-  toast; the `.overflow-y-auto` container's class string is unchanged.
-- Tests: `ChoreForm.test.tsx` — same-day add emits local midnight (TZ-pinned), evening
-  instant round-trips through edit, add-mode defaults (date = today, room = `defaultRoom`,
-  blank when `''`), post-submit reset re-applies the date default; `Toast.test.tsx` — tone
-  classes, auto-dismiss on success (fake timers), no auto-dismiss + dismiss control on
-  error, `role="status"`; `App.test.tsx` — the three success toasts, error toast replaces
-  the strip assertions, toast is not a descendant of `.overflow-y-auto`, F5 deck tests
-  still pass unchanged; `ChoreTimerBar.test.tsx` — a chore whose `dateLastCompleted` is
-  today's local midnight renders "0 days ago" under a behind-UTC `TZ`.
-- README: the form's defaults + the feedback toast get one line each; the "N days ago"
-  wording is unchanged.
-- e2e: `e2e/smoke.spec.ts`'s `+ Add Task` flow still passes (it types a date; the default
-  must not break `fill`).
-
-**Open risks / decisions.** (a) **TZ in Vitest:** `process.env.TZ` is honoured by Node only
-if set before the first `Date` use in the worker — set it at the very top of the test file
-(before imports that construct dates) or via `vitest.config` `env`/a setup file per pool;
-verify the assertion actually fails on the pre-fix code in a behind-UTC zone before trusting
-it. (b) `parse` with an empty string (the form is `required`, but defensive) returns
-`Invalid Date` — keep the field `required` and let the browser gate submit; do not add a
-second validation layer. (c) **Existing data:** rows created through the old form carry the
-UTC-midnight instant; after the fix they still read as one day early (the stored instant is
-what it is). Decide in-plan whether to leave them (they self-correct on next completion —
-recommended) or add a guarded one-off `db.ts` migration shifting date-only-midnight-UTC
-rows; the Baseline's migration convention applies if so. (d) **Toast vs. the modal:** an
-add's success toast fires as the modal closes; the toast portal/fixed position must not be
-inside the modal. (e) **Delete toast timing:** delete is optimistic; the toast fires after
-`removeChore` resolves — fine, it is ~instant on the LAN. (f) Screen-reader double
-announcement (the modal closing + the toast) is acceptable. (g) `ReturnToTodayButton`/day
-simulation: the add-mode date default is the *real* today, not `simulatedDate` — a chore
-added while simulating gets today's real date (state the choice in the README line).
-
-**Session loop.** Run the Per-Feature Session Contract on branch
-`feature/form-polish-date-fix`.
-
----
-
 ## F22 — Fading overlay scrollbar + full-bleed scroll region  ·  runnable now (ungated; soft after `F18`)  ·  Effort S–M  ·  (added 2026-09-20, singly, after the capture batch closed)
 
 **Goal.** Give the chore list's scrollbar a modern overlay feel — invisible until the user
@@ -1613,8 +1473,9 @@ benefit: then the Add Task deck blur will seamlessly blend to the edges too."*
 - **Full-bleed scroll region — container full-bleed, content keeps its inset.** Remove
   `px-4` from the outer column (`App.tsx:318`: `flex flex-col h-full overflow-hidden
   bg-gray-900 px-4 pt-4`) and re-apply the 16 px horizontal inset where content lives:
-  `NavBar`, `DateNavigationBanner`, `ReturnToTodayButton`, `ChoreSearchInput` (and the red
-  error strip, until `F21` removes it) carry `px-4`/`mx-4`; `ChoreList`'s bar column carries
+  `NavBar`, `DateNavigationBanner`, `ReturnToTodayButton`, `ChoreSearchInput` carry
+  `px-4`/`mx-4` (the red error strip is gone since `F21`, #46 — the `Toast` frame is fixed
+  against the viewport and needs nothing); `ChoreList`'s bar column carries
   `px-4`. The scroll container, the `F5` deck backing (`inset-x-0`) and the thumb then span
   the full width — the frost reaches both screen edges. Rejected (recorded so they aren't
   re-proposed): *everything* full-bleed (pill bars' rounded ends against the screen edge)
@@ -1629,7 +1490,7 @@ benefit: then the Add Task deck blur will seamlessly blend to the edges too."*
 
 **Rank rationale.** Ungated, small, purely visual; sits directly after `F18` because the
 two share the positioned frame and the container `ref` (whichever runs first builds them)
-and before `F20`/`F19`. Not a ★ candidate — `F21` is the bug fix.
+and before `F20`/`F19`. Not a ★ candidate — `F16` holds the ★ since `F21`'s bug fix shipped #46.
 
 **Effort: S–M.** One small component + hook and their tests (jsdom has no layout:
 `scrollTop`/`scrollHeight`/`clientHeight` are set via `Object.defineProperty`, the fade via
@@ -1689,9 +1550,8 @@ moves with the scroller.
 ## Chain integrity (remaining work, current numbering, incl. `F15`–`F22`)
 
 ```
-CHORE-LIST TRACK (re-opened 2026-09-20; F14 shipped #34, F4 shipped #38, F5 shipped #39 — the 2026-07-08 order F14 → F4 → F5 is honored by history)
-  ★ F21 (add/edit form polish + UTC-vs-local date-math fix + success/error toast) — no prerequisites, runnable now
-    ─soft→ F16 (status-bucketed midnight re-sort + red-quota escalation + Urgency weighting) — no prerequisites; F21 first retires the off-by-one it would inherit
+CHORE-LIST TRACK (re-opened 2026-09-20; F14 shipped #34, F4 shipped #38, F5 shipped #39, F21 shipped #46 — the 2026-07-08 order F14 → F4 → F5 and the 2026-09-20 "F21 first" order are honored by history)
+  ★ F16 (status-bucketed midnight re-sort + red-quota escalation + Urgency weighting) — no prerequisites, runnable now; the off-by-one it would have inherited is gone with F21 (#46)
     ─soft→ F17 (status-count strip under the room tabs) — no prerequisites; shares F16's status classifier
     ─soft→ F18 (floating scroll-to-top button) — no prerequisites; must clear the F5 deck
     ─soft→ F22 (fading overlay scrollbar + full-bleed scroll region) — no prerequisites; reuses F18's frame + container ref; F5 frost reaches the edges
@@ -1712,37 +1572,36 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
 
 - **No hard chain remains inside this repo.** The old device-control edge (`F3` gates
   `F7`–`F13`) left the repo with the migration — pi-kiosk's Migration Phases carry that
-  sequencing now. What remains here: the chore-list track holds seven ungated items (`F21`
-  ─soft→ `F16` ─soft→ `F17` ─soft→ `F18` ─soft→ `F22` ─soft→ `F20` ─soft→ `F19`; its earlier soft `F14` → `F4` → `F5` preference of 2026-07-08 was honored — #34, #38,
-  #39), and two **external** gates (`F15` on pi-kiosk Phase 2 parity; `F11`/`F12` on Phase
+  sequencing now. What remains here: the chore-list track holds six ungated items (`F16`
+  ─soft→ `F17` ─soft→ `F18` ─soft→ `F22` ─soft→ `F20` ─soft→ `F19`; its earlier soft `F14` → `F4` → `F5` preference of 2026-07-08 was honored — #34, #38,
+  #39 — and the 2026-09-20 "`F21` first" preference by #46), and two **external** gates (`F15` on pi-kiosk Phase 2 parity; `F11`/`F12` on Phase
   4's `kiosk/v1` contract, with `F12` also following `F11`). The infra track completed with
   `F6` (#43).
-- **Focus path:** `F21` — ★FOCUS, ungated, the next session (`/run-feature F21`). Then
-  `F16`, `F17`, `F18`, `F22`, `F20`, `F19` in soft order. `F15` is the gated kiosk-track head
+- **Focus path:** `F16` — ★FOCUS, ungated, the next session (`/run-feature F16`). Then
+  `F17`, `F18`, `F22`, `F20`, `F19` in soft order. `F15` is the gated kiosk-track head
   (pi-kiosk Phase 2 parity) and takes the ★ back once the chore-list items are gone;
   `F11`/`F12` follow on Phase 4. The 2026-09-20 capture batch is closed — no deferred
   re-evaluation remains.
 - **Cross-feature couplings to honor:**
-  - **F21 ↔ `daysSince` consumers (F16, F17, `ChoreTimerBar`):** `F21` changes *which
-    instant the form means* (local midnight in, local calendar date out) and nothing else
-    — `choreSort.ts`, `ChoreTimerBar.tsx`, `computeBar` and `F16`/`F17`'s shared classifier
+  - **`daysSince` consumers (F16, F17, `ChoreTimerBar`) ↔ the shipped F21 boundary (Standing
+    invariant 14):** the form now means local midnight in / local calendar day out;
+    `choreSort.ts`, `ChoreTimerBar.tsx`, `computeBar` and `F16`/`F17`'s shared classifier
     keep the same `differenceInDays(startOfDay(today), startOfDay(date))` expression. No
-    consumer may "fix" the off-by-one in-band (e.g. by adding a UTC `startOfDay`) — that
-    would double-correct once `F21` lands.
-  - **F21 ↔ F5 / F18 (bottom real estate, Standing invariant 12):** the toast is fixed
-    against the frame, bottom-*centre*, above the deck + 4 rem overhang; `F18`'s button is
-    bottom-*right* at the same clearance. Whichever lands second reuses the first's
-    clearance constant; neither lives inside `.overflow-y-auto`.
-  - **F21 ↔ F20 (lock):** Add Task is allowed while locked, so its success toast shows
-    under the lock (the toast never reads `isLocked`); it paints below the padlock
-    (`z-[80]` < `z-[90]`) and below blank.
-  - **F21 ↔ SSE gate (Standing invariant 5):** toast state is not uncommitted user input —
-    it must **not** be added to `isRepullGated()`; a re-pull while a toast is showing is
-    fine.
-  - **F21 ↔ F11/F12:** an undo/redo is a mutation like add/edit/delete — whether it
-    raises a toast is `F11`'s call (recommended: "Undone «name»" via the same component).
-  - **F21 ↔ F2-L kept contract:** `F21` is the last feature targeting it — delete the
-    `F2-L` entry under Completed-Feature Contracts at `F21`'s fold-back.
+    consumer may add a UTC `startOfDay` or any other timezone "fix" in-band — it would
+    double-correct. (This is the former `F2-L` follow-up #4, which `F16` must likewise not
+    re-fix or widen.)
+  - **F18 ↔ the shipped F21 `Toast` (bottom real estate, Standing invariants 12 + 14):** the
+    toast's frame is fixed against the viewport at `bottom-40` (deck + 4 rem overhang),
+    pill centred; `F18`'s button is bottom-*right* at the same clearance — `F18` reuses the
+    `bottom-40` figure (no shared constant exists; Toast documents the arithmetic inline)
+    and neither lives inside `.overflow-y-auto`.
+  - **F20 ↔ the shipped F21 `Toast` (lock):** Add Task is allowed while locked, so its success
+    toast shows under the lock (the toast never reads `isLocked`); it paints below the
+    padlock (`z-[80]` < `z-[90]`) and below blank; `F20`'s plan adds the "success toast
+    for an add made while locked" test `F21` deferred to it.
+  - **F11/F12 ↔ the shipped F21 `Toast`:** an undo/redo is a mutation like add/edit/delete —
+    whether it raises a toast is `F11`'s call (recommended: `Undone "<name>"` via the same
+    component and `showToast`).
   - **F16 ↔ F17 ↔ `computeBar`:** both classify red/orange/green with the *same*
     function/threshold the bar uses — one shared `classifyStatus` helper extracted from
     `computeBar`, never a copied literal — so a future change to the bar model moves the
@@ -1782,10 +1641,10 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
     banner; after `F22` the outer column has no horizontal padding, so the strip decides
     its own inset (edge-to-edge is the natural choice for a segmented bar; tabs, banner
     and search keep `px-4`). Whichever ships second adapts the other's rows.
-  - **F22 ↔ F21 (error strip, modal, toast):** `F21` deletes the red error strip (which
-    would otherwise need its own `mx-4` after `F22`); `F22` wraps the form's scroll box,
-    which `F21` edits inside — no conflict, but the second of the two rebases. The `Toast`
-    is fixed against the frame and unaffected. Tests that select `.overflow-y-auto` keep
+  - **F22 ↔ the shipped F21 (error strip, modal, toast):** `F21` (#46) already deleted the
+    red error strip, so `F22` needs no `mx-4` accommodation for it; `F22` wraps the form's
+    scroll box that `F21` edited inside — no conflict, `F22` simply builds on the merged
+    shape. The `Toast` frame is fixed against the viewport and unaffected. Tests that select `.overflow-y-auto` keep
     matching the list only (the modal is a body portal, mounted only while open).
   - **F22 ↔ F20 / F2 (lock):** the indicator is `pointer-events-none` + `aria-hidden`, so
     `inert` is irrelevant to it; once `F20` allows scrolling under the lock, the thumb
@@ -1846,9 +1705,6 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
   - **F16 ↔ F11/F12:** an undo that restores an earlier `dateLastCompleted` is a mutation
     like any other — it does **not** re-sort (sticky order until midnight); the undone
     chore keeps its position and its bar simply re-colours.
-  - **F16 ↔ F2-L follow-up #4 (UTC date-math) = `F21`:** same `daysSince` expression;
-    `F16` must not fix it in-band or widen it — `F21` fixes it at the form boundary, and
-    the soft order puts `F21` first.
   - **F16 ↔ F15:** independent. "Unblank never re-sorts" is a chores4irl fact that holds
     whether the blanking is the in-app `F1` overlay or the pi-kiosk shell.
   - **F1 ↔ F2 — shipped and resolved.** `ScreenBlankOverlay` (`z-[100]`) always wins over
@@ -1871,12 +1727,10 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
     standalone at `IP:port` and inside the pi-kiosk shell.
   - From **F11**: bounded undo cache; undo emits on the SSE bus. From **F12**: redo pairs
     with F11's cache.
-  - From **F21**: the form parses and formats `dateLastCompleted` as a *local* calendar
-    date (a same-day add is `daysSince === 0` in every timezone; an instant round-trips
-    through the edit form unchanged); add mode opens with Last Completed = today and Room
-    = the active room tab; add/edit/delete success and every error surface through the
-    single bottom-centre `Toast` (success auto-dismisses, error persists until dismissed);
-    there is no top-of-page error strip; toast state is outside the SSE re-pull gate.
+  - From **F21** *(shipped #46 — Standing invariant 14)*: local calendar days at the form
+    boundary, add-mode defaults, the single bottom `Toast` (success auto-dismisses and is
+    click-through; error persists until tapped/✕'d; a later successful mutation retires it),
+    no top-of-page error strip, toast state outside the SSE re-pull gate.
   - From **F16**: list order is a status-bucketed, quota-filled ordering that (i) classifies
     status with the bar's own thresholds, (ii) ranks reds monotonically by urgency-scaled
     overdue ratio, (iii) shows most-recently-completed greens first, (iv) escalates the red
