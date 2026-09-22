@@ -283,27 +283,27 @@ Replace the scorer one guarantee at a time, then bring the App-test comments and
 Run the full test suites to confirm nothing is broken.
 
 **To-do:**
-- [ ] From `/home/rmila/Code/chores4irl`: `npm test --workspace frontend` → all green (> 296
+- [x] From `/home/rmila/Code/chores4irl`: `npm test --workspace frontend` → all green (> 296
   tests, 32 files); `npm test --workspace backend` → 73 passing (8 files), unchanged from the
   pre-F16 baseline.
-- [ ] `cd /home/rmila/Code/chores4irl/frontend && npx tsc --noEmit -p .` → exit 0; from the repo
+- [x] `cd /home/rmila/Code/chores4irl/frontend && npx tsc --noEmit -p .` → exit 0; from the repo
   root `npm run lint` → prints no problems (`eslint .` exits 0 on warnings, so read the output; baseline prints none), and `npm run build --workspace frontend` succeeds.
-- [ ] From the repo root run `npx playwright test` (`e2e/smoke.spec.ts`); if `git worktree list`
+- [x] From the repo root run `npx playwright test` (`e2e/smoke.spec.ts`); if `git worktree list`
   shows any `c4i-wt-*` worktree, run `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/smoke.spec.ts`
   instead. If the CI=1 run fails with `… is already used …` or `was not able to start`, do not
   kill the listener, free the port, or drop `CI=1` — stop and report the occupied ports
   (`ss -ltnp`) — begin the report line with `UNRESOLVED — requires user decision/action:` and
   leave this box unticked; /run-plan stops, and the user re-runs `/run-plan status-bucketed-sort`
   once the ports are free (Step 3 is re-selected). (At plan time `git worktree list` shows only the main checkout.)
-- [ ] Expected-end-state greps, from `/home/rmila/Code/chores4irl`:
+- [x] Expected-end-state greps, from `/home/rmila/Code/chores4irl`:
   `grep -n "classifyStatus" frontend/src/utils/choreSort.ts` → at least one hit (shared classifier
   imported); `grep -nE "0\.375|> *frequency|statusColors" frontend/src/utils/choreSort.ts || echo none`
   → prints `none` (no copied classifier literal);
   `grep -rn "urgency" frontend/src --include=*.ts --include=*.tsx -l | grep -v __tests__` → lists
   exactly `frontend/src/components/form/ChoreForm.tsx`, `frontend/src/utils/choreSort.ts` and
   `frontend/src/assets/constants.ts` (via `Chore['urgency']` / the comment), in any order.
-- [ ] Investigate and fix any failures before marking the plan finished (tick as `— N/A, all
-  checks passed` when nothing failed).
+- [x] Investigate and fix any failures before marking the plan finished (tick as `— N/A, all
+  checks passed` when nothing failed). — N/A, all checks passed (2026-09-22: frontend 322/322 in 32 files; backend 73/73 in 8 files; tsc exit 0; lint no problems; build OK; Playwright 14 passed; greps as expected)
 
 ## Status
-finished: false
+finished: true
