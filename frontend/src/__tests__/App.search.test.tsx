@@ -141,7 +141,7 @@ describe('chore-name search filter (F9)', () => {
     });
 
     it('preserves sort order among matches', async () => {
-        // choreB is more urgent → renders before choreA in the frozen sort
+        // choreB is further overdue (red) → renders before choreA in the frozen sort
         const choreA = makeChore({ id: 1, name: 'Chore A scrub', dateLastCompleted: new Date(2025, 0, 14), duration: 10, frequency: 7 });
         const choreB = makeChore({ id: 2, name: 'Chore B scrub', dateLastCompleted: new Date(2024, 11, 1), duration: 10, frequency: 7 });
         vi.mocked(fetchAllChores).mockResolvedValue([choreA, choreB]);

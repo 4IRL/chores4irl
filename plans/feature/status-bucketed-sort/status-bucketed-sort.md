@@ -117,8 +117,8 @@ Extract one `classifyStatus` that both `computeBar` and the sort use, and add th
 ### 2. Rewrite `orderChores` as bucket → rank → quota-fill (TDD), App-test comments and README
 Replace the scorer one guarantee at a time, then bring the App-test comments and README in line so this step's commit is green and self-consistent.
 
-**To-do:**
-- [ ] Rewrite `frontend/src/__tests__/utils/choreSort.test.ts` (drop the `calcDurationWeightedScore`
+**To-do:** — COMPLETE (2026-09-22): choreSort.test.ts 24 tests green (Red vs old scorer: 19 failed; 1, 6, 16, 18, 20 passed first run — 6 and 18 confirmed non-trivial input order); full `npx vitest run` 32 files / 322 tests green; tsc exit 0; `npm run lint` no problems; no App order assertion changed (comments only).
+- [x] Rewrite `frontend/src/__tests__/utils/choreSort.test.ts` (drop the `calcDurationWeightedScore`
   describe block). Imports (path aliases throughout, separate `import type`):
   `describe, it, expect` from `vitest`; `import type { Chore } from '@customTypes/SharedTypes'`;
   `subDays` from `date-fns`; `orderChores` from `@utils/choreSort`; `makeChore, localNoon` from
@@ -137,7 +137,7 @@ Replace the scorer one guarantee at a time, then bring the App-test comments and
   non-pressured red = `due(id, 20 + k, 20)` for k = 1..10 (raw 0.05–0.5, distinct); orange =
   `due(id, 10 + k, 16)` for k = 0..6 (remainingRatio 0.375 → 0, distinct); green = `due(id, k, 30)`
   for k = 0..9 (distinct `daysSince`). Give each board in reversed expected order.
-- [ ] Write the tests below **one at a time** (Red → Green in `choreSort.ts` → next) — a test that
+- [x] Write the tests below **one at a time** (Red → Green in `choreSort.ts` → next) — a test that
   already passes against the current code (e.g. 1) is kept as-is and noted; do not alter it to
   force a Red. Each asserts on `orderChores(list, TODAY).map(c => c.id)` (or statuses of that
   list). **Every test except 1, 16 and 20 supplies its chores in an input order that differs
@@ -207,7 +207,7 @@ Replace the scorer one guarantee at a time, then bring the App-test comments and
       second orange into the fold ahead of the greens).
   20. **quota invariant (DD-5):** `SORT_BASE_QUOTA.red + SORT_BASE_QUOTA.orange +
       SORT_BASE_QUOTA.green === SORT_FOLD` (guards future on-Pi re-tuning; import both constants).
-- [ ] Implement in `frontend/src/utils/choreSort.ts` (delete `calcDurationWeightedScore`; the
+- [x] Implement in `frontend/src/utils/choreSort.ts` (delete `calcDurationWeightedScore`; the
   `differenceInDays`/`startOfDay` imports stay in use):
   ```ts
   import { differenceInDays, startOfDay } from 'date-fns';
@@ -237,11 +237,11 @@ Replace the scorer one guarantee at a time, then bring the App-test comments and
     day-simulation steps; later re-pulls sort only newly-seen ids and append them after the kept
     order (a quota-fill on that subset is intentional and harmless) — completing or editing never
     re-sorts.
-- [ ] After each Green, run `cd /home/rmila/Code/chores4irl/frontend && npx vitest run src/__tests__/utils/choreSort.test.ts`;
+- [x] After each Green, run `cd /home/rmila/Code/chores4irl/frontend && npx vitest run src/__tests__/utils/choreSort.test.ts`;
   after all pass, refactor for readability and re-run.
-- [ ] `cd /home/rmila/Code/chores4irl && grep -rn "calcDurationWeightedScore" frontend/src` → no
+- [x] `cd /home/rmila/Code/chores4irl && grep -rn "calcDurationWeightedScore" frontend/src` → no
   output (grep exit 1 is the pass value).
-- [ ] **App-test comments (assertions unchanged):** in `frontend/src/__tests__/App.test.tsx`
+- [x] **App-test comments (assertions unchanged):** in `frontend/src/__tests__/App.test.tsx`
   "midnight re-sort recalculates sortedIds when day advances" (≈L518–557): replace the opening
   sentence ("The initial fetch effect in App.tsx calls `new Date()` directly … unpredictable in
   tests") with "The initial load sorts via reconcileChores at the mocked MOCK_DAY (Jan 15): A green,
@@ -254,7 +254,7 @@ Replace the scorer one guarantee at a time, then bring the App-test comments and
   (≈L441–473: L442 "more urgent", L455 "(most urgent)" → "(red, furthest overdue)", L473 "not
   re-sorted by urgency" → "not re-sorted") and `App.search.test.tsx` "preserves sort order among matches" (≈L144) reword
   "more urgent" to "further overdue (red)".
-- [ ] **README:** rewrite `README.md` § "How prioritization works" (currently L11–27: the heading,
+- [x] **README:** rewrite `README.md` § "How prioritization works" (currently L11–27: the heading,
   the `score = duration × (daysSinceLastCompleted / frequency)` block and the two paragraphs after
   it) to explain: each chore is bucketed by the colour its bar shows (red overdue / orange ≤ 37.5 %
   of cycle left / green); reds rank by how overdue they are relative to their frequency
@@ -270,9 +270,9 @@ Replace the scorer one guarantee at a time, then bring the App-test comments and
   (`orderChores`), `choreBarMath.ts` (`classifyStatus`) and the tunables in
   `frontend/src/assets/constants.ts`. Keep the existing timer-bar paragraph (L29–31, "Each chore
   renders as a timer bar…").
-- [ ] `cd /home/rmila/Code/chores4irl && grep -n "calcDurationWeightedScore\|duration ×" README.md`
+- [x] `cd /home/rmila/Code/chores4irl && grep -n "calcDurationWeightedScore\|duration ×" README.md`
   → no output (exit 1).
-- [ ] **Step gates** (this step's commit must be green on its own): from
+- [x] **Step gates** (this step's commit must be green on its own): from
   `/home/rmila/Code/chores4irl/frontend`, `npx vitest run` → all green, more than the 296-test
   baseline and no test file dropped (32 files); if any App order assertion fails, recompute the
   expected order under the F16 rules and update the expectation with a comment showing the

@@ -10,21 +10,32 @@ A household chore-tracking app designed to run on a Raspberry Pi 4 with an attac
 
 ## How prioritization works
 
-Rather than a flat to-do list, chores are ranked in real time by a **duration-weighted
-urgency score**, so the task that costs the most to keep neglecting floats to the top:
+Rather than a flat to-do list, chores are sorted into three **status buckets** by the colour
+their timer bar shows — **red** (overdue), **orange** (due soon: 37.5 % or less of its cycle
+left) and **green** — using the same classifier the bar paints with
+(`frontend/src/utils/choreBarMath.ts`, `classifyStatus`). Within each bucket chores are
+ranked by what matters for that colour:
 
-```
-score = duration × (daysSinceLastCompleted / frequency)
-```
+- **Red** — by how overdue the chore is relative to its frequency
+  (`(daysSinceLastCompleted − frequency) / frequency`), multiplied by its urgency
+  (Low 0.75, Medium or unset 1, High 1.5); on a tie, the longer chore (by duration) goes first.
+- **Orange** — closest to due first.
+- **Green** — most recently completed first.
 
-`daysSinceLastCompleted / frequency` is how far a chore is through its cycle (1.0 = due
-today, > 1 = overdue); multiplying by `duration` (minutes the task takes) means a long task
-that's half-overdue can outrank a quick task that's fully overdue. The scoring and sort live
-in `frontend/src/utils/choreSort.ts` (`calcDurationWeightedScore` / `orderChores`).
+The first 8 slots (roughly one unscrolled kiosk screen) show 4 red, 2 orange and 2 green
+chores; any slot a bucket can't fill is donated red → orange → green. Each red chore that is
+overdue by at least one full frequency — i.e. 2× its frequency has elapsed, after urgency
+weighting — moves one more of those slots to red (taken from orange first, then green), so
+four or more such chores fill all 8 slots with red. Everything past the first 8 follows in
+bucket order: remaining reds, then oranges, then greens. Urgency affects the sort only, never
+the bar colour.
 
-There is no separate tier for infrequent maintenance chores — a quarterly HVAC-filter change
-competes on the same score as daily upkeep, so it surfaces only once it is far enough overdue
-to outweigh them.
+The order changes only at midnight (and when stepping the simulated date) — completing a
+chore leaves it in place until then. There is still no separate tier for infrequent
+maintenance chores: a quarterly chore sits in whichever status bucket its bar shows and
+competes there like daily upkeep. The sort lives in `frontend/src/utils/choreSort.ts`
+(`orderChores`); the fold size, base quotas, escalation threshold and urgency multipliers are
+tunables in `frontend/src/assets/constants.ts`.
 
 Each chore renders as a timer bar that drains as its due date approaches and turns red once
 overdue (`frontend/src/utils/choreBarMath.ts`). The displayed date can be stepped forward to
