@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { computeBar } from '@utils/choreBarMath';
+import { computeBar, classifyStatus } from '@utils/choreBarMath';
+import { STATUS_BAR_COLOR } from '@assets/constants';
 
 describe('ChoreTimerBar bar math', () => {
     it('day 0 of a 10-day chore → barWidth = 100, green', () => {
@@ -70,5 +71,30 @@ describe('ChoreTimerBar bar math', () => {
         const result = computeBar(5, 0);
         expect(result.barWidth).toBe(100);
         expect(result.barColor).toContain('green');
+    });
+});
+
+describe('classifyStatus', () => {
+    it.each([
+        [0, 10, 'green'],
+        [5, 10, 'green'],
+        [5, 8, 'orange'],   // remainingRatio exactly 0.375 → orange
+        [10, 10, 'orange'], // due, not overdue
+        [11, 10, 'red'],
+        [0, 0, 'green'],    // frequency 0 is never red
+        [99, 0, 'green'],
+    ] as const)('classifyStatus(%i, %i) → %s', (daysSince, frequency, expected) => {
+        expect(classifyStatus(daysSince, frequency)).toBe(expected);
+    });
+
+    it('agrees with computeBar colour and isOverdue across frequencies and days', () => {
+        for (const frequency of [0, 1, 3, 7, 8, 10]) {
+            for (let daysSince = -1; daysSince <= 2 * frequency + 2; daysSince++) {
+                const status = classifyStatus(daysSince, frequency);
+                const bar = computeBar(daysSince, frequency);
+                expect(bar.barColor).toBe(STATUS_BAR_COLOR[status]);
+                expect(bar.isOverdue).toBe(status === 'red');
+            }
+        }
     });
 });
