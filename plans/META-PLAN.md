@@ -361,11 +361,12 @@ of the 2026-09-20 sweep (branch `features/meta-plan-additions-260920`): `F4` (#3
 branches. Their non-blocking push-review minors are harvested in
 `plans/PUSH-REVIEW-FINDINGS.md` (sections F4, F5 and F6 — current numbering).
 Everything older is clean: every earlier merged plan dir is frozen under `plans/completed/`. Sweep
-history lives in git (PRs #22, #26, #29 and the sweep commits on later branches), not here. Run
-`/compact-plans` after each merge, then `/run-feature <F-ID>` on the merged feature so its
-Phase C fold-back (ledger row deleted, Baseline/ID-map/★FOCUS refreshed) lands — never
-hand-delete a merged row: `/run-feature` keys Phase C off "PR merged + row present", so a
-hand-deleted row silently skips the fold-back.
+history lives in git (PRs #22, #26, #29 and the sweep commits on later branches), not here. After each merge run
+`/run-feature <F-ID>` on the merged feature so its Phase C fold-back (ledger row deleted,
+Baseline/ID-map/★FOCUS refreshed) lands; `/compact-plans` is **batched** — one sweep every
+few features, after their fold-backs, not one per merge. Never hand-delete a merged row:
+`/run-feature` keys Phase C off "PR merged + row present", so a hand-deleted row silently
+skips the fold-back.
 
 **Ledger update protocol (per session):** set `in-progress` on start; `in-review` + PR
 link after `git-push`; once the PR is *verified* merged (never self-marked), the row is
