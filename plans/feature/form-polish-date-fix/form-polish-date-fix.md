@@ -717,30 +717,30 @@ without changing the "N days ago" wording.
 - [x] From the repo root, confirm `grep -n "days ago" README.md` (root README) shows no change to any pre-existing wording
       (the phrase did not exist before; only the new bullet introduces it).
 
-### 8. Verify All Tests Pass
+### 8. Verify All Tests Pass — COMPLETE (2026-09-22)
 
 Run the full suites to confirm nothing is broken, then check the META-PLAN "Expected end
 state" facts.
 
 **To-do:**
-- [ ] Run `npm test --workspace frontend` and confirm all Vitest tests pass (was 29 files /
+- [x] Run `npm test --workspace frontend` and confirm all Vitest tests pass (was 29 files /
       254 tests; now more).
-- [ ] Run `npm test --workspace backend` and confirm the backend suite is unchanged and green.
-- [ ] Run `npx playwright test` (with the `env -u PLAYWRIGHT_BASE_URL CI=1` prefix when a
+- [x] Run `npm test --workspace backend` and confirm the backend suite is unchanged and green.
+- [x] Run `npx playwright test` (with the `env -u PLAYWRIGHT_BASE_URL CI=1` prefix when a
       `c4i-wt-*` worktree exists; on `… is already used …` / `was not able to start` stop
       and report the occupied ports (`ss -ltnp` names the listener). Never kill the
       listener, free the port, drop `CI=1`, skip the run, or edit `playwright.config.ts`;
       `/run-plan` treats this as a test failure it cannot auto-fix and stops for the user,
       who re-runs `/run-plan form-polish-date-fix` once the ports are free — as in Step 5)
       and confirm all UI/functional tests pass.
-- [ ] Run `npm run lint` and `npx tsc -p frontend/tsconfig.json --noEmit` — both clean.
-- [ ] Check the repo-checkable end-state facts from META-PLAN § F21: `! grep -qE "new Date\(formData|toISOString\(\)\.slice" frontend/src/components/form/ChoreForm.tsx`
+- [x] Run `npm run lint` and `npx tsc -p frontend/tsconfig.json --noEmit` — both clean.
+- [x] Check the repo-checkable end-state facts from META-PLAN § F21: `! grep -qE "new Date\(formData|toISOString\(\)\.slice" frontend/src/components/form/ChoreForm.tsx`
       → exit 0; `! grep -q "bg-red-700" frontend/src/App.tsx` → exit 0; `test -f
       frontend/src/components/common/Toast.tsx`; `grep -c "flex-1 overflow-y-auto min-h-0
       flex flex-col scroll-pb-40" frontend/src/App.tsx` → `1`; `grep -n -A1 "const isRepullGated"
       frontend/src/App.tsx` shows the gate body still reads only
       `isMutatingRef.current || showForm || editingId !== null || pendingDeleteId !== null`.
-- [ ] Investigate and fix any failures before marking the plan finished.
+- [x] Investigate and fix any failures before marking the plan finished.
 
 ## Status
-finished: false
+finished: true
