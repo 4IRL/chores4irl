@@ -30,6 +30,21 @@ Each chore renders as a timer bar that drains as its due date approaches and tur
 overdue (`frontend/src/utils/choreBarMath.ts`). The displayed date can be stepped forward to
 preview how the bars will look on future days.
 
+### Adding and editing chores
+
+- **Dates are local calendar days** — the form's Last Completed field is parsed and shown as
+  the browser's local date (`frontend/src/utils/formDate.ts`), so a chore added today reads
+  "0 days ago" in any timezone. Chores created before this fix were stored as UTC midnight
+  and can read one day early in zones behind UTC until their next tap-to-complete; re-saving
+  them from the edit form does not drift further.
+- **Add-form defaults** — Last Completed starts as today (the real date, even while
+  previewing a future day) and Room starts as the active room tab (blank under *All*); both
+  stay editable.
+- **Feedback toast** — add/save/delete confirmations appear as a green pill at the bottom of
+  the screen for ~2.5 s; failures show a red pill that stays until it is dismissed with a tap
+  (or its ✕) or a later add/save/delete/tap-to-complete succeeds
+  (`frontend/src/components/common/Toast.tsx`).
+
 ### Data model
 
 The `Chore` shape is shared between frontend and backend via `types/SharedTypes.d.ts` (the
@@ -128,7 +143,7 @@ The Pi also answers as `http://c4i.local/` (mDNS) and `http://c4i/` (router DNS)
 
 Once the containers are running, configure the Pi host so it boots straight into the app:
 
-- **Timezone** — `sudo timedatectl set-timezone <your-zone>` (e.g. `America/New_York`). Chore urgency/completion dates depend on this. The systemd unit and Docker Compose propagate the host's `TZ` through to the backend container.
+- **Timezone** — `sudo timedatectl set-timezone <your-zone>` (e.g. `America/New_York`). Chore urgency/completion dates depend on this (the add/edit form stores the browser's local calendar day — see § Adding and editing chores above). The systemd unit and Docker Compose propagate the host's `TZ` through to the backend container.
 - **NTP** — `sudo timedatectl set-ntp true`. Primary time source while online.
 - **Offline timekeeping** — the Pi 4 has **no on-board RTC**. Raspberry Pi OS enables `fake-hwclock` by default, which restores the last-saved time on boot so the clock never falls back to 1970 (verify with `systemctl is-enabled fake-hwclock` → `enabled`; force a save with `sudo fake-hwclock save`). After a long offline stretch the restored time can be stale until NTP resyncs. For true battery-backed offline time, fit an external I2C/HAT RTC (e.g. a DS3231): add `dtoverlay=i2c-rtc,ds3231` to `/boot/firmware/config.txt`, reboot, then `sudo hwclock --systohc --utc` once NTP has synced and disable `fake-hwclock`.
 - **Chromium kiosk mode** — install `chromium-browser` and `unclutter`, then drop a `chores4irl-kiosk.desktop` file into `~/.config/autostart/` that launches Chromium with `--kiosk --incognito http://localhost/` (plus `xset` calls to disable screen blanking).

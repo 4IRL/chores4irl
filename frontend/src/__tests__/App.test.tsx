@@ -45,6 +45,17 @@ function stubBarWidth(bar: HTMLElement, width = 400) {
         ({ width, height: 64, top: 0, left: 0, right: width, bottom: 64, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
 }
 
+async function openAndFillForm(user: ReturnType<typeof userEvent.setup>) {
+    await waitFor(() => expect(screen.getByText('+ Add Task')).toBeInTheDocument());
+    await user.click(screen.getByText('+ Add Task'));
+    await user.type(screen.getByLabelText('Name'), 'Mop');
+    await user.type(screen.getByLabelText('Room'), 'Kitchen');
+    await user.clear(screen.getByLabelText('Last Completed'));
+    await user.type(screen.getByLabelText('Last Completed'), '2025-01-01');
+    await user.type(screen.getByLabelText('Duration (minutes)'), '10');
+    await user.type(screen.getByLabelText('Frequency (days)'), '7');
+}
+
 describe('swipe gestures', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -373,16 +384,6 @@ describe('handleAddChore', () => {
         vi.mocked(completeChore).mockResolvedValue(makeChore());
     });
 
-    async function openAndFillForm(user: ReturnType<typeof userEvent.setup>) {
-        await waitFor(() => expect(screen.getByText('+ Add Task')).toBeInTheDocument());
-        await user.click(screen.getByText('+ Add Task'));
-        await user.type(screen.getByLabelText('Name'), 'Mop');
-        await user.type(screen.getByLabelText('Room'), 'Kitchen');
-        await user.type(screen.getByLabelText('Last Completed'), '2025-01-01');
-        await user.type(screen.getByLabelText('Duration (minutes)'), '10');
-        await user.type(screen.getByLabelText('Frequency (days)'), '7');
-    }
-
     it('appends the new chore to the list on success', async () => {
         vi.mocked(addChore).mockResolvedValue(makeChore({ id: 2, name: 'Mop' }));
 
@@ -405,6 +406,27 @@ describe('handleAddChore', () => {
         await user.click(screen.getByRole('button', { name: 'Save' }));
 
         await waitFor(() => expect(screen.getByText('Add failed')).toBeInTheDocument());
+    });
+
+    it('pre-fills Room with the active room tab (F21)', async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        await user.click(screen.getByRole('button', { name: 'Kitchen' }));
+        await user.click(screen.getByText('+ Add Task'));
+
+        expect(screen.getByLabelText('Room')).toHaveValue('Kitchen');
+    });
+
+    it('leaves Room empty under the All tab (F21)', async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        await user.click(screen.getByText('+ Add Task'));
+
+        expect(screen.getByLabelText('Room')).toHaveValue('');
     });
 });
 
@@ -440,6 +462,7 @@ describe('frozen sort order', () => {
         await user.click(screen.getByText('+ Add Task'));
         await user.type(screen.getByLabelText('Name'), 'Chore C');
         await user.type(screen.getByLabelText('Room'), 'Kitchen');
+        await user.clear(screen.getByLabelText('Last Completed'));
         await user.type(screen.getByLabelText('Last Completed'), '2020-01-01');
         await user.type(screen.getByLabelText('Duration (minutes)'), '10');
         await user.type(screen.getByLabelText('Frequency (days)'), '7');
@@ -749,5 +772,232 @@ describe('Add Task deck (F5)', () => {
         expect(scrollRegion!.contains(deck)).toBe(true);
         expect(scrollRegion!.lastElementChild).toBe(deck);
         expect(within(deck).getByRole('button', { name: /add task/i })).toBeInTheDocument();
+    });
+});
+
+describe('feedback toast (F21)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore()]);
+        vi.mocked(addChore).mockResolvedValue(makeChore({ id: 2, name: 'Mop' }));
+        vi.mocked(updateChore).mockResolvedValue(makeChore({ id: 1, name: 'Sweep Edited' }));
+        vi.mocked(removeChore).mockResolvedValue(undefined);
+        vi.mocked(completeChore).mockResolvedValue(makeChore());
+    });
+
+    it('shows a green success toast after addChore resolves', async () => {
+        vi.mocked(addChore).mockResolvedValue(makeChore({ id: 2, name: 'Mop' }));
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await openAndFillForm(user);
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Added "Mop"'));
+        expect(screen.getByTestId('toast')).toHaveAttribute('data-tone', 'success');
+    });
+
+    it('shows a success toast after updateChore resolves, not on the optimistic apply', async () => {
+        let resolveUpdate!: (chore: Chore) => void;
+        vi.mocked(updateChore).mockReturnValue(
+            new Promise<Chore>(resolve => { resolveUpdate = resolve; })
+        );
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: 'Edit chore' })).toBeInTheDocument()
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Edit chore' }));
+        await user.clear(screen.getByLabelText('Name'));
+        await user.type(screen.getByLabelText('Name'), 'Sweep Edited');
+        await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+        // Optimistic apply + modal close happen before the request settles — no toast yet
+        expect(screen.getByText('Sweep Edited')).toBeInTheDocument();
+        expect(screen.queryByTestId('toast')).toBeNull();
+
+        resolveUpdate(makeChore({ name: 'Sweep Edited' }));
+
+        await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Saved "Sweep Edited"'));
+        expect(screen.getByTestId('toast')).toHaveAttribute('data-tone', 'success');
+    });
+
+    it('shows a success toast after removeChore resolves, not on the optimistic removal', async () => {
+        let resolveRemove!: () => void;
+        vi.mocked(removeChore).mockReturnValue(
+            new Promise<void>(resolve => { resolveRemove = resolve; })
+        );
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: 'Delete chore' })).toBeInTheDocument()
+        );
+
+        await user.click(screen.getByRole('button', { name: 'Delete chore' }));
+        await user.click(screen.getByTestId('confirm-dialog-confirm'));
+
+        // Optimistic removal is already on screen while the request is pending — no toast yet
+        expect(screen.queryByText('Sweep')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('toast')).toBeNull();
+
+        resolveRemove();
+
+        await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Deleted "Sweep"'));
+        expect(screen.getByTestId('toast')).toHaveAttribute('data-tone', 'success');
+    });
+
+    it('a failed mutation shows a red toast with the message and no success toast', async () => {
+        vi.mocked(addChore).mockRejectedValueOnce(new Error('Add failed'));
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await openAndFillForm(user);
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(screen.getByTestId('toast')).toHaveAttribute('data-tone', 'error'));
+        expect(screen.getByTestId('toast')).toHaveTextContent('Add failed');
+        expect(screen.getAllByTestId('toast')).toHaveLength(1);
+    });
+
+    it('the error toast replaces the old strip', async () => {
+        vi.mocked(addChore).mockRejectedValueOnce(new Error('Add failed'));
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await openAndFillForm(user);
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(screen.getByTestId('toast')).toHaveAttribute('data-tone', 'error'));
+
+        const red = document.querySelector('.bg-red-700');
+        expect(red).not.toBeNull();
+        expect(red).toHaveAttribute('data-testid', 'toast');
+        // The strip's underlined text button is gone; the toast's control is an icon button with an aria-label
+        expect(screen.queryByText('Dismiss')).toBeNull();
+    });
+
+    it('the toast is not inside the scroll region and the deck is still its last child', async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await openAndFillForm(user);
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Added "Mop"'));
+
+        const region = document.querySelector('.overflow-y-auto');
+        expect(region).not.toBeNull();
+        expect(region!.contains(screen.getByTestId('toast'))).toBe(false);
+        expect(region!.lastElementChild).toBe(screen.getByTestId('add-task-deck'));
+    });
+
+    it('a newer toast replaces the current one', async () => {
+        vi.mocked(addChore).mockRejectedValueOnce(new Error('Add failed'));
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await openAndFillForm(user);
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(screen.getByTestId('toast')).toHaveAttribute('data-tone', 'error'));
+
+        // The failed add left the modal open (App closes it only on success) with the form
+        // reset to add-mode defaults, so re-filling works: "+ Add Task" is a no-op click and
+        // user.clear on the date field replaces the prefilled default.
+        vi.mocked(addChore).mockResolvedValue(makeChore({ id: 2, name: 'Mop' }));
+        await openAndFillForm(user);
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => {
+            const toasts = screen.getAllByTestId('toast');
+            expect(toasts).toHaveLength(1);
+            expect(toasts[0]).toHaveAttribute('data-tone', 'success');
+        });
+    });
+
+    it('a successful complete clears a standing error toast without raising a success toast', async () => {
+        vi.mocked(completeChore).mockRejectedValueOnce(new Error('Complete failed'));
+
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        fireEvent.click(screen.getByTestId('chore-bar'));
+
+        await waitFor(() => expect(screen.getByTestId('toast')).toHaveAttribute('data-tone', 'error'));
+        expect(screen.getByTestId('toast')).toHaveTextContent('Complete failed');
+
+        // The Once rejection is consumed; beforeEach's resolving mock now answers
+        fireEvent.click(screen.getByTestId('chore-bar'));
+
+        await waitFor(() => expect(screen.queryByTestId('toast')).toBeNull());
+        expect(completeChore).toHaveBeenCalledTimes(2);
+    });
+
+    it('an identical success message remounts the toast (F21 key restart)', async () => {
+        vi.mocked(addChore)
+            .mockResolvedValueOnce(makeChore({ id: 2, name: 'Mop' }))
+            .mockResolvedValueOnce(makeChore({ id: 3, name: 'Mop' }));
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await openAndFillForm(user);
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(screen.getByTestId('toast')).toHaveTextContent('Added "Mop"'));
+        const first = screen.getByTestId('toast');
+
+        // The modal closed on success, so "+ Add Task" reopens it. Real timers on purpose —
+        // userEvent cannot run under fake timers; the re-fill takes far less than
+        // SUCCESS_TOAST_MS, and if it ever did not, not.toBe(first) still holds because the
+        // first toast self-dismissed.
+        await openAndFillForm(user);
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => {
+            const now = screen.getByTestId('toast');
+            expect(now).not.toBe(first);
+            expect(now).toHaveTextContent('Added "Mop"');
+        });
+    });
+
+    it('the error toast is removed by its Dismiss button', async () => {
+        vi.mocked(addChore).mockRejectedValueOnce(new Error('Add failed'));
+
+        const user = userEvent.setup();
+        render(<App />);
+
+        await openAndFillForm(user);
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(screen.getByTestId('toast')).toHaveAttribute('data-tone', 'error'));
+
+        await user.click(screen.getByRole('button', { name: 'Dismiss' }));
+
+        expect(screen.queryByTestId('toast')).toBeNull();
+    });
+
+    it('completing a chore raises no toast', async () => {
+        // A distinguishable server response lets the test wait for the *resolved* state
+        // (reconciled name on screen), so a toast raised after the await would be caught.
+        vi.mocked(completeChore).mockResolvedValue(makeChore({ name: 'Sweep (reconciled)' }));
+
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        fireEvent.click(screen.getByTestId('chore-bar'));
+
+        await waitFor(() => expect(completeChore).toHaveBeenCalled());
+        await waitFor(() => expect(screen.getByText('Sweep (reconciled)')).toBeInTheDocument());
+        expect(screen.queryByTestId('toast')).toBeNull();
     });
 });

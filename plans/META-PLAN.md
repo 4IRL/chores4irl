@@ -340,7 +340,7 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| **F21 — add/edit form polish + date-math fix** ★FOCUS *(added 2026-09-20)* | pending *(ungated — runnable now)* | `feature/form-polish-date-fix` | — |
+| **F21 — add/edit form polish + date-math fix** ★FOCUS *(added 2026-09-20)* | in-review | `feature/form-polish-date-fix` | [#46](https://github.com/4IRL/chores4irl/pull/46) |
 | F16 — status-bucketed midnight re-sort *(added 2026-09-20)* | pending *(ungated; soft after F21)* | `feature/status-bucketed-sort` | — |
 | F17 — status-count strip *(added 2026-09-20)* | pending *(ungated; soft after F16)* | `feature/status-count-strip` | — |
 | F18 — scroll-to-top button *(added 2026-09-20)* | pending *(ungated; soft after F17)* | `feature/scroll-to-top` | — |

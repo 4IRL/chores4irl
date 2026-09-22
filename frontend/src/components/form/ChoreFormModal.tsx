@@ -6,11 +6,12 @@ type ChoreFormModalProps = {
     mode?: 'add' | 'edit';
     initialChore?: Chore;
     rooms?: string[];
+    defaultRoom?: string;
     onSubmit: (chore: Omit<Chore, 'id'>) => void;
     onCancel: () => void;
 };
 
-export default function ChoreFormModal({ mode, initialChore, rooms, onSubmit, onCancel }: ChoreFormModalProps) {
+export default function ChoreFormModal({ mode, initialChore, rooms, defaultRoom, onSubmit, onCancel }: ChoreFormModalProps) {
     function handleBackdropClick(event: React.MouseEvent<HTMLDivElement>) {
         if (event.target === event.currentTarget) {
             onCancel();
@@ -23,7 +24,7 @@ export default function ChoreFormModal({ mode, initialChore, rooms, onSubmit, on
             onClick={handleBackdropClick}
             data-testid="chore-modal-backdrop"
         >
-            <ChoreForm mode={mode} initialChore={initialChore} rooms={rooms} onSubmit={onSubmit} onCancel={onCancel} />
+            <ChoreForm mode={mode} initialChore={initialChore} rooms={rooms} defaultRoom={defaultRoom} onSubmit={onSubmit} onCancel={onCancel} />
         </div>,
         document.body,
     );

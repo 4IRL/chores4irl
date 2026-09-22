@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChoreForm from '../../components/form/ChoreForm';
-import { makeChore } from '../fixtures/chore';
+import { makeChore, localNoon } from '../fixtures/chore';
 
 describe('ChoreForm', () => {
     it('add mode renders the Add heading and empty Name', () => {
@@ -20,7 +20,7 @@ describe('ChoreForm', () => {
                     id: 7,
                     name: 'Mop',
                     room: 'Kitchen',
-                    dateLastCompleted: new Date('2025-03-31T00:00:00.000Z'),
+                    dateLastCompleted: localNoon('2025-03-31'),
                     duration: 45,
                     frequency: 7,
                     urgency: 'low',
@@ -50,7 +50,7 @@ describe('ChoreForm', () => {
                     id: 7,
                     name: 'Mop',
                     room: 'Kitchen',
-                    dateLastCompleted: new Date('2025-03-31T00:00:00.000Z'),
+                    dateLastCompleted: localNoon('2025-03-31'),
                     duration: 45,
                     frequency: 7,
                     urgency: 'low',
@@ -69,6 +69,9 @@ describe('ChoreForm', () => {
         expect(payload.name).toBe('Mopped');
         expect(payload.room).toBe('Kitchen');
         expect(payload.dateLastCompleted).toBeInstanceOf(Date);
+        expect(payload.dateLastCompleted.getFullYear()).toBe(2025);
+        expect(payload.dateLastCompleted.getMonth()).toBe(2);
+        expect(payload.dateLastCompleted.getDate()).toBe(31);
         expect(payload.duration).toBe(45);
         expect(payload.frequency).toBe(7);
         expect(payload.urgency).toBe('low');
@@ -124,6 +127,7 @@ describe('ChoreForm room datalist', () => {
 
         await user.type(screen.getByLabelText('Name'), 'Dust');
         await user.type(screen.getByLabelText('Room'), 'Attic Loft');
+        await user.clear(screen.getByLabelText('Last Completed'));
         await user.type(screen.getByLabelText('Last Completed'), '2025-03-31');
         await user.type(screen.getByLabelText('Duration (minutes)'), '15');
         await user.type(screen.getByLabelText('Frequency (days)'), '30');
@@ -140,6 +144,7 @@ describe('ChoreForm room datalist', () => {
 
         await user.type(screen.getByLabelText('Name'), 'Wipe');
         await user.type(screen.getByLabelText('Room'), 'Bathroom');
+        await user.clear(screen.getByLabelText('Last Completed'));
         await user.type(screen.getByLabelText('Last Completed'), '2025-03-31');
         await user.type(screen.getByLabelText('Duration (minutes)'), '5');
         await user.type(screen.getByLabelText('Frequency (days)'), '3');
@@ -215,5 +220,71 @@ describe('ChoreForm clear-✕ (F14)', () => {
         await user.click(screen.getByRole('button', { name: 'Clear Room' }));
 
         expect(screen.getByLabelText('Room')).toHaveFocus();
+    });
+});
+
+describe('ChoreForm add-mode defaults (F21)', () => {
+    it("Last Completed defaults to today's local date in add mode", () => {
+        vi.useFakeTimers({ now: new Date(2025, 0, 15, 14, 0, 0) });
+        try {
+            render(<ChoreForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+            expect(screen.getByLabelText('Last Completed')).toHaveValue('2025-01-15');
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('Room defaults to defaultRoom in add mode and shows the clear-✕ immediately', () => {
+        render(<ChoreForm defaultRoom="Kitchen" onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+        expect(screen.getByLabelText('Room')).toHaveValue('Kitchen');
+        expect(screen.getByRole('button', { name: 'Clear Room' })).toBeInTheDocument();
+    });
+
+    it('Room stays empty when defaultRoom is omitted or empty', () => {
+        const { unmount } = render(<ChoreForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+        expect(screen.getByLabelText('Room')).toHaveValue('');
+        expect(screen.queryByRole('button', { name: 'Clear Room' })).toBeNull();
+        unmount();
+
+        render(<ChoreForm defaultRoom="" onSubmit={vi.fn()} onCancel={vi.fn()} />);
+        expect(screen.getByLabelText('Room')).toHaveValue('');
+        expect(screen.queryByRole('button', { name: 'Clear Room' })).toBeNull();
+    });
+
+    it('edit mode ignores defaultRoom', () => {
+        render(
+            <ChoreForm
+                mode="edit"
+                initialChore={makeChore({ room: 'Garage' })}
+                defaultRoom="Kitchen"
+                onSubmit={vi.fn()}
+                onCancel={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByLabelText('Room')).toHaveValue('Garage');
+    });
+
+    it('post-submit reset in add mode re-applies today and defaultRoom', () => {
+        vi.useFakeTimers({ now: new Date(2025, 0, 15, 14, 0, 0) });
+        try {
+            const onSubmit = vi.fn();
+            render(<ChoreForm defaultRoom="Kitchen" onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+            // Room and Last Completed are already filled by the defaults; fake timers ⇒ fireEvent, not userEvent.
+            fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Sweep' } });
+            fireEvent.change(screen.getByLabelText('Duration (minutes)'), { target: { value: '10' } });
+            fireEvent.change(screen.getByLabelText('Frequency (days)'), { target: { value: '7' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+            expect(onSubmit).toHaveBeenCalledOnce();
+            expect(screen.getByLabelText('Name')).toHaveValue('');
+            expect(screen.getByLabelText('Room')).toHaveValue('Kitchen');
+            expect(screen.getByLabelText('Last Completed')).toHaveValue('2025-01-15');
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

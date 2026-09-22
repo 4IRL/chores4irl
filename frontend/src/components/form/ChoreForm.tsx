@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import type { Chore } from '@customTypes/SharedTypes';
+import { formatFormDate, parseFormDate } from '@utils/formDate';
 import FormField from './FormField';
 import ClearButton from '../common/ClearButton';
 
@@ -12,20 +13,25 @@ type FormState = {
     urgency: '' | 'low' | 'medium' | 'high';
 };
 
-const initialFormState: FormState = {
-    name: '',
-    room: '',
-    dateLastCompleted: '',
-    duration: '',
-    frequency: '',
-    urgency: '',
-};
+// F21: add-mode defaults — Last Completed is today on the *real* clock (never the simulated
+// day) and Room is the active room tab passed in as defaultRoom. Captured at mount (and on
+// the post-submit reset), not refreshed by the midnight clock.
+function initialAddState(defaultRoom: string): FormState {
+    return {
+        name: '',
+        room: defaultRoom,
+        dateLastCompleted: formatFormDate(new Date()),
+        duration: '',
+        frequency: '',
+        urgency: '',
+    };
+}
 
 function choreToFormState(chore: Chore): FormState {
     return {
         name: chore.name,
         room: chore.room,
-        dateLastCompleted: chore.dateLastCompleted.toISOString().slice(0, 10),
+        dateLastCompleted: formatFormDate(chore.dateLastCompleted),
         duration: String(chore.duration),
         frequency: String(chore.frequency),
         urgency: chore.urgency ?? '',
@@ -36,13 +42,15 @@ type ChoreFormProps = {
     mode?: 'add' | 'edit';
     initialChore?: Chore;
     rooms?: string[];
+    /** Add mode only: pre-fills Room (the active room tab). Ignored in edit mode. */
+    defaultRoom?: string;
     onSubmit: (chore: Omit<Chore, 'id'>) => void;
     onCancel: () => void;
 };
 
-export default function ChoreForm({ mode = 'add', initialChore, rooms = [], onSubmit, onCancel }: ChoreFormProps) {
+export default function ChoreForm({ mode = 'add', initialChore, rooms = [], defaultRoom = '', onSubmit, onCancel }: ChoreFormProps) {
     const [formData, setFormData] = useState<FormState>(() =>
-        initialChore ? choreToFormState(initialChore) : initialFormState,
+        initialChore ? choreToFormState(initialChore) : initialAddState(defaultRoom),
     );
     const roomInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,12 +63,12 @@ export default function ChoreForm({ mode = 'add', initialChore, rooms = [], onSu
         onSubmit({
             name: formData.name,
             room: formData.room,
-            dateLastCompleted: new Date(formData.dateLastCompleted),
+            dateLastCompleted: parseFormDate(formData.dateLastCompleted),
             duration: Number(formData.duration),
             frequency: Number(formData.frequency),
             urgency: formData.urgency || undefined,
         });
-        if (mode === 'add') setFormData(initialFormState);
+        if (mode === 'add') setFormData(initialAddState(defaultRoom));
     }
 
     return (
