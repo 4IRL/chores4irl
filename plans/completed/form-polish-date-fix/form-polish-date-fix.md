@@ -1,11 +1,5 @@
 > **STATUS: Merged** `85cf985` (#46). Frozen — historical record, do not edit.
-> **Outcome:** Shipped as planned (F21). `utils/formDate.ts` (`parseFormDate`/`formatFormDate`) replaced the two
-> `ChoreForm.tsx` lines, so `dateLastCompleted` crosses the wire as a *local*-midnight instant and every downstream
-> `daysSince` is right in all timezones (Standing invariant 14); add mode defaults Last Completed = today and Room =
-> the active tab (new `defaultRoom` prop); a bottom-**centre** `Toast` replaced the red error strip and adds success
-> feedback. Contracts for later features: F18's button goes bottom-**right** of that Toast frame; `initialAddState()`
-> captures today at mount (modal held past midnight keeps the previous day — accepted). Six minor findings harvested
-> to `PUSH-REVIEW-FINDINGS.md` § F21; Phase C fold-back landed as #47.
+> **Outcome:** Shipped as planned (F21). `utils/formDate.ts` replaced the two `ChoreForm.tsx` lines, so `dateLastCompleted` crosses the wire as a *local*-midnight instant and downstream `daysSince` is right in every timezone; add mode defaults Last Completed = today and Room = the active tab; a `Toast` replaced the red error strip. Contracts and invariants live in META-PLAN Standing invariant 14 — including that `initialAddState()` captures today at mount (a modal held past midnight keeps the previous day, accepted). Six minor findings harvested to `PUSH-REVIEW-FINDINGS.md` § F21; Phase C fold-back landed as #47.
 
 # F21 — Add/edit form polish + UTC-vs-local date-math fix
 
