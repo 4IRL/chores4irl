@@ -378,6 +378,7 @@ describe('handleAddChore', () => {
         await user.click(screen.getByText('+ Add Task'));
         await user.type(screen.getByLabelText('Name'), 'Mop');
         await user.type(screen.getByLabelText('Room'), 'Kitchen');
+        await user.clear(screen.getByLabelText('Last Completed'));
         await user.type(screen.getByLabelText('Last Completed'), '2025-01-01');
         await user.type(screen.getByLabelText('Duration (minutes)'), '10');
         await user.type(screen.getByLabelText('Frequency (days)'), '7');
@@ -440,6 +441,7 @@ describe('frozen sort order', () => {
         await user.click(screen.getByText('+ Add Task'));
         await user.type(screen.getByLabelText('Name'), 'Chore C');
         await user.type(screen.getByLabelText('Room'), 'Kitchen');
+        await user.clear(screen.getByLabelText('Last Completed'));
         await user.type(screen.getByLabelText('Last Completed'), '2020-01-01');
         await user.type(screen.getByLabelText('Duration (minutes)'), '10');
         await user.type(screen.getByLabelText('Frequency (days)'), '7');

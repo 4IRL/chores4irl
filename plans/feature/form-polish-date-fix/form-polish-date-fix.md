@@ -292,13 +292,13 @@ every step, so the red state must not be a step boundary (review DD-3).
       — all green under both zones. Then `npm test --workspace frontend` — the full suite
       must still be green (254 + new).
 
-### 2. Red → Green — add-mode defaults (Last Completed = today, Room = `defaultRoom`)
+### 2. Red → Green — add-mode defaults (Last Completed = today, Room = `defaultRoom`) — COMPLETE (2026-09-21)
 
 Make `initialFormState` a function of today + `defaultRoom`, thread the prop through the
 modal, and repair the four `user.type`-on-a-prefilled-date call sites.
 
 **To-do:**
-- [ ] **Red.** Change `frontend/src/__tests__/components/ChoreForm.test.tsx:2` to
+- [x] **Red.** Change `frontend/src/__tests__/components/ChoreForm.test.tsx:2` to
       `import { render, screen, fireEvent } from '@testing-library/react';` (case (v)
       below uses `fireEvent`). Then in `frontend/src/__tests__/components/ChoreForm.test.tsx` add a
       `describe('ChoreForm add-mode defaults (F21)')` with: (i) `'Last Completed defaults
@@ -322,11 +322,11 @@ modal, and repair the four `user.type`-on-a-prefilled-date call sites.
       `fireEvent.click(getByRole('button', { name: 'Save' }))`, then assert Name `''`,
       Room `'Kitchen'`, Last Completed `'2025-01-15'`. Run the file; (i), (ii), (v) must
       fail (the date is `''`, `defaultRoom` is an unknown prop).
-- [ ] **Red (modal).** In `frontend/src/__tests__/components/ChoreFormModal.test.tsx` add
+- [x] **Red (modal).** In `frontend/src/__tests__/components/ChoreFormModal.test.tsx` add
       `'forwards defaultRoom into the Room input'` mirroring the existing rooms-prop test:
       render `<ChoreFormModal defaultRoom="Garage" onSubmit={vi.fn()} onCancel={vi.fn()} />`,
       assert `getByLabelText('Room')` `toHaveValue('Garage')`. Fails until the prop exists.
-- [ ] **Green.** In `ChoreForm.tsx`: replace the `initialFormState` constant (L15-22) with
+- [x] **Green.** In `ChoreForm.tsx`: replace the `initialFormState` constant (L15-22) with
       `function initialAddState(defaultRoom: string): FormState { return { name: '', room:
       defaultRoom, dateLastCompleted: formatFormDate(new Date()), duration: '', frequency:
       '', urgency: '' }; }` with a `// F21: …` comment that today is the *real* clock, not the
@@ -339,17 +339,17 @@ modal, and repair the four `user.type`-on-a-prefilled-date call sites.
       (exit 0 = clean). The `<datalist>`, its `ClearButton` (`"Clear Room"`) and the `pr-14`
       reservation are untouched (Standing invariant 10); Last Completed stays `required`
       and not `clearable`.
-- [ ] **Green (modal).** In `frontend/src/components/form/ChoreFormModal.tsx` add
+- [x] **Green (modal).** In `frontend/src/components/form/ChoreFormModal.tsx` add
       `defaultRoom?: string;` to `ChoreFormModalProps` (L5-11), destructure it, and forward
       `defaultRoom={defaultRoom}` on the `<ChoreForm …/>` line (L26).
-- [ ] **Repair prefilled-date typing.** Prepend `await user.clear(screen.getByLabelText('Last
+- [x] **Repair prefilled-date typing.** Prepend `await user.clear(screen.getByLabelText('Last
       Completed'));` immediately before each existing `user.type(screen.getByLabelText('Last
       Completed'), …)` at the two `user.type(screen.getByLabelText('Last Completed'),
       '2025-03-31')` sites in `ChoreForm.test.tsx` (:127/:143 before Step 1's edits) and the
       two `user.type(screen.getByLabelText('Last Completed'), …)` sites in `App.test.tsx`
       (inside `openAndFillForm`, L381, and at L443 — pre-edit numbers). (Verified: `type` into a prefilled date input
       yields `''`; `clear` then `type` yields the typed value.)
-- [ ] Run `npm test --workspace frontend -- src/__tests__/components/ChoreForm.test.tsx src/__tests__/components/ChoreFormModal.test.tsx src/__tests__/components/ChoreForm.dateBoundary.test.tsx src/__tests__/App.test.tsx`
+- [x] Run `npm test --workspace frontend -- src/__tests__/components/ChoreForm.test.tsx src/__tests__/components/ChoreFormModal.test.tsx src/__tests__/components/ChoreForm.dateBoundary.test.tsx src/__tests__/App.test.tsx`
       — green.
 
 ### 3. Red → Green — wire `defaultRoom` from the active room tab in `App.tsx`

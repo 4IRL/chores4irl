@@ -63,3 +63,11 @@ describe('ChoreFormModal rooms prop', () => {
         ]);
     });
 });
+
+describe('ChoreFormModal defaultRoom prop (F21)', () => {
+    it('forwards defaultRoom into the Room input', () => {
+        render(<ChoreFormModal defaultRoom="Garage" onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+        expect(screen.getByLabelText('Room')).toHaveValue('Garage');
+    });
+});
