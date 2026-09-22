@@ -665,13 +665,13 @@ otherwise turn four `text=<name>` assertions into strict-mode violations (review
       `/run-plan` treats this as a test failure it cannot auto-fix and stops for the user,
       who re-runs `/run-plan form-polish-date-fix` once the ports are free. All tests green.
 
-### 6. e2e smoke spec: pin the add-form date
+### 6. e2e smoke spec: pin the add-form date — COMPLETE (2026-09-22)
 
 Make the off-by-one visible to e2e (the strip-selector migration and the `text=` re-scoping
 already landed in Step 5).
 
 **To-do:**
-- [ ] In `'adds a new chore via the form'` (L124-146 pre-edit), after the
+- [x] In `'adds a new chore via the form'` (L124-146 pre-edit), after the
       `await expect(addedBar).toBeVisible(…)` line Step 5 introduced, add
       `await expect(addedBar).toContainText('Thu Jan 01 2026');` (the bar renders `date.toDateString()`; pre-fix
       in a behind-UTC browser this read `Wed Dec 31 2025`. The browser runs in the host
@@ -681,7 +681,7 @@ already landed in Step 5).
       the prefilled default, so the existing five `fill` lines need no change; the
       `beforeEach` `page.clock.setFixedTime(new Date(2025, 0, 15, 12, 0, 0))` means the
       add form's default date is `2025-01-15` in e2e, which `fill` overwrites.
-- [ ] Run the smoke spec exactly as Step 5's final to-do does (worktree-conditional `env -u
+- [x] Run the smoke spec exactly as Step 5's final to-do does (worktree-conditional `env -u
       PLAYWRIGHT_BASE_URL CI=1` prefix; on `… is already used …` / `was not able to start`
       stop and report the occupied ports (`ss -ltnp` names the listener). Never kill the
       listener, free the port, drop `CI=1`, skip the run, or edit `playwright.config.ts`;

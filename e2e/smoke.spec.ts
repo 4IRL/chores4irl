@@ -140,6 +140,11 @@ test.describe('Chores App Smoke Tests', () => {
             await expect(addedBar).toBeVisible({ timeout: 5_000 });
             await expect(page.getByTestId('toast')).toHaveText('Added "E2E Test Chore"');
             await expect(page.getByTestId('toast')).toHaveAttribute('data-tone', 'success');
+            // F21: the bar renders the local calendar day that was typed — pre-fix, a
+            // behind-UTC browser read 'Wed Dec 31 2025' here (the form parsed the date as
+            // UTC midnight). The browser runs in the host zone, so this is red pre-fix only
+            // locally; the TZ-pinned Vitest file is the real regression guard.
+            await expect(addedBar).toContainText('Thu Jan 01 2026');
         } finally {
             // Delete all copies of E2E Test Chore — including any left over from prior failed runs
             const testChores = page.locator('.bg-gray-800.rounded-full', { hasText: 'E2E Test Chore' });
