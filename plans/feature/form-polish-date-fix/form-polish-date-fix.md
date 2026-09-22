@@ -370,12 +370,12 @@ Pass the selected room into the *add* modal only.
       edit modal (L360-368) does not receive `defaultRoom`.
 - [x] Run `npm test --workspace frontend -- src/__tests__/App.test.tsx` — green.
 
-### 4. Red → Green — `Toast` component
+### 4. Red → Green — `Toast` component — COMPLETE (2026-09-21)
 
 Build the single toast surface as a unit before touching `App.tsx`.
 
 **To-do:**
-- [ ] **Red.** Create `frontend/src/__tests__/components/Toast.test.tsx` with
+- [x] **Red.** Create `frontend/src/__tests__/components/Toast.test.tsx` with
       `import { describe, it, expect, vi } from 'vitest';`,
       `import { render, screen, fireEvent, act } from '@testing-library/react';` (as
       `App.touchLock.test.tsx:2` does — RTL re-exports React's `act`) and
@@ -417,7 +417,7 @@ Build the single toast surface as a unit before touching `App.tsx`.
       body click does nothing'` — render `tone="success"` with `onDismiss={vi.fn()}`,
       `fireEvent.click(screen.getByRole('status'))`, `onDismiss` not called. All seven
       fail (module missing).
-- [ ] **Green.** Create `frontend/src/components/common/Toast.tsx`:
+- [x] **Green.** Create `frontend/src/components/common/Toast.tsx`:
       - `import { useEffect } from 'react'; import { X } from 'lucide-react';`
       - `/** How long a success toast stays before dismissing itself. Error toasts never auto-dismiss — a kiosk failure must be seen. */ export const SUCCESS_TOAST_MS = 2500;`
       - `type ToastProps = { tone: 'success' | 'error'; message: string; /** Must be referentially stable (App wraps it in useCallback): it is an effect dependency, and a new identity re-arms the success timer. */ onDismiss: () => void; };`
@@ -469,7 +469,7 @@ Build the single toast surface as a unit before touching `App.tsx`.
         invariant 12); `z-[80]` keeps it above the `z-50` modals but under
         `TouchLockOverlay` `z-[90]` and `ScreenBlankOverlay` `z-[100]`; positioned against
         the viewport, never inside `.overflow-y-auto`.
-- [ ] Run `npm test --workspace frontend -- src/__tests__/components/Toast.test.tsx` —
+- [x] Run `npm test --workspace frontend -- src/__tests__/components/Toast.test.tsx` —
       green. Run `npm run lint` — the `react-refresh/only-export-components` rule accepts
       the constant export (`allowConstantExport`, same as `TouchLockOverlay`).
 
