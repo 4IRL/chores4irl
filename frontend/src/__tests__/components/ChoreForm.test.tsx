@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChoreForm from '../../components/form/ChoreForm';
-import { makeChore } from '../fixtures/chore';
+import { makeChore, localNoon } from '../fixtures/chore';
 
 describe('ChoreForm', () => {
     it('add mode renders the Add heading and empty Name', () => {
@@ -20,7 +20,7 @@ describe('ChoreForm', () => {
                     id: 7,
                     name: 'Mop',
                     room: 'Kitchen',
-                    dateLastCompleted: new Date('2025-03-31T00:00:00.000Z'),
+                    dateLastCompleted: localNoon('2025-03-31'),
                     duration: 45,
                     frequency: 7,
                     urgency: 'low',
@@ -50,7 +50,7 @@ describe('ChoreForm', () => {
                     id: 7,
                     name: 'Mop',
                     room: 'Kitchen',
-                    dateLastCompleted: new Date('2025-03-31T00:00:00.000Z'),
+                    dateLastCompleted: localNoon('2025-03-31'),
                     duration: 45,
                     frequency: 7,
                     urgency: 'low',
@@ -69,6 +69,9 @@ describe('ChoreForm', () => {
         expect(payload.name).toBe('Mopped');
         expect(payload.room).toBe('Kitchen');
         expect(payload.dateLastCompleted).toBeInstanceOf(Date);
+        expect(payload.dateLastCompleted.getFullYear()).toBe(2025);
+        expect(payload.dateLastCompleted.getMonth()).toBe(2);
+        expect(payload.dateLastCompleted.getDate()).toBe(31);
         expect(payload.duration).toBe(45);
         expect(payload.frequency).toBe(7);
         expect(payload.urgency).toBe('low');

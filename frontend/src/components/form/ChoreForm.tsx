@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import type { Chore } from '@customTypes/SharedTypes';
+import { formatFormDate, parseFormDate } from '@utils/formDate';
 import FormField from './FormField';
 import ClearButton from '../common/ClearButton';
 
@@ -25,7 +26,7 @@ function choreToFormState(chore: Chore): FormState {
     return {
         name: chore.name,
         room: chore.room,
-        dateLastCompleted: chore.dateLastCompleted.toISOString().slice(0, 10),
+        dateLastCompleted: formatFormDate(chore.dateLastCompleted),
         duration: String(chore.duration),
         frequency: String(chore.frequency),
         urgency: chore.urgency ?? '',
@@ -55,7 +56,7 @@ export default function ChoreForm({ mode = 'add', initialChore, rooms = [], onSu
         onSubmit({
             name: formData.name,
             room: formData.room,
-            dateLastCompleted: new Date(formData.dateLastCompleted),
+            dateLastCompleted: parseFormDate(formData.dateLastCompleted),
             duration: Number(formData.duration),
             frequency: Number(formData.frequency),
             urgency: formData.urgency || undefined,
