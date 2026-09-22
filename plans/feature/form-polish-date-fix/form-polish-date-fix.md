@@ -352,23 +352,23 @@ modal, and repair the four `user.type`-on-a-prefilled-date call sites.
 - [x] Run `npm test --workspace frontend -- src/__tests__/components/ChoreForm.test.tsx src/__tests__/components/ChoreFormModal.test.tsx src/__tests__/components/ChoreForm.dateBoundary.test.tsx src/__tests__/App.test.tsx`
       — green.
 
-### 3. Red → Green — wire `defaultRoom` from the active room tab in `App.tsx`
+### 3. Red → Green — wire `defaultRoom` from the active room tab in `App.tsx` — COMPLETE (2026-09-21)
 
 Pass the selected room into the *add* modal only.
 
 **To-do:**
-- [ ] **Red.** In `frontend/src/__tests__/App.test.tsx` add, inside the existing
+- [x] **Red.** In `frontend/src/__tests__/App.test.tsx` add, inside the existing
       `handleAddChore` describe (near L376): `'pre-fills Room with the active room tab (F21)'`
       — after the initial `waitFor(getByText('Sweep'))`, `await user.click(screen.getByRole(
       'button', { name: 'Kitchen' }))` (the room tab, as `App.search.test.tsx:95` does),
       click `'+ Add Task'`, assert `getByLabelText('Room')` `toHaveValue('Kitchen')`; and
       `'leaves Room empty under the All tab (F21)'` — click `'+ Add Task'` directly, assert
       Room `toHaveValue('')`. The first fails until wired.
-- [ ] **Green.** In `frontend/src/App.tsx` L359 change the add modal to
+- [x] **Green.** In `frontend/src/App.tsx` L359 change the add modal to
       `<ChoreFormModal rooms={uniqueRooms} defaultRoom={selectedRoom === 'all' ? '' :
       selectedRoom} onSubmit={handleAddChore} onCancel={() => setShowForm(false)} />`. The
       edit modal (L360-368) does not receive `defaultRoom`.
-- [ ] Run `npm test --workspace frontend -- src/__tests__/App.test.tsx` — green.
+- [x] Run `npm test --workspace frontend -- src/__tests__/App.test.tsx` — green.
 
 ### 4. Red → Green — `Toast` component
 

@@ -356,7 +356,14 @@ export default function App() {
                     </div>
                 </div>
             </div>
-            {showForm && <ChoreFormModal rooms={uniqueRooms} onSubmit={handleAddChore} onCancel={() => setShowForm(false)} />}
+            {showForm && (
+                <ChoreFormModal
+                    rooms={uniqueRooms}
+                    defaultRoom={selectedRoom === 'all' ? '' : selectedRoom}
+                    onSubmit={handleAddChore}
+                    onCancel={() => setShowForm(false)}
+                />
+            )}
             {!showForm && editingChore && (
                 <ChoreFormModal
                     mode="edit"

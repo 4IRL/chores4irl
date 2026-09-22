@@ -407,6 +407,27 @@ describe('handleAddChore', () => {
 
         await waitFor(() => expect(screen.getByText('Add failed')).toBeInTheDocument());
     });
+
+    it('pre-fills Room with the active room tab (F21)', async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        await user.click(screen.getByRole('button', { name: 'Kitchen' }));
+        await user.click(screen.getByText('+ Add Task'));
+
+        expect(screen.getByLabelText('Room')).toHaveValue('Kitchen');
+    });
+
+    it('leaves Room empty under the All tab (F21)', async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        await user.click(screen.getByText('+ Add Task'));
+
+        expect(screen.getByLabelText('Room')).toHaveValue('');
+    });
 });
 
 describe('frozen sort order', () => {
