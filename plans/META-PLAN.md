@@ -287,7 +287,7 @@ against `main` at #44 for `F21`'s add, and all of them again for `F22`'s: nothin
 landed since their last estimate (same day), so their scores stand; `F21` itself shipped
 #46 (2026-09-22) at its estimated S–M and left the tally; `F16` shipped #50 (2026-09-22) at
 its estimated M and left it too; `F17` shipped #52 (2026-09-23) at its estimated S–M and
-`F18` shipped #54 (2026-09-23) at its estimated S, and both left it as well. `F22` is
+left it; `F18` shipped #54 (2026-09-23) at its estimated S and left it as well. `F22` is
 **S–M** (the shipped strip adds one more header row to its inset relocation, while `F18`'s
 shipped frame + ref remove the wrapper work — no change in score): one
 `OverlayScrollbar` component + a `useScrollIndicator(ref)` hook (scroll metrics → thumb
@@ -674,7 +674,8 @@ invariants on its own small follow-up PR. It never starts a second feature.
   until `/compact-plans` harvests them.
 - **`F18` follow-ups** *(from #54, 2026-09-23)*: (a) **accepted, observe on the Pi** — the
   centred button covers the middle 44 px of whichever bar sits in its band (≈ 160–204 px
-  above the scroll region's bottom) while visible, and a toast covers the button while
+  above the scroll region's bottom) while visible — confirm a touch starting on it neither
+  completes that bar nor starts its swipe — and a toast covers the button while
   shown; the 500 ms fade was matched to desktop Chromium's smooth-scroll timing, not the
   Pi's. Adjust in `components/common/ScrollToTopButton.tsx` if the wall display needs it,
   keeping Standing invariant 17. (b) Four non-blocking push-review minors (a unit click
@@ -1213,7 +1214,7 @@ Verify:
   unlocks; search / room / day-sim / Add Task + submit work while locked (App-level);
   scroll container not `inert` while locked; blank still wins over the padlock; idle tick
   increments every 5 min while locked and resets on activity; `F18`'s scroll-to-top button
-  works while locked (App-level); `F18`'s suites and `F19`'s (if present) still pass with
+  works while locked (App-level); `F18`'s suites and `F19`'s, if the latter is present, still pass with
   the new semantics.
 - Standing invariant 9 rewritten to this contract; the `F2` kept-contract section rewritten
   to the as-built shape; README's touch-lock paragraph describes the permissive lock and
@@ -1324,7 +1325,7 @@ fake timers, `ResizeObserver` stubbed), the `px-4` relocation across six files, 
   `scrollRegionRef.current` by `ScrollToTopButton`) — `F22`'s hook adds its own listener
   on the same element beside it, it does not replace it.
 - `.scrollbar-none` is defined in `index.css` and used only by `NavBar.tsx`.
-- `ChoreForm.tsx:67` is `bg-gray-800 rounded-xl p-6 w-full max-w-md overflow-y-auto
+- `components/form/ChoreForm.tsx:75` is `bg-gray-800 rounded-xl p-6 w-full max-w-md overflow-y-auto
   max-h-[90dvh]`.
 - `StatusCountStrip` (`F17`, #52) renders between `NavBar` and `DateNavigationBanner` with
   root class `flex flex-shrink-0 w-full h-5 mt-2 rounded-sm overflow-hidden bg-gray-800`
