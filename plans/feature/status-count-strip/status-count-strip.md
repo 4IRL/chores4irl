@@ -282,26 +282,26 @@ Describe the strip in the UI overview prose.
 Run the full suites and the repo-checkable Expected-end-state facts.
 
 **To-do:**
-- [ ] `npm test --workspace frontend` — all pass; record the new total inline on this box when ticking it, e.g.
+- [x] `npm test --workspace frontend` — COMPLETE (2026-09-23) — 344 tests / 35 files — all pass; record the new total inline on this box when ticking it, e.g.
   `— 3xx tests / 35 files` (baseline 322 tests / 32 files at plan time).
-- [ ] `npm test --workspace backend` — 43 pass, unchanged.
-- [ ] `npm run lint` and `npx tsc --noEmit -p frontend/tsconfig.json` (repo root) — clean;
+- [x] `npm test --workspace backend` — 43 pass, unchanged. — COMPLETE (2026-09-23): 43/43, 5 files.
+- [x] — COMPLETE (2026-09-23): lint clean, tsc clean, build OK (2074 modules). `npm run lint` and `npx tsc --noEmit -p frontend/tsconfig.json` (repo root) — clean;
   `npm run build --workspace frontend` succeeds.
-- [ ] Playwright smoke: this checkout is a `c4i-wt-*` worktree, so run
+- [x] — COMPLETE (2026-09-23): 14/14 passed first attempt, no port retries. Playwright smoke: this checkout is a `c4i-wt-*` worktree, so run
   `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/smoke.spec.ts` from the repo root. On
   `… is already used …` / `Process from config.webServer was not able to start`, retry roughly
   every 30 s (jittered) for up to ~10 min; if still blocked, stop and report the occupied ports
   (`ss -ltnp`, read-only): begin the report line with `UNRESOLVED — requires user
   decision/action:` and leave this box unticked — /run-plan stops, and the user re-runs
   `/run-plan status-count-strip` once the ports are free (Step 5 is re-selected). Never kill a listener, drop `CI=1`, or edit `playwright.config.ts`.
-- [ ] Expected-end-state greps (repo root): `grep -n 'data-testid="status-count-strip"'
+- [x] — COMPLETE (2026-09-23): all greps matched; `<StatusCountStrip counts={statusCounts} />` at App.tsx:346 directly after `<NavBar` at :345. Expected-end-state greps (repo root): `grep -n 'data-testid="status-count-strip"'
   frontend/src/components/nav/StatusCountStrip.tsx`; `grep -n "StatusCountStrip"
   frontend/src/App.tsx` shows the import and the element, and `grep -n -A1 "<NavBar"
   frontend/src/App.tsx` shows `<StatusCountStrip counts={statusCounts} />` on the line directly
   after `<NavBar … />`;
   `grep -n "export function countStatuses" frontend/src/utils/choreStatusCounts.ts`;
   `grep -n "classifyStatus" frontend/src/utils/choreStatusCounts.ts`.
-- [ ] Investigate and fix any failures before marking the plan finished (tick as `— N/A, all
+- [x] — N/A, all checks passed (2026-09-23). Investigate and fix any failures before marking the plan finished (tick as `— N/A, all
   checks passed` when nothing failed; tick it only once every other Step 5 box is ticked — after an
   occupied-port stop it is ticked by the resumed run).
 
@@ -333,4 +333,4 @@ Run the full suites and the repo-checkable Expected-end-state facts.
   and does not import the new util — no conflict.
 
 ## Status
-finished: false
+finished: true
