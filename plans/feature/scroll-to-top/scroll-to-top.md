@@ -455,7 +455,7 @@ leaves data unchanged. Smoke pins the clock to noon before `goto` because `useSc
 clock (21:00–06:00 blanks the app); do the same.
 
 **To-do:**
-- [ ] Create `e2e/scroll-to-top.spec.ts`:
+- [x] Create `e2e/scroll-to-top.spec.ts`:
   ```ts
   import { test, expect } from '@playwright/test';
 
@@ -505,19 +505,23 @@ clock (21:00–06:00 blanks the app); do the same.
           // Stays tappable while it fades: sample every frame in the page until the opacity first
           // drops below 1; at that frame `inert` (applied FADE_MS = 500 ms after the fade starts) must
           // still be absent and the button's centre must hit-test to the button, not a chore bar.
-          const firstFadeFrame = await button.evaluate(el => new Promise<{ inert: boolean; hitsButton: boolean }>(resolve => {
+          // A 3 s in-page deadline turns "never started fading" into a readable assertion failure.
+          const firstFadeFrame = await button.evaluate(el => new Promise<{ timedOut: boolean; inert: boolean; hitsButton: boolean }>(resolve => {
+              const deadline = performance.now() + 3_000;
               const sample = () => {
                   if (Number(getComputedStyle(el).opacity) < 1) {
                       const rect = el.getBoundingClientRect();
                       const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
-                      resolve({ inert: el.hasAttribute('inert'), hitsButton: el.contains(hit) });
+                      resolve({ timedOut: false, inert: el.hasAttribute('inert'), hitsButton: el.contains(hit) });
+                  } else if (performance.now() > deadline) {
+                      resolve({ timedOut: true, inert: el.hasAttribute('inert'), hitsButton: false });
                   } else {
                       requestAnimationFrame(sample);
                   }
               };
               sample();
           }));
-          expect(firstFadeFrame).toEqual({ inert: false, hitsButton: true });
+          expect(firstFadeFrame).toEqual({ timedOut: false, inert: false, hitsButton: true });
 
           await expect.poll(() => region.evaluate(el => el.scrollTop)).toBe(0);
           await expect(button).toHaveCSS('opacity', '0');
@@ -538,7 +542,7 @@ clock (21:00–06:00 blanks the app); do the same.
   both exit 0. The second command is needed because `e2e/` is outside `-p frontend` and eslint here
   is not type-aware. Dry-run on a temp copy of this spec at that path: exit 0; with an injected
   type error: TS2322, exit 2; with the file missing: exit 2.
-- [ ] From the repo root run `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/scroll-to-top.spec.ts`
+- [x] From the repo root run `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/scroll-to-top.spec.ts`
   (sibling `c4i-wt-*` worktrees may hold ports 3000/5174) → 1 passed. A `1 flaky` result (failed
   once, passed on the CI retry) is a failure to investigate, not a pass. If it fails with the
   port-in-use / `webServer was not able to start` error, retry about every 30 s (jittered) for up
@@ -549,6 +553,7 @@ clock (21:00–06:00 blanks the app); do the same.
   listeners, drop `CI=1`, or edit `playwright.config.ts`. On a later run where the spec passes,
   delete that UNRESOLVED marker line before ticking the box. Any other failure is a real failure:
   fix the code or spec, not the assertion's intent.
+  - ✅ Step 5 COMPLETE (2026-09-23): `e2e/scroll-to-top.spec.ts` created verbatim from the plan block; `npm run lint` and the standalone `npx tsc --noEmit --strict … e2e/scroll-to-top.spec.ts` exit 0; `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/scroll-to-top.spec.ts` → 1 passed (no flaky, no port conflict). Review fix (2 reviewers, minor): the fade-frame sampler got a 3 s in-page deadline (`timedOut` field) so a never-fading regression fails with a readable `toEqual` diff instead of the 30 s test timeout; plan block updated to match (spec byte-identical to it); re-validated: lint + standalone tsc exit 0, spec 1 passed, `--repeat-each 3` 3 passed.
 
 ### 6. Verify All Tests Pass
 Run the full suites and the expected-end-state checks.
