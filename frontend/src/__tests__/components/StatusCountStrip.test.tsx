@@ -9,6 +9,9 @@ const SEGMENT_TEST_IDS = [
     'status-count-overdue',
 ];
 
+const fillOf = (testId: string) => screen.getByTestId(testId).firstElementChild as HTMLElement;
+const labelOf = (testId: string) => screen.getByTestId(testId).querySelector('span');
+
 describe('StatusCountStrip', () => {
     it('sizes each segment proportionally to its count, in done → due soon → overdue order', () => {
         render(<StatusCountStrip counts={{ doneToday: 3, dueSoon: 2, overdue: 5 }} />);
@@ -32,34 +35,36 @@ describe('StatusCountStrip', () => {
         expect(childTestIds).toEqual(SEGMENT_TEST_IDS);
     });
 
-    it('omits a segment whose count is zero', () => {
+    it('collapses a zero-count segment to nothing but keeps it mounted so its width can animate', () => {
         render(<StatusCountStrip counts={{ doneToday: 0, dueSoon: 4, overdue: 1 }} />);
-        expect(screen.queryByTestId('status-count-done-today')).toBeNull();
-        expect(screen.getByTestId('status-count-due-soon')).toBeInTheDocument();
-        expect(screen.getByTestId('status-count-overdue')).toBeInTheDocument();
+        const collapsed = screen.getByTestId('status-count-done-today');
+        expect(collapsed.style.flexGrow).toBe('0');
+        expect(collapsed.className).toContain('min-w-0');
+        expect(collapsed.className).not.toContain('min-w-5');
+        expect(collapsed.textContent).toBe('');
+        expect(screen.getByTestId('status-count-due-soon').textContent).toBe('4');
+        expect(screen.getByTestId('status-count-overdue').textContent).toBe('1');
     });
 
-    it('renders a single full green 0 segment when every count is zero', () => {
+    it('renders a full green 0 when every count is zero', () => {
         render(<StatusCountStrip counts={{ doneToday: 0, dueSoon: 0, overdue: 0 }} />);
-        const strip = screen.getByTestId('status-count-strip');
-        expect(strip.children).toHaveLength(1);
-
-        const segment = screen.getByTestId('status-count-done-today');
-        expect(strip.children[0]).toBe(segment);
-        expect(segment.textContent).toBe('0');
-        expect(segment.style.flexGrow).toBe('1');
-        expect(segment.className).toContain(STATUS_BAR_COLOR.green);
-        expect(screen.queryByTestId('status-count-due-soon')).toBeNull();
-        expect(screen.queryByTestId('status-count-overdue')).toBeNull();
+        const doneToday = screen.getByTestId('status-count-done-today');
+        expect(doneToday.textContent).toBe('0');
+        expect(doneToday.style.flexGrow).toBe('1');
+        expect(fillOf('status-count-done-today').className).toContain(STATUS_BAR_COLOR.green);
+        for (const testId of ['status-count-due-soon', 'status-count-overdue']) {
+            expect(screen.getByTestId(testId).style.flexGrow).toBe('0');
+            expect(screen.getByTestId(testId).textContent).toBe('');
+        }
     });
 
-    it('renders every segment label bold and white with a minimum width', () => {
+    it('renders every non-zero label bold and white, and gives its segment a minimum width', () => {
         render(<StatusCountStrip counts={{ doneToday: 3, dueSoon: 2, overdue: 5 }} />);
         for (const testId of SEGMENT_TEST_IDS) {
-            const className = screen.getByTestId(testId).className;
-            expect(className).toContain('font-bold');
-            expect(className).toContain('text-white');
-            expect(className).toContain('min-w-5');
+            const label = labelOf(testId);
+            expect(label?.className).toContain('font-bold');
+            expect(label?.className).toContain('text-white');
+            expect(screen.getByTestId(testId).className).toContain('min-w-5');
         }
     });
 
@@ -77,20 +82,37 @@ describe('StatusCountStrip', () => {
         expect(strip.getAttribute('title')).toBe(label);
     });
 
-    it('uses the same colour tokens as the timer bar, at full opacity', () => {
+    it('matches the timer bar: same colour tokens at opacity-50 over the bg-gray-800 track, labels at full opacity', () => {
         render(<StatusCountStrip counts={{ doneToday: 3, dueSoon: 2, overdue: 5 }} />);
-        expect(screen.getByTestId('status-count-done-today').className).toContain(
-            STATUS_BAR_COLOR.green,
-        );
-        expect(screen.getByTestId('status-count-due-soon').className).toContain(
-            STATUS_BAR_COLOR.orange,
-        );
-        expect(screen.getByTestId('status-count-overdue').className).toContain(
-            STATUS_BAR_COLOR.red,
-        );
+        expect(fillOf('status-count-done-today').className).toContain(STATUS_BAR_COLOR.green);
+        expect(fillOf('status-count-due-soon').className).toContain(STATUS_BAR_COLOR.orange);
+        expect(fillOf('status-count-overdue').className).toContain(STATUS_BAR_COLOR.red);
         for (const testId of SEGMENT_TEST_IDS) {
-            expect(screen.getByTestId(testId).className).not.toContain('opacity-');
+            expect(fillOf(testId).className).toContain('opacity-50');
+            expect(labelOf(testId)?.className).not.toContain('opacity-');
         }
+        expect(screen.getByTestId('status-count-strip').className).toContain('bg-gray-800');
+    });
+
+    it('animates segment widths with the same transition as the timer bar fill', () => {
+        render(<StatusCountStrip counts={{ doneToday: 3, dueSoon: 2, overdue: 5 }} />);
+        for (const testId of SEGMENT_TEST_IDS) {
+            const className = screen.getByTestId(testId).className;
+            expect(className).toContain('transition-all');
+            expect(className).toContain('duration-300');
+            expect(className).toContain('ease-in-out');
+        }
+    });
+
+    it('keeps the same element across a count change so the width transitions instead of remounting', () => {
+        const { rerender } = render(
+            <StatusCountStrip counts={{ doneToday: 0, dueSoon: 0, overdue: 2 }} />,
+        );
+        const doneToday = screen.getByTestId('status-count-done-today');
+        rerender(<StatusCountStrip counts={{ doneToday: 1, dueSoon: 0, overdue: 1 }} />);
+        expect(screen.getByTestId('status-count-done-today')).toBe(doneToday);
+        expect(doneToday.style.flexGrow).toBe('1');
+        expect(doneToday.textContent).toBe('1');
     });
 
     it('stays out of the scroll-region, chore-bar and button selectors', () => {
@@ -98,8 +120,8 @@ describe('StatusCountStrip', () => {
         const className = screen.getByTestId('status-count-strip').className;
         expect(className).toContain('flex-shrink-0');
         expect(className).not.toContain('overflow-y-auto');
+        // e2e picks chore bars with `.bg-gray-800.rounded-full`; the strip must never carry both.
         expect(className).not.toContain('rounded-full');
-        expect(className).not.toContain('bg-gray-800');
         expect(screen.queryAllByRole('button')).toHaveLength(0);
     });
 });

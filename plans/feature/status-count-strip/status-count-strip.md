@@ -51,9 +51,10 @@ sort or schema. Spec: `plans/META-PLAN.md` → "## F17".
   2-digit `text-xs` label). Flexbox honours the min-width and distributes the remaining width
   among the other segments in proportion to their counts, so the total still reads as
   proportional and no digit overflows. Tests assert `style.flexGrow === String(count)`.
-- **(b) Opacity →** the strip renders at **full opacity** (no opacity utility) for white-text
-  contrast, using the **same bare hue tokens** from `STATUS_BAR_COLOR`. Final visual check on
-  the Pi is a post-merge follow-up (the sandbox cannot reach the Pi), not a plan gate.
+- **(b) Opacity →** ~~full opacity~~ **superseded at PR #52 review (user, 2026-09-23):** each
+  segment paints exactly like the timer bar — the `STATUS_BAR_COLOR` hue at `opacity-50` on an
+  inner fill over a `bg-gray-800` track (the strip root), with the white bold label on top at
+  full opacity. Final visual check on the Pi is a post-merge follow-up, not a plan gate.
 - **(c) Form boundary →** no change; F21 (#46) already makes a form-added "today" chore
   count as done today.
 - **(d) Classifier →** import `classifyStatus`; no second classifier, no `0.375` or
@@ -331,6 +332,21 @@ Run the full suites and the repo-checkable Expected-end-state facts.
   covers; rollback itself is covered in `App.test.tsx`.
 - `choreSort.test.ts:67` has a test-local helper also named `countStatuses`; it is file-scoped
   and does not import the new util — no conflict.
+
+### 6. PR #52 review follow-up (user-requested, 2026-09-23)
+Animate count changes and match the bars' colour/opacity.
+
+**To-do:**
+- [x] Keep all three segments mounted (a zero count collapses to `flexGrow: 0` + `min-w-0`, no
+  label) and give each segment the timer-bar fill's `transition-all duration-300 ease-in-out`,
+  so completing a chore or stepping the date simulator animates the widths instead of
+  remounting segments — COMPLETE (2026-09-23).
+- [x] Paint each segment like the bar: inner `absolute inset-0 ${STATUS_BAR_COLOR[status]}
+  opacity-50` fill over the root's `bg-gray-800` track; label `<span>` stays full opacity —
+  COMPLETE (2026-09-23).
+- [x] Update `StatusCountStrip.test.tsx` (zero segment collapsed-but-mounted, all-zero green `0`,
+  fill colour + `opacity-50`, label full opacity, transition classes, same element across a count
+  change); frontend suite, lint, tsc, build and the guarded smoke re-run green — COMPLETE (2026-09-23).
 
 ## Status
 finished: true
