@@ -344,7 +344,7 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| **F18 — scroll-to-top button** ★FOCUS *(added 2026-09-20)* | pending *(ungated; F17 shipped #52)* | `feature/scroll-to-top` | — |
+| **F18 — scroll-to-top button** ★FOCUS *(added 2026-09-20)* | in-review | `feature/scroll-to-top` | [#54](https://github.com/4IRL/chores4irl/pull/54) |
 | F22 — fading overlay scrollbar + full-bleed scroll region *(added 2026-09-20, after the batch closed)* | pending *(ungated; soft after F18)* | `feature/overlay-scrollbar` | — |
 | F20 — permissive touch lock *(added 2026-09-20; reworks shipped F2)* | pending *(ungated; soft after F22)* | `feature/permissive-lock` | — |
 | F19 — lock-time view reset *(added 2026-09-20; trigger amended by F20)* | pending *(ungated; soft after F20)* | `feature/lock-view-reset` | — |

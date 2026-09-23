@@ -45,6 +45,10 @@ A thin strip under the room tabs tallies the visible list for the displayed day 
 today, orange = due soon, red = overdue — with segment widths proportional to the counts
 (`frontend/src/components/nav/StatusCountStrip.tsx`).
 
+Once the list is scrolled down, a small ↑ button fades in at the bottom centre; tapping it scrolls
+smoothly back to the top (instantly when the OS asks for reduced motion)
+(`frontend/src/components/common/ScrollToTopButton.tsx`).
+
 ### Adding and editing chores
 
 - **Dates are local calendar days** — the form's Last Completed field is parsed and shown as

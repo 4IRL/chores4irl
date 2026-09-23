@@ -17,6 +17,7 @@ import AddChoreButton from './components/form/AddChoreButton';
 import ChoreFormModal from './components/form/ChoreFormModal';
 import ConfirmDialog from './components/common/ConfirmDialog';
 import ScreenBlankOverlay from './components/common/ScreenBlankOverlay';
+import ScrollToTopButton from './components/common/ScrollToTopButton';
 import Toast from './components/common/Toast';
 import TouchLockIndicator from './components/common/TouchLockIndicator';
 import TouchLockOverlay, { CLOSING_SETTLE_MS } from './components/common/TouchLockOverlay';
@@ -61,6 +62,10 @@ export default function App() {
     // Set when a "chores changed" signal arrives while the re-pull is gated; the
     // deferred refresh runs once the gate clears.
     const pendingRefreshRef = useRef<boolean>(false);
+    // The single ref on the .overflow-y-auto scroller, shared by F18 (read and
+    // scroll to top), F19 (reset on lock) and F22 (overlay thumb). Never add a
+    // second ref on that element.
+    const scrollRegionRef = useRef<HTMLDivElement>(null);
 
     // F21: one toast at a time — a new one replaces the current. The id keys
     // the element so an identical message remounts it and restarts its timer.
@@ -352,29 +357,36 @@ export default function App() {
                 />
                 <ReturnToTodayButton dayOffset={dayOffset} onReset={() => setDayOffset(0)} />
                 <ChoreSearchInput value={searchQuery} onChange={setSearchQuery} />
-                <div className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40">
-                    <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} onEdit={handleRequestEdit} />
-                    {/* F5: sticky frosted deck — mt-auto pins it to the bottom when the list is
-                        short; sticky keeps it pinned while a long list scrolls beneath the blur.
-                        The tint + blur live on a backing layer that reaches 4rem above the deck
-                        and is masked transparent→opaque over that overhang, so the frost fades in
-                        over the list instead of ending at a hard edge; the button sits above the
-                        backing (positioned, later in DOM) and stays fully opaque.
-                        scroll-pb-40 tells scrollIntoView/focus that the deck's footprint plus the
-                        fade overhang is obscured, so bars are never scrolled to rest under it. */}
-                    <div
-                        data-testid="add-task-deck"
-                        className="sticky bottom-0 mt-auto flex-shrink-0 flex justify-center py-4"
-                    >
+                {/* F18: the positioned frame the scroll-to-top button (and later F22's
+                    thumb) anchor against, so they neither scroll away with the list nor
+                    become sticky children of the deck's region. One frame only; the
+                    scroller inside keeps its exact class string. */}
+                <div data-testid="scroll-region-frame" className="relative flex-1 min-h-0 flex flex-col">
+                    <div ref={scrollRegionRef} className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40">
+                        <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} onEdit={handleRequestEdit} />
+                        {/* F5: sticky frosted deck — mt-auto pins it to the bottom when the list is
+                            short; sticky keeps it pinned while a long list scrolls beneath the blur.
+                            The tint + blur live on a backing layer that reaches 4rem above the deck
+                            and is masked transparent→opaque over that overhang, so the frost fades in
+                            over the list instead of ending at a hard edge; the button sits above the
+                            backing (positioned, later in DOM) and stays fully opaque.
+                            scroll-pb-40 tells scrollIntoView/focus that the deck's footprint plus the
+                            fade overhang is obscured, so bars are never scrolled to rest under it. */}
                         <div
-                            aria-hidden="true"
-                            data-testid="add-task-deck-backing"
-                            className="pointer-events-none absolute inset-x-0 -top-16 bottom-0 bg-gray-900/60 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,transparent,black_4rem)]"
-                        />
-                        <div className="relative">
-                            <AddChoreButton onClick={() => { setEditingId(null); setShowForm(true); }} />
+                            data-testid="add-task-deck"
+                            className="sticky bottom-0 mt-auto flex-shrink-0 flex justify-center py-4"
+                        >
+                            <div
+                                aria-hidden="true"
+                                data-testid="add-task-deck-backing"
+                                className="pointer-events-none absolute inset-x-0 -top-16 bottom-0 bg-gray-900/60 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,transparent,black_4rem)]"
+                            />
+                            <div className="relative">
+                                <AddChoreButton onClick={() => { setEditingId(null); setShowForm(true); }} />
+                            </div>
                         </div>
                     </div>
+                    <ScrollToTopButton scrollRegionRef={scrollRegionRef} />
                 </div>
             </div>
             {/* F21: inline (not portaled) so the root's inert covers it while blanked/locked,
