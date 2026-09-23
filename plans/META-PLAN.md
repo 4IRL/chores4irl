@@ -34,21 +34,21 @@
 
 ## Where the rollout stands
 
-**Current focus: `F16` — status-bucketed midnight re-sort with red-quota escalation +
-Urgency weighting** (★, ungated, runnable now; `/run-feature F16`, branch
-`feature/status-bucketed-sort`) — see *Shortest path to the focus feature* below. *(Advanced
-2026-09-22 at `F21`'s fold-back (#46): `F21` was the ★ from the close of the
-`features/meta-plan-additions-260920` capture batch; with it shipped, the ★ moves to the
-next item in the chore-list soft order, which has zero prerequisites. `F15` — the ★ before
-`F21` — stays **gated** on external pi-kiosk Phase 2 parity as the kiosk-track head.)*
-**`F16` (status-bucketed midnight re-sort), `F17` (status-count strip), `F18` (floating
-scroll-to-top button), `F19` (lock-time view reset), `F20` (permissive touch lock) and
-`F22` (fading overlay scrollbar + full-bleed scroll region), all added 2026-09-20 via
-`/new-feature`, are the features in this repo that are runnable today** — zero
-prerequisites, chore-list track, soft-ordered `F16` → `F17` → `F18` → `F22` → `F20` → `F19`
-(`F21` — the batch's bug fix, which used to head this order — shipped #46 and retired the
-off-by-one caveat `F16`/`F17` otherwise inherited; `F16`/`F17` share a status
-classifier extracted from `choreBarMath`; `F18`/`F19` share a `ref` on the scroll container;
+**Current focus: `F17` — status-count strip under the room tabs** (★, ungated, runnable
+now; `/run-feature F17`, branch `feature/status-count-strip`) — see *Shortest path to the
+focus feature* below. *(Advanced 2026-09-23 at `F16`'s fold-back (#50): `F16` held the ★
+from `F21`'s fold-back (#47); with it shipped, the ★ moves to the next item in the
+chore-list soft order, which has zero prerequisites and whose one soft dependency — the
+shared `classifyStatus` helper — `F16` delivered. `F15` — the ★ before `F21` — stays
+**gated** on external pi-kiosk Phase 2 parity as the kiosk-track head.)*
+**`F17` (status-count strip), `F18` (floating scroll-to-top button), `F19` (lock-time view
+reset), `F20` (permissive touch lock) and `F22` (fading overlay scrollbar + full-bleed
+scroll region), all added 2026-09-20 via `/new-feature`, are the features in this repo that
+are runnable today** — zero prerequisites, chore-list track, soft-ordered `F17` → `F18` →
+`F22` → `F20` → `F19` (`F21` — the batch's bug fix — shipped #46 and retired the off-by-one
+caveat; `F16` — the status-bucketed midnight re-sort — shipped #50 and left
+`classifyStatus(daysSince, frequency)` in `utils/choreBarMath.ts` for `F17` to reuse;
+`F18`/`F19` share a `ref` on the scroll container;
 `F20` reworks the shipped `F2` lock into a *permissive* lock — padlock only on a blocked
 complete/edit/delete, everything else usable — and exposes the idle-expiry tick `F19`
 consumes; together they hand `F15` a re-sourcing obligation and reshape pi-kiosk's DD-2;
@@ -56,23 +56,24 @@ see *Cross-feature couplings*; `F22` hides the native scrollbar behind an overla
 indicator in the same positioned frame `F18` floats in and moves the outer column's `px-4`
 down to the header rows and list content so the `F5` frost reaches both screen edges). The
 capture batch is **closed** — further ideas enter one at a time via `/new-feature`, each
-re-evaluating the ★ on its own; `F22` was the first such single add (later on 2026-09-20)
-and the ★ stayed on `F21` until it shipped.
+re-evaluating the ★ on its own; `F22` was the first such single add (later on 2026-09-20).
 
-**Shipped through PR #46** — merged work is recorded by git, not re-tabulated here
+**Shipped through PR #50** — merged work is recorded by git, not re-tabulated here
 (`gh pr list --state merged` / `git log --oneline main`). Since #32: #33, #35, #36, #37,
-#40, #41, #42, #44 and #45 were docs/skills-only (META-PLAN reconciles and fold-backs, the replacement
-of the `plans/*-PROMPT.md` templates by the `/run-feature`, `/worktree`, `/compact-plans`
-skills, and plans sweeps); the app-code merges are **#34 — `F14`, the clear-✕ affordance**
-(Standing invariant 10), **#38 — `F4`, the removal of the *Details* / *Long-term task* fields
-plus the first `db.ts` boot migration** (Standing invariant 11), **#39 — `F5`, the frosted
-sticky *Add Task* deck** (Standing invariant 12), and **#46 — `F21`, the form-boundary
-date-math fix + add-mode defaults + the feedback `Toast`** (Standing invariant 14); the one
-deploy-side merge is **#43 — `F6`, the LAN name `c4i` / `c4i.local`** (no app code;
+#40, #41, #42, #44, #45, #47, #48 and #49 were docs/skills-only (META-PLAN reconciles and
+fold-backs, the replacement of the `plans/*-PROMPT.md` templates by the `/run-feature`,
+`/worktree`, `/compact-plans` skills, and plans sweeps); the app-code merges are **#34 —
+`F14`, the clear-✕ affordance** (Standing invariant 10), **#38 — `F4`, the removal of the
+*Details* / *Long-term task* fields plus the first `db.ts` boot migration** (Standing
+invariant 11), **#39 — `F5`, the frosted sticky *Add Task* deck** (Standing invariant 12),
+**#46 — `F21`, the form-boundary date-math fix + add-mode defaults + the feedback `Toast`**
+(Standing invariant 14), and **#50 — `F16`, the status-bucketed quota sort with red-quota
+escalation + Urgency weighting over the shared `classifyStatus`** (Standing invariant 15);
+the one deploy-side merge is **#43 — `F6`, the LAN name `c4i` / `c4i.local`** (no app code;
 `deploy/pi/set-hostname.sh` + a cloud-init drop-in + deploy docs — Standing invariant 13),
 all now folded into the Baseline below. With `F6` the **infra track is complete**; the
-chore-list track, re-opened by the 2026-09-20 batch, has six ungated items left after
-`F21`. What each merge left behind that still matters
+chore-list track, re-opened by the 2026-09-20 batch, has five ungated items left after
+`F21` and `F16`. What each merge left behind that still matters
 is captured
 *forward*: in the Baseline, the Standing invariants, and the few completed-feature
 contracts kept below because a remaining feature builds on or must remove them. **History
@@ -113,15 +114,15 @@ features that shipped without one (F9-L, F3-L).
 
 ```
 Chore-list track (re-opened 2026-09-20 by F16–F22; no prerequisites — runnable now):
-  ★ F16 (status-bucketed midnight re-sort + red-quota escalation + Urgency weighting, M)  [FOCUS — first feature after the F21 bug fix]
-      ─soft→ F17 (status-count strip under the room tabs, S–M)   [both need the shared status classifier]
+  ★ F17 (status-count strip under the room tabs, S–M)  [FOCUS — reuses F16's shipped classifyStatus]
       ─soft→ F18 (floating scroll-to-top button over the list, S)  [independent; must clear the F5 deck]
       ─soft→ F22 (fading overlay scrollbar + full-bleed scroll region, S–M)  [reuses F18's frame + container ref; F5 frost reaches the edges]
       ─soft→ F20 (permissive touch lock: padlock only on blocked complete/edit/delete; indicator = lock/unlock control, M)
                  [reworks shipped F2; drops the lock's inert gate; timer runs while locked → idle tick]
       ─soft→ F19 (lock-time view reset: top / All / search cleared / today, S)  [keyed off F2/F20's lock signal + idle tick; shares F18's container ref]
     (earlier: F14 — clear-✕ on free-text inputs — shipped #34; F4 — remove Details/Long-term — shipped #38;
-     F5 — frosted Add-Task deck — shipped #39; F21 — form date-math fix + defaults + Toast — shipped #46)
+     F5 — frosted Add-Task deck — shipped #39; F21 — form date-math fix + defaults + Toast — shipped #46;
+     F16 — status-bucketed midnight re-sort + red-quota escalation + Urgency weighting — shipped #50)
 
 Kiosk extraction track (2026-07-15 — see plans/feature/kiosk-shell-extraction/):
     [external] rehankalu/pi-kiosk Phases 1–4 ──► F15 (adopt kiosk-shell, M) after Phase 2 parity
@@ -136,7 +137,7 @@ Infra track (complete):
     (F6 — local URL alias c4i.local / c4i — shipped #43)
 ```
 
-- **Chore-list track: re-opened by `F16`–`F22`.** `F14` (#34), `F4` (#38) and `F5` (#39) shipped
+- **Chore-list track: re-opened by `F16`–`F22`; `F21` and `F16` shipped.** `F14` (#34), `F4` (#38) and `F5` (#39) shipped
   in the user's 2026-07-08 order (`F14` → `F4` → `F5`); the shared `ChoreForm` carries
   exactly Name (`clearable`), the Room `<datalist>`, Last Completed, Duration, Frequency and
   the Urgency `<select>`, and the *Add Task* deck is the frosted sticky surface recorded in
@@ -145,19 +146,17 @@ Infra track (complete):
   and formats `dateLastCompleted` as a *local* calendar day (`utils/formDate.ts`), add mode
   opens with *Last Completed* = today and *Room* = the active room tab, and every mutation's
   success/failure surfaces through the bottom `Toast` (the red top-of-page error strip is
-  gone). **`F16`** (added 2026-09-20, ★FOCUS since `F21`'s fold-back) is now the track's
-  head: it
-  replaces the pure duration-weighted score in `choreSort.ts` with a status-bucketed,
-  quota-filled ordering whose red quota escalates with neglect and with each chore's
-  `urgency`. It touches only `choreSort.ts`, its test, a constants entry and the README —
-  no form, bar, backend or `App.tsx` change — and depends on nothing. **`F17`** (added
-  2026-09-20) adds a thin always-visible segmented strip under the room tabs showing
-  done-today / due-soon / overdue counts for the *visible* list, live. Both features
-  classify chores with the bar's own thresholds, so whichever runs first extracts a shared
-  `classifyStatus` helper from `choreBarMath` and the other reuses it — hence the soft
-  `F16` → `F17` order (F16 is the bigger behavioural change and the user's first ask).
+  gone). **`F16`** (added 2026-09-20) shipped #50 on 2026-09-23 and now lives in the
+  Baseline's **Sort** paragraph + Standing invariant 15: `orderChores` buckets chores
+  red/orange/green through the bar's own `classifyStatus`, ranks within each bucket, and
+  fills an 8-slot fold 4/2/2 whose red quota escalates with urgency-weighted neglect.
+  **`F17`** (added 2026-09-20, ★FOCUS since `F16`'s fold-back) is now the track's head:
+  a thin always-visible segmented strip under the room tabs showing done-today / due-soon /
+  overdue counts for the *visible* list, live. It classifies chores with the shared
+  `classifyStatus(daysSince, frequency)` `F16` put in `utils/choreBarMath.ts` (and colours
+  segments from `STATUS_BAR_COLOR` in `assets/constants.ts`) — no new classifier.
   **`F18`** (added 2026-09-20) is a floating bottom-right scroll-to-top button that appears
-  only once the list has scrolled; independent of both, smallest, and its only constraint
+  only once the list has scrolled; independent of `F17`, smallest, and its only constraint
   is clearance from `F5`'s sticky deck + 4 rem frosted overhang (Standing invariant 12).
   **`F19`** (added 2026-09-20) resets the view when `F2`'s touch lock engages — list
   scrolled to the top instantly, room tab back to *All*, search cleared, day simulator back
@@ -202,18 +201,19 @@ Infra track (complete):
   the Baseline's *Deployment* paragraph record the mechanism. Its alias is the natural
   `target_url` for pi-kiosk (see `F15`'s Open risks (d)).
 
-### Shortest path to the focus feature (`F16`)
+### Shortest path to the focus feature (`F17`)
 
-**`F16` is the current ★FOCUS — ungated, runnable now.** Advanced 2026-09-22 at `F21`'s
-fold-back (#46): `F21` had taken the ★ when the `features/meta-plan-additions-260920`
-capture batch closed (the batch's one bug fix, first so it retired the "inherited UTC
-off-by-one" caveat `F16`/`F17` carried); with it merged, the next item in the chore-list
-soft order — `F16`, zero prerequisites — is the unambiguous next step. `F16` is the batch's
-biggest behavioural change (the status-bucketed sort) and the user's first feature ask;
-`F17` follows it because both share the `classifyStatus` helper `F16` extracts. Path:
-`/run-feature F16` on branch `feature/status-bucketed-sort` — no prerequisites; the
-`daysSince` values it consumes are now correct in every timezone (Standing invariant 14).
-**Then, in soft order:** `F17` (`feature/status-count-strip`), `F18`
+**`F17` is the current ★FOCUS — ungated, runnable now.** Advanced 2026-09-23 at `F16`'s
+fold-back (#50): `F16` had taken the ★ at `F21`'s fold-back (#47) and shipped the
+status-bucketed quota sort together with the one shared status classifier,
+`classifyStatus(daysSince, frequency)` in `frontend/src/utils/choreBarMath.ts` (Standing
+invariant 15); with it merged, the next item in the chore-list soft order — `F17`, zero
+prerequisites, its only soft dependency (that classifier) now on `main` — is the
+unambiguous next step. Path: `/run-feature F17` on branch `feature/status-count-strip` —
+no prerequisites; it reuses `classifyStatus` and `STATUS_BAR_COLOR` rather than extracting
+anything, and the `daysSince` values it consumes are correct in every timezone (Standing
+invariant 14).
+**Then, in soft order:** `F18`
 (`feature/scroll-to-top`), `F22` (`feature/overlay-scrollbar`), `F20`
 (`feature/permissive-lock`), `F19` (`feature/lock-view-reset`) — all ungated. **Gated, not ★:** `F15` (kiosk-track head)
 cannot start until pi-kiosk Phase 2 parity (blank window, wake-tap swallow, 5-min
@@ -226,10 +226,13 @@ returns to `F15` (gated) by the usual fold-back. `F6`'s alias is live — pi-kio
 
 - **Do not** re-open the shipped chore-list items' scope — the *Details* / *Long-term task*
   fields are gone (#38, with the `db.ts` boot migration), the clear-✕ affordance shipped
-  (#34), the frosted deck shipped (#39), and the form-boundary date fix + add-mode defaults
-  + feedback `Toast` shipped (#46); Standing invariants 10–12 and 14 record all four as
-  verified-shipped facts. Follow-up polish on any of them (e.g. the six minor push-review
-  notes harvested for `F21`) enters via `/new-feature`, not by reopening the F-ID.
+  (#34), the frosted deck shipped (#39), the form-boundary date fix + add-mode defaults
+  + feedback `Toast` shipped (#46), and the status-bucketed quota sort shipped (#50);
+  Standing invariants 10–12, 14 and 15 record all five as verified-shipped facts.
+  Follow-up polish on any of them (e.g. the six minor push-review notes harvested for
+  `F21`, `F16`'s push-review minors, or on-Pi tuning of the `SORT_*` constants) enters via
+  `/new-feature` (or, for the constants, a direct edit of `assets/constants.ts`), not by
+  reopening the F-ID.
 - **Do not** re-open `F6`'s surface — the Pi is `c4i`; `deploy/pi/set-hostname.sh` is
   idempotent and re-applies/rolls back; `http://192.168.1.214/` still works; the kiosk
   keeps `http://localhost/`. Standing invariant 13 records it; follow-ups (e.g. pinning Avahi
@@ -251,28 +254,29 @@ returns to `F15` (gated) by the usual fold-back. `F6`'s alias is live — pi-kio
 > where it steers future work: the Baseline, the Standing invariants, the Legacy →
 > current ID map, and the kept contracts under Completed-Feature Contracts below.
 
-### Remaining (current numbering, incl. `F15`–`F22`; reassessed against current `main` at the 2026-09-20 `/new-feature` reconciles — batch closed at `F21`; `F22` added singly the same day; `F21` shipped #46 on 2026-09-22 and left the table)
+### Remaining (current numbering, incl. `F15`–`F22`; reassessed against current `main` at the 2026-09-20 `/new-feature` reconciles — batch closed at `F21`; `F22` added singly the same day; `F21` shipped #46 on 2026-09-22 and `F16` shipped #50 on 2026-09-23, both leaving the table)
 
 | Order | Feature | Effort | Depends on | Track |
 |---|---|---|---|---|
-| ★ 1 *(runnable now)* | **F16** — Status-bucketed midnight re-sort: red/orange/green buckets, per-bucket ranking, fold quota with red escalation, Urgency weighting **[FOCUS]** *(added 2026-09-20)* | **M** | none | Chore-list |
-| 2 *(runnable now)* | **F17** — Status-count strip under the room tabs: done-today / due-soon / overdue for the visible list, live *(added 2026-09-20)* | **S–M** | none hard; soft after F16 (shared status classifier) | Chore-list |
-| 3 *(runnable now)* | **F18** — Floating scroll-to-top button over the list, shown only once scrolled *(added 2026-09-20)* | **S** | none hard; must clear the F5 deck (Standing invariant 12) and sit beside the F21 `Toast` frame (bottom-right vs bottom-centre — Standing invariant 14) | Chore-list |
-| 4 *(runnable now)* | **F22** — Fading overlay scrollbar + full-bleed scroll region: native scrollbar hidden, in-app indicator-only thumb over the list (and the form's scroll box) that shows while scrolling and fades ≈ 1 s after; outer `px-4` moves to header rows + list content so the container, deck backing and thumb reach the screen edges *(added 2026-09-20, after the batch closed)* | **S–M** | none hard; shares F18's frame + F19's container ref; keeps Standing invariant 12's scroller/deck contract | Chore-list |
-| 5 *(runnable now)* | **F20** — Permissive touch lock: padlock only on a blocked complete/edit/delete; scroll, search, rooms, day-sim, Add Task usable while locked; indicator = single-tap lock/unlock control *(added 2026-09-20; reworks shipped F2)* | **M** | none hard; amends the shipped `F2` contract (Standing invariant 9) | Chore-list |
-| 6 *(runnable now)* | **F19** — Lock-time view reset: on lock-engage (and each 5-min idle expiry while locked) scroll to top, room → All, search cleared, day → today *(added 2026-09-20; trigger amended by F20)* | **S** | none hard; keyed off the lock signal + idle tick (Standing invariant 9 / F20); soft after F18 (shared ref) and F20 (tick) | Chore-list |
-| 7 *(gated)* | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee **[kiosk-track head — gated]** *(added 2026-07-15)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi | Kiosk extraction |
-| 8 | **F11** — Undo *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* | **M–L** | **external:** pi-kiosk Phase 4 (`kiosk/v1` contract) | Kiosk extraction |
-| 9 | **F12** — Redo *(re-scoped 2026-07-15)* | **M** | F11 + same external gate | Kiosk extraction |
+| ★ 1 *(runnable now)* | **F17** — Status-count strip under the room tabs: done-today / due-soon / overdue for the visible list, live **[FOCUS]** *(added 2026-09-20)* | **S–M** | none (reuses F16's shipped `classifyStatus`, #50) | Chore-list |
+| 2 *(runnable now)* | **F18** — Floating scroll-to-top button over the list, shown only once scrolled *(added 2026-09-20)* | **S** | none hard; must clear the F5 deck (Standing invariant 12) and sit beside the F21 `Toast` frame (bottom-right vs bottom-centre — Standing invariant 14) | Chore-list |
+| 3 *(runnable now)* | **F22** — Fading overlay scrollbar + full-bleed scroll region: native scrollbar hidden, in-app indicator-only thumb over the list (and the form's scroll box) that shows while scrolling and fades ≈ 1 s after; outer `px-4` moves to header rows + list content so the container, deck backing and thumb reach the screen edges *(added 2026-09-20, after the batch closed)* | **S–M** | none hard; shares F18's frame + F19's container ref; keeps Standing invariant 12's scroller/deck contract | Chore-list |
+| 4 *(runnable now)* | **F20** — Permissive touch lock: padlock only on a blocked complete/edit/delete; scroll, search, rooms, day-sim, Add Task usable while locked; indicator = single-tap lock/unlock control *(added 2026-09-20; reworks shipped F2)* | **M** | none hard; amends the shipped `F2` contract (Standing invariant 9) | Chore-list |
+| 5 *(runnable now)* | **F19** — Lock-time view reset: on lock-engage (and each 5-min idle expiry while locked) scroll to top, room → All, search cleared, day → today *(added 2026-09-20; trigger amended by F20)* | **S** | none hard; keyed off the lock signal + idle tick (Standing invariant 9 / F20); soft after F18 (shared ref) and F20 (tick) | Chore-list |
+| 6 *(gated)* | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee **[kiosk-track head — gated]** *(added 2026-07-15)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi | Kiosk extraction |
+| 7 | **F11** — Undo *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* | **M–L** | **external:** pi-kiosk Phase 4 (`kiosk/v1` contract) | Kiosk extraction |
+| 8 | **F12** — Redo *(re-scoped 2026-07-15)* | **M** | F11 + same external gate | Kiosk extraction |
 | ~~—~~ | ~~**F3 · F7 · F8 · F9 · F10 · F13** — device-control console + its controls~~ | — | **superseded 2026-07-15** — migrated to pi-kiosk (shell console / agent controls / settings; `F13`'s plan harvested, see its banner) | *(migrated)* |
 
-**Effort tally (remaining, in this repo).** Chore-list track: F16 (M=2) + F17 (S–M≈1–2)
-+ F18 (S=1) + F22 (S–M≈1–2) + F20 (M=2) + F19 (S=1) ≈ **8–10 pts**, ungated. Infra track: **0 pts** (complete). Kiosk extraction track: F15
+**Effort tally (remaining, in this repo).** Chore-list track: F17 (S–M≈1–2)
++ F18 (S=1) + F22 (S–M≈1–2) + F20 (M=2) + F19 (S=1) ≈ **6–8 pts**, ungated. Infra track: **0 pts** (complete). Kiosk extraction track: F15
 (M=2, re-check at planning — see below) + F11 (M–L≈2–3) + F12 (M=2) ≈ **6–7 pts**, all gated on external pi-kiosk phases.
-Total ≈ **14–17 pts**. (S=1 / M=2 / L=3 / XL=5.) F15/F16/F17/F18/F19/F20/F11/F12 were re-checked
+Total ≈ **12–15 pts**. (S=1 / M=2 / L=3 / XL=5.) F15/F17/F18/F19/F20/F11/F12 were re-checked
 against `main` at #44 for `F21`'s add, and all of them again for `F22`'s: nothing
 landed since their last estimate (same day), so their scores stand; `F21` itself shipped
-#46 (2026-09-22) at its estimated S–M and left the tally. `F22` is **S–M**: one
+#46 (2026-09-22) at its estimated S–M and left the tally; `F16` shipped #50 (2026-09-23) at
+its estimated M and left it too. `F17` stays **S–M** (if anything slightly lighter: the
+shared classifier it would otherwise have extracted already exists). `F22` is **S–M**: one
 `OverlayScrollbar` component + a `useScrollIndicator(ref)` hook (scroll metrics → thumb
 geometry, idle-fade timer, `ResizeObserver` refresh), applied to the list scroller and the
 form's scroll box, plus the mechanical `px-4` relocation across `App.tsx`, `NavBar`,
@@ -315,7 +319,7 @@ pi-kiosk repo's own planning, not here.
 | *(none — new)* | **F9** — auto-blank settings-UI sub-control *(superseded 2026-07-15 — migrated to pi-kiosk)* |
 | *(none — new, added 2026-07-08)* | **F14** — clear-✕ affordance on free-text inputs *(shipped #34 — folded into Baseline / Standing invariant 10)* |
 | *(none — new, added 2026-07-15)* | **F15** — adopt kiosk-shell (remove F1/F2 overlays + embeddability guarantee) |
-| *(none — new, added 2026-09-20; bare `F16` is distinct from retired `F16-L` redo)* | **F16** — status-bucketed midnight re-sort with red-quota escalation + Urgency weighting |
+| *(none — new, added 2026-09-20; bare `F16` is distinct from retired `F16-L` redo)* | **F16** — status-bucketed midnight re-sort with red-quota escalation + Urgency weighting *(shipped #50 — folded into Baseline **Sort** / Standing invariant 15)* |
 | *(none — new, added 2026-09-20; bare `F17` is distinct from retired `F17-L` rotate)* | **F17** — status-count strip under the room tabs (done-today / due-soon / overdue, live, visible list) |
 | *(none — new, added 2026-09-20)* | **F18** — floating scroll-to-top button over the list (shown only once scrolled) |
 | *(none — new, added 2026-09-20)* | **F19** — lock-time view reset (on lock-engage + each idle expiry while locked: scroll to top, room → All, search cleared, day → today) |
@@ -338,8 +342,7 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| **F16 — status-bucketed midnight re-sort** ★FOCUS *(added 2026-09-20)* | in-review | `feature/status-bucketed-sort` | [#50](https://github.com/4IRL/chores4irl/pull/50) |
-| F17 — status-count strip *(added 2026-09-20)* | pending *(ungated; soft after F16)* | `feature/status-count-strip` | — |
+| **F17 — status-count strip** ★FOCUS *(added 2026-09-20)* | pending *(ungated; F16's classifier shipped #50)* | `feature/status-count-strip` | — |
 | F18 — scroll-to-top button *(added 2026-09-20)* | pending *(ungated; soft after F17)* | `feature/scroll-to-top` | — |
 | F22 — fading overlay scrollbar + full-bleed scroll region *(added 2026-09-20, after the batch closed)* | pending *(ungated; soft after F18)* | `feature/overlay-scrollbar` | — |
 | F20 — permissive touch lock *(added 2026-09-20; reworks shipped F2)* | pending *(ungated; soft after F22)* | `feature/permissive-lock` | — |
@@ -349,18 +352,22 @@ pi-kiosk repo's own planning, not here.
 | F12 — redo *(re-scoped 2026-07-15)* | pending *(gated on F11 + same external gate)* | `feature/redo` | — |
 | F3 · F7 · F8 · F9 · F10 · F13 — device-control console + controls | **superseded** *(2026-07-15 — migrated to pi-kiosk; branches never created)* | — | — |
 
-**Branch/dir cleanup:** `F21` (#46, merged 2026-09-22) is the one outstanding sweep —
-`plans/feature/form-polish-date-fix/` (plan + review + push-review) awaits its
-`/compact-plans` freeze under `plans/completed/`, and its six non-blocking push-review
-minors (in `reviews/push-review-feature-form-polish-date-fix.md`) await harvesting into
-`plans/PUSH-REVIEW-FINDINGS.md`; the local `feature/form-polish-date-fix` branch is
-prunable (GitHub auto-deleted the remote side on merge). Everything before it was clean as
-of the 2026-09-20 sweep (branch `features/meta-plan-additions-260920`): `F4` (#38) and `F5`
-(#39) were frozen under `plans/completed/` by the 2026-09-19 sweep (#42); `F6` (#43) by the
-2026-09-20 sweep, which also pruned `feature/local-url-alias` and the #42/#44 chore
-branches. Their non-blocking push-review minors are harvested in
-`plans/PUSH-REVIEW-FINDINGS.md` (sections F4, F5 and F6 — current numbering).
-Everything older is clean: every earlier merged plan dir is frozen under `plans/completed/`. Sweep
+**Branch/dir cleanup:** `F16` (#50, merged 2026-09-23) is the one outstanding sweep —
+`plans/feature/status-bucketed-sort/` (plan + review + push-review) awaits its
+`/compact-plans` freeze under `plans/completed/`, and its five non-blocking push-review
+minors (in `reviews/push-review-feature-status-bucketed-sort.md`: compute `remainingRatio`
+once in `choreBarMath.ts`, rename the single-letter `s` callback in `classifyStatus`, pin
+the `statusColors` last-threshold-is-`-Infinity` invariant in a test, give `.gitignore`'s
+`graphify-out/*` its own comment, and an optional e2e fold-order assertion) await
+harvesting into `plans/PUSH-REVIEW-FINDINGS.md`; the local `feature/status-bucketed-sort`
+branch is prunable, as are the local `chore/compact-plans-before-f16` (#48) and
+`chore/compact-plans-batched-cadence` (#49) branches (GitHub auto-deleted the remote side
+of each on merge — verify with `gh api` before pruning). Everything before it was clean as
+of the 2026-09-22 sweep (#48): `F21` (#46) was frozen under
+`plans/completed/form-polish-date-fix/` with its push-review minors harvested into
+`plans/PUSH-REVIEW-FINDINGS.md` (section F21), `F4` (#38) and `F5` (#39) by the 2026-09-19
+sweep (#42), and `F6` (#43) by the 2026-09-20 sweep (sections F4, F5 and F6 — current
+numbering). Everything older is clean: every earlier merged plan dir is frozen under `plans/completed/`. Sweep
 history lives in git (PRs #22, #26, #29 and the sweep commits on later branches), not here. After each merge run
 `/run-feature <F-ID>` on the merged feature so its Phase C fold-back (ledger row deleted,
 Baseline/ID-map/★FOCUS refreshed) lands; `/compact-plans` is **batched** — one sweep every
@@ -375,11 +382,11 @@ in the feature's own commits/PR.
 
 ---
 
-## Baseline: the codebase as it exists today (`main` at PR #46, `85cf985`)
+## Baseline: the codebase as it exists today (`main` at PR #50, `7bbbdab`)
 
-> **This Baseline reflects `main` after PR #46 (`85cf985`) — `F21`.** It is the literal current
+> **This Baseline reflects `main` after PR #50 (`7bbbdab`) — `F16`.** It is the literal current
 > state and the **assumed starting state for every remaining feature.** (PRs #33, #35, #36,
-> #37, #40, #41, #42, #44 and #45 touched only `plans/` docs and `.claude/skills/`; **#43 (`1c63e0a`) —
+> #37, #40, #41, #42, #44, #45, #47, #48 and #49 touched only `plans/` docs and `.claude/skills/`; **#43 (`1c63e0a`) —
 > `F6`** touched no app code — `deploy/pi/set-hostname.sh`, `deploy/pi/cloud-init/`,
 > `deploy/pi/README.md`, root `README.md` and `plans/`; the app-code deltas since #32
 > are **#34 (`3533b67`) — `F14`**, all under `frontend/src/`, **#38 (`d728989`) — `F4`**,
@@ -390,7 +397,9 @@ in the feature's own commits/PR.
 > **#46 (`85cf985`) — `F21`**, confined to `frontend/src/` (`utils/formDate.ts` new,
 > `components/common/Toast.tsx` new, `components/form/ChoreForm.tsx` + `ChoreFormModal.tsx`,
 > `App.tsx`, tests), `e2e/smoke.spec.ts` and root `README.md` — no backend, type or schema
-> change.)
+> change, and **#50 (`7bbbdab`) — `F16`**, confined to `frontend/src/` (`utils/choreSort.ts`,
+> `utils/choreBarMath.ts`, `assets/constants.ts`, tests), root `README.md`, one `.gitignore`
+> line (`graphify-out/*`) and `plans/` — no `App.tsx`, form, backend, type or schema change.)
 > Touch-lock is fully on `main`:
 > `frontend/src/hooks/useTouchLock.ts`, `components/common/TouchLockOverlay.tsx` (with the
 > exported `CLOSING_SETTLE_MS` / `App.tsx` `isClosing` unmount handshake), and
@@ -455,9 +464,9 @@ never touches the installed system files. Runbook + rollback (`set-hostname.sh M
 replaced, so the `F4` migration + `PUT` edits are verified live) and its `data.db` is
 migrated to 7 columns.
 
-**Domain model** (`Chore`): `id, name, room, dateLastCompleted, duration, frequency, urgency?`. The DB `chores` table columns (7): `id, name, room, date_last_completed, duration, frequency, urgency`. **`details` and `long_term_task` are gone (`F4`, #38)** — `grep -rn "longTermTask\|long_term_task" backend frontend types` matches only (a) the `LEGACY_CHORE_COLUMNS` migration list + comment in `backend/src/db.ts`, (b) `backend/src/__tests__/db-migration.test.ts` (legacy DDL + legacy INSERTs), and (c) the stale-client tests in `backend/src/__tests__/chores.test.ts`, `backend/src/__tests__/routes.test.ts`, `frontend/src/__tests__/components/ChoreForm.test.tsx` and `frontend/src/__tests__/utils/choreSort.test.ts`; nothing in `app.ts`, `chores.ts`, `SharedTypes.d.ts`, or any non-test frontend file. `createChore`/`updateChore` build explicit named-param literals, so legacy `details`/`longTermTask` keys from a stale client (e.g. a kiosk page not yet reloaded) are **silently dropped, not rejected** (deliberate — a 400 would break a kiosk page still running the old form until it reloads; accepted as the right call in `F4`'s push review). `urgency` is retained permanently. `frontend/src/__tests__/fixtures/chore.ts`'s `makeChore` never defaulted the removed fields, so it needed no change.
+**Domain model** (`Chore`): `id, name, room, dateLastCompleted, duration, frequency, urgency?`. The DB `chores` table columns (7): `id, name, room, date_last_completed, duration, frequency, urgency`. **`details` and `long_term_task` are gone (`F4`, #38)** — `grep -rn "longTermTask\|long_term_task" backend frontend types` matches only (a) the `LEGACY_CHORE_COLUMNS` migration list + comment in `backend/src/db.ts`, (b) `backend/src/__tests__/db-migration.test.ts` (legacy DDL + legacy INSERTs), and (c) the stale-client tests in `backend/src/__tests__/chores.test.ts`, `backend/src/__tests__/routes.test.ts`, `frontend/src/__tests__/components/ChoreForm.test.tsx` and `frontend/src/__tests__/utils/choreSort.test.ts`; nothing in `app.ts`, `chores.ts`, `SharedTypes.d.ts`, or any non-test frontend file. `createChore`/`updateChore` build explicit named-param literals, so legacy `details`/`longTermTask` keys from a stale client (e.g. a kiosk page not yet reloaded) are **silently dropped, not rejected** (deliberate — a 400 would break a kiosk page still running the old form until it reloads; accepted as the right call in `F4`'s push review). `urgency` is retained permanently; outside tests it is read by `components/form/ChoreForm.tsx` (the `<select>`) and — since `F16` (#50) — by `utils/choreSort.ts` via `SORT_URGENCY_MULTIPLIER` in `assets/constants.ts` (sort weighting only; the bar ignores it). `frontend/src/__tests__/fixtures/chore.ts`'s `makeChore` never defaulted the removed fields, so it needed no change.
 
-**Sort** (`frontend/src/utils/choreSort.ts`): `orderChores` is a single `calcDurationWeightedScore` sort (`duration × daysSince/frequency`, descending) — the former long-term-task bottom partition left with `F4`, so infrequent maintenance chores now interleave by score instead of pinning below daily upkeep (a user-visible behaviour change, documented in the README). **`F16` replaces this scorer** — the 2026-09-20 review found that because each chore's score grows by a constant `duration/frequency` per day, two chores' rank order can flip at most once and a short-duration chore never overtakes a long one no matter how overdue it gets; the sort never consults the red/orange/green status `computeBar` paints, and `urgency` is read by nothing outside `ChoreForm.tsx`. **Re-sort trigger** (kept by `F16`): the single `useEffect` on `simulatedDate` in `App.tsx` — fires at local midnight (`useMidnightClock`), on every day-simulation step, and on first load; completing a chore, SSE re-pulls (`reconcileChores` keeps existing positions, appends new ids) and screen unblank never re-sort, so a finished chore stays where it was, green, until midnight (the sticky-order rule from #8, `plans/completed/real-time-midnight-sort.md`).
+**Sort** (`frontend/src/utils/choreSort.ts`, `F16`, #50): `orderChores(chores, today): Chore[]` (signature unchanged; `calcDurationWeightedScore` is **deleted** — the old `duration × daysSince/frequency` score let two chores' rank flip at most once and never let a short chore overtake a long one) is a status-bucketed, quota-filled pipeline. (1) **Bucket** each chore red / orange / green via **`classifyStatus(daysSince, frequency): ChoreStatus`**, exported from `utils/choreBarMath.ts` — the *one* status classifier, which `computeBar` also calls to derive `isOverdue` and `barColor` (red iff `frequency > 0 && daysSince > frequency`; otherwise the `statusColors` threshold `0.375` on `remainingRatio` splits green / orange; `frequency === 0` → green). `daysSince` is the same local-`startOfDay` `differenceInDays` expression `ChoreTimerBar` uses. (2) **Rank** within each bucket: red by urgency-weighted `overdueRatio = (daysSince − frequency) / frequency × SORT_URGENCY_MULTIPLIER[urgency ?? 'medium']` descending, `duration` descending as tiebreak; orange by `remainingRatio` ascending (closest to due first); green by `daysSince` ascending (most recently completed first); `Array.prototype.sort` is stable, so remaining ties keep input order. (3) **Fold quota**: the first `SORT_FOLD = 8` slots are filled per `SORT_BASE_QUOTA = { red: 4, orange: 2, green: 2 }` (a test pins the sum `=== SORT_FOLD`), with **red escalation** — `pressure` = reds whose weighted `overdueRatio ≥ SORT_PRESSURE_THRESHOLD` (`1`, i.e. ≥ 2× the frequency elapsed), `redQuota = min(SORT_FOLD, 4 + pressure)`, the extra slots taken from orange then green — and unused slots **donated red → orange → green**; after the fold come the remaining reds, then oranges, then greens, each in bucket order. The tunables live in `frontend/src/assets/constants.ts` beside the new `ChoreStatus` type (`'red' | 'orange' | 'green'`), `STATUS_BAR_COLOR` (the single status → `bg-*-500` map the bar paints from) and `statusColors`, whose entries are now `{ threshold, status }` (no colour field; the last threshold must stay `-Infinity` — a comment-only invariant). `SORT_URGENCY_MULTIPLIER = { low: 0.75, medium: 1, high: 1.5 }` weights the **sort only** — bar colour and status thresholds ignore urgency. All four `SORT_*` values are first guesses awaiting on-Pi tuning (record final numbers in `constants.ts`). The README's "How prioritization works" section describes the pipeline. **Re-sort trigger** (unchanged by `F16`): the full order is computed by `reconcileChores` on first load (every id is newly seen) and recomputed by the single `useEffect` on `simulatedDate` in `App.tsx` — at local midnight (`useMidnightClock`) and on every day-simulation step; completing a chore, SSE re-pulls (`reconcileChores` keeps existing positions, appends new ids) and screen unblank never re-sort, so a finished chore stays where it was, green, until midnight (the sticky-order rule from #8, `plans/completed/real-time-midnight-sort.md`).
 
 **Backend routes** (`app.ts`): `GET /api/chores`, `GET /api/events` (SSE doorbell), `POST /api/chores`, `PUT /api/chores/:id` (full-replace edit, 200 / 400 `Invalid id` / 400 `Missing required fields` / 404 `Chore not found` / 500), `PATCH /api/chores/:id/complete`, `DELETE /api/chores/:id`. CORS `Access-Control-Allow-Methods` includes `PUT`. Tests for the SSE bus at `backend/src/__tests__/events.test.ts`.
 
@@ -468,7 +477,7 @@ migrated to 7 columns.
   - **SSE sync — unchanged contract:** subscribes via `useChoreEvents(onChange)` (`hooks/useChoreEvents.ts`; `new EventSource('/api/events')` + `visibilitychange→visible` re-fire). Re-pulls are gated by `isRepullGated()` (`isMutatingRef` || `showForm` || `editingId` || `pendingDeleteId`); deferred via `pendingRefreshRef`. **Any new frontend feature holding uncommitted user input in `App.tsx` state must be added to this gate** — the `F21` toast state is *not* user input and is deliberately outside it (a re-pull while a toast shows is fine).
   - **Visible-list pipeline (three-stage):** `filteredChores = useRoomFilter(choreData, selectedRoom)` → `searchFilteredChores` (substring on `name`, from `F9-L`) → `orderedChores` (maps `sortedIds` over a `Map` of `searchFilteredChores`).
   - **`F1`'s real-clock scheduling (shipped):** `frontend/src/hooks/useScreenBlank.ts` — window-boundary re-arming timeouts driven by `realToday`, **not** `simulatedDate` (adapted from the `useMidnightClock.ts` single-`setTimeout`-to-boundary pattern, which remains available as a precedent for any future real-clock feature).
-- `components/chore/ChoreTimerBar.tsx` — **F10-L's current shape**: `useSwipeable` with **swipe-left → `onEdit`**, **swipe-right → `onDelete`** (reversed from the original F5-L mapping), a controlled swipe offset revealing a behind-the-bar action layer (yellow+pencil for edit, red+trash for delete) with a **25%-of-bar-width threshold** and spring-back below it; colour fades in progressively toward the threshold (added in F10-L's third commit). `delta: 50` remains the swipeable trigger threshold (distinct from the 25%-width confirm threshold). Spread-before-explicit-props order, `touch-pan-y`, `isSimulating` guard, `swipingRef` click-suppression all preserved. Bar math from `@utils/choreBarMath` `computeBar(daysSince, frequency)` — **revised in PR #32** (`790a4ab`, untracked by any F-ID): `barColor` is `bg-red-500` only when `isOverdue`, never pre-due (previously red could appear before the due date); `ProgressBar`'s fill re-gained its `opacity-50` translucency, restoring a Tailwind v4 regression that had silently dropped the dead v3 `bg-opacity-50` utility. `h-20 sm:h-16` grid layout from F6-L unchanged.
+- `components/chore/ChoreTimerBar.tsx` — **F10-L's current shape**: `useSwipeable` with **swipe-left → `onEdit`**, **swipe-right → `onDelete`** (reversed from the original F5-L mapping), a controlled swipe offset revealing a behind-the-bar action layer (yellow+pencil for edit, red+trash for delete) with a **25%-of-bar-width threshold** and spring-back below it; colour fades in progressively toward the threshold (added in F10-L's third commit). `delta: 50` remains the swipeable trigger threshold (distinct from the 25%-width confirm threshold). Spread-before-explicit-props order, `touch-pan-y`, `isSimulating` guard, `swipingRef` click-suppression all preserved. Bar math from `@utils/choreBarMath` `computeBar(daysSince, frequency)` — since `F16` (#50) it derives `isOverdue` / `barColor` from the shared `classifyStatus` + `STATUS_BAR_COLOR` (Standing invariant 15) with unchanged output; **revised in PR #32** (`790a4ab`, untracked by any F-ID): `barColor` is `bg-red-500` only when `isOverdue`, never pre-due (previously red could appear before the due date); `ProgressBar`'s fill re-gained its `opacity-50` translucency, restoring a Tailwind v4 regression that had silently dropped the dead v3 `bg-opacity-50` utility. `h-20 sm:h-16` grid layout from F6-L unchanged.
 - `components/common/ConfirmDialog.tsx` (F4-L) — unchanged; reused by the swipe-delete path. *(The former "reuse for `F10` restart confirm" plan left with the migration — restart now lives in pi-kiosk.)*
 - `components/form/` — `ChoreFormModal` → **`ChoreForm`** → `FormField`. **Props (as of `F21`, #46):** `ChoreForm` takes `{ mode?: 'add' | 'edit'; initialChore?: Chore; rooms?: string[]; defaultRoom?: string; onSubmit: (chore: Omit<Chore,'id'>) => void; onCancel: () => void }` (default `mode='add'`, `defaultRoom=''`), `ChoreFormModal` mirrors and forwards them; the form emits `Omit<Chore,'id'>` (`name, room, dateLastCompleted, duration, frequency, urgency?`) and App supplies the id. **Add-mode defaults:** `initialAddState(defaultRoom)` (a function, not a constant) seeds Room with `defaultRoom` and Last Completed with `formatFormDate(new Date())` — the *real* clock, captured when the modal mounts, never `simulatedDate` — and the post-submit reset in add mode re-applies both; `App.tsx` passes `defaultRoom={selectedRoom === 'all' ? '' : selectedRoom}` to the *add* modal only (edit mode pre-fills from `initialChore` via `choreToFormState`, which formats the date with `formatFormDate`). A pre-filled Room shows its clear-✕ on mount (Standing invariant 10 unchanged). Note for tests: `user.type` into a prefilled `<input type="date">` leaves it empty in jsdom — `user.clear` first, as every add-mode test now does. **Room field is now a `<datalist>` input** (`F3-L`) sourced from `uniqueRooms`, threaded through both Add and Edit — a raw `<input type="text" list="room-options">`, not `FormField`. The form's fields are exactly `Name` (`FormField`, `name="name"`, **`clearable`**), Room (the raw datalist input), `Last Completed` / `Duration (minutes)` / `Frequency (days)` (`FormField`, *not* `clearable`), and `Urgency` (a raw `<select id="urgency">` with blank/low/medium/high, not `FormField`) — the `Details` `FormField` and the `longTermTask` checkbox were deleted by `F4` (#38) without touching `ClearButton.tsx`, `ChoreSearchInput.tsx` or `FormField.tsx` (no diff in #38). **Clear-✕ affordance (`F14`, #34):** `FormField` takes an opt-in `clearable?: boolean` (default `false`; only Name passes it — Last Completed/Duration/Frequency don't) and renders a `ClearButton` when `clearable && value !== ''`; the raw Room `<input>` (`ref={roomInputRef}`, `pr-14`) hand-wires its own `ClearButton` (`anchor="top"`, label `"Clear Room"`). Both clear only that field's local state (no submit/close) and refocus the input.
 - `components/chore/ChoreSearchInput.tsx` — the `F9-L` search box (`Search` icon, `placeholder="Search for a chore"`, `pr-14`), pinned above the scroll region. **Has a clear-✕ (`F14`, #34):** renders `ClearButton` (label `"Clear Search"`) when `value !== ''`; clearing calls `onChange('')` and refocuses, restoring the room-filtered list exactly as manual deletion does.
@@ -476,7 +485,7 @@ migrated to 7 columns.
 - `components/common/Toast.tsx` (`F21`, #46) — the single feedback surface: `{ tone: 'success' | 'error'; message: string; onDismiss: () => void }` plus the exported `SUCCESS_TOAST_MS = 2500`. Markup is a **click-through frame** (`pointer-events-none fixed inset-x-4 bottom-40 z-[80] flex justify-center` — `bottom-40` = the `F5` deck's ~5 rem footprint + its 4 rem `-top-16` overhang, the same 10 rem `scroll-pb-40` declares; `z-[80]` sits above the `z-50` body-portaled modals and below `TouchLockOverlay` `z-[90]` / `ScreenBlankOverlay` `z-[100]`; positioned against the viewport, **never inside `.overflow-y-auto`**) around the pill (`role="status" aria-live="polite" data-testid="toast" data-tone={tone}`, `min-w-0 max-w-full rounded-full …`, message in a `min-w-0 truncate` span so long text ellipsises rather than wrapping). **Success** (`bg-green-600`) inherits the frame's `pointer-events: none` — a tap passes through to whatever is beneath, so the 2.5 s green pill never blocks the form's Save/Cancel — and self-dismisses via an effect-scoped `setTimeout(onDismiss, SUCCESS_TOAST_MS)` cleared on unmount. **Error** (`bg-red-700`, the token the old strip used) never auto-dismisses: the pill is `pointer-events-auto cursor-pointer` with `onClick={onDismiss}`, and its ✕ (`aria-label="Dismiss"`, 44×44 px, lucide `X` `w-4 h-4`) calls `stopPropagation()` then `onDismiss()`. `onDismiss` is an effect dependency and must be referentially stable (App passes a `useCallback([])`). e2e selects the error pill via `[data-testid="toast"][data-tone="error"]` (`ERROR_TOAST` in `smoke.spec.ts`); the success pill's text (`Added "<name>"`) also matches Playwright's substring `text=<name>` engine, so chore-name assertions there are scoped to `.bg-gray-800.rounded-full` bars.
 
 **Tests**
-- **Vitest** unit tests both sides (backend 43 across 5 files — untouched by `F21`; frontend 296 across 32 files as of #46 — `F21` added 42 frontend tests: `utils/formDate.test.ts`, the TZ-pinned `components/ChoreForm.dateBoundary.test.tsx` (Cases A/B/B2/C/D under New York + Tokyo, each verified red on the pre-fix code), `components/Toast.test.tsx` (7), an add-mode-defaults describe in `ChoreForm.test.tsx`, a `defaultRoom` forwarding test in `ChoreFormModal.test.tsx`, and in `App.test.tsx` two room-tab pre-fill tests plus the 11-test `feedback toast (F21)` describe with a module-scope `openAndFillForm` helper), now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`), the reversed swipe mapping + threshold (`F10-L`), the clear-✕ affordance (component-level show/clear/refocus + App-level clear-restores-room-filter, from `F14`), and `F4`'s removal: `backend/src/__tests__/db-migration.test.ts` (7 cases — idempotency on `:memory:`, boot wiring against a legacy 9-column temp file, rows/other columns preserved), stale-client-key drop tests on `POST`/`PUT` and `createChore`/`updateChore`, a `ChoreForm` absence test (no Details / Long-term inputs) and a stale-`longTermTask`-flag-ignored sort test, plus `F5`'s `Add Task deck (F5)` describe in `App.test.tsx` (deck sticky/`mt-auto`/last-child inside `.overflow-y-auto` for populated and empty lists, the masked backing layer's classes and backing-before-button paint order, `scroll-pb-40`) and the opaque-button assertion in `AddChoreButton.test.tsx`.
+- **Vitest** unit tests both sides (backend 43 across 5 files — untouched by `F16`/`F21`; frontend 322 across 32 files as of #50 — `F16` added 26, almost all in the rewritten `utils/choreSort.test.ts` (bucket ↔ `classifyStatus` agreement across the boundaries, monotonic red ranking, most-recent-first greens, 4/2/2 fill, donation, escalation to an all-red fold, `high`/`low` urgency flipping rank and pressure, unset = `medium`, `frequency === 0`, empty input, stable ties, the `SORT_BASE_QUOTA` sum pin, the stale-`longTermTask` flag still ignored) plus `classifyStatus` cases in `components/ChoreTimerBar.barMath.test.ts`, with only comments re-worded in `App.test.tsx` / `App.search.test.tsx` (their expected orders held); before that `F21` added 42 frontend tests: `utils/formDate.test.ts`, the TZ-pinned `components/ChoreForm.dateBoundary.test.tsx` (Cases A/B/B2/C/D under New York + Tokyo, each verified red on the pre-fix code), `components/Toast.test.tsx` (7), an add-mode-defaults describe in `ChoreForm.test.tsx`, a `defaultRoom` forwarding test in `ChoreFormModal.test.tsx`, and in `App.test.tsx` two room-tab pre-fill tests plus the 11-test `feedback toast (F21)` describe with a module-scope `openAndFillForm` helper), now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`), the reversed swipe mapping + threshold (`F10-L`), the clear-✕ affordance (component-level show/clear/refocus + App-level clear-restores-room-filter, from `F14`), and `F4`'s removal: `backend/src/__tests__/db-migration.test.ts` (7 cases — idempotency on `:memory:`, boot wiring against a legacy 9-column temp file, rows/other columns preserved), stale-client-key drop tests on `POST`/`PUT` and `createChore`/`updateChore`, a `ChoreForm` absence test (no Details / Long-term inputs) and a stale-`longTermTask`-flag-ignored sort test, plus `F5`'s `Add Task deck (F5)` describe in `App.test.tsx` (deck sticky/`mt-auto`/last-child inside `.overflow-y-auto` for populated and empty lists, the masked backing layer's classes and backing-before-button paint order, `scroll-pb-40`) and the opaque-button assertion in `AddChoreButton.test.tsx`.
 - **Playwright e2e**: `e2e/smoke.spec.ts` (14 tests). `swipeBar(page, bar, 'left')` now triggers **edit**, `'right'` triggers **delete** (flipped by F10-L). Still depends on seed chore `Vacuum Bedroom Floor` and the `+ Add Task` flow. Since `F21` (#46): the error toast is located by the `ERROR_TOAST` constant (`[data-testid="toast"][data-tone="error"]`, replacing every `.bg-red-700` locator), the four post-mutation chore-name assertions are scoped to `.bg-gray-800.rounded-full` bars (the success toast's text would otherwise make the substring `text=<name>` engine resolve to two elements — a non-retriable strict-mode violation), the add test asserts the green `Added "…"` pill's text/tone, and it asserts the added bar shows `Thu Jan 01 2026` (the typed local day; red pre-fix only on a behind-UTC host — the Vitest TZ suite is the real guard). Playwright's `fill()` replaces the pre-filled date default, so the five `fill` lines are unchanged.
 - **CI**: `.github/workflows/ci.yml` unchanged — backend + frontend tests on PRs to `main`; `main` branch-protected.
 
@@ -491,10 +500,11 @@ migrated to 7 columns.
 8. **Auto screen-blank overlay**: `useScreenBlank()` + `ScreenBlankOverlay`, driven by real wall-clock time (`realToday`, never `simulatedDate`), blanks 21:00–06:00 local, tap-to-wake swallows the waking tap, re-blanks after 5 minutes' inactivity inside the window (F1, shipped #27). *Holds until `F15` relocates this behavior to pi-kiosk and removes the in-app code.*
 9. **Double-tap touch lock**: `useTouchLock()` + `TouchLockOverlay`/`TouchLockIndicator` — local-only/per-tab, arms after 5 minutes' inactivity, unlocks on a second tap within 1500 ms and 60 px, 400 ms `CLOSING_SETTLE_MS` closing handshake, `z-[90]` always defers to the blank overlay's `z-[100]` (F2, shipped #28). *Holds until `F15` relocates this behavior to pi-kiosk and removes the in-app code.* **Pending amendment by `F20`** (added 2026-09-20): the always-on overlay + app-root `inert` gate become a *permissive* lock — padlock only on a blocked complete/edit/delete, everything else usable, indicator = single-tap lock/unlock control, timer running while locked. Once `F20` ships this invariant is rewritten to `F20`'s contract, and what `F15`/pi-kiosk must reproduce is `F20`'s, not the original.
 10. **Clear-✕ affordance on every free-text input**: search bar, form Name, form Room each render the shared `ClearButton` only when non-empty; clicking clears that field's local state only (never submits/closes) and refocuses the input; `FormField`'s affordance is opt-in via `clearable` (default off), so no other `FormField` usage (Last Completed, Duration, Frequency) gains it (F14, shipped #34; verified intact after F4 — `ClearButton.tsx`, `ChoreSearchInput.tsx`, `FormField.tsx` had no diff in #38).
-11. **No `details` / `longTermTask` anywhere in the live model**: `Chore` is `id, name, room, dateLastCompleted, duration, frequency, urgency?`; the shared `ChoreForm` has no Details field or Long-term checkbox; `app.ts`/`chores.ts` never read or write them (stale keys from old clients are dropped silently, never rejected — deliberate, so a not-yet-reloaded kiosk page keeps working through the rollout; don't "fix" it with a 400); `db.ts` runs the idempotent, crash-loud `dropLegacyChoreColumns` boot migration (`pragma table_info` guard, `BEGIN IMMEDIATE`) so an existing 9-column `data.db` migrates itself to 7 columns on first boot and later boots are no-ops; `orderChores` is a single duration-weighted sort with no long-term partition (F4, shipped #38). Any future schema change adds its own guarded step beside that migration — `CREATE TABLE IF NOT EXISTS` never alters an existing `data.db`. The pre-F4 image cannot write to a migrated DB (its SQL still names the dropped columns), so a rollback restores the pre-deploy snapshot together with the old image.
+11. **No `details` / `longTermTask` anywhere in the live model**: `Chore` is `id, name, room, dateLastCompleted, duration, frequency, urgency?`; the shared `ChoreForm` has no Details field or Long-term checkbox; `app.ts`/`chores.ts` never read or write them (stale keys from old clients are dropped silently, never rejected — deliberate, so a not-yet-reloaded kiosk page keeps working through the rollout; don't "fix" it with a 400); `db.ts` runs the idempotent, crash-loud `dropLegacyChoreColumns` boot migration (`pragma table_info` guard, `BEGIN IMMEDIATE`) so an existing 9-column `data.db` migrates itself to 7 columns on first boot and later boots are no-ops; `orderChores` has no long-term partition (F4, shipped #38) and, since `F16` (#50), is the status-bucketed quota sort (Standing invariant 15). Any future schema change adds its own guarded step beside that migration — `CREATE TABLE IF NOT EXISTS` never alters an existing `data.db`. The pre-F4 image cannot write to a migrated DB (its SQL still names the dropped columns), so a rollback restores the pre-deploy snapshot together with the old image.
 12. **Frosted sticky *Add Task* deck**: the deck lives *inside* the scroll region as its `sticky bottom-0 mt-auto` last child with no border/background of its own; tint + blur come from a masked, `aria-hidden`, `pointer-events-none` backing layer that overhangs the deck by 4rem and fades in (`bg-gray-900/60 backdrop-blur-sm` + `mask-image` gradient); `AddChoreButton` is fully opaque and paints above the backing; the scroll container carries `scroll-pb-40` so focus/scrollIntoView never rest a bar under the deck or its fade; `.overflow-y-auto` stays the single scrolling element and `ChoreSearchInput` stays outside it (F5, shipped #39). Any change to the deck's height or overhang must re-check `scroll-pb-*` (≥ deck + overhang) and the Tab-focus clearance measured in `plans/feature/translucent-add-deck/` (or its frozen copy under `plans/completed/`). **Pending amendment by `F22`** (added 2026-09-20): the outer column loses its `px-4` (the inset moves onto the header rows and `ChoreList`'s content), so the backing's `inset-x-0` reaches the screen edges, and the scroller gains a `scrollbar-none` token while an indicator-only overlay thumb lives in the positioned frame around it; every other clause here (sticky `mt-auto` deck, masked backing, opaque button, `scroll-pb-40`, single scroller with its class tokens) holds unchanged.
 13. **LAN name `c4i`**: the Pi's hostname is `c4i`, reachable as `http://c4i.local/` and `http://c4i/` with `http://192.168.1.214/` still working; the mechanism is `deploy/pi/set-hostname.sh` + `deploy/pi/cloud-init/99-c4i-hostname.cfg` (idempotent, backup-then-write, crash-safe re-run, rollback = run it with the old name) and nothing in the app is name-aware — no feature may hard-code a hostname or IP in app code, `nginx.conf`, or the kiosk `.desktop` (which stays `http://localhost/`), and any future Pi rename runs the script (it also clears Chromium's hostname-keyed profile lock) rather than `hostnamectl` alone (F6, shipped #43). The deployed `deploy/pi/` copies are refreshed by every redeploy; the installed system files are not.
 14. **Local calendar days at the form boundary + one feedback toast**: the form parses and formats `dateLastCompleted` as a *local* calendar day through `utils/formDate.ts` (`parseFormDate` / `formatFormDate`; never `new Date('yyyy-mm-dd')` or `toISOString().slice(0, 10)` in `ChoreForm.tsx`), so a same-day add is `daysSince === 0` in every timezone and an instant round-trips through the edit form on the same day — every `daysSince` consumer keeps its local-`startOfDay` expression and **no consumer may "fix" timezone drift in-band** (that would double-correct); add mode opens with Last Completed = today (real clock, never `simulatedDate`) and Room = the active room tab (blank under *All*), both re-applied by the post-submit reset; **there is no top-of-page error strip** — add/edit/delete success and every failure surface through the single bottom-centre `Toast` (`components/common/Toast.tsx`: click-through frame `fixed inset-x-4 bottom-40 z-[80]`, never inside `.overflow-y-auto`, above the `z-50` modals and below lock/blank; success `bg-green-600` auto-dismisses after `SUCCESS_TOAST_MS` and is click-through, error `bg-red-700` persists until tapped or ✕'d), success fires only after the awaited request (never on an optimistic write), a later successful mutation — including tap-to-complete, which raises no toast of its own — retires a standing error, one toast at a time (keyed remount), and **toast state stays outside `isRepullGated()`** (F21, shipped #46). Any feature that adds bottom real estate (`F18`'s bottom-right button) sits beside the toast's frame at the same `bottom-40` clearance; anything that widens the modal or the blank/lock layers must keep the `z-50 < z-[80] < z-[90] < z-[100]` ladder.
+15. **Sort ↔ bar status agreement**: `orderChores` (`utils/choreSort.ts`) buckets chores red / orange / green **only** via `classifyStatus(daysSince, frequency)` in `utils/choreBarMath.ts` — the one classifier `computeBar` also uses for `isOverdue` / `barColor` (colours from the single `STATUS_BAR_COLOR` map) — so sort, bar and any future status consumer (`F17`'s strip) can never disagree; status thresholds change **only** there and in `statusColors` (never a copied `0.375` or `daysSince > frequency` literal elsewhere). `urgency` weights the **sort only** (`SORT_URGENCY_MULTIPLIER`, unset = `medium`), never bar colour or status. Ranking, fold quota and red escalation are tuned solely through the `SORT_*` constants in `assets/constants.ts` (`SORT_BASE_QUOTA` must sum to `SORT_FOLD` — test-pinned). **Re-sort triggers are unchanged:** first load (`reconcileChores`), local midnight and day-simulation steps (the `simulatedDate` effect) — **never** on completion, edit, SSE re-pull or unblank (F16, shipped #50).
 
 **Assumptions to revisit at planning time**
 1. **Resolved (F4, shipped #38):** `better-sqlite3` bundles SQLite 3.51.3 (≥ 3.35), so `ALTER TABLE … DROP COLUMN` is available and the boot migration uses it — no table-rebuild fallback was needed. Re-verify only if `better-sqlite3` is ever downgraded.
@@ -611,8 +621,20 @@ invariants on its own small follow-up PR. It never starts a second feature.
   (toast assertions on the delete/edit smoke tests; a cross-mutation error-clear unit test;
   `Toast` robustness to an unstable `onDismiss`; the `defaultRoom` doc-comment wording; a
   `console.error` for swallowed background re-pull failures in `loadChores`; the accepted
-  mount-time date default) sit in `plans/feature/form-polish-date-fix/reviews/push-review-feature-form-polish-date-fix.md`
-  until `/compact-plans` harvests them into `plans/PUSH-REVIEW-FINDINGS.md`.
+  mount-time date default) were harvested into `plans/PUSH-REVIEW-FINDINGS.md` (section
+  F21) by the 2026-09-22 sweep (#48).
+- **`F16` follow-ups** *(from #50, 2026-09-23)*: (a) **on-Pi tuning of the sort constants**
+  — `SORT_FOLD`, `SORT_BASE_QUOTA`, `SORT_PRESSURE_THRESHOLD` and `SORT_URGENCY_MULTIPLIER`
+  in `frontend/src/assets/constants.ts` are first guesses (F16's open risk (a)); tune them
+  with real household data via the day simulator and record the final values in that file
+  (keep the `SORT_BASE_QUOTA` sum `=== SORT_FOLD` test green). (b) Five non-blocking
+  push-review minors (compute `remainingRatio` once, rename the `s` callback in
+  `classifyStatus`, a test pinning `statusColors`' `-Infinity` last threshold, a
+  `.gitignore` comment for `graphify-out/*`, an optional e2e fold-order assertion) sit in
+  `plans/feature/status-bucketed-sort/reviews/push-review-feature-status-bucketed-sort.md`
+  until `/compact-plans` harvests them. (c) **Declined by the user — do not re-propose:**
+  hardening an Invalid-Date `dateLastCompleted` (which yields a `NaN` orange rank key) in
+  `orderChores`.
 
 ## F1 — Auto screen-blank 9pm–6am  ·  merged (#27, `a633a2a`)  ·  kept: `F15` must remove this code and pi-kiosk Phase 2 must reproduce it (parity checklist)
 
@@ -662,14 +684,16 @@ local-to-the-kiosk semantics forward).
 > and live entirely in the Baseline + Standing invariants 10–12 (no remaining feature builds on
 > them); `F6` (#43) shipped and lives in the Baseline's *Deployment* paragraph + Standing
 > invariant 13; `F21` (#46) shipped and lives in the Baseline's *Date semantics* paragraph,
-> the `App.tsx` / `components/form/` / `Toast.tsx` Key-UI bullets and Standing invariant 14.
-> The **focus feature is `F16` — ungated, runnable now** (see "Shortest path" above); `F15` is the gated kiosk-track head. `F3`/`F7`/`F8`/`F9`/`F10`/`F13`
+> the `App.tsx` / `components/form/` / `Toast.tsx` Key-UI bullets and Standing invariant 14;
+> `F16` (#50) shipped and lives in the Baseline's **Sort** paragraph and Standing invariant 15.
+> The **focus feature is `F17` — ungated, runnable now** (see "Shortest path" above); `F15` is the gated kiosk-track head. `F3`/`F7`/`F8`/`F9`/`F10`/`F13`
 > are **superseded — migrated to `rehankalu/pi-kiosk`** (2026-07-15, see
 > `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`); their sections below
 > are retained as banners + history only. `F11`/`F12` remain here, re-scoped; `F15` is new;
 `F16`–`F21` were added 2026-09-20 (`F20` reworks the shipped `F2` lock; `F21` promoted the
-`F2-L` follow-up list, held the ★ and shipped #46 on 2026-09-22, so it has no section
-below); `F22` was added singly later that day.
+`F2-L` follow-up list, held the ★ and shipped #46 on 2026-09-22; `F16` then held the ★ and
+shipped #50 on 2026-09-23 — neither has a section below); `F22` was added singly later that
+day.
 
 ## F3 — Settings / device-control panel (container)  ·  SUPERSEDED 2026-07-15 (migrated to pi-kiosk)
 
@@ -806,7 +830,7 @@ for the non-root user service; portrait-only toggle; host-bridge file-watch mech
 
 ---
 
-## F15 — Adopt kiosk-shell (remove F1/F2 overlays + embeddability guarantee)  ·  kiosk-track head — gated (★ moved to `F21` 2026-09-20, then to `F16` at `F21`'s 2026-09-22 fold-back)  ·  Effort M  ·  (added 2026-07-15)
+## F15 — Adopt kiosk-shell (remove F1/F2 overlays + embeddability guarantee)  ·  kiosk-track head — gated (★ moved to `F21` 2026-09-20, then to `F16` at `F21`'s 2026-09-22 fold-back, then to `F17` at `F16`'s 2026-09-23 fold-back)  ·  Effort M  ·  (added 2026-07-15)
 
 **Goal.** Complete chores4irl's side of the kiosk-layer extraction: once the pi-kiosk
 shell reproduces the blank/lock behavior in front of the iframe-embedded app, remove the
@@ -907,122 +931,7 @@ not `F2`'s.
 
 ---
 
-## F16 — Status-bucketed midnight re-sort with red-quota escalation + Urgency weighting  ·  ★ FOCUS — runnable now (ungated; first in the chore-list soft order since `F21` shipped #46)  ·  Effort M  ·  (added 2026-09-20)
-
-**Goal.** Make the midnight (and day-simulation) re-sort produce the view the user wants
-on the first wake of each day: during normal operation a *balanced spread* of green /
-orange / red bars above the fold — some recently accomplished work still visible, not a
-wall of red — with a hard guarantee that **the more days a chore is overdue, the higher it
-ranks**, and a deterministic escalation that fills the fold with red only once the board
-has been neglected long enough. `urgency` finally does something: a High chore climbs and
-escalates faster than a Low one. Ledger item: `F16` in
-`plans/ledger/260920_feature_ledger.md` (the full normalized spec lives there).
-
-**Why the current scorer fails this** (2026-09-20 review): `score = duration ×
-daysSince/frequency` is *minutes of accumulated time-debt*, not *how overdue*. A 60-min
-weekly chore at day 3 (green) scores ≈ 26; a 2-min every-3-days chore 10 days overdue
-scores ≈ 9. Each day adds a constant `duration/frequency` per chore, so rank order among
-chores is nearly frozen — low-slope chores never overtake, which is exactly the "overdue
-tasks don't bubble up in simulation" symptom. And recently completed chores score ≈ 0 at
-midnight, so the "green on load" the user likes only ever happened by accident (completion
-doesn't re-sort; midnight does).
-
-**Rank rationale.** ★FOCUS since 2026-09-22, when `F21`'s bug fix — which took the ★ at the
-2026-09-20 batch close — shipped #46 and the ★ advanced to the next soft-order item (see
-*Where the rollout stands*); `F16` is the first *feature* after that fix and the batch's
-biggest behavioural change.
-
-**Effort: M.** One utility rewritten (`choreSort.ts` grows from 14 lines to a bucket →
-rank → quota-fill pipeline), a small constants entry, a README paragraph, and a test matrix
-wide enough to pin the guarantees below (bucket agreement with `computeBar`, monotonic
-red ranking, quota donation, escalation threshold, urgency multiplier, tie stability,
-empty/all-one-bucket inputs). No `App.tsx`, form, bar, backend or schema change.
-
-**Design (agreed with the user 2026-09-20; deterministic — no weighted randomness):**
-1. **Bucket by the status the bar paints.** Classify each chore red / orange / green using
-   the *same* thresholds as `computeBar` (`daysSince > frequency` → red; else
-   `remainingRatio ≤ 0.375` → orange; else green) — import or share the helper rather than
-   re-deriving, so sort and colour can never disagree. `frequency === 0` chores are never
-   red (matches `computeBar`); treat them as green.
-2. **Rank inside each bucket by what matters for that bucket:**
-   - red — `overdueRatio = (daysSince − frequency) / frequency` **× urgency multiplier**,
-     descending; `duration` descending as tiebreak only;
-   - orange — `remainingRatio` ascending (closest to due first);
-   - green — `daysSince` ascending (**most recently completed first** — the green slots
-     must show *recently accomplished* work, not "about to turn orange").
-3. **Fold quota.** `FOLD = 8` (≈ one unscrolled kiosk screen at `h-20` bars; a tunable
-   constant, re-measure on the Pi). Base split red 4 / orange 2 / green 2. Take the top-N
-   of each bucket for the fold; an under-filled bucket donates its unused slots to red
-   first, then orange, then green. After the fold, append the remaining reds, then
-   oranges, then greens, each still in bucket order.
-4. **Escalation.** `pressure` = number of red chores whose urgency-scaled `overdueRatio ≥
-   1` (i.e. at least 2× their frequency has elapsed). `redQuota = min(FOLD, baseRed +
-   pressure)`, taken from the orange then green quotas. With 0–1 badly overdue chores the
-   morning view is the balanced spread; at 4+ the fold is all red.
-5. **Urgency (sort only).** Multiplier on `overdueRatio`: `low` ×0.75, `medium` or unset
-   ×1, `high` ×1.5 — so a High chore both ranks higher within red and reaches the
-   `pressure` threshold sooner. **Bar colour and status thresholds in `choreBarMath` are
-   untouched** (user chose "sort only" over "sort + bar status" on 2026-09-20).
-6. **Trigger unchanged.** Still only the `simulatedDate` effect in `App.tsx` (midnight +
-   day-simulation + first load). Screen unblank does not re-sort (user confirmed); completing
-   a chore leaves it in place until midnight. `orderChores(chores: Chore[], today: Date):
-   Chore[]` keeps its signature; `calcDurationWeightedScore` may be deleted once nothing
-   imports it (only `choreSort.test.ts` does today).
-
-**Assumed starting state** = **Baseline**. Verify:
-- `frontend/src/utils/choreSort.ts` exports exactly `calcDurationWeightedScore` and
-  `orderChores`; `App.tsx` imports only `orderChores` and calls it in two places
-  (`reconcileChores` for newly-seen ids, and the `simulatedDate` effect).
-- `grep -rn "urgency" frontend/src --include=*.ts --include=*.tsx -l | grep -v __tests__`
-  → only `components/form/ChoreForm.tsx`.
-- `choreBarMath.ts`'s `computeBar` is the sole status classifier; `statusColors` in
-  `assets/constants.ts` carries the `0.375` orange threshold.
-
-**Expected end state** (repo-checkable):
-- `choreSort.ts` implements the six points above; the status classification it uses is
-  provably the same function/threshold `computeBar` uses (shared helper or direct import —
-  not a copied literal).
-- A constants entry (in `assets/constants.ts` or a sibling) holds `FOLD`, the base quotas
-  and the urgency multipliers, each with a one-line comment on what it tunes.
-- `choreSort.test.ts` covers, at minimum: bucket ↔ `computeBar` agreement across the
-  boundaries; a 10-day-overdue 2-min chore outranks a green 60-min chore; among reds,
-  larger `overdueRatio` always ranks higher regardless of duration; green ordering is most-
-  recent-first; quota fill 4/2/2 on a mixed board; donation when a bucket is short;
-  escalation to an all-red fold at `pressure ≥ 4`; `high` vs `low` urgency flips rank and
-  pressure at the same `daysSince`; a chore with `urgency` omitted scores identically to
-  `urgency: 'medium'` (×1); `frequency === 0`; empty input; stable ties.
-- README's "sort" paragraph (currently *`score = duration × (daysSince / frequency)`*)
-  rewritten to describe buckets, quota, escalation and the urgency multiplier, and to say
-  plainly that the order changes only at midnight.
-- The Baseline **Sort** paragraph above is rewritten at fold-back; Standing invariant 14
-  is added recording the sort ↔ bar status agreement as a durable contract.
-- All suites green (frontend 254 → more; backend 43 unchanged).
-
-**Test-suite deltas.** Rewrite `choreSort.test.ts` (the three
-`calcDurationWeightedScore` cases go if the function goes; the stale-`longTermTask`
-sort test is kept in spirit — a legacy flag must still be ignored). `App.test.tsx` /
-`App.sync.test.tsx` fixtures that assert a specific order after a simulated-day step must
-be re-checked: they were written against the old score and may need their expected order
-updated (not weakened). No e2e change expected (`e2e/smoke.spec.ts` does not assert
-order — verify).
-
-**Open risks / decisions.** (a) `FOLD`, the 4/2/2 split, the `≥ 1` pressure threshold and
-the 0.75/1/1.5 multipliers are first guesses — tune on the Pi with real household data
-via the day simulator, and record the final numbers in the constants file, not here.
-(b) With very few chores (< `FOLD`) the quota is moot and the result is simply
-reds-then-oranges-then-greens — acceptable, but the test should say so. (c) The
-UTC-vs-local date-math off-by-one (`F2-L` follow-up #4) was fixed by `F21` (#46) at the form
-boundary (Standing invariant 14) — `orderChores` keeps consuming the same `daysSince`
-expression, which is now correct in every timezone; nothing in this feature touches it. (d) Sort and bar must share one status
-classifier; if `computeBar`'s thresholds ever move (e.g. a future "sort + bar status"
-urgency reading), the sort follows automatically — that is the point of sharing it.
-
-**Session loop.** Run the Per-Feature Session Contract on branch
-`feature/status-bucketed-sort`.
-
----
-
-## F17 — Status-count strip under the room tabs  ·  runnable now (ungated; soft after `F16`)  ·  Effort S–M  ·  (added 2026-09-20)
+## F17 — Status-count strip under the room tabs  ·  ★ FOCUS — runnable now (ungated; first in the chore-list soft order since `F16` shipped #50)  ·  Effort S–M  ·  (added 2026-09-20)
 
 **Goal.** A glanceable, always-visible tally of the day's state for the list the user is
 looking at: how many chores were **completed today**, how many are **due soon** (orange),
@@ -1053,8 +962,8 @@ simulator and search bar already compete for. Ledger item: `F17` in
   accessible label on the strip (`aria-label` / `title`) reads e.g. `"3 done today · 2 due
   soon · 5 overdue"` so the meaning is discoverable for a new user; the colours are the
   legend otherwise.
-- **Colours = the chore bars'.** `bg-green-500` / `bg-orange-500` / `bg-red-500` via the
-  shared status classifier — never re-declared literals. (The bars render at `opacity-50`;
+- **Colours = the chore bars'.** `bg-green-500` / `bg-orange-500` / `bg-red-500` taken from
+  `STATUS_BAR_COLOR` (keyed by `classifyStatus`'s result) — never re-declared literals. (The bars render at `opacity-50`;
   the strip likely needs full opacity for white text contrast — decide on the Pi, but the
   *hue tokens* must be the same.)
 - **Live.** Derived from `choreData` on every render — not from `sortedIds` and not
@@ -1065,30 +974,36 @@ simulator and search bar already compete for. Ledger item: `F17` in
 - **Standalone.** No collapse/hide toggle for the top section — explicitly kept out of
   scope (a later `/new-feature` if crowding persists once the strip is in).
 
-**Rank rationale.** Ungated; the user's second ask of the 2026-09-20 batch. Soft-ordered
-after `F16` only because both need one shared `classifyStatus(daysSince, frequency)`
-helper extracted from `computeBar` — whichever runs first creates it. Either order works.
+**Rank rationale.** ★FOCUS since 2026-09-23, when `F16` — the ★ since `F21`'s fold-back —
+shipped #50 and the ★ advanced to the next soft-order item (see *Where the rollout
+stands*). Ungated; the user's second ask of the 2026-09-20 batch. It was soft-ordered after
+`F16` only because both need one shared status classifier; `F16` delivered it —
+`classifyStatus(daysSince, frequency)` in `utils/choreBarMath.ts` (Standing invariant 15) —
+so `F17` reuses it and extracts nothing.
 
 **Effort: S–M.** One new presentational component, one pure counting util (three
 numbers from `(chores, day)`), one wiring line in `App.tsx`, unit tests for both, and the
 `App.test.tsx` layout assertions (strip sits between `#NavBar` and the date banner; the
 `.overflow-y-auto` scroll container is unchanged). No backend, form, sort or schema change.
 
-**Assumed starting state** = **Baseline** (+ `F16` if it ran first — then the shared
-classifier already exists). Verify:
+**Assumed starting state** = **Baseline** (`F16` shipped #50 — the shared classifier
+exists). Verify:
 - `App.tsx` renders, in order, `NavBar` → `DateNavigationBanner` → `ReturnToTodayButton`
   → `ChoreSearchInput` → the `.overflow-y-auto` scroll region.
 - `searchFilteredChores` is the visible-list source (room ∧ search) and `simulatedDate`
   the displayed day.
-- `computeBar` in `choreBarMath.ts` is the sole status classifier (or, post-`F16`, a shared
-  helper beside it).
+- `frontend/src/utils/choreBarMath.ts` exports `classifyStatus(daysSince, frequency):
+  ChoreStatus` and `computeBar` calls it; `frontend/src/assets/constants.ts` exports the
+  `ChoreStatus` type and `STATUS_BAR_COLOR` (`red`/`orange`/`green` → `bg-*-500`). `F17`
+  **must reuse both** — no second classifier, no re-declared threshold or colour literal
+  (Standing invariant 15).
 
 **Expected end state** (repo-checkable):
 - New `frontend/src/components/nav/StatusCountStrip.tsx` (name may vary) with
   `data-testid="status-count-strip"` and three `data-testid`'d segments; rendered in
   `App.tsx` immediately after `NavBar`, `flex-shrink-0`.
 - A pure util (e.g. `utils/choreStatusCounts.ts`) exporting `countStatuses(chores, day)
-  → { doneToday, dueSoon, overdue }`, classifying via the shared helper, with the
+  → { doneToday, dueSoon, overdue }`, classifying via `classifyStatus`, with the
   done-today test being same-calendar-day on `dateLastCompleted`.
 - Tests: util — mixed board, morning board (no green), all-green-not-today → all zeros,
   re-completed green counts as done today, room+search narrowing; component — widths
@@ -1105,8 +1020,10 @@ and record the choice; the total must still read as proportional. (b) Opacity: b
 `opacity-50`; the strip's white text wants full opacity — same hue tokens either way.
 (c) Done-today uses the same date arithmetic as `daysSince`; `F21` (#46) fixed the form
 boundary (Standing invariant 14), so a chore added via the form "today" now counts as done
-today with no change here. (d) If `F16` has not run yet, extract
-the shared classifier in this feature and note it for `F16` to reuse.
+today with no change here. (d) The shared classifier already exists (`classifyStatus`,
+shipped by `F16` #50) — import it; do not extract or duplicate one. Note that it classifies
+a *not-yet-overdue* chore at `remainingRatio === 0` as orange (due today), which is
+the strip's due-soon segment, matching the bar.
 
 **Session loop.** Run the Per-Feature Session Contract on branch
 `feature/status-count-strip`.
@@ -1141,8 +1058,8 @@ nothing on the boot view. Ledger item: `F18` in `plans/ledger/260920_feature_led
   actions), and tapping the date heading (undiscoverable; collides with the day-simulation
   chevron row).
 
-**Rank rationale.** Ungated, smallest of the batch, independent of `F16`/`F17`; third only
-because it is the least consequential — run it whenever a short session is available.
+**Rank rationale.** Ungated, smallest of the batch, independent of `F17` (and of the shipped
+`F16`); second only because it is the least consequential — run it whenever a short session is available.
 
 **Effort: S.** One small presentational component, a `ref` + `onScroll` (or a
 `useScrollPastThreshold(ref)` hook) on the existing container, a positioned wrapper in
@@ -1214,7 +1131,7 @@ days out). Ledger item: `F19` in `plans/ledger/260920_feature_ledger.md`.
   4. **Day simulator → today** — `setDayOffset(0)`. When a simulation *was* active this
      changes `simulatedDate`, and the existing `simulatedDate` effect re-sorts — exactly
      what the Return-to-today button does today. That is a day-simulation step, so it is
-     consistent with the midnight/simulation-only re-sort rule (`F16` keeps it); when no
+     consistent with the midnight/simulation-only re-sort rule (Standing invariant 15); when no
      simulation was active, `dayOffset` is already `0` and nothing re-sorts.
 - **Where it lives.** One effect in `App.tsx` beside the existing force-close-dialogs
   effect (which already fires on `isBlanked || isLocked`; this one is lock-only). No new
@@ -1252,7 +1169,7 @@ days out). Ledger item: `F19` in `plans/ledger/260920_feature_ledger.md`.
 **Rank rationale.** Ungated and small; last of the five 2026-09-20 chore-list adds because
 its `F18` coupling (reuse the ref) and its `F20` coupling (consume the idle tick rather than
 be re-keyed later) are both cheaper to honor second than first. It composes with
-`F16`–`F17` without depending on them.
+`F17` (and the shipped `F16` sort) without depending on them.
 
 **Effort: S.** One effect + a `ref` in `App.tsx`, four to six App-level tests, one README
 line. No backend, data, sort, component or styling change.
@@ -1491,7 +1408,7 @@ benefit: then the Add Task deck blur will seamlessly blend to the edges too."*
 
 **Rank rationale.** Ungated, small, purely visual; sits directly after `F18` because the
 two share the positioned frame and the container `ref` (whichever runs first builds them)
-and before `F20`/`F19`. Not a ★ candidate — `F16` holds the ★ since `F21`'s bug fix shipped #46.
+and before `F20`/`F19`. Not a ★ candidate — `F17` holds the ★ since `F16` shipped #50.
 
 **Effort: S–M.** One small component + hook and their tests (jsdom has no layout:
 `scrollTop`/`scrollHeight`/`clientHeight` are set via `Object.defineProperty`, the fade via
@@ -1551,9 +1468,8 @@ moves with the scroller.
 ## Chain integrity (remaining work, current numbering, incl. `F15`–`F22`)
 
 ```
-CHORE-LIST TRACK (re-opened 2026-09-20; F14 shipped #34, F4 shipped #38, F5 shipped #39, F21 shipped #46 — the 2026-07-08 order F14 → F4 → F5 and the 2026-09-20 "F21 first" order are honored by history)
-  ★ F16 (status-bucketed midnight re-sort + red-quota escalation + Urgency weighting) — no prerequisites, runnable now; the off-by-one it would have inherited is gone with F21 (#46)
-    ─soft→ F17 (status-count strip under the room tabs) — no prerequisites; shares F16's status classifier
+CHORE-LIST TRACK (re-opened 2026-09-20; F14 shipped #34, F4 shipped #38, F5 shipped #39, F21 shipped #46, F16 shipped #50 — the 2026-07-08 order F14 → F4 → F5 and the 2026-09-20 "F21 first" then F16 order are honored by history)
+  ★ F17 (status-count strip under the room tabs) — no prerequisites, runnable now; reuses F16's shipped classifyStatus (#50)
     ─soft→ F18 (floating scroll-to-top button) — no prerequisites; must clear the F5 deck
     ─soft→ F22 (fading overlay scrollbar + full-bleed scroll region) — no prerequisites; reuses F18's frame + container ref; F5 frost reaches the edges
     ─soft→ F20 (permissive touch lock, reworks shipped F2) — no prerequisites; drops the lock's inert gate; exposes the idle tick
@@ -1573,24 +1489,24 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
 
 - **No hard chain remains inside this repo.** The old device-control edge (`F3` gates
   `F7`–`F13`) left the repo with the migration — pi-kiosk's Migration Phases carry that
-  sequencing now. What remains here: the chore-list track holds six ungated items (`F16`
-  ─soft→ `F17` ─soft→ `F18` ─soft→ `F22` ─soft→ `F20` ─soft→ `F19`; its earlier soft `F14` → `F4` → `F5` preference of 2026-07-08 was honored — #34, #38,
-  #39 — and the 2026-09-20 "`F21` first" preference by #46), and two **external** gates (`F15` on pi-kiosk Phase 2 parity; `F11`/`F12` on Phase
+  sequencing now. What remains here: the chore-list track holds five ungated items (`F17`
+  ─soft→ `F18` ─soft→ `F22` ─soft→ `F20` ─soft→ `F19`; its earlier soft `F14` → `F4` → `F5` preference of 2026-07-08 was honored — #34, #38,
+  #39 — and the 2026-09-20 "`F21` first" preference by #46, then `F16` by #50), and two **external** gates (`F15` on pi-kiosk Phase 2 parity; `F11`/`F12` on Phase
   4's `kiosk/v1` contract, with `F12` also following `F11`). The infra track completed with
   `F6` (#43).
-- **Focus path:** `F16` — ★FOCUS, ungated, the next session (`/run-feature F16`). Then
-  `F17`, `F18`, `F22`, `F20`, `F19` in soft order. `F15` is the gated kiosk-track head
+- **Focus path:** `F17` — ★FOCUS, ungated, the next session (`/run-feature F17`). Then
+  `F18`, `F22`, `F20`, `F19` in soft order. `F15` is the gated kiosk-track head
   (pi-kiosk Phase 2 parity) and takes the ★ back once the chore-list items are gone;
   `F11`/`F12` follow on Phase 4. The 2026-09-20 capture batch is closed — no deferred
   re-evaluation remains.
 - **Cross-feature couplings to honor:**
-  - **`daysSince` consumers (F16, F17, `ChoreTimerBar`) ↔ the shipped F21 boundary (Standing
-    invariant 14):** the form now means local midnight in / local calendar day out;
-    `choreSort.ts`, `ChoreTimerBar.tsx`, `computeBar` and `F16`/`F17`'s shared classifier
-    keep the same `differenceInDays(startOfDay(today), startOfDay(date))` expression. No
-    consumer may add a UTC `startOfDay` or any other timezone "fix" in-band — it would
-    double-correct. (This is the former `F2-L` follow-up #4, which `F16` must likewise not
-    re-fix or widen.)
+  - **`daysSince` consumers (the shipped F16 sort, F17, `ChoreTimerBar`) ↔ the shipped F21
+    boundary (Standing invariant 14):** the form now means local midnight in / local
+    calendar day out; `choreSort.ts`, `ChoreTimerBar.tsx` and `F17`'s counter keep the same
+    `differenceInDays(startOfDay(today), startOfDay(date))` expression before calling the
+    shared `classifyStatus`. No consumer may add a UTC `startOfDay` or any other timezone
+    "fix" in-band — it would double-correct. (This is the former `F2-L` follow-up #4; `F16`
+    shipped without re-fixing it, and `F17` must likewise not.)
   - **F18 ↔ the shipped F21 `Toast` (bottom real estate, Standing invariants 12 + 14):** the
     toast's frame is fixed against the viewport at `bottom-40` (deck + 4 rem overhang),
     pill centred; `F18`'s button is bottom-*right* at the same clearance — `F18` reuses the
@@ -1603,11 +1519,11 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
   - **F11/F12 ↔ the shipped F21 `Toast`:** an undo/redo is a mutation like add/edit/delete —
     whether it raises a toast is `F11`'s call (recommended: `Undone "<name>"` via the same
     component and `showToast`).
-  - **F16 ↔ F17 ↔ `computeBar`:** both classify red/orange/green with the *same*
-    function/threshold the bar uses — one shared `classifyStatus` helper extracted from
-    `computeBar`, never a copied literal — so a future change to the bar model moves the
-    sort and the strip with it. Whichever of F16/F17 runs first extracts it.
-  - **F17 ↔ F16 (trigger asymmetry, deliberate):** the strip is *live* (derived from
+  - **F17 ↔ the shipped F16 classifier (Standing invariant 15):** the strip classifies
+    red/orange/green through `classifyStatus` in `utils/choreBarMath.ts` — the function the
+    bar and the sort already share — and colours from `STATUS_BAR_COLOR`, never a copied
+    literal, so a future change to the bar model moves the sort and the strip with it.
+  - **F17 ↔ the shipped F16 sort (trigger asymmetry, deliberate):** the strip is *live* (derived from
     `choreData` on every render); the list *order* is midnight-only. A completed chore
     therefore turns green and moves into the strip's green segment immediately while
     staying in place in the list until midnight — that is the intended feel, not a bug.
@@ -1697,16 +1613,16 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
     whichever runs first creates it; `F19`'s `scrollTop = 0` also hides `F18`'s button.
   - **F19 ↔ F17:** resetting room → All and search → '' widens the visible list, so the
     strip's counts jump to the whole-board figures on lock — live, as designed.
-  - **F19 ↔ F16 (re-sort rule):** the day → today reset re-sorts *only* when a simulation
+  - **F19 ↔ the shipped F16 sort (re-sort rule, Standing invariant 15):** the day → today reset re-sorts *only* when a simulation
     was active (it is a day-simulation step, the same path as Return-to-today); a lock with
     `dayOffset === 0` never re-sorts — "unblank/lock never re-sorts" still holds for the
     normal case.
   - **F19 ↔ F11/F12:** independent — the reset touches view state only, never chore data,
     so it is not an undoable action and must not enter the undo cache.
-  - **F16 ↔ F11/F12:** an undo that restores an earlier `dateLastCompleted` is a mutation
+  - **F11/F12 ↔ the shipped F16 sort (Standing invariant 15):** an undo that restores an earlier `dateLastCompleted` is a mutation
     like any other — it does **not** re-sort (sticky order until midnight); the undone
     chore keeps its position and its bar simply re-colours.
-  - **F16 ↔ F15:** independent. "Unblank never re-sorts" is a chores4irl fact that holds
+  - **F15 ↔ the shipped F16 sort:** independent. "Unblank never re-sorts" is a chores4irl fact that holds
     whether the blanking is the in-app `F1` overlay or the pi-kiosk shell.
   - **F1 ↔ F2 — shipped and resolved.** `ScreenBlankOverlay` (`z-[100]`) always wins over
     `TouchLockOverlay` (`z-[90]`); the pi-kiosk port must preserve this precedence, and
@@ -1732,10 +1648,11 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
     boundary, add-mode defaults, the single bottom `Toast` (success auto-dismisses and is
     click-through; error persists until tapped/✕'d; a later successful mutation retires it),
     no top-of-page error strip, toast state outside the SSE re-pull gate.
-  - From **F16**: list order is a status-bucketed, quota-filled ordering that (i) classifies
-    status with the bar's own thresholds, (ii) ranks reds monotonically by urgency-scaled
-    overdue ratio, (iii) shows most-recently-completed greens first, (iv) escalates the red
-    quota deterministically with neglect, and (v) still changes only at midnight /
+  - From **F16** *(shipped #50 — Standing invariant 15)*: list order is a status-bucketed,
+    quota-filled ordering that (i) classifies status with the bar's own `classifyStatus`,
+    (ii) ranks reds monotonically by urgency-scaled overdue ratio, (iii) shows
+    most-recently-completed greens first, (iv) escalates the red quota deterministically
+    with neglect, and (v) still changes only on first load, at midnight and on
     day-simulation — never on completion, SSE re-pull or unblank.
   - From **F17**: a status-count strip sits under the room tabs showing done-today /
     due-soon / overdue for the visible (room ∧ search) list, widths ∝ counts, bar-colour
