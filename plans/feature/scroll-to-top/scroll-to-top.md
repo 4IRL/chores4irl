@@ -425,11 +425,12 @@ Document the button in the repo-root README's `## How prioritization works` sect
 "UI overview"; README has no heading by that name).
 
 **To-do:**
-- [ ] In the repo-root `README.md` (not `deploy/pi/README.md` or `.github/rulesets/README.md`), directly after the paragraph ending "…preview how the bars will look on
+- [x] In the repo-root `README.md` (not `deploy/pi/README.md` or `.github/rulesets/README.md`), directly after the paragraph ending "…preview how the bars will look on
   future days." (just above `### Adding and editing chores`), add one sentence: "Once the list is
   scrolled down, a small ↑ button fades in at the bottom right; tapping it scrolls smoothly back
   to the top (instantly when the OS asks for reduced motion) (`frontend/src/components/common/ScrollToTopButton.tsx`)."
-- [ ] Verify from the repo root: `grep -n "ScrollToTopButton" ./README.md` returns the new line.
+- [x] Verify from the repo root: `grep -n "ScrollToTopButton" ./README.md` returns the new line.
+  - ✅ Step 4 COMPLETE (2026-09-23): sentence added as its own paragraph after the "…future days." paragraph (README.md lines 44-46, just above `### Adding and editing chores`); `grep -n "ScrollToTopButton" ./README.md` → line 46. No other README touched.
 
 ### 5. Real-browser e2e spec `e2e/scroll-to-top.spec.ts`
 Cover in Chromium what jsdom (`css: false`, no layout, ignores `inert`) cannot: opacity, `inert`,
