@@ -36,7 +36,7 @@
 
 **Current focus: `F17` — status-count strip under the room tabs** (★, ungated, runnable
 now; `/run-feature F17`, branch `feature/status-count-strip`) — see *Shortest path to the
-focus feature* below. *(Advanced 2026-09-23 at `F16`'s fold-back (#50): `F16` held the ★
+focus feature* below. *(Advanced 2026-09-22 at `F16`'s fold-back (#50): `F16` held the ★
 from `F21`'s fold-back (#47); with it shipped, the ★ moves to the next item in the
 chore-list soft order, which has zero prerequisites and whose one soft dependency — the
 shared `classifyStatus` helper — `F16` delivered. `F15` — the ★ before `F21` — stays
@@ -146,7 +146,7 @@ Infra track (complete):
   and formats `dateLastCompleted` as a *local* calendar day (`utils/formDate.ts`), add mode
   opens with *Last Completed* = today and *Room* = the active room tab, and every mutation's
   success/failure surfaces through the bottom `Toast` (the red top-of-page error strip is
-  gone). **`F16`** (added 2026-09-20) shipped #50 on 2026-09-23 and now lives in the
+  gone). **`F16`** (added 2026-09-20) shipped #50 on 2026-09-22 and now lives in the
   Baseline's **Sort** paragraph + Standing invariant 15: `orderChores` buckets chores
   red/orange/green through the bar's own `classifyStatus`, ranks within each bucket, and
   fills an 8-slot fold 4/2/2 whose red quota escalates with urgency-weighted neglect.
@@ -203,7 +203,7 @@ Infra track (complete):
 
 ### Shortest path to the focus feature (`F17`)
 
-**`F17` is the current ★FOCUS — ungated, runnable now.** Advanced 2026-09-23 at `F16`'s
+**`F17` is the current ★FOCUS — ungated, runnable now.** Advanced 2026-09-22 at `F16`'s
 fold-back (#50): `F16` had taken the ★ at `F21`'s fold-back (#47) and shipped the
 status-bucketed quota sort together with the one shared status classifier,
 `classifyStatus(daysSince, frequency)` in `frontend/src/utils/choreBarMath.ts` (Standing
@@ -254,7 +254,7 @@ returns to `F15` (gated) by the usual fold-back. `F6`'s alias is live — pi-kio
 > where it steers future work: the Baseline, the Standing invariants, the Legacy →
 > current ID map, and the kept contracts under Completed-Feature Contracts below.
 
-### Remaining (current numbering, incl. `F15`–`F22`; reassessed against current `main` at the 2026-09-20 `/new-feature` reconciles — batch closed at `F21`; `F22` added singly the same day; `F21` shipped #46 on 2026-09-22 and `F16` shipped #50 on 2026-09-23, both leaving the table)
+### Remaining (current numbering, incl. `F15`–`F22`; reassessed against current `main` at the 2026-09-20 `/new-feature` reconciles — batch closed at `F21`; `F22` added singly the same day; `F21` shipped #46 on 2026-09-22 and `F16` shipped #50 on 2026-09-22, both leaving the table)
 
 | Order | Feature | Effort | Depends on | Track |
 |---|---|---|---|---|
@@ -274,7 +274,7 @@ returns to `F15` (gated) by the usual fold-back. `F6`'s alias is live — pi-kio
 Total ≈ **12–15 pts**. (S=1 / M=2 / L=3 / XL=5.) F15/F17/F18/F19/F20/F11/F12 were re-checked
 against `main` at #44 for `F21`'s add, and all of them again for `F22`'s: nothing
 landed since their last estimate (same day), so their scores stand; `F21` itself shipped
-#46 (2026-09-22) at its estimated S–M and left the tally; `F16` shipped #50 (2026-09-23) at
+#46 (2026-09-22) at its estimated S–M and left the tally; `F16` shipped #50 (2026-09-22) at
 its estimated M and left it too. `F17` stays **S–M** (if anything slightly lighter: the
 shared classifier it would otherwise have extracted already exists). `F22` is **S–M**: one
 `OverlayScrollbar` component + a `useScrollIndicator(ref)` hook (scroll metrics → thumb
@@ -352,14 +352,11 @@ pi-kiosk repo's own planning, not here.
 | F12 — redo *(re-scoped 2026-07-15)* | pending *(gated on F11 + same external gate)* | `feature/redo` | — |
 | F3 · F7 · F8 · F9 · F10 · F13 — device-control console + controls | **superseded** *(2026-07-15 — migrated to pi-kiosk; branches never created)* | — | — |
 
-**Branch/dir cleanup:** `F16` (#50, merged 2026-09-23) is the one outstanding sweep —
+**Branch/dir cleanup:** `F16` (#50, merged 2026-09-22) is the one outstanding sweep —
 `plans/feature/status-bucketed-sort/` (plan + review + push-review) awaits its
 `/compact-plans` freeze under `plans/completed/`, and its five non-blocking push-review
-minors (in `reviews/push-review-feature-status-bucketed-sort.md`: compute `remainingRatio`
-once in `choreBarMath.ts`, rename the single-letter `s` callback in `classifyStatus`, pin
-the `statusColors` last-threshold-is-`-Infinity` invariant in a test, give `.gitignore`'s
-`graphify-out/*` its own comment, and an optional e2e fold-order assertion) await
-harvesting into `plans/PUSH-REVIEW-FINDINGS.md`; the local `feature/status-bucketed-sort`
+minors (`reviews/push-review-feature-status-bucketed-sort.md`; listed under *`F16`
+follow-ups* below) await harvesting into `plans/PUSH-REVIEW-FINDINGS.md`; the local `feature/status-bucketed-sort`
 branch is prunable, as are the local `chore/compact-plans-before-f16` (#48) and
 `chore/compact-plans-batched-cadence` (#49) branches (GitHub auto-deleted the remote side
 of each on merge — verify with `gh api` before pruning). Everything before it was clean as
@@ -623,7 +620,7 @@ invariants on its own small follow-up PR. It never starts a second feature.
   `console.error` for swallowed background re-pull failures in `loadChores`; the accepted
   mount-time date default) were harvested into `plans/PUSH-REVIEW-FINDINGS.md` (section
   F21) by the 2026-09-22 sweep (#48).
-- **`F16` follow-ups** *(from #50, 2026-09-23)*: (a) **on-Pi tuning of the sort constants**
+- **`F16` follow-ups** *(from #50, 2026-09-22)*: (a) **on-Pi tuning of the sort constants**
   — `SORT_FOLD`, `SORT_BASE_QUOTA`, `SORT_PRESSURE_THRESHOLD` and `SORT_URGENCY_MULTIPLIER`
   in `frontend/src/assets/constants.ts` are first guesses (F16's open risk (a)); tune them
   with real household data via the day simulator and record the final values in that file
@@ -692,7 +689,7 @@ local-to-the-kiosk semantics forward).
 > are retained as banners + history only. `F11`/`F12` remain here, re-scoped; `F15` is new;
 `F16`–`F21` were added 2026-09-20 (`F20` reworks the shipped `F2` lock; `F21` promoted the
 `F2-L` follow-up list, held the ★ and shipped #46 on 2026-09-22; `F16` then held the ★ and
-shipped #50 on 2026-09-23 — neither has a section below); `F22` was added singly later that
+shipped #50 on 2026-09-22 — neither has a section below); `F22` was added singly later that
 day.
 
 ## F3 — Settings / device-control panel (container)  ·  SUPERSEDED 2026-07-15 (migrated to pi-kiosk)
@@ -830,7 +827,7 @@ for the non-root user service; portrait-only toggle; host-bridge file-watch mech
 
 ---
 
-## F15 — Adopt kiosk-shell (remove F1/F2 overlays + embeddability guarantee)  ·  kiosk-track head — gated (★ moved to `F21` 2026-09-20, then to `F16` at `F21`'s 2026-09-22 fold-back, then to `F17` at `F16`'s 2026-09-23 fold-back)  ·  Effort M  ·  (added 2026-07-15)
+## F15 — Adopt kiosk-shell (remove F1/F2 overlays + embeddability guarantee)  ·  kiosk-track head — gated (★ moved to `F21` 2026-09-20, then to `F16` at `F21`'s 2026-09-22 fold-back, then to `F17` at `F16`'s 2026-09-22 fold-back)  ·  Effort M  ·  (added 2026-07-15)
 
 **Goal.** Complete chores4irl's side of the kiosk-layer extraction: once the pi-kiosk
 shell reproduces the blank/lock behavior in front of the iframe-embedded app, remove the
@@ -974,7 +971,7 @@ simulator and search bar already compete for. Ledger item: `F17` in
 - **Standalone.** No collapse/hide toggle for the top section — explicitly kept out of
   scope (a later `/new-feature` if crowding persists once the strip is in).
 
-**Rank rationale.** ★FOCUS since 2026-09-23, when `F16` — the ★ since `F21`'s fold-back —
+**Rank rationale.** ★FOCUS since 2026-09-22, when `F16` — the ★ since `F21`'s fold-back —
 shipped #50 and the ★ advanced to the next soft-order item (see *Where the rollout
 stands*). Ungated; the user's second ask of the 2026-09-20 batch. It was soft-ordered after
 `F16` only because both need one shared status classifier; `F16` delivered it —
