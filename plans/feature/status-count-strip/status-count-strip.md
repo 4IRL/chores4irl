@@ -203,7 +203,7 @@ Create `frontend/src/components/nav/StatusCountStrip.tsx`, test-first.
 Render the strip immediately after `NavBar`, fed from `searchFilteredChores` + `simulatedDate`.
 
 **To-do:**
-- [ ] **Red:** create `frontend/src/__tests__/App.statusStrip.test.tsx` by cloning the header
+- [x] **Red:** — COMPLETE (2026-09-23): 6 cases written, all failed (no `status-count-strip`). create `frontend/src/__tests__/App.statusStrip.test.tsx` by cloning the header
   of `App.sync.test.tsx` (the `choreApi` `vi.mock`, the hoisted stable `mockDay = new Date(2025,
   0, 15, 12, 0, 0)` `useMidnightClock` mock, the inert `useScreenBlank` / `useTouchLock` mocks,
   and the `beforeEach` `FakeEventSource.instances = []` + `vi.stubGlobal('EventSource',
@@ -248,7 +248,7 @@ Render the strip immediately after `NavBar`, fed from `searchFilteredChores` + `
     `Scrub`/Bathroom, room tab left on All); `await user.type(screen.getByPlaceholderText('Search
     for a chore'), 'Scr')` → `await waitFor` label `'0 done today · 0 due soon · 1 overdue'`.
   Run `cd frontend && npx vitest run src/__tests__/App.statusStrip.test.tsx` → fails (no strip).
-- [ ] **Green:** in `frontend/src/App.tsx`:
+- [x] **Green:** — COMPLETE (2026-09-23): 6/6 pass. in `frontend/src/App.tsx`:
   - add `import StatusCountStrip from './components/nav/StatusCountStrip';` after the `NavBar`
     import (`App.tsx:9`) and `import { countStatuses } from './utils/choreStatusCounts';` next to
     the existing relative `./utils/choreSort` import (`App.tsx:8`);
@@ -261,7 +261,7 @@ Render the strip immediately after `NavBar`, fed from `searchFilteredChores` + `
     `useMemo` edits above), so match on the text. Touch nothing else (re-sort triggers unchanged — Standing
     invariant 15).
   Re-run the new file → all pass.
-- [ ] **Regression:** run `npm test --workspace frontend` — all existing suites (notably
+- [x] **Regression:** — COMPLETE (2026-09-23): 344 tests / 35 files pass (+6 new); tsc clean; lint clean. run `npm test --workspace frontend` — all existing suites (notably
   `App.test.tsx`, `App.search.test.tsx`, `App.sync.test.tsx`) stay green; total count rises by
   the new tests only. `npx tsc --noEmit -p frontend/tsconfig.json` (repo root) and `npm run lint`
   clean.

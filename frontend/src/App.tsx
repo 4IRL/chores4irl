@@ -6,7 +6,9 @@ import { useChoreEvents } from './hooks/useChoreEvents';
 import { useScreenBlank } from './hooks/useScreenBlank';
 import { useTouchLock } from './hooks/useTouchLock';
 import { orderChores } from './utils/choreSort';
+import { countStatuses } from './utils/choreStatusCounts';
 import NavBar from './components/nav/NavBar';
+import StatusCountStrip from './components/nav/StatusCountStrip';
 import DateNavigationBanner from './components/nav/DateNavigationBanner';
 import ReturnToTodayButton from './components/nav/ReturnToTodayButton';
 import ChoreList from './components/chore/ChoreList';
@@ -179,6 +181,11 @@ export default function App() {
         if (query === '') return filteredChores;
         return filteredChores.filter(c => c.name.toLowerCase().includes(query));
     }, [filteredChores, searchQuery]);
+    // F17: live tally of the visible list for the displayed day — from choreData, never sortedIds.
+    const statusCounts = useMemo(
+        () => countStatuses(searchFilteredChores, simulatedDate),
+        [searchFilteredChores, simulatedDate]
+    );
     const orderedChores = useMemo(() => {
         const choreMap = new Map(searchFilteredChores.map(c => [c.id, c]));
         return sortedIds
@@ -336,6 +343,7 @@ export default function App() {
             <TouchLockIndicator isLocked={isLocked} />
             <div className="flex flex-col h-full overflow-hidden bg-gray-900 px-4 pt-4">
                 <NavBar rooms={uniqueRooms} selectedRoom={selectedRoom} onSelect={setSelectedRoom} />
+                <StatusCountStrip counts={statusCounts} />
                 <DateNavigationBanner
                     simulatedDate={simulatedDate}
                     dayOffset={dayOffset}
