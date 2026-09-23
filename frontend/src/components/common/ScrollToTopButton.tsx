@@ -11,14 +11,12 @@ export const FADE_MS = 500;
 
 // bottom-40 (10 rem) = the F5 deck's ~5 rem footprint (py-4 + the 44 px
 // button ≈ 81 px) + its 4 rem -top-16 frosted overhang: the same 10 rem that
-// scroll-pb-40 declares and Toast uses (Standing invariants 12 & 14). right-4
-// is 1 rem in from the frame's right edge; the frame currently sits inside the
-// column's px-4, so today the button rests 1 rem inside the bars' right edge
-// (2 rem from the screen). Once F22 makes the frame full-bleed it lands 1 rem
-// from the screen edge, aligned with the bars' re-applied inset, with no F22
-// change needed. Tailwind needs literal class strings, so this constant is the
-// class string, not a number.
-const OFFSET_CLASSES = 'bottom-40 right-4';
+// scroll-pb-40 declares and Toast uses (Standing invariants 12 & 14). The
+// button is centred in the frame (left-1/2 -translate-x-1/2), so it shares the
+// bottom-centre line with Toast: a toast (z-[80], later in DOM) covers the
+// button while it shows. Tailwind needs literal class strings, so this constant
+// is the class string, not a number.
+const OFFSET_CLASSES = 'bottom-40 left-1/2 -translate-x-1/2';
 
 type ScrollToTopButtonProps = {
     scrollRegionRef: RefObject<HTMLDivElement | null>;
@@ -66,7 +64,7 @@ export default function ScrollToTopButton({ scrollRegionRef }: ScrollToTopButton
             tabIndex={isInteractive ? 0 : -1}
             inert={!isInteractive}
             onClick={handleClick}
-            className={`absolute ${OFFSET_CLASSES} flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-gray-700/70 text-white shadow-lg transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}${isInteractive ? '' : ' pointer-events-none'}`}
+            className={`absolute ${OFFSET_CLASSES} flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-gray-800 text-white shadow-lg transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}${isInteractive ? '' : ' pointer-events-none'}`}
         >
             <ArrowUp className="w-5 h-5" aria-hidden="true" />
         </button>

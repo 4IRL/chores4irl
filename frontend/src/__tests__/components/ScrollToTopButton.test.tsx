@@ -176,13 +176,15 @@ describe('ScrollToTopButton (F18)', () => {
         expect(scrollToMock.mock.contexts[0]).toBe(screen.getByTestId('scroller'));
     });
 
-    it('is absolutely positioned bottom-right with a 44 px touch target, a 500 ms fade and no z-index', () => {
+    it('is absolutely positioned bottom-centre, opaque, with a 44 px touch target, a 500 ms fade and no z-index', () => {
         render(<Harness />);
 
         const { className } = screen.getByTestId('scroll-to-top');
-        for (const token of ['absolute', 'right-4', 'bottom-40', 'rounded-full', 'transition-opacity', 'duration-500', 'min-h-[44px]', 'min-w-[44px]']) {
+        for (const token of ['absolute', 'bottom-40', 'left-1/2', '-translate-x-1/2', 'bg-gray-800', 'rounded-full', 'transition-opacity', 'duration-500', 'min-h-[44px]', 'min-w-[44px]']) {
             expect(className).toContain(token);
         }
+        expect(className).not.toMatch(/\bright-/);
+        expect(className).not.toMatch(/bg-\S+\/\d+/);
         expect(className).not.toMatch(/\bz-/);
     });
 });

@@ -615,14 +615,35 @@ verified it)" confirmation covers them.
 - The button never intercepts bar taps once its fade-out has ended (it is `pointer-events-none` +
   `inert` then). A re-tap during the ~0.5 s fade-out lands on the fading button and just scrolls to
   the top again; it must not complete the bar beneath.
-- A left (edit) swipe that starts at a bar's right end inside the button's band (≈ 160–204 px above
-  the bottom of the scroll region, `bottom-40` + the 44 px button) while the button is visible: on
-  the 600 px-wide Pi this band overlaps bars' right ends — a known, accepted overlap; observe and
-  report whether the swipe starts, the tap lands on the button, or neither happens (desktop Chromium
-  CDP touch probe at 600×1024: neither — the touch never reaches the bar and a moved touch fires no click).
+- A swipe or tap that starts on the middle of a bar inside the button's band (≈ 160–204 px above
+  the bottom of the scroll region, `bottom-40` + the 44 px button) while the button is visible:
+  since the post-review amendment below the button sits bottom-centre, so it covers the middle
+  44 px of whichever bar is in that band — a known, accepted overlap; observe and report whether the
+  swipe starts, the tap lands on the button, or neither happens. (Pre-amendment desktop Chromium CDP
+  touch probe at 600×1024, button bottom-right: neither — the touch never reaches the bar and a
+  moved touch fires no click.)
+- While a feedback toast shows (bottom-centre, same `bottom-40` line), it covers the button; the
+  button is usable again once the toast dismisses.
 - A flick-scroll that starts on the visible button still scrolls the list, or report that the
   button is a small scroll dead zone. (Desktop Chromium CDP touch probe at 600×1024: a flick starting
   on the button scrolled the list, 150 → 179 px, with no click.)
+
+## Post-review amendment (2026-09-23, PR #54)
+After reviewing PR #54, the user changed the button's placement and fill. The rest of the design is
+unchanged: threshold, two-phase fade/interactivity, reduced-motion scroll, frame and ref.
+- **Placement:** bottom-centre instead of bottom-right. `OFFSET_CLASSES` is now `bottom-40 left-1/2
+  -translate-x-1/2`. The button shares the F21 toast's bottom-centre `bottom-40` line, and the
+  toast (`z-[80]`, later in DOM) covers the button while it shows. The user chose this over
+  raising the button above the toast. This supersedes DD-1 (`right-4`) and Standing invariant 14's
+  "bottom-right vs bottom-centre" clause. At Phase C, fold it into invariant 14: F18's button
+  shares the toast's bottom-centre line, and the toast covers it.
+- **Fill:** opaque `bg-gray-800` (chore-bar tone) instead of translucent `bg-gray-700/70`. The
+  500 ms fade is kept. Smoke's `.bg-gray-800.rounded-full` bar locators now also match the button
+  (`rounded-full bg-gray-800`). They stay correct because every one uses `.first()` (the button
+  comes after the bars in the DOM) or filters with `hasText` (the button is icon-only).
+- **Verified:** vitest 366/366 (Step 2 case 7 now asserts `left-1/2`, `-translate-x-1/2` and
+  `bg-gray-800`, and rejects `right-*` and translucent `bg-*/NN`). Lint, tsc and build are clean,
+  and `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test` gives 15 passed.
 
 ## Status
 finished: true
