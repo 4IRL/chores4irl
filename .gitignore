@@ -42,6 +42,7 @@ playwright-report/
 # stays untracked
 .claude/*
 !.claude/skills/
+graphify-out/*
 
 # Planning scratch — subagent review working files are regenerated each run;
 # never commit them (the durable plan/review docs alongside them are fine to track)

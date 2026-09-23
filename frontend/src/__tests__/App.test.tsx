@@ -439,7 +439,7 @@ describe('frozen sort order', () => {
     });
 
     it('adding a chore appends it to the end without re-sorting', async () => {
-        // choreB is more urgent than choreA — on load, orderChores puts choreB first
+        // choreB is further overdue (red) than choreA — on load, orderChores puts choreB first
         const choreA = makeChore({ id: 1, name: 'Chore A', dateLastCompleted: new Date(2025, 0, 14), duration: 10, frequency: 7 });
         const choreB = makeChore({ id: 2, name: 'Chore B', dateLastCompleted: new Date(2024, 11, 1), duration: 10, frequency: 7 });
         vi.mocked(fetchAllChores).mockResolvedValue([choreA, choreB]);
@@ -452,7 +452,7 @@ describe('frozen sort order', () => {
 
         await waitFor(() => expect(screen.getAllByTestId('chore-bar')).toHaveLength(2));
 
-        // Verify initial frozen order: choreB (most urgent) first, choreA second
+        // Verify initial frozen order: choreB (red, furthest overdue) first, choreA second
         const namesBefore = screen.getAllByTestId('chore-bar').map(el =>
             el.textContent?.match(/Chore [AB]/)?.[0] ?? ''
         );
@@ -470,7 +470,7 @@ describe('frozen sort order', () => {
 
         await waitFor(() => expect(screen.getAllByTestId('chore-bar')).toHaveLength(3));
 
-        // Chore C must appear at the END — frozen sort order, not re-sorted by urgency
+        // Chore C must appear at the END — frozen sort order, not re-sorted
         const namesAfter = screen.getAllByTestId('chore-bar').map(el =>
             el.textContent?.match(/Chore [ABC]/)?.[0] ?? ''
         );
@@ -492,7 +492,7 @@ describe('frozen sort order', () => {
 
         await waitFor(() => expect(screen.getAllByTestId('chore-bar')).toHaveLength(2));
 
-        // Capture initial rendered order before delete (order depends on real clock initial sort)
+        // Capture initial rendered order before delete (initial sort at mocked MOCK_DAY)
         const orderBefore = screen.getAllByTestId('chore-bar').map(el =>
             el.textContent?.match(/Chore [AB]/)?.[0] ?? ''
         );
@@ -516,16 +516,20 @@ describe('frozen sort order', () => {
     });
 
     it('midnight re-sort recalculates sortedIds when day advances', async () => {
-        // The initial fetch effect in App.tsx calls `new Date()` directly (not the mocked day),
-        // so the initial sort order is unpredictable in tests. Drive ordering exclusively via
-        // [day]-effect rerenders. Use three day values:
-        //   MOCK_DAY → data loads → advance to day1 → [day] effect fires → advance to day2 → [day] effect fires
+        // The initial load sorts via reconcileChores at the mocked MOCK_DAY (Jan 15): A green,
+        // B red → [B, A]; the test then drives re-sorts via [simulatedDate]-effect rerenders.
+        // Use three day values:
+        //   MOCK_DAY → data loads → advance to day1 → [simulatedDate] effect fires → advance to day2 → [simulatedDate] effect fires
         //
         // choreA: dateLastCompleted=Jan 15, freq=1, dur=10
-        //   day1(Jan 16) score: 10*(1/1)=10;   day2(Jan 20) score: 10*(5/1)=50
+        //   day1(Jan 16): daysSince 1 / freq 1 → orange (due, not overdue)
+        //   day2(Jan 20): daysSince 5 / freq 1 → red, overdueRatio (5−1)/1 = 4
         // choreB: dateLastCompleted=Jan 5, freq=7, dur=10
-        //   day1(Jan 16) score: 10*(11/7)≈15.7; day2(Jan 20) score: 10*(15/7)≈21.4
-        //   → day1 order: [B, A];  day2 order: [A, B]
+        //   day1(Jan 16): daysSince 11 / freq 7 → red, overdueRatio 4/7
+        //   day2(Jan 20): daysSince 15 / freq 7 → red, overdueRatio 8/7
+        //   → day1 order: [B, A] (red before orange);  day2 order: [A, B] (both red, 4 > 8/7)
+        // day1's order equals the initial order, so the day2 flip is the assertion that
+        // proves the re-sort.
         const day1 = new Date(2025, 0, 16, 12, 0, 0); // one day after MOCK_DAY
         const day2 = new Date(2025, 0, 20, 12, 0, 0);
 
@@ -536,7 +540,7 @@ describe('frozen sort order', () => {
         const { rerender } = render(<App />); // starts with MOCK_DAY = Jan 15
         await waitFor(() => expect(screen.getAllByTestId('chore-bar')).toHaveLength(2));
 
-        // Advance to day1 (Jan 16): [day] effect fires, re-sorts at day1 → [B, A]
+        // Advance to day1 (Jan 16): [simulatedDate] effect fires, re-sorts at day1 → [B, A]
         mockUseMidnightClock.mockReturnValue(day1);
         rerender(<App />);
 
@@ -546,7 +550,7 @@ describe('frozen sort order', () => {
             )).toEqual(['Chore B', 'Chore A']);
         });
 
-        // Advance to day2 (Jan 20): [day] effect fires again, re-sorts at day2 → [A, B]
+        // Advance to day2 (Jan 20): [simulatedDate] effect fires again, re-sorts at day2 → [A, B]
         mockUseMidnightClock.mockReturnValue(day2);
         rerender(<App />);
 

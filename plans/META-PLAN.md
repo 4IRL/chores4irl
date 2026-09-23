@@ -338,7 +338,7 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| **F16 — status-bucketed midnight re-sort** ★FOCUS *(added 2026-09-20)* | pending *(ungated — runnable now)* | `feature/status-bucketed-sort` | — |
+| **F16 — status-bucketed midnight re-sort** ★FOCUS *(added 2026-09-20)* | in-review | `feature/status-bucketed-sort` | [#50](https://github.com/4IRL/chores4irl/pull/50) |
 | F17 — status-count strip *(added 2026-09-20)* | pending *(ungated; soft after F16)* | `feature/status-count-strip` | — |
 | F18 — scroll-to-top button *(added 2026-09-20)* | pending *(ungated; soft after F17)* | `feature/scroll-to-top` | — |
 | F22 — fading overlay scrollbar + full-bleed scroll region *(added 2026-09-20, after the batch closed)* | pending *(ungated; soft after F18)* | `feature/overlay-scrollbar` | — |

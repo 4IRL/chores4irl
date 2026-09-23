@@ -1,4 +1,5 @@
-import { statusColors } from '@assets/constants';
+import { statusColors, STATUS_BAR_COLOR } from '@assets/constants';
+import type { ChoreStatus } from '@assets/constants';
 
 export type BarMathResult = {
     isOverdue: boolean;
@@ -10,8 +11,17 @@ export type BarMathResult = {
     barColor: string;
 };
 
+// The one status classifier, shared by the timer bar (computeBar) and orderChores (F16).
+// Thresholds live here and in statusColors — never duplicated in the sort.
+export function classifyStatus(daysSince: number, frequency: number): ChoreStatus {
+    if (frequency > 0 && daysSince > frequency) return 'red';
+    const remainingRatio = frequency > 0 ? (frequency - daysSince) / frequency : 1;
+    return (statusColors.find(s => remainingRatio > s.threshold) ?? statusColors[statusColors.length - 1]).status;
+}
+
 export function computeBar(daysSince: number, frequency: number): BarMathResult {
-    const isOverdue = frequency > 0 && daysSince > frequency;
+    const status = classifyStatus(daysSince, frequency);
+    const isOverdue = status === 'red';
     const remainingRatio = frequency > 0 ? (frequency - daysSince) / frequency : 1;
 
     let barWidth: number;
@@ -25,13 +35,7 @@ export function computeBar(daysSince: number, frequency: number): BarMathResult 
         barWidth = Math.min(growthRatio, 1) * 100;
     }
 
-    let barColor: string;
-    if (isOverdue) {
-        barColor = 'bg-red-500';
-    } else {
-        const match = statusColors.find(s => remainingRatio > s.threshold);
-        barColor = (match ?? statusColors[statusColors.length - 1]).color;
-    }
+    const barColor = STATUS_BAR_COLOR[status];
 
     return { isOverdue, remainingRatio, barWidth, barColor };
 }
