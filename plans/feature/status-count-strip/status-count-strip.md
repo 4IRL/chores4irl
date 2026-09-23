@@ -270,7 +270,7 @@ Render the strip immediately after `NavBar`, fed from `searchFilteredChores` + `
 Describe the strip in the UI overview prose.
 
 **To-do:**
-- [ ] In the repo-root `README.md` (not `deploy/pi/README.md` or `.github/rulesets/README.md`),
+- [x] — COMPLETE (2026-09-23): paragraph added at `README.md:44-46`; grep verified. In the repo-root `README.md` (not `deploy/pi/README.md` or `.github/rulesets/README.md`),
   immediately after the timer-bar paragraph ending "…preview how the bars
   will look on future days." (`README.md:40-42`, before `### Adding and editing chores`), add a
   new paragraph wrapped at ~95 chars, e.g.: "A thin strip under the room tabs tallies the visible

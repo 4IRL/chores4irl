@@ -41,6 +41,10 @@ Each chore renders as a timer bar that drains as its due date approaches and tur
 overdue (`frontend/src/utils/choreBarMath.ts`). The displayed date can be stepped forward to
 preview how the bars will look on future days.
 
+A thin strip under the room tabs tallies the visible list for the displayed day — green = done
+today, orange = due soon, red = overdue — with segment widths proportional to the counts
+(`frontend/src/components/nav/StatusCountStrip.tsx`).
+
 ### Adding and editing chores
 
 - **Dates are local calendar days** — the form's Last Completed field is parsed and shown as
