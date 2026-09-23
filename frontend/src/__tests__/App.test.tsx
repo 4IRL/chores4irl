@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
@@ -776,6 +776,77 @@ describe('Add Task deck (F5)', () => {
         expect(scrollRegion!.contains(deck)).toBe(true);
         expect(scrollRegion!.lastElementChild).toBe(deck);
         expect(within(deck).getByRole('button', { name: /add task/i })).toBeInTheDocument();
+    });
+});
+
+describe('scroll-to-top button (F18)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore()]);
+        Element.prototype.scrollTo = vi.fn();
+    });
+
+    afterEach(() => {
+        delete (Element.prototype as Partial<Element>).scrollTo;
+    });
+
+    it('renders the button in a positioned frame beside, not inside, the unchanged scroll region', async () => {
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        const button = screen.getByTestId('scroll-to-top');
+        const region = document.querySelector('.overflow-y-auto') as HTMLElement | null;
+        expect(region).not.toBeNull();
+        expect(document.querySelectorAll('.overflow-y-auto')).toHaveLength(1);
+        expect(region!.contains(button)).toBe(false);
+
+        const frame = screen.getByTestId('scroll-region-frame');
+        expect(button.parentElement).toBe(frame);
+        expect(frame.className).toContain('relative');
+        expect(frame.contains(region)).toBe(true);
+
+        // F18's spec requires the scroller's class string to stay byte-identical.
+        expect(region!.className).toBe('flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40');
+        expect(region!.lastElementChild).toBe(screen.getByTestId('add-task-deck'));
+    });
+
+    it('is hidden and non-interactive immediately on load', async () => {
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        const button = screen.getByTestId('scroll-to-top');
+        expect(button.getAttribute('aria-hidden')).toBe('true');
+        expect(button).toHaveAttribute('inert');
+        expect(button.tabIndex).toBe(-1);
+        expect(button.className).toContain('opacity-0');
+        expect(button.className).toContain('pointer-events-none');
+    });
+
+    it('shows once the region is scrolled and scrolls the region to the top without touching filters', async () => {
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        const region = document.querySelector('.overflow-y-auto') as HTMLElement;
+        region.scrollTop = 200;
+        fireEvent.scroll(region);
+
+        const button = screen.getByTestId('scroll-to-top');
+        expect(button.className).toContain('opacity-100');
+        expect(button).not.toHaveAttribute('inert');
+
+        fireEvent.click(button);
+
+        const scrollToMock = vi.mocked(Element.prototype.scrollTo);
+        expect(scrollToMock).toHaveBeenCalledTimes(1);
+        expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+        expect(scrollToMock.mock.contexts[0]).toBe(region);
+
+        expect(screen.getByText('Sweep')).toBeInTheDocument();
+        expect((screen.getByLabelText('Search for a chore') as HTMLInputElement).value).toBe('');
+        expect(screen.queryByText('Return to today')).toBeNull();
     });
 });
 

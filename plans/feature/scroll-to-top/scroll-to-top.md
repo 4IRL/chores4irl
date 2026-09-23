@@ -379,7 +379,7 @@ Presentational button that consumes the hook and scrolls the ref'd container to 
 Wire the button into App outside the scroller, inside one new positioned frame.
 
 **To-do:**
-- [ ] **Red:** in `frontend/src/__tests__/App.test.tsx`, first add `afterEach` to the line-1 vitest import
+- [x] **Red:** in `frontend/src/__tests__/App.test.tsx`, first add `afterEach` to the line-1 vitest import
   (`import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';` — vitest `globals: true`
   hides the omission at runtime but `tsc --noEmit -p frontend` fails with TS2304). Then add `describe('scroll-to-top button (F18)', …)`
   after the `'Add Task deck (F5)'` block, with `beforeEach` `vi.clearAllMocks()` +
@@ -400,7 +400,7 @@ Wire the button into App outside the scroller, inside one new positioned frame.
      `vi.mocked(Element.prototype.scrollTo).mock.contexts[0]` is `region`, and leaves filters untouched (the
      `Sweep` bar is still rendered, `(screen.getByLabelText('Search for a chore') as HTMLInputElement).value` is unchanged `''` (the input is `type="text"`, role `textbox`), and the day offset is untouched (`expect(screen.queryByText('Return to today')).toBeNull()`)).
   Run `(cd frontend && npx vitest run src/__tests__/App.test.tsx)` → new cases fail.
-- [ ] **Green:** in `frontend/src/App.tsx`:
+- [x] **Green:** in `frontend/src/App.tsx`:
   - `import ScrollToTopButton from './components/common/ScrollToTopButton';` alongside the other
     `components/common` imports.
   - Declare `const scrollRegionRef = useRef<HTMLDivElement>(null);` near the other refs, with a
@@ -415,9 +415,10 @@ Wire the button into App outside the scroller, inside one new positioned frame.
     deck's region; one frame only.
   Re-run `App.test.tsx` → green. Then, from the repo root, run `npm run lint` and
   `npx tsc --noEmit -p frontend` — both exit 0.
-- [ ] Run `(cd frontend && npx vitest run src/__tests__/App.search.test.tsx src/__tests__/App.test.tsx)`
+- [x] Run `(cd frontend && npx vitest run src/__tests__/App.search.test.tsx src/__tests__/App.test.tsx)`
   and confirm the F5 deck tests and the F9 "search input is outside the scroll region" test pass
   unchanged.
+  - ✅ Step 3 COMPLETE (2026-09-23): red confirmed (3 new F18 cases failed: no `scroll-to-top`/`scroll-region-frame`); App.tsx wired (single `scrollRegionRef`, `scroll-region-frame` wrapper, button as frame's last child, scroller class string byte-identical); App.search 10/10 + App.test 45/45 (F5 deck tests and F9 "renders the search input above the scrollable chores list" pass unchanged); full vitest 342/342; `npm run lint` and `npx tsc --noEmit -p frontend` exit 0. Review: 3/3 PASS, no fixes.
 
 ### 4. README one-liner
 Document the button in the repo-root README's `## How prioritization works` section (META-PLAN's
