@@ -229,7 +229,7 @@ Create a reusable hook that reports whether a ref'd scroll element is scrolled p
 Presentational button that consumes the hook and scrolls the ref'd container to the top.
 
 **To-do:**
-- [ ] **Red:** create `frontend/src/__tests__/components/ScrollToTopButton.test.tsx`. Harness:
+- [x] **Red:** create `frontend/src/__tests__/components/ScrollToTopButton.test.tsx`. Harness:
   a test component that renders `<div data-testid="scroller" ref={ref} />` then
   `<ScrollToTopButton scrollRegionRef={ref} />` (`ref = useRef<HTMLDivElement>(null)`), so the
   ref is attached before the button's effect, mirroring App. Import the default export plus the
@@ -282,7 +282,7 @@ Presentational button that consumes the hook and scrolls the ref'd container to 
   case would fail against correct code. The attribute is asserted here and its behaviour in
   Chromium (Step 5, plus the Decisions probe).
   Run `(cd frontend && npx vitest run src/__tests__/components/ScrollToTopButton.test.tsx)` → fails.
-- [ ] **Green:** create `frontend/src/components/common/ScrollToTopButton.tsx` with exactly this
+- [x] **Green:** create `frontend/src/components/common/ScrollToTopButton.tsx` with exactly this
   content (the Step 6 greps count strings in it; `type ScrollToTopButtonProps = {…}` follows the
   `type <Component>Props` convention of `ClearButton.tsx`/`Toast.tsx`):
   ```tsx
@@ -369,10 +369,11 @@ Presentational button that consumes the hook and scrolls the ref'd container to 
   `npm run lint` and `npx tsc --noEmit -p frontend` (both exit 0).
   Re-run the test file → green. Then, from the repo root, run `npm run lint` and
   `npx tsc --noEmit -p frontend` — both exit 0.
-- [ ] **Refactor:** match `ClearButton.tsx`/`Toast.tsx` style (4-space indent, comment density),
+- [x] **Refactor:** match `ClearButton.tsx`/`Toast.tsx` style (4-space indent, comment density),
   keeping the strings the Step 6 greps count (`inert={!isInteractive}`,
   `export const FADE_MS = 500;`, `transition-opacity duration-500`) intact; re-run → green; then
   from the repo root `npm run lint` and `npx tsc --noEmit -p frontend` — both exit 0.
+  - ✅ Step 2 COMPLETE (2026-09-23): red confirmed (module not found); component created verbatim from the Green block; 9/9 component cases green; full vitest 339/339; `npm run lint` and `npx tsc --noEmit -p frontend` exit 0. Review fix: renamed the test helper `scrollTo` → `scrollScrollerTo` so it isn't confused with the stubbed `Element.prototype.scrollTo`.
 
 ### 3. Shared `scrollRegionRef` + positioned frame in `App.tsx` (TDD)
 Wire the button into App outside the scroller, inside one new positioned frame.
