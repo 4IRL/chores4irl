@@ -342,7 +342,7 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| **F17 — status-count strip** ★FOCUS *(added 2026-09-20)* | pending *(ungated; F16's classifier shipped #50)* | `feature/status-count-strip` | — |
+| **F17 — status-count strip** ★FOCUS *(added 2026-09-20)* | in-review | `feature/status-count-strip` | [#52](https://github.com/4IRL/chores4irl/pull/52) |
 | F18 — scroll-to-top button *(added 2026-09-20)* | pending *(ungated; soft after F17)* | `feature/scroll-to-top` | — |
 | F22 — fading overlay scrollbar + full-bleed scroll region *(added 2026-09-20, after the batch closed)* | pending *(ungated; soft after F18)* | `feature/overlay-scrollbar` | — |
 | F20 — permissive touch lock *(added 2026-09-20; reworks shipped F2)* | pending *(ungated; soft after F22)* | `feature/permissive-lock` | — |
