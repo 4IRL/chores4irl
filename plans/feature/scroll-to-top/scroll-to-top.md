@@ -559,12 +559,12 @@ clock (21:00–06:00 blanks the app); do the same.
 Run the full suites and the expected-end-state checks.
 
 **To-do:**
-- [ ] `(cd frontend && npx vitest run)` — all suites green.
-- [ ] `npx tsc --noEmit -p frontend`,
+- [x] `(cd frontend && npx vitest run)` — all suites green.
+- [x] `npx tsc --noEmit -p frontend`,
   `npx tsc --noEmit --strict --module esnext --moduleResolution bundler --target es2022 --skipLibCheck --lib es2022,dom e2e/scroll-to-top.spec.ts`
   and `npm run lint` at the root — each exits 0.
-- [ ] `npm run build --workspace frontend` — builds cleanly.
-- [ ] Confirm `e2e/smoke.spec.ts` has no selector that counts buttons
+- [x] `npm run build --workspace frontend` — builds cleanly.
+- [x] Confirm `e2e/smoke.spec.ts` has no selector that counts buttons
   (`grep -nE "locator\('button'\)\.count|getAllByRole\('button'\)|toHaveCount" e2e/smoke.spec.ts`
   prints exactly 5 `toHaveCount` hits — lines 155, 177, 219, 278, 310 — all on
   `.bg-gray-800.rounded-full` chore-bar locators that cannot match the `bg-gray-700/70` button; any
@@ -587,7 +587,7 @@ Run the full suites and the expected-end-state checks.
   user decision/action: …` line (the token /run-plan 2b stops on), and stop — never tick it, kill
   listeners, drop `CI=1`, or edit `playwright.config.ts`. On a later run where the suite passes,
   delete that UNRESOLVED marker line before ticking the box.
-- [ ] Expected-end-state greps: `grep -rn 'data-testid="scroll-to-top"' frontend/src/components`
+- [x] Expected-end-state greps: `grep -rn 'data-testid="scroll-to-top"' frontend/src/components`
   (1 hit); `grep -n 'flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40' frontend/src/App.tsx`
   (1 hit, unchanged); `grep -rn "scrollRegionRef" frontend/src/App.tsx` (at least the declaration, the `ref=` and the prop; a comment naming it adds a line);
   `grep -n "SCROLL_TO_TOP_THRESHOLD_PX\|OFFSET_CLASSES" frontend/src/components/common/ScrollToTopButton.tsx` (4 lines: each constant's declaration and its one use);
@@ -596,12 +596,13 @@ Run the full suites and the expected-end-state checks.
   `grep -c "transition-opacity duration-500" frontend/src/components/common/ScrollToTopButton.tsx`
   (each prints `1`); `grep -c "getByTestId('scroll-to-top')" e2e/scroll-to-top.spec.ts` (prints `1`).
   (A `0` count exits 1 — that is a failed gate, not a tolerable miss.)
-- [ ] Investigate and fix any failures before marking the plan finished. After any fix, re-run
+- [x] Investigate and fix any failures before marking the plan finished. After any fix, re-run
   every earlier box in this step.
-- [ ] Copy the bullets of the "Manual Pi checks" section below verbatim into your final report
+- [x] Copy the bullets of the "Manual Pi checks" section below verbatim into your final report
   under the heading **Manual checks for the user (pre-merge)**. You cannot perform them. The
   `/run-feature` orchestrator puts them into the PR description as a `## Manual test plan` section
   (Decisions → DD-7). The copy lives only in your report, not in any file.
+  - ✅ Step 6 COMPLETE (2026-09-23): vitest 34 files / 342 tests green; `tsc --noEmit -p frontend`, standalone strict tsc on `e2e/scroll-to-top.spec.ts` and `npm run lint` exit 0; `npm run build --workspace frontend` clean (no warnings); smoke grep → exactly 5 `toHaveCount` hits at 155, 177, 219, 278, 310, all on `.bg-gray-800.rounded-full` chore-bar locators; `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test` → 15 passed, 0 failed, 0 flaky, no port conflict; all expected-end-state greps matched (1 testid hit, scroller class unchanged at App.tsx:357, `scrollRegionRef` at 66/357/381, 4 constant lines, each `grep -c` = 1). No fixes needed; Manual Pi checks copied into the executor report.
 
 ## Manual Pi checks (pre-merge, reported to the user — not executor checkboxes)
 These need a finger on the Pi's touchscreen, so no executor step performs or ticks them. No skill
@@ -624,4 +625,4 @@ verified it)" confirmation covers them.
   on the button scrolled the list, 150 → 179 px, with no click.)
 
 ## Status
-finished: false
+finished: true
