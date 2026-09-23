@@ -144,7 +144,7 @@ Create `frontend/src/utils/choreStatusCounts.ts`, test-first.
 Create `frontend/src/components/nav/StatusCountStrip.tsx`, test-first.
 
 **To-do:**
-- [ ] **Red:** create `frontend/src/__tests__/components/StatusCountStrip.test.tsx`
+- [x] **Red:** — COMPLETE (2026-09-23): 8 cases written (7 plan cases; accessible-label split in two), failed (module not found). create `frontend/src/__tests__/components/StatusCountStrip.test.tsx`
   (`{ describe, it, expect } from 'vitest'` (`frontend/tsconfig.json` type-checks tests and has no
   vitest-globals types); `render, screen` from `@testing-library/react`; `StatusCountStrip from
   '../../components/nav/StatusCountStrip'`; `{ STATUS_BAR_COLOR } from '@assets/constants'`).
@@ -169,7 +169,7 @@ Create `frontend/src/components/nav/StatusCountStrip.tsx`, test-first.
   - **layout/selector safety:** root class contains `flex-shrink-0`, does not contain
     `overflow-y-auto`, `rounded-full` or `bg-gray-800`; `queryAllByRole('button')` is empty.
   Run `cd frontend && npx vitest run src/__tests__/components/StatusCountStrip.test.tsx` → fails.
-- [ ] **Green:** create `frontend/src/components/nav/StatusCountStrip.tsx`:
+- [x] **Green:** — COMPLETE (2026-09-23): 8/8 pass. create `frontend/src/components/nav/StatusCountStrip.tsx`:
   - `import { STATUS_BAR_COLOR } from '@assets/constants';`
     `import type { ChoreStatus } from '@assets/constants';`
     `import type { StatusCounts } from '@utils/choreStatusCounts';`
@@ -194,7 +194,7 @@ Create `frontend/src/components/nav/StatusCountStrip.tsx`, test-first.
     (decision (b)) (refer to the tokens as `STATUS_BAR_COLOR`, never spell `bg-*-500` class
     names — the Refactor/verify grep matches comments).
   Re-run the test file → all pass.
-- [ ] **Refactor/verify:** `npx tsc --noEmit -p frontend/tsconfig.json` (repo root) and `npm run
+- [x] **Refactor/verify:** — COMPLETE (2026-09-23): tsc clean, lint clean, grep exit 1. `npx tsc --noEmit -p frontend/tsconfig.json` (repo root) and `npm run
   lint` clean; `grep -nE "bg-(red|orange|green)-500" frontend/src/components/nav/StatusCountStrip.tsx`
   (repo root) returns nothing (tokens come only from `STATUS_BAR_COLOR`; no output, exit 1 = pass; exit 2 = file missing = fail; run it
   standalone, not chained with `&&`).
