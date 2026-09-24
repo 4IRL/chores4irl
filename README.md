@@ -49,6 +49,10 @@ Once the list is scrolled down, a small ↑ button fades in at the bottom centre
 smoothly back to the top (instantly when the OS asks for reduced motion)
 (`frontend/src/components/common/ScrollToTopButton.tsx`).
 
+After 5 minutes without a touch the app locks — the top-left padlock closes and taps are
+ignored until a double-tap unlocks it (`frontend/src/hooks/useTouchLock.ts`).
+Locking also returns the view to the top of the list, the *All* tab, an empty search and today.
+
 ### Adding and editing chores
 
 - **Dates are local calendar days** — the form's Last Completed field is parsed and shown as

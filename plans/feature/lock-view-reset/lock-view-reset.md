@@ -202,14 +202,14 @@ Pin the negative contract and the interactions with shipped features. Each test 
 Add the lock paragraph that the root README lacks today, including the F19 line.
 
 **To-do:**
-- [ ] In the repo-root `README.md` (not `deploy/pi/README.md` or `.github/rulesets/README.md`) § `## How prioritization works`, add a paragraph right after the scroll-to-top paragraph (the one ending `…(\`frontend/src/components/common/ScrollToTopButton.tsx\`).`) and before `### Adding and editing chores`:
+- [x] In the repo-root `README.md` (not `deploy/pi/README.md` or `.github/rulesets/README.md`) § `## How prioritization works`, add a paragraph right after the scroll-to-top paragraph (the one ending `…(\`frontend/src/components/common/ScrollToTopButton.tsx\`).`) and before `### Adding and editing chores`:
   > After 5 minutes without a touch the app locks — the top-left padlock closes and taps are
   > ignored until a double-tap unlocks it (`frontend/src/hooks/useTouchLock.ts`).
   > Locking also returns the view to the top of the list, the *All* tab, an empty search and today.
 
   Keep the README's ~95-column hard wrap, and keep the phrase `Locking also returns the view` on a single line. F22's in-flight plan (sibling worktree `c4i-wt-overlay-scrollbar`) adds its overlay-scrollbar paragraph at the same anchor. If it has merged first, put this paragraph directly after F22's; on a rebase conflict, keep both paragraphs with F22's first. The `grep -c` gate below still returns `1`.
-- [ ] Confirm `grep -c 'Locking also returns the view' README.md` from the repo root → `1`.
-- [ ] Confirm `git status --porcelain` lists only `README.md` and the plan file (if not yet committed). If anything else is listed (other than a `_*` scratch file you created, which you delete), do not delete or revert it. Leave this box unticked, write directly under it `UNRESOLVED — requires user decision/action: unexpected files in working tree (<list>)`, end your final report with that same line, and stop. On a later run where the gate passes, delete that marker line before ticking the box.
+- [x] Confirm `grep -c 'Locking also returns the view' README.md` from the repo root → `1`.
+- [x] Confirm `git status --porcelain` lists only `README.md` and the plan file (if not yet committed). If anything else is listed (other than a `_*` scratch file you created, which you delete), do not delete or revert it. Leave this box unticked, write directly under it `UNRESOLVED — requires user decision/action: unexpected files in working tree (<list>)`, end your final report with that same line, and stop. On a later run where the gate passes, delete that marker line before ticking the box.
 
 ### 4. Verify All Tests Pass
 
