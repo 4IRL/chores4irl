@@ -26,7 +26,7 @@ vi.mock('../hooks/useMidnightClock', () => ({
 // useTouchLock is a separate hook under separate test — mocking it here
 // doesn't compromise this file's real-clock intent for screen-blank.
 vi.mock('../hooks/useTouchLock', () => ({
-    useTouchLock: () => ({ isLocked: false, arm: () => {} }),
+    useTouchLock: () => ({ isLocked: false, arm: () => {}, lock: () => {}, idleExpiries: 0 }),
 }));
 
 beforeEach(() => {

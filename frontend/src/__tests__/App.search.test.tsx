@@ -23,7 +23,7 @@ vi.mock('../hooks/useScreenBlank', () => ({
     useScreenBlank: () => ({ isBlanked: false, wake: () => {} }),
 }));
 vi.mock('../hooks/useTouchLock', () => ({
-    useTouchLock: () => ({ isLocked: false, arm: () => {} }),
+    useTouchLock: () => ({ isLocked: false, arm: () => {}, lock: () => {}, idleExpiries: 0 }),
 }));
 
 const renderedNames = () =>

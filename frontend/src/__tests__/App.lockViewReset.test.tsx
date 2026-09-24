@@ -31,8 +31,9 @@ vi.mock('../hooks/useTouchLock', async (importOriginal) => {
     return { ...actual, useTouchLock: mockUseTouchLock };
 });
 
-// Stable arm stub for the tests that hand-drive isLocked via mockReturnValue.
+// Stable arm/lock stubs for the tests that hand-drive isLocked via mockReturnValue.
 const mockArm = vi.hoisted(() => vi.fn());
+const mockLock = vi.hoisted(() => vi.fn());
 
 // Delegates to the real sort by default; spied on to observe re-sorts.
 const mockOrderChores = vi.hoisted(() => vi.fn());
@@ -165,7 +166,7 @@ describe('lock-time view reset (F19)', () => {
     });
 
     it('does not reset when the screen blanks without the lock engaging', async () => {
-        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         const { rerender } = render(<App />);
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
@@ -181,7 +182,7 @@ describe('lock-time view reset (F19)', () => {
     });
 
     it('resets when the lock engages while the screen is blanked', async () => {
-        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         const { rerender } = render(<App />);
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
@@ -189,7 +190,7 @@ describe('lock-time view reset (F19)', () => {
 
         mockUseScreenBlank.mockReturnValue({ isBlanked: true, wake: mockWake });
         rerender(<App />);
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
 
         // Blank wins over the lock overlay (F1 precedence), but the reset still ran.
@@ -202,30 +203,30 @@ describe('lock-time view reset (F19)', () => {
     });
 
     it('re-sorts on lock only when a day simulation was active', async () => {
-        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         const { rerender } = render(<App />);
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
         // Case A: already on today — the lock's setDayOffset(0) is a no-op, no re-sort.
         mockOrderChores.mockClear();
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
         expect(mockOrderChores).not.toHaveBeenCalled();
 
         // Case B: simulating two days ahead — the lock snaps back to today and re-sorts.
-        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
         fireEvent.click(screen.getByRole('button', { name: 'Next day' }));
         fireEvent.click(screen.getByRole('button', { name: 'Next day' }));
         mockOrderChores.mockClear();
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
         expect(mockOrderChores).toHaveBeenCalled();
         expect(mockOrderChores.mock.calls[0][1]).toEqual(mockDay);
     });
 
     it('hides the scroll-to-top button once the lock resets the scroll', async () => {
-        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         const { rerender } = render(<App />);
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
@@ -237,7 +238,7 @@ describe('lock-time view reset (F19)', () => {
             const button = screen.getByTestId('scroll-to-top');
             expect(button.className).toContain('opacity-100');
 
-            mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+            mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
             rerender(<App />);
             expect(region.scrollTop).toBe(0);
 

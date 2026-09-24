@@ -38,7 +38,7 @@ const LIST_THUMB_BOTTOM_INSET_PX = 96;
 export default function App() {
     const realToday = useMidnightClock();
     const { isBlanked, wake } = useScreenBlank();
-    const { isLocked, arm } = useTouchLock();
+    const { isLocked, arm, lock } = useTouchLock();
     const [isClosing, setIsClosing] = useState(false);
     const closingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     // Tracks the previous isLocked value across renders so justRelocked (below,
@@ -352,7 +352,7 @@ export default function App() {
             // app should already be interactive again; isClosing only keeps
             // TouchLockOverlay's own visual mounted, not this gate.
             <div className="App" inert={isBlanked || isLocked}>
-                <TouchLockIndicator isLocked={isLocked} />
+                <TouchLockIndicator isLocked={isLocked} onLock={lock} onUnlock={arm} />
                 <div className="mx-auto px-4 bg-gray-900 h-screen flex items-center justify-center">
                     <div className="text-white text-lg">Loading chores...</div>
                 </div>
@@ -369,7 +369,7 @@ export default function App() {
         // should already be interactive again; isClosing only keeps
         // TouchLockOverlay's own visual mounted, not this gate.
         <div className="App h-full flex flex-col overflow-hidden" inert={isBlanked || isLocked}>
-            <TouchLockIndicator isLocked={isLocked} />
+            <TouchLockIndicator isLocked={isLocked} onLock={lock} onUnlock={arm} />
             <div className="flex flex-col h-full overflow-hidden bg-gray-900 pt-4">
                 <NavBar rooms={uniqueRooms} selectedRoom={selectedRoom} onSelect={setSelectedRoom} />
                 <StatusCountStrip counts={statusCounts} />

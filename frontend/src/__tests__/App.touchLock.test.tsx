@@ -22,7 +22,8 @@ vi.mock('../hooks/useMidnightClock', () => ({
 }));
 
 const mockArm = vi.hoisted(() => vi.fn());
-const mockUseTouchLock = vi.hoisted(() => vi.fn(() => ({ isLocked: false, arm: mockArm })));
+const mockLock = vi.hoisted(() => vi.fn());
+const mockUseTouchLock = vi.hoisted(() => vi.fn(() => ({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 })));
 vi.mock('../hooks/useTouchLock', () => ({
     useTouchLock: mockUseTouchLock,
 }));
@@ -50,7 +51,7 @@ function stubBarWidth(bar: HTMLElement, width = 400) {
 
 beforeEach(() => {
     vi.clearAllMocks();
-    mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm });
+    mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
     mockUseScreenBlank.mockReturnValue({ isBlanked: false, wake: mockWake });
     FakeEventSource.instances = [];
     vi.stubGlobal('EventSource', FakeEventSource as unknown as typeof EventSource);
@@ -77,13 +78,40 @@ describe('touch lock wiring', () => {
         ).toBeInTheDocument();
     });
 
+    it('the indicator locks immediately when tapped while unlocked', async () => {
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' })]);
+
+        render(<App />);
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        fireEvent.click(screen.getByRole('button', { name: 'Lock screen' }));
+
+        expect(mockLock).toHaveBeenCalledOnce();
+        expect(mockArm).not.toHaveBeenCalled();
+    });
+
+    it('the indicator unlocks when tapped while locked', async () => {
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' })]);
+
+        render(<App />);
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        // jsdom does not enforce `inert`, so this click reaches the indicator
+        // regardless of the root's inert gate.
+        fireEvent.click(screen.getByRole('button', { name: 'Unlock screen' }));
+
+        expect(mockArm).toHaveBeenCalledOnce();
+        expect(mockLock).not.toHaveBeenCalled();
+    });
+
     it('(b) shows the overlay and closed indicator, and marks the .App wrapper inert, when isLocked is true', async () => {
         vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' })]);
 
         const { rerender } = render(<App />);
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
 
         expect(screen.getByTestId('touch-lock-overlay')).toBeInTheDocument();
@@ -94,7 +122,7 @@ describe('touch lock wiring', () => {
     });
 
     it('(b2) marks the loading-branch .App wrapper inert when isLocked is true', async () => {
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         vi.mocked(fetchAllChores).mockReturnValue(new Promise(() => {}));
 
         render(<App />);
@@ -109,7 +137,7 @@ describe('touch lock wiring', () => {
         const { rerender } = render(<App />);
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
 
         fireEvent.click(screen.getByTestId('touch-lock-overlay'));
@@ -213,7 +241,7 @@ describe('touch lock wiring', () => {
         await user.click(screen.getByRole('button', { name: 'Delete chore' }));
         expect(screen.getByTestId('confirm-dialog-backdrop')).toBeInTheDocument();
 
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
 
         expect(screen.queryByTestId('confirm-dialog-backdrop')).not.toBeInTheDocument();
@@ -229,7 +257,7 @@ describe('touch lock wiring', () => {
         await user.click(screen.getByText('+ Add Task'));
         expect(screen.getByText('Add New Chore')).toBeInTheDocument();
 
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
 
         expect(screen.queryByText('Add New Chore')).not.toBeInTheDocument();
@@ -241,7 +269,7 @@ describe('touch lock wiring', () => {
         const { rerender } = render(<App />);
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         mockUseScreenBlank.mockReturnValue({ isBlanked: true, wake: mockWake });
         rerender(<App />);
 
@@ -258,7 +286,7 @@ describe('touch lock wiring', () => {
         // manually advanced.
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
 
         vi.useFakeTimers();
@@ -274,7 +302,7 @@ describe('touch lock wiring', () => {
             expect(screen.getByTestId('touch-lock-overlay')).toBeInTheDocument();
 
             // Represent what the real hook would do once arm() fires.
-            mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm });
+            mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
             rerender(<App />);
 
             // Still held up purely by isClosing, since isLocked is now false.
@@ -291,7 +319,7 @@ describe('touch lock wiring', () => {
     });
 
     it('(h) SSE-driven re-pull keeps flowing while isLocked is true', async () => {
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' })]);
 
         render(<App />);
@@ -323,7 +351,7 @@ describe('touch lock wiring', () => {
 
         // The false->true edge mounts a fresh TouchLockOverlay in its
         // 'just-relocked' phase, showing the entrance backdrop immediately.
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
         expect(screen.getByTestId('touch-lock-backdrop')).toBeInTheDocument();
 

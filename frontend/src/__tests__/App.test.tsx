@@ -27,7 +27,7 @@ vi.mock('../hooks/useScreenBlank', () => ({
     useScreenBlank: () => ({ isBlanked: false, wake: () => {} }),
 }));
 vi.mock('../hooks/useTouchLock', () => ({
-    useTouchLock: () => ({ isLocked: false, arm: () => {} }),
+    useTouchLock: () => ({ isLocked: false, arm: () => {}, lock: () => {}, idleExpiries: 0 }),
 }));
 
 function swipe(bar: HTMLElement, fromX: number, toX: number) {
@@ -934,16 +934,18 @@ describe('overlay scrollbar (F22)', () => {
         expect(column.className).not.toMatch(/\bpx-\d/);
         expect(column.className).toContain('pt-4');
 
-        expect(navBar.className).toContain('px-4');
+        // F20: NavBar reserves a 56 px left gutter for the fixed 44 px lock button.
+        expect(navBar.className).toContain('pl-14');
+        expect(navBar.className).toContain('pr-4');
 
         const strip = screen.getByTestId('status-count-strip');
         expect(strip.className).toContain('mx-4');
         expect(strip.className).not.toMatch(/\bw-full\b/);
 
-        // ReturnToTodayButton renders null at offset 0, so this covers NavBar, the strip, the
-        // date banner and the search root.
+        // ReturnToTodayButton renders null at offset 0, so this covers the strip, the date
+        // banner and the search root (NavBar's asymmetric pl-14 pr-4 inset is asserted above).
         const frame = screen.getByTestId('scroll-region-frame');
-        const insetRows = Array.from(column.children).filter(child => child !== frame);
+        const insetRows = Array.from(column.children).filter(child => child !== frame && child !== navBar);
         expect(insetRows.length).toBeGreaterThan(0);
         for (const row of insetRows) {
             expect(row.className).toMatch(/\b(px|mx)-4\b/);
