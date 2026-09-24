@@ -134,3 +134,18 @@ The destructive guard lives in `ChoreTimerBar.guardOr()`, independent of the ove
 - [x] **Re-render the circle on viewport resize** — `frontend/src/components/common/TouchLockOverlay.tsx` — while mounted, track `innerWidth`/`innerHeight` in state via a `resize` listener (cleaned up on unmount) so `hitCenter` re-clamps. Add a jsdom test that changes the size, dispatches `resize`, and asserts the circle moved.
 - [x] **Document the sub-120 px viewport caveat** — `frontend/src/components/common/TouchLockOverlay.tsx` — one line in the `clampToViewport` comment.
 - [x] **Use the app's existing green for the opening ring** — `frontend/src/components/common/TouchLockOverlay.tsx` — `ring-emerald-400/70` → `ring-green-400/70`, and update any test asserting the class.
+
+## Review 4
+Generated: 2026-09-24
+Comparison: 2118969~1...2118969 (Review 3 fixes)
+Verdict: **PUSHED WITH MINOR FINDINGS**
+
+### Results by Reviewer
+All eight reviewers PASS: Safety & Security, Correctness, Simplicity, Test Coverage, Completeness, Consistency, Integration Risk, Error Handling. Every Review 3 item was verified as genuinely resolved. The Chromium search and Next-day checks pre-assert that each click lands outside the circle. The keyboard-corner test uses a real `elementFromPoint` hit-test. The resize listener is cleaned up. No `emerald` is left.
+- minor (Test Coverage) — no explicit test that the `resize` listener is removed on unmount (verified by inspection).
+- minor (Completeness) — the plan's "Amendment 2026-09-24" and Manual checks don't mention the resize/rotation re-clamp.
+
+### To-Do: Required Changes
+
+- [ ] **Pin the resize-listener cleanup** — `frontend/src/__tests__/components/TouchLockOverlay.test.tsx` — spy on `window.removeEventListener` and assert that the `resize` listener is removed on unmount.
+- [ ] **Document the resize re-clamp** — `plans/feature/permissive-lock/permissive-lock.md` — add one line to the Amendment (the circle re-clamps on viewport resize/rotation) and a Manual check (rotate the kiosk while the padlock shows: the circle stays on-screen).
