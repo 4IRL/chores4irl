@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from '../services/choreApi';
@@ -806,8 +806,8 @@ describe('scroll-to-top button (F18)', () => {
         expect(frame.className).toContain('relative');
         expect(frame.contains(region)).toBe(true);
 
-        // F18's spec requires the scroller's class string to stay byte-identical.
-        expect(region!.className).toBe('flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40');
+        // F18's scroller tokens stay byte-identical; F22 adds only `scrollbar-none`.
+        expect(region!.className).toBe('flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40 scrollbar-none');
         expect(region!.lastElementChild).toBe(screen.getByTestId('add-task-deck'));
     });
 
@@ -847,6 +847,81 @@ describe('scroll-to-top button (F18)', () => {
         expect(screen.getByText('Sweep')).toBeInTheDocument();
         expect((screen.getByLabelText('Search for a chore') as HTMLInputElement).value).toBe('');
         expect(screen.queryByText('Return to today')).toBeNull();
+    });
+});
+
+describe('overlay scrollbar (F22)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore()]);
+        Element.prototype.scrollTo = vi.fn();
+    });
+
+    afterEach(() => {
+        delete (Element.prototype as Partial<Element>).scrollTo;
+        vi.restoreAllMocks();
+    });
+
+    // jsdom has no ResizeObserver, so the hook measures only on mount and on `scroll`:
+    // the metric spies must be installed before render for the mount-time thumb to exist.
+    function stubScrollableMetrics() {
+        vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(1000);
+        vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(400);
+    }
+
+    it('renders the thumb in the frame beside the scroller, before the scroll-to-top button, hidden on load', async () => {
+        stubScrollableMetrics();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        // The thumb appears on the render after the hook's mount-time measure, not on the
+        // list's own commit, so wait for it rather than querying synchronously.
+        const thumb = await screen.findByTestId('overlay-scrollbar');
+        const frame = screen.getByTestId('scroll-region-frame');
+        const region = document.querySelector('.overflow-y-auto') as HTMLElement;
+        expect(thumb.parentElement).toBe(frame);
+        expect(region.contains(thumb)).toBe(false);
+        expect(document.querySelectorAll('.overflow-y-auto')).toHaveLength(1);
+        expect(region.lastElementChild).toBe(screen.getByTestId('add-task-deck'));
+        const button = screen.getByTestId('scroll-to-top');
+        expect(frame.lastElementChild).toBe(button);
+        expect(thumb.nextElementSibling).toBe(button);
+        expect(thumb.className).toContain('opacity-0');
+        // List track stops 160 px above the frame bottom: track 400 - 160 = 240, 240 * 400 / 1000 = 96.
+        expect(thumb.style.height).toBe('96px');
+        expect(thumb.style.top).toBe('0px');
+    });
+
+    it('shows the thumb on scroll and stops it above the deck zone at the end of the list', async () => {
+        stubScrollableMetrics();
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        const thumb = await screen.findByTestId('overlay-scrollbar');
+
+        const region = document.querySelector('.overflow-y-auto') as HTMLElement;
+        region.scrollTop = 600;
+        fireEvent.scroll(region);
+
+        expect(thumb.className).toContain('opacity-100');
+        // Thumb bottom 144 + 96 = 240 = 400 - LIST_THUMB_BOTTOM_INSET_PX (160).
+        expect(thumb.style.top).toBe('144px');
+    });
+
+    it('renders no thumb with jsdom default metrics and scrolling does not throw', async () => {
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+        // Flush the hook's mount-time measure so the absence check below is meaningful.
+        await act(async () => {});
+
+        const region = document.querySelector('.overflow-y-auto') as HTMLElement;
+        expect(() => {
+            region.scrollTop = 200;
+            fireEvent.scroll(region);
+        }).not.toThrow();
+        expect(screen.queryByTestId('overlay-scrollbar')).toBeNull();
     });
 });
 

@@ -406,7 +406,7 @@ Render the thumb from the hook with its classes and constants.
 Mount the thumb for the chore list, reusing `scrollRegionRef` and the `scroll-region-frame`.
 
 **To-do:**
-- [ ] **Red:** in `frontend/src/__tests__/App.test.tsx`:
+- [x] **Red:** (COMPLETE 2026-09-23) in `frontend/src/__tests__/App.test.tsx`:
   - update the F18 pin at `:809-810` to
     `expect(region!.className).toBe('flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40 scrollbar-none');`
     and reword its comment: "F18's scroller tokens stay byte-identical; F22 adds only `scrollbar-none`".
@@ -433,7 +433,7 @@ Mount the thumb for the chore list, reusing `scrollRegionRef` and the `scroll-re
   Run `(cd frontend && npx vitest run src/__tests__/App.test.tsx)` and confirm that cases 1–2 and
   the updated `:810` literal fail. Case 3 is a guard (no thumb, no throw) and already passes before
   Green.
-- [ ] **Green:** in `frontend/src/App.tsx`:
+- [x] **Green:** (COMPLETE 2026-09-23) in `frontend/src/App.tsx`:
   - append ` scrollbar-none` to the scroller's className (`:365`), keeping every other token and
     its order.
   - add `import OverlayScrollbar from './components/common/OverlayScrollbar';` between the
@@ -451,7 +451,7 @@ Mount the thumb for the chore list, reusing `scrollRegionRef` and the `scroll-re
     edits; the import and constant land above it, so anchor on the text): the thumb reads the same single ref, sits before the
     button so the button stays last, its track stops `LIST_THUMB_BOTTOM_INSET_PX` above the frame
     bottom (out of the deck zone), and neither has a z-index.
-- [ ] Re-run the whole Vitest suite (`npm run test --workspace frontend`), since every `App*.test.tsx`
+- [x] (COMPLETE 2026-09-23) Re-run the whole Vitest suite (`npm run test --workspace frontend`), since every `App*.test.tsx`
   now mounts the thumb. All green, with no edits to the `.overflow-y-auto`/deck assertions beyond
   the `:810` literal. Then run `npx tsc --noEmit -p .` (in `frontend/`) and `npm run lint` (root).
   Both must be clean.
