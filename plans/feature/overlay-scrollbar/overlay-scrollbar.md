@@ -669,13 +669,13 @@ the card-sized backdrop hit-testing, and reduced motion.
 Run the full suites to confirm nothing is broken.
 
 **To-do:**
-- [ ] `npm run test --workspace frontend`: all Vitest suites pass.
-- [ ] `npx tsc --noEmit -p .` (in `frontend/`) and `npm run lint` (root) are clean, and
+- [x] (COMPLETE 2026-09-23) `npm run test --workspace frontend`: all Vitest suites pass. (39 files, 391 tests passed.)
+- [x] (COMPLETE 2026-09-23) `npx tsc --noEmit -p .` (in `frontend/`) and `npm run lint` (root) are clean, and
   `npm run build --workspace frontend` succeeds.
-- [ ] From the repo root, run `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test` (the full e2e suite: `smoke.spec.ts`,
+- [x] (COMPLETE 2026-09-23) From the repo root, run `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test` (the full e2e suite: `smoke.spec.ts`,
   `scroll-to-top.spec.ts` and `overlay-scrollbar.spec.ts`) and confirm all pass. Use the same
   port-conflict retry and `UNRESOLVED` stop protocol as step 7.
-- [ ] Repo-fact check (from the repo root; every path below is root-relative):
+- [x] (COMPLETE 2026-09-23) Repo-fact check (from the repo root; every path below is root-relative):
   - `grep -n "flex flex-col h-full overflow-hidden bg-gray-900 pt-4" frontend/src/App.tsx` prints
     exactly one line, the outer column (before step 4 it prints nothing and exits 1).
   - `grep -rn "bg-gray-900 px-4 pt-4" frontend/src || true` prints nothing. Before step 4 it prints
@@ -694,12 +694,12 @@ Run the full suites to confirm nothing is broken.
     also appears, it must be only because its header comment names the utility. Before step 3 it
     prints only `NavBar.tsx`. `frontend/src/index.css` still defines `.scrollbar-none`, but
     `--include=*.tsx` leaves it out.
-- [ ] Investigate and fix any failure from the boxes above before marking the plan finished. If
+- [x] (COMPLETE 2026-09-23) N/A ("no failures"). Investigate and fix any failure from the boxes above before marking the plan finished. If
   none failed, tick this box as N/A ("no failures"). If a failure cannot be fixed, leave this box
   unticked, write `UNRESOLVED — requires user decision/action: <failure + evidence>` directly under
   it, and end your final report with that same line. On a later run where everything passes,
   delete that marker line before ticking the box.
-- [ ] Copy the *Manual Pi checks* section below, and then the Summary's *Fold-back notes for
+- [x] (COMPLETE 2026-09-23) Copy the *Manual Pi checks* section below, and then the Summary's *Fold-back notes for
   Phase C* list under that heading, verbatim into your final report. This box is done once both
   copies are in the report. The report is not what carries them to the user: both are the content
   of the PR body's `## Verification Steps` → "How to manually verify (if applicable)" bullet when
@@ -727,4 +727,4 @@ Run the full suites to confirm nothing is broken.
   rounded corners, and tapping outside the card still cancels.
 
 ## Status
-finished: false
+finished: true
