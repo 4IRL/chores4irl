@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChoreForm from '../../components/form/ChoreForm';
@@ -286,5 +286,47 @@ describe('ChoreForm add-mode defaults (F21)', () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+});
+
+describe('overlay scrollbar (F22)', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    // The hook measures once on mount (jsdom has no ResizeObserver), so metric spies go in
+    // before render, inside each case that needs a thumb.
+    function stubScrollableMetrics() {
+        vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(1000);
+        vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(400);
+    }
+
+    it('wraps the card in a card-sized frame and renders an inset thumb beside it', () => {
+        stubScrollableMetrics();
+        const { container } = render(<ChoreForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+        const card = container.querySelector('.overflow-y-auto') as HTMLElement;
+        expect(card).not.toBeNull();
+        for (const token of ['bg-gray-800', 'rounded-xl', 'p-6', 'w-full', 'max-w-md', 'overflow-y-auto', 'max-h-[90dvh]', 'scrollbar-none']) {
+            expect(card.className.split(' ')).toContain(token);
+        }
+
+        const wrapper = card.parentElement!;
+        expect(wrapper.className).toBe('relative w-full max-w-md');
+        expect(wrapper).toBe(container.firstElementChild);
+
+        const thumb = screen.getByTestId('overlay-scrollbar');
+        expect(thumb.parentElement).toBe(wrapper);
+        expect(card.contains(thumb)).toBe(false);
+        // Track 400 − 12 − 12 = 376; height 376·400/1000; top 12 keeps it inside rounded-xl.
+        expect(thumb.style.top).toBe('12px');
+        expect(thumb.style.height).toBe('150.4px');
+        expect(thumb.className).toContain('opacity-0');
+    });
+
+    it('renders no thumb with the default jsdom metrics', () => {
+        render(<ChoreForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+        expect(screen.queryByTestId('overlay-scrollbar')).toBeNull();
     });
 });

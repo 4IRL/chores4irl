@@ -504,7 +504,7 @@ Give the Add/Edit form's scroll box the same hidden bar and overlay thumb, insid
 corners.
 
 **To-do:**
-- [ ] **Red:** in `frontend/src/__tests__/components/ChoreForm.test.tsx`, add
+- [x] **Red:** (COMPLETE 2026-09-23) in `frontend/src/__tests__/components/ChoreForm.test.tsx`, add
   `describe('overlay scrollbar (F22)', …)`. In the cases that need a thumb, stub `scrollHeight`
   1000 and `clientHeight` 400 via `vi.spyOn(HTMLElement.prototype, …, 'get')` **before** render,
   inside the case (not in a `beforeEach`, because the no-spies case shares the describe), and call
@@ -525,7 +525,7 @@ corners.
 
   Run it and confirm that the `scrollbar-none`, wrapper and thumb assertions fail. The
   default-metrics no-thumb case already passes before Green.
-- [ ] **Green:** in `frontend/src/components/form/ChoreForm.tsx`:
+- [x] **Green:** (COMPLETE 2026-09-23) in `frontend/src/components/form/ChoreForm.tsx`:
   - `useRef` is already imported (`:1`, `import { useState, useRef } from 'react';`). Add
     `import OverlayScrollbar from '../common/OverlayScrollbar';` directly after
     `import ClearButton from '../common/ClearButton';` (`:5`).
@@ -538,7 +538,7 @@ corners.
     `bg-gray-800 rounded-xl p-6 w-full max-w-md overflow-y-auto max-h-[90dvh] scrollbar-none`.
   - after the card's closing `</div>`, inside the wrapper, add
     `<OverlayScrollbar scrollRegionRef={scrollBoxRef} trackInsetTopPx={FORM_THUMB_TRACK_INSET_PX} trackInsetBottomPx={FORM_THUMB_TRACK_INSET_PX} />`.
-- [ ] Re-run `ChoreForm.test.tsx`, `ChoreForm.dateBoundary.test.tsx` and `ChoreFormModal.test.tsx`
+- [x] (COMPLETE 2026-09-23) Re-run `ChoreForm.test.tsx`, `ChoreForm.dateBoundary.test.tsx` and `ChoreFormModal.test.tsx`
   (backdrop-click cases `:13-25` must pass unchanged), then the whole Vitest suite. All green. Then
   run `npx tsc --noEmit -p .` (in `frontend/`) and `npm run lint` (root). Both must be clean.
 
