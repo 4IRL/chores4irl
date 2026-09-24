@@ -334,7 +334,7 @@ Create the geometry function and the scroll, idle-fade and resize hook with no U
 Render the thumb from the hook with its classes and constants.
 
 **To-do:**
-- [ ] **Red:** create `frontend/src/__tests__/components/OverlayScrollbar.test.tsx`. Use a
+- [x] **Red:** (COMPLETE 2026-09-23) create `frontend/src/__tests__/components/OverlayScrollbar.test.tsx`. Use a
   `Harness` like `ScrollToTopButton.test.tsx:6-16`: a `<div data-testid="scroller" ref={ref} />`
   rendered **before**
   `<OverlayScrollbar scrollRegionRef={ref} trackInsetTopPx={props.trackInsetTopPx} trackInsetBottomPx={props.trackInsetBottomPx} />`.
@@ -364,7 +364,7 @@ Render the thumb from the hook with its classes and constants.
 
   Run `(cd frontend && npx vitest run src/__tests__/components/OverlayScrollbar.test.tsx)` and
   confirm it fails.
-- [ ] **Green:** create `frontend/src/components/common/OverlayScrollbar.tsx` (default export).
+- [x] **Green:** (COMPLETE 2026-09-23) create `frontend/src/components/common/OverlayScrollbar.tsx` (default export).
   - Exported constants (`export const`, as `ScrollToTopButton` exports `FADE_MS`), each with JSDoc:
     `THUMB_WIDTH_PX = 4`, `THUMB_EDGE_INSET_PX = 2`, `FADE_IN_MS = 150` (must equal `duration-150`)
     and `FADE_OUT_MS = 400` (must equal `duration-400`). The Red test imports all four; ESLint's
@@ -381,7 +381,7 @@ Render the thumb from the hook with its classes and constants.
   - Add a header comment: indicator only, rendered in a positioned frame **beside** (never inside)
     the scroller, no z-index (paints above by DOM order), no mount flash, and why it is not
     `bg-gray-800`.
-- [ ] Re-run the file until green. Then run `npm run build --workspace frontend` from the repo root
+- [x] (COMPLETE 2026-09-23) Re-run the file until green. Then run `npm run build --workspace frontend` from the repo root
   (the grep path `frontend/dist/assets/*.css` is root-relative; from `frontend/` the grep exits 2
   with "No such file or directory") and confirm the built CSS contains the new utilities:
   `grep -ohE 'duration-400|motion-reduce\\:transition-none|bg-gray-300\\/50' frontend/dist/assets/*.css | sort -u`
@@ -400,7 +400,7 @@ Render the thumb from the hook with its classes and constants.
   Note that `duration-\[400ms\]` is already emitted today by `TouchLockOverlay.tsx:121`, so on that
   path only the other two lines are new evidence. `frontend/dist/` is gitignored, so the build adds
   nothing to `git status`.
-- [ ] Run `npx tsc --noEmit -p .` (in `frontend/`) and `npm run lint` (root). Both must be clean.
+- [x] (COMPLETE 2026-09-23) Run `npx tsc --noEmit -p .` (in `frontend/`) and `npm run lint` (root). Both must be clean.
 
 ### 3. List thumb in `F18`'s frame + hidden native scrollbar (TDD)
 Mount the thumb for the chore list, reusing `scrollRegionRef` and the `scroll-region-frame`.
