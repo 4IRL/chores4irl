@@ -141,26 +141,26 @@ Write the App-level test that drives the **real** `useTouchLock` with fake timer
 Pin the negative contract and the interactions with shipped features. Each test goes in the same `describe`.
 
 **To-do:**
-- [ ] Pre-flight: confirm Step 1's effect is committed: `git grep -c 'F19: the lock engaging' HEAD -- frontend/src/App.tsx` must print `HEAD:frontend/src/App.tsx:1` (exit 0). If it prints nothing (exit 1), Step 1 was never committed. Do **not** run `git checkout`. Leave this box unticked, write directly under it `UNRESOLVED — requires user decision/action: Step 1's F19 effect is uncommitted; commit Step 1 before running the mutation probes`, end your final report with that same line, and stop. On a later run where the gate passes, delete that marker line before ticking the box.
-- [ ] Add hoisted `const mockArm = vi.hoisted(() => vi.fn());` for the hand-driven tests below, and import `CLOSING_SETTLE_MS` from `../components/common/TouchLockOverlay` and `FADE_MS` from `../components/common/ScrollToTopButton`.
-- [ ] `it('does not reset when the lock is released by a double-tap')`. Use the **real** hook (the file default) under `vi.useFakeTimers({ now: new Date(2025, 0, 15, 12, 0, 0), shouldAdvanceTime: true })` with `try/finally` → `vi.useRealTimers()`.
+- [x] Pre-flight: confirm Step 1's effect is committed: `git grep -c 'F19: the lock engaging' HEAD -- frontend/src/App.tsx` must print `HEAD:frontend/src/App.tsx:1` (exit 0). If it prints nothing (exit 1), Step 1 was never committed. Do **not** run `git checkout`. Leave this box unticked, write directly under it `UNRESOLVED — requires user decision/action: Step 1's F19 effect is uncommitted; commit Step 1 before running the mutation probes`, end your final report with that same line, and stop. On a later run where the gate passes, delete that marker line before ticking the box.
+- [x] Add hoisted `const mockArm = vi.hoisted(() => vi.fn());` for the hand-driven tests below, and import `CLOSING_SETTLE_MS` from `../components/common/TouchLockOverlay` and `FADE_MS` from `../components/common/ScrollToTopButton`.
+- [x] `it('does not reset when the lock is released by a double-tap')`. Use the **real** hook (the file default) under `vi.useFakeTimers({ now: new Date(2025, 0, 15, 12, 0, 0), shouldAdvanceTime: true })` with `try/finally` → `vi.useRealTimers()`.
   1. Render and wait for `Sweep`, then `act(() => { vi.advanceTimersByTime(IDLE_MS); })`. Assert `touch-lock-overlay` is present.
   2. Drift while locked with `fireEvent`: click `Kitchen` and change the search to `'sw'`. jsdom does not enforce `inert`.
   3. Double-tap to unlock: `const overlay = screen.getByTestId('touch-lock-overlay'); fireEvent.click(overlay, { clientX: 100, clientY: 100 }); fireEvent.click(overlay, { clientX: 100, clientY: 100 });`.
   4. `act(() => { vi.advanceTimersByTime(CLOSING_SETTLE_MS); })`.
   5. Assert that `screen.getByPlaceholderText('Search for a chore').closest('.App')` has no `inert` attribute (unlocked), `screen.queryByTestId('touch-lock-overlay')` is null (the unlock hand-off completed), the search still reads `'sw'`, and `Dust` is still absent.
   Do not advance another `IDLE_MS`, because `arm()` re-armed the timer.
-- [ ] `it('does not reset when the screen blanks without the lock engaging')`. Hand-drive the hook: `mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm })` for the whole test.
+- [x] `it('does not reset when the screen blanks without the lock engaging')`. Hand-drive the hook: `mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm })` for the whole test.
   1. Render and wait for `Sweep`.
   2. Drift the view: click `Kitchen`, set the search to `'sw'`, click `Next day`, then set `region.scrollTop = 200` + `fireEvent.scroll(region)`.
   3. Set `mockUseScreenBlank.mockReturnValue({ isBlanked: true, wake: mockWake })` and `rerender(<App />)`.
   4. Assert `screen-blank-overlay` is present, `region.scrollTop === 200`, the search is still `'sw'`, and `Return to today` is still present.
-- [ ] `it('resets when the lock engages while the screen is blanked')`. Hand-drive the hook, starting at `isLocked: false`.
+- [x] `it('resets when the lock engages while the screen is blanked')`. Hand-drive the hook, starting at `isLocked: false`.
   1. Render, wait for `Sweep`, and drift as in the blank test.
   2. Set `mockUseScreenBlank.mockReturnValue({ isBlanked: true, wake: mockWake })` and rerender.
   3. Set `mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm })` and rerender.
   4. Assert `screen-blank-overlay` is present, `touch-lock-overlay` is absent (blank wins, F1 precedence), `region.scrollTop === 0`, the search is `''`, `Dust` is present, and `Return to today` is absent.
-- [ ] `it('re-sorts on lock only when a day simulation was active')`. Hand-drive the hook, starting at `isLocked: false`.
+- [x] `it('re-sorts on lock only when a day simulation was active')`. Hand-drive the hook, starting at `isLocked: false`.
   - Case A:
     1. Render and wait for `Sweep`.
     2. Leave `dayOffset` at 0 and call `mockOrderChores.mockClear()`.
@@ -172,14 +172,14 @@ Pin the negative contract and the interactions with shipped features. Each test 
     2. Click `Next day` twice, then `mockOrderChores.mockClear()`.
     3. Flip to `isLocked: true` and rerender.
     4. Assert `mockOrderChores` was called and `mockOrderChores.mock.calls[0][1]` `toEqual(mockDay)`. That is the real today.
-- [ ] `it('hides the scroll-to-top button once the lock resets the scroll')`. Hand-drive the hook, starting at `isLocked: false`.
+- [x] `it('hides the scroll-to-top button once the lock resets the scroll')`. Hand-drive the hook, starting at `isLocked: false`.
   1. After the initial load (under real timers), call `vi.useFakeTimers({ shouldAdvanceTime: true })` with `try/finally` → `vi.useRealTimers()`.
   2. Set `region.scrollTop = 200` + `fireEvent.scroll(region)`, then assert `screen.getByTestId('scroll-to-top').className` contains `opacity-100`.
   3. Flip to `isLocked: true` and rerender. Assert `region.scrollTop === 0`.
   4. `fireEvent.scroll(region)`, because jsdom doesn't dispatch `scroll` on a programmatic write. Assert the className contains `opacity-0`.
   5. `act(() => { vi.advanceTimersByTime(FADE_MS); })`. Assert the button `toHaveAttribute('inert')` and has `aria-hidden="true"`.
-- [ ] Run `cd frontend && npx vitest run src/__tests__/App.lockViewReset.test.tsx` and confirm all six tests pass.
-- [ ] Prove the guards bite.
+- [x] Run `cd frontend && npx vitest run src/__tests__/App.lockViewReset.test.tsx` and confirm all six tests pass.
+- [x] Prove the guards bite.
   - Run `git diff --quiet -- frontend/src/App.tsx`. If it exits 1, a previous run left a mutation behind: run `git checkout -- frontend/src/App.tsx` to restore the committed version before continuing.
   - Then apply each mutation below to the Step 1 effect, one at a time. Run the file after each and confirm the named test goes red, then restore with `git checkout -- frontend/src/App.tsx`.
     - Deps `[isLocked, isBlanked]` with `if (!isLocked && !isBlanked) return;` → the blank test goes red.
@@ -188,8 +188,15 @@ Pin the negative contract and the interactions with shipped features. Each test 
     - Drop the deps array entirely → the double-tap unlock test goes red.
     - Add `setSortedIds(orderChores(choreDataRef.current, simulatedDate).map(c => c.id));` to the body → the re-sort test's Case A goes red.
   - After the last restore, `git diff --quiet -- frontend/src/App.tsx` must exit 0. Record the outcomes in this bullet.
-- [ ] Run `npx eslint frontend/src/__tests__/App.lockViewReset.test.tsx` from the repo root and fix any finding. Then run `npx tsc --noEmit -p frontend/tsconfig.json` from the repo root; it must exit 0.
-- [ ] Confirm `git status --porcelain` lists only `frontend/src/__tests__/App.lockViewReset.test.tsx` and the plan file (if not yet committed). Delete any `_*` scratch file you created. If anything else is listed (other than a `_*` scratch file you created, which you delete), do not delete or revert it. Leave this box unticked, write directly under it `UNRESOLVED — requires user decision/action: unexpected files in working tree (<list>)`, end your final report with that same line, and stop. On a later run where the gate passes, delete that marker line before ticking the box.
+  - **Outcomes (2026-09-23):** pre-probe `git diff --quiet` exited 0. Each probe turned exactly one test red (1 failed | 5 passed):
+    - `[isLocked, isBlanked]` + `!isLocked && !isBlanked` → red: "does not reset when the screen blanks without the lock engaging".
+    - `!isLocked || isBlanked` → red: "resets when the lock engages while the screen is blanked".
+    - `if (!isLocked) return;` removed → red: "does not reset when the lock is released by a double-tap".
+    - deps array dropped → red: "does not reset when the lock is released by a double-tap".
+    - `setSortedIds(orderChores(...))` added → red: "re-sorts on lock only when a day simulation was active" (Case A).
+    - Restored with `git checkout -- frontend/src/App.tsx` after each; the final `git diff --quiet -- frontend/src/App.tsx` exited 0.
+- [x] Run `npx eslint frontend/src/__tests__/App.lockViewReset.test.tsx` from the repo root and fix any finding. Then run `npx tsc --noEmit -p frontend/tsconfig.json` from the repo root; it must exit 0.
+- [x] Confirm `git status --porcelain` lists only `frontend/src/__tests__/App.lockViewReset.test.tsx` and the plan file (if not yet committed). Delete any `_*` scratch file you created. If anything else is listed (other than a `_*` scratch file you created, which you delete), do not delete or revert it. Leave this box unticked, write directly under it `UNRESOLVED — requires user decision/action: unexpected files in working tree (<list>)`, end your final report with that same line, and stop. On a later run where the gate passes, delete that marker line before ticking the box.
 
 ### 3. README — document the lock and the reset
 Add the lock paragraph that the root README lacks today, including the F19 line.
