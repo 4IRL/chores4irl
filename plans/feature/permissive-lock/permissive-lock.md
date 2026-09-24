@@ -225,18 +225,18 @@ The core behavior change, with every test it breaks reworked in the same step: `
 Test-first, with the real `useTouchLock` and fake timers.
 
 **To-do:**
-- [ ] **Red.** In `frontend/src/__tests__/App.lockViewReset.test.tsx`, add three tests. Each uses the file's delegating mock, the `vi.useFakeTimers({ now, shouldAdvanceTime: true })` setup and the `fireEvent`-only `driftView()` helper; `userEvent` or a `pointerdown` would re-arm the timer.
+- [x] **Red.** In `frontend/src/__tests__/App.lockViewReset.test.tsx`, add three tests. Each uses the file's delegating mock, the `vi.useFakeTimers({ now, shouldAdvanceTime: true })` setup and the `fireEvent`-only `driftView()` helper; `userEvent` or a `pointerdown` would re-arm the timer.
   - `resets the view again at the next idle tick when it drifted while locked`: advance `IDLE_MS` (locks), `driftView()`, advance `IDLE_MS` again → scroll 0, *All*, empty search, today.
   - `an Add form opened under the lock and left open across the next idle tick is closed, and the four resets run`: advance `IDLE_MS`, then `fireEvent.click(getByText('+ Add Task'))` → the form is open. `driftView()` (or at least type a search), advance `IDLE_MS` → the form is closed and the view is reset.
   - `a manual lock from the indicator resets the view`: `driftView()` while unlocked, then `fireEvent.click(getByRole('button', { name: 'Lock screen' }))` → the view is reset, with no timer advance.
 
   Run → the first two fail (the effect keys on `isLocked` only). The third may already pass, because `lock()` flips `isLocked`; that is fine, since it pins the behavior.
-- [ ] **Green.** In `frontend/src/App.tsx`:
+- [x] **Green.** In `frontend/src/App.tsx`:
   - Destructure `idleExpiries` from `useTouchLock()`.
   - Re-key the `F19` effect to `[isLocked, idleExpiries]`. Keep `if (!isLocked) return;` first, then **step 0** `setShowForm(false);`, then the four resets unchanged.
   - Replace the `F20 note` comment lines with the as-built description: it runs on engage (idle or manual `lock()`) and on every idle tick while locked; step 0 closes an Add modal opened under the lock (the only dialog reachable while locked); instant scroll because nobody is watching at an idle expiry; see Standing invariant 19.
   - Hand-driven tests that supply `idleExpiries: 0` still fire on the `isLocked` edge.
-- [ ] Run `cd frontend && npx vitest run src/__tests__/App.lockViewReset.test.tsx src/__tests__/App.touchLock.test.tsx` → all pass (the six original `App.lockViewReset` tests included). Then run `npm run lint` and `npx tsc --noEmit -p frontend/tsconfig.json` from the repo root → clean. Then confirm `grep -c '}, \[isLocked, idleExpiries\]);' frontend/src/App.tsx` → `1` and `grep -c "F20 note" frontend/src/App.tsx || true` → `0` (a zero count exits 1 without `|| true`).
+- [x] Run `cd frontend && npx vitest run src/__tests__/App.lockViewReset.test.tsx src/__tests__/App.touchLock.test.tsx` → all pass (the six original `App.lockViewReset` tests included). Then run `npm run lint` and `npx tsc --noEmit -p frontend/tsconfig.json` from the repo root → clean. Then confirm `grep -c '}, \[isLocked, idleExpiries\]);' frontend/src/App.tsx` → `1` and `grep -c "F20 note" frontend/src/App.tsx || true` → `0` (a zero count exits 1 without `|| true`).
 
 ### 6. Docs — README + META-PLAN contracts
 Rewrite the user-facing paragraph and the META-PLAN contracts the Expected end state names.

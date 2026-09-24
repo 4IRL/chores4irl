@@ -38,7 +38,7 @@ const LIST_THUMB_BOTTOM_INSET_PX = 96;
 export default function App() {
     const realToday = useMidnightClock();
     const { isBlanked, wake } = useScreenBlank();
-    const { isLocked, arm, lock } = useTouchLock();
+    const { isLocked, arm, lock, idleExpiries } = useTouchLock();
     const closingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     // F20: a guarded attempt (a blocked tap/swipe/sr-only Edit/Delete on a chore
     // bar while locked) mounts TouchLockOverlay seeded at that point. The id keys
@@ -168,21 +168,22 @@ export default function App() {
         }
     }, [isBlanked, isLocked]);
 
-    // F19: the lock engaging returns the view to the boot state — top of the
-    // list, every room, no search, today — so the next person at the kiosk
-    // meets the canonical view. Lock-only (never on blank or unlock); the
-    // scroll is instant because the lock engages on idle expiry, when nobody is
-    // watching the board.
-    // F20 note: once useTouchLock exposes an idle-expiry tick, re-key this to
-    // also re-run on each tick while locked and on a manual lock, first closing
-    // an Add modal left open under the lock (META-PLAN F19 "Amended by F20").
+    // F19: the lock returns the view to the boot state — top of the list,
+    // every room, no search, today — so the next person at the kiosk meets the
+    // canonical view. It runs on engage (idle expiry or a manual lock()) and on
+    // every idle tick while locked, since the F20 lock keeps the board usable
+    // and the view can drift again under it; never on blank or unlock. Step 0
+    // closes an Add modal opened under the lock and then abandoned (the only
+    // dialog reachable while locked). The scroll is instant because nobody is
+    // watching at an idle expiry. See META-PLAN Standing invariant 19.
     useEffect(() => {
         if (!isLocked) return;
+        setShowForm(false);
         if (scrollRegionRef.current) scrollRegionRef.current.scrollTop = 0;
         setSelectedRoom('all');
         setSearchQuery('');
         setDayOffset(0);
-    }, [isLocked]);
+    }, [isLocked, idleExpiries]);
 
     // Clear any pending close-animation hand-off timer on unmount.
     useEffect(() => {

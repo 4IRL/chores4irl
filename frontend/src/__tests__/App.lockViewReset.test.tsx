@@ -256,4 +256,83 @@ describe('lock-time view reset (F19)', () => {
             vi.useRealTimers();
         }
     });
+
+    it('resets the view again at the next idle tick when it drifted while locked', async () => {
+        vi.useFakeTimers({ now: new Date(2025, 0, 15, 12, 0, 0), shouldAdvanceTime: true });
+        try {
+            render(<App />);
+            await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+            act(() => {
+                vi.advanceTimersByTime(IDLE_MS);
+            });
+            expect(screen.getByRole('button', { name: 'Unlock screen' })).toBeInTheDocument();
+
+            // F20: the locked board stays usable, so the view can drift again.
+            const region = driftView();
+
+            act(() => {
+                vi.advanceTimersByTime(IDLE_MS);
+            });
+
+            expect(screen.getByRole('button', { name: 'Unlock screen' })).toBeInTheDocument();
+            expect(region.scrollTop).toBe(0);
+            expect(getSearchInput().value).toBe('');
+            expect(screen.getByText('Dust')).toBeInTheDocument();
+            expect(screen.queryByText('Return to today')).not.toBeInTheDocument();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('an Add form opened under the lock and left open across the next idle tick is closed, and the four resets run', async () => {
+        vi.useFakeTimers({ now: new Date(2025, 0, 15, 12, 0, 0), shouldAdvanceTime: true });
+        try {
+            render(<App />);
+            await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+            act(() => {
+                vi.advanceTimersByTime(IDLE_MS);
+            });
+            expect(screen.getByRole('button', { name: 'Unlock screen' })).toBeInTheDocument();
+
+            fireEvent.click(screen.getByText('+ Add Task'));
+            expect(screen.getByTestId('chore-modal-backdrop')).toBeInTheDocument();
+
+            const region = driftView();
+
+            act(() => {
+                vi.advanceTimersByTime(IDLE_MS);
+            });
+
+            expect(screen.queryByTestId('chore-modal-backdrop')).not.toBeInTheDocument();
+            expect(region.scrollTop).toBe(0);
+            expect(getSearchInput().value).toBe('');
+            expect(screen.getByText('Dust')).toBeInTheDocument();
+            expect(screen.queryByText('Return to today')).not.toBeInTheDocument();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('a manual lock from the indicator resets the view', async () => {
+        vi.useFakeTimers({ now: new Date(2025, 0, 15, 12, 0, 0), shouldAdvanceTime: true });
+        try {
+            render(<App />);
+            await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+            const region = driftView();
+
+            // No timer advance: lock() engages immediately.
+            fireEvent.click(screen.getByRole('button', { name: 'Lock screen' }));
+
+            expect(screen.getByRole('button', { name: 'Unlock screen' })).toBeInTheDocument();
+            expect(region.scrollTop).toBe(0);
+            expect(getSearchInput().value).toBe('');
+            expect(screen.getByText('Dust')).toBeInTheDocument();
+            expect(screen.queryByText('Return to today')).not.toBeInTheDocument();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });
