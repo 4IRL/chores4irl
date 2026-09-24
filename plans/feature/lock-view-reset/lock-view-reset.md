@@ -216,19 +216,20 @@ Add the lock paragraph that the root README lacks today, including the F19 line.
 Run the full suites and confirm the META-PLAN's F19 "Expected end state".
 
 **To-do:**
-- [ ] Run `cd frontend && npx vitest run` and confirm the whole Vitest suite passes.
-- [ ] Run `npm run lint` and `npx tsc --noEmit -p frontend/tsconfig.json` from the repo root. Both must be clean. Use non-build mode: `tsc -b` writes an un-ignored root `tsconfig.tsbuildinfo`. Then confirm `git status --porcelain` lists no `tsconfig.tsbuildinfo`, and delete it if one appeared.
-- [ ] Confirm the grep facts from the repo root:
+- [x] Run `cd frontend && npx vitest run` and confirm the whole Vitest suite passes.
+- [x] Run `npm run lint` and `npx tsc --noEmit -p frontend/tsconfig.json` from the repo root. Both must be clean. Use non-build mode: `tsc -b` writes an un-ignored root `tsconfig.tsbuildinfo`. Then confirm `git status --porcelain` lists no `tsconfig.tsbuildinfo`, and delete it if one appeared.
+- [x] Confirm the grep facts from the repo root:
   - `grep -c 'ref={scrollRegionRef}' frontend/src/App.tsx` → `1`.
   - `grep -c 'ref={scrollRegionRef} className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40' frontend/src/App.tsx` → `1`. The pattern has no closing quote because F22 may append `scrollbar-none` if it merges first. The gate catches a changed or removed token. F19 must also not append one, since Step 1 forbids any class-string change.
   - `grep -c '}, \[isLocked\]);' frontend/src/App.tsx` → `2` (the existing `wasLockedRef` effect plus the new F19 effect).
   - `grep -c 'isBlanked, isLocked\]' frontend/src/App.tsx` → `1` (the force-close effect only).
-- [ ] Run the Playwright smoke spec as `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/smoke.spec.ts` from the repo root. This repo has sibling `c4i-wt-*` worktrees, so the sibling-safe form is required.
+- [x] Run the Playwright smoke spec as `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/smoke.spec.ts` from the repo root. This repo has sibling `c4i-wt-*` worktrees, so the sibling-safe form is required.
   - If it fails with `… is already used …` or `Process from config.webServer was not able to start`, retry about every 30 s with jitter for up to ~10 min.
   - If it still fails, leave this box unticked, write directly under it `UNRESOLVED — requires user decision/action: Playwright ports 3000/5174 occupied (<ss -ltnp output if available>)`, end your final report with that same line, and stop. On a later run where the gate passes, delete that marker line before ticking the box.
   - Never kill the listener, drop `CI=1`, or edit `playwright.config.ts`.
-- [ ] Copy the `## Manual checks (human, on the Pi)` section below verbatim into your final report. **Orchestrator (/run-plan): include that section verbatim in your Completion summary**, so the user sees it. When `/git-push` then fills its PR body's "How to manually verify" bullet, use this section for it.
-- [ ] Investigate and fix any failures before marking the plan finished.
+- [x] Copy the `## Manual checks (human, on the Pi)` section below verbatim into your final report. **Orchestrator (/run-plan): include that section verbatim in your Completion summary**, so the user sees it. When `/git-push` then fills its PR body's "How to manually verify" bullet, use this section for it.
+- [x] Investigate and fix any failures before marking the plan finished.
+  - **Outcomes (2026-09-23):** Vitest 38/38 files, 372/372 tests passed; `npm run lint` exit 0; `tsc --noEmit` exit 0; `git status --porcelain` clean (no `tsconfig.tsbuildinfo`); greps 1/1/2/1 as expected; Playwright smoke 14/14 passed (sandboxed, no port conflict). No failures to fix.
 
 ## Manual checks (human, on the Pi)
 - Leave the kiosk scrolled down, on a room tab, with a search typed and the day stepped forward. Wait 5 minutes. When the padlock engages, the view behind it should be at the top, on *All*, with an empty search and today's date.
@@ -236,4 +237,4 @@ Run the full suites and confirm the META-PLAN's F19 "Expected end state".
 - Confirm the jump behind the `bg-black/40` backdrop is unobtrusive and doesn't read as a flicker (META-PLAN F19 Open risks (b)). If it does, gate the reset behind `CLOSING_SETTLE_MS`-style timing *inside* the lock. Never move it to unlock. If F22 (overlay scrollbar) has already shipped, also confirm its thumb's brief flash at the lock reset looks acceptable. F19 adds no programmatic flag (F22 plan Decision (b)).
 
 ## Status
-finished: false
+finished: true
