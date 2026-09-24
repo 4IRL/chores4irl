@@ -368,7 +368,7 @@ export default function App() {
         // TouchLockOverlay's own visual mounted, not this gate.
         <div className="App h-full flex flex-col overflow-hidden" inert={isBlanked || isLocked}>
             <TouchLockIndicator isLocked={isLocked} />
-            <div className="flex flex-col h-full overflow-hidden bg-gray-900 px-4 pt-4">
+            <div className="flex flex-col h-full overflow-hidden bg-gray-900 pt-4">
                 <NavBar rooms={uniqueRooms} selectedRoom={selectedRoom} onSelect={setSelectedRoom} />
                 <StatusCountStrip counts={statusCounts} />
                 <DateNavigationBanner

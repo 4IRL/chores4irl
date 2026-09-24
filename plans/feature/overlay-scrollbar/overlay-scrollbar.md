@@ -460,7 +460,7 @@ Mount the thumb for the chore list, reusing `scrollRegionRef` and the `scroll-re
 Remove the column's horizontal padding and re-apply the 16 px inset where content lives.
 
 **To-do:**
-- [ ] **Red:** add App-level assertions to the `overlay scrollbar (F22)` describe in
+- [x] **Red:** (COMPLETE 2026-09-23) add App-level assertions to the `overlay scrollbar (F22)` describe in
   `App.test.tsx`. This case needs no metric spies. After load:
   - `column = document.getElementById('NavBar')!.parentElement!`. Its className does not match
     `/\bpx-\d/` and still contains `pt-4`.
@@ -484,7 +484,7 @@ Remove the column's horizontal padding and re-apply the 16 px inset where conten
   `px-4`, the strip's `mx-4`/no-`w-full`, the other column children's `px-4`, and the `ChoreList`
   and `ReturnToTodayButton` `px-4` checks. The column's `pt-4`, the backing's `inset-x-0` and the
   existing `StatusCountStrip` pins already pass before Green.
-- [ ] **Green:**
+- [x] **Green:** (COMPLETE 2026-09-23)
   - `App.tsx` outer column (`:349` before Step 3; Step 3's import and constant land above it, so
     anchor on the quoted string): `flex flex-col h-full overflow-hidden bg-gray-900 px-4 pt-4` → `flex flex-col h-full overflow-hidden bg-gray-900 pt-4`.
   - `components/nav/NavBar.tsx:11` root: `border-b border-gray-700 flex-shrink-0` → `border-b border-gray-700 flex-shrink-0 px-4`.
@@ -496,7 +496,7 @@ Remove the column's horizontal padding and re-apply the 16 px inset where conten
   - `components/chore/ChoreSearchInput.tsx:14`: `flex-shrink-0 mb-3` → `flex-shrink-0 mb-3 px-4`.
   - `components/chore/ChoreList.tsx`: empty-branch root `<div>` (`:16`) → `<div className="px-4">`,
     and the populated root (`:24`) `space-y-3 pb-4` → `space-y-3 pb-4 px-4`.
-- [ ] Re-run the whole Vitest suite: `npm run test --workspace frontend`. All green. Then run
+- [x] (COMPLETE 2026-09-23) Re-run the whole Vitest suite: `npm run test --workspace frontend`. All green. Then run
   `npx tsc --noEmit -p .` (in `frontend/`) and `npm run lint` (root). Both must be clean.
 
 ### 5. Form scroll box: wrap the card + thumb (TDD)

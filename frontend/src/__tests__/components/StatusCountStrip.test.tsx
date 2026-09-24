@@ -124,4 +124,11 @@ describe('StatusCountStrip', () => {
         expect(className).not.toContain('rounded-full');
         expect(screen.queryAllByRole('button')).toHaveLength(0);
     });
+
+    it('insets itself with mx-4 instead of w-full, since the app column no longer pads horizontally (F22)', () => {
+        render(<StatusCountStrip counts={{ doneToday: 3, dueSoon: 2, overdue: 5 }} />);
+        const className = screen.getByTestId('status-count-strip').className;
+        expect(className).toContain('mx-4');
+        expect(className).not.toMatch(/\bw-full\b/);
+    });
 });

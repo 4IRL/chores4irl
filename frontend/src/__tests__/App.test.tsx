@@ -923,6 +923,36 @@ describe('overlay scrollbar (F22)', () => {
         }).not.toThrow();
         expect(screen.queryByTestId('overlay-scrollbar')).toBeNull();
     });
+
+    it('makes the scroll region full-bleed: the column drops px-4 and each content row insets itself', async () => {
+        render(<App />);
+
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        const navBar = document.getElementById('NavBar')!;
+        const column = navBar.parentElement!;
+        expect(column.className).not.toMatch(/\bpx-\d/);
+        expect(column.className).toContain('pt-4');
+
+        expect(navBar.className).toContain('px-4');
+
+        const strip = screen.getByTestId('status-count-strip');
+        expect(strip.className).toContain('mx-4');
+        expect(strip.className).not.toMatch(/\bw-full\b/);
+
+        // ReturnToTodayButton renders null at offset 0, so this covers NavBar, the strip, the
+        // date banner and the search root.
+        const frame = screen.getByTestId('scroll-region-frame');
+        const insetRows = Array.from(column.children).filter(child => child !== frame);
+        expect(insetRows.length).toBeGreaterThan(0);
+        for (const row of insetRows) {
+            expect(row.className).toMatch(/\b(px|mx)-4\b/);
+        }
+
+        const region = document.querySelector('.overflow-y-auto') as HTMLElement;
+        expect(region.firstElementChild!.className).toContain('px-4');
+        expect(screen.getByTestId('add-task-deck-backing').className).toContain('inset-x-0');
+    });
 });
 
 describe('feedback toast (F21)', () => {

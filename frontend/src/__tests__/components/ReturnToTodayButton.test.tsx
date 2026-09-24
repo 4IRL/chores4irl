@@ -14,6 +14,12 @@ describe('ReturnToTodayButton', () => {
         expect(screen.getByRole('button', { name: /return to today/i })).toBeInTheDocument();
     });
 
+    it('insets its wrapper by px-4, since the app column no longer pads horizontally (F22)', () => {
+        render(<ReturnToTodayButton dayOffset={1} onReset={vi.fn()} />);
+        const wrapper = screen.getByRole('button', { name: /return to today/i }).parentElement!;
+        expect(wrapper.className).toContain('px-4');
+    });
+
     it('clicking invokes onReset', async () => {
         const onReset = vi.fn();
         const user = userEvent.setup();

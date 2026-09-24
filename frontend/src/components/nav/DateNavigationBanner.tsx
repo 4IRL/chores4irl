@@ -26,7 +26,7 @@ export default function DateNavigationBanner({
     }, [dayOffset]);
 
     return (
-        <div className="flex items-center justify-center gap-3 my-3 flex-shrink-0 text-white relative">
+        <div className="flex items-center justify-center gap-3 my-3 flex-shrink-0 text-white relative px-4">
             <button
                 type="button"
                 onClick={onPrev}

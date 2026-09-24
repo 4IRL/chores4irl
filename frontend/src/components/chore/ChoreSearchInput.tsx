@@ -11,7 +11,7 @@ export default function ChoreSearchInput({ value, onChange }: ChoreSearchInputPr
     const inputRef = useRef<HTMLInputElement>(null);
 
     return (
-        <div className="flex-shrink-0 mb-3">
+        <div className="flex-shrink-0 mb-3 px-4">
             <div className="relative">
                 <Search
                     className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
