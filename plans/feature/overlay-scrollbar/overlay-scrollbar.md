@@ -546,7 +546,7 @@ corners.
 Document the overlay scrollbar in the UI prose.
 
 **To-do:**
-- [ ] In the repo-root `README.md` (not `deploy/pi/README.md` or `.github/rulesets/README.md`),
+- [x] (COMPLETE 2026-09-23) In the repo-root `README.md` (not `deploy/pi/README.md` or `.github/rulesets/README.md`),
   after the scroll-to-top paragraph (`:48-50`, ending
   `` (`frontend/src/components/common/ScrollToTopButton.tsx`). ``), add one paragraph in the same
   style: "The native scrollbar is hidden; while the list (or the Add/Edit form, when it overflows)
@@ -554,7 +554,7 @@ Document the overlay scrollbar in the UI prose.
   stops. The list and its frosted Add Task deck run edge to edge, with only the header rows and
   bars inset (`frontend/src/components/common/OverlayScrollbar.tsx`)." Wrap lines to the file's
   ~100-column style, keeping the path on one line.
-- [ ] Verify, from the repo root: `grep -n "OverlayScrollbar.tsx" README.md` prints exactly one line, with a line number
+- [x] (COMPLETE 2026-09-23) Verify, from the repo root: `grep -n "OverlayScrollbar.tsx" README.md` prints exactly one line, with a line number
   greater than 50 (the scroll-to-top paragraph's last line). Before this step it prints nothing and
   exits 1.
 

@@ -53,6 +53,11 @@ After 5 minutes without a touch the app locks — the top-left padlock closes an
 ignored until a double-tap unlocks it (`frontend/src/hooks/useTouchLock.ts`).
 Locking also returns the view to the top of the list, the *All* tab, an empty search and today.
 
+The native scrollbar is hidden; while the list (or the Add/Edit form, when it overflows)
+scrolls, a thin overlay thumb appears at the right edge and fades about a second after scrolling
+stops. The list and its frosted Add Task deck run edge to edge, with only the header rows and
+bars inset (`frontend/src/components/common/OverlayScrollbar.tsx`).
+
 ### Adding and editing chores
 
 - **Dates are local calendar days** — the form's Last Completed field is parsed and shown as
