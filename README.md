@@ -49,9 +49,14 @@ Once the list is scrolled down, a small ↑ button fades in at the bottom centre
 smoothly back to the top (instantly when the OS asks for reduced motion)
 (`frontend/src/components/common/ScrollToTopButton.tsx`).
 
-After 5 minutes without a touch the app locks — the top-left padlock closes and taps are
-ignored until a double-tap unlocks it (`frontend/src/hooks/useTouchLock.ts`).
-Locking also returns the view to the top of the list, the *All* tab, an empty search and today.
+After 5 minutes without a touch the app locks and the top-left padlock closes. Scrolling,
+search, the room tabs, the day arrows and *Add Task* keep working while locked; completing,
+editing or deleting a chore shows a padlock at that spot instead, and tapping the padlock
+unlocks. The rest of the board stays usable while the padlock shows; it fades after a
+moment if left alone. Tapping the top-left padlock unlocks, or locks right away when unlocked
+(`frontend/src/hooks/useTouchLock.ts`).
+Locking also returns the view to the top of the list, the *All* tab, an empty search and today,
+and does so again after every further 5 idle minutes while locked.
 
 The native scrollbar is hidden; while the list (or the Add/Edit form, when it overflows)
 scrolls, a thin overlay thumb appears at the right edge and fades about a second after scrolling

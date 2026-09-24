@@ -1,5 +1,5 @@
 import type { Chore } from '@customTypes/SharedTypes';
-import ChoreTimerBar from './ChoreTimerBar';
+import ChoreTimerBar, { type LockGuardProps } from './ChoreTimerBar';
 
 type ChoreListProps = {
     chores: Chore[];
@@ -8,9 +8,14 @@ type ChoreListProps = {
     onComplete: (id: number, date: Date) => void;
     onDelete: (id: number) => void;
     onEdit?: (id: number) => void;
-};
+} & LockGuardProps;
 
-export default function ChoreList({ chores, day, isSimulating, onComplete, onDelete, onEdit }: ChoreListProps) {
+export default function ChoreList({
+    // F20: the lock props stay bundled in a rest object and are spread through
+    // whole, so the isLocked/onGuardedAttempt coupling (LockGuardProps) survives
+    // the hop to each bar; destructuring them apart would lose the correlation.
+    chores, day, isSimulating, onComplete, onDelete, onEdit, ...lockGuard
+}: ChoreListProps) {
     if (chores.length === 0) {
         return (
             <div className="px-4">
@@ -31,6 +36,7 @@ export default function ChoreList({ chores, day, isSimulating, onComplete, onDel
                         onComplete={onComplete}
                         onDelete={onDelete}
                         onEdit={onEdit}
+                        {...lockGuard}
                     />
                 </div>
             ))}

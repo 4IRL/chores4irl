@@ -7,6 +7,17 @@ import { computeBar } from '@utils/choreBarMath';
 import ProgressBar from './ProgressBar';
 import ChoreInfo from './ChoreInfo';
 import CompletionInfo from './CompletionInfo';
+import type { TapPoint } from '../common/TouchLockOverlay';
+
+// F20: a locked bar must always have somewhere to report a guarded attempt, or
+// the block would be silent (no padlock, no unlock path). So isLocked and
+// onGuardedAttempt are coupled: an unlocked render may omit both (or pass
+// isLocked={false}), but any render that can be locked — a literal `true` or a
+// runtime `boolean` like App's — must supply the handler. `isLocked: true`
+// without it is a compile error. Exported so ChoreList forwards the same union.
+export type LockGuardProps =
+    | { isLocked?: false; onGuardedAttempt?: (point: TapPoint) => void }
+    | { isLocked: boolean; onGuardedAttempt: (point: TapPoint) => void };
 
 type ChoreTimerBarProps = {
     chore: Chore;
@@ -15,13 +26,15 @@ type ChoreTimerBarProps = {
     onComplete: (id: number, date: Date) => void;
     onDelete: (id: number) => void;
     onEdit?: (id: number) => void;
-};
+} & LockGuardProps;
 
 // The action only fires once the swipe travels past this fraction of the bar's
 // own width (measured at runtime). Below it, the bar springs back with no action.
 const CONFIRM_THRESHOLD = 0.25;
 
-export default function ChoreTimerBar({ chore, day, isSimulating, onComplete, onDelete, onEdit }: ChoreTimerBarProps) {
+export default function ChoreTimerBar({
+    chore, day, isSimulating, onComplete, onDelete, onEdit, isLocked, onGuardedAttempt,
+}: ChoreTimerBarProps) {
     const daysSince = useMemo(
         () => differenceInDays(startOfDay(day), startOfDay(chore.dateLastCompleted)),
         [day, chore.dateLastCompleted]
@@ -49,16 +62,38 @@ export default function ChoreTimerBar({ chore, day, isSimulating, onComplete, on
         return absX >= width * CONFIRM_THRESHOLD;
     }
 
+    // F20: the shared lock guard for the tap and the sr-only Edit/Delete buttons.
+    // Locked, the blocked point is reported as a guarded attempt (seeding the
+    // padlock) and the destructive action is skipped; unlocked, the action runs.
+    // No default on isLocked above, so TS narrows onGuardedAttempt to defined here.
+    function guardOr(point: TapPoint, action: () => void) {
+        if (isLocked) { onGuardedAttempt(point); return; }
+        action();
+    }
+
     const swipeHandlers = useSwipeable({
         onSwiping: eventData => {
             if (isSimulating) return;
             // A real swipe gesture is underway: suppress the trailing click.
             swipingRef.current = true;
+            // F20: locked, the bar never moves (no reveal), but swipingRef is still
+            // set above so resetTask swallows the gesture's trailing click.
+            if (isLocked) return;
             setOffset(eventData.deltaX);
         },
         onSwiped: eventData => {
             setOffset(0);
             if (isSimulating) return;
+            // F20: the lock blocks destructive actions only, so a locked swipe raises
+            // the padlock (seeded at the swipe's start point) instead of editing or
+            // deleting. Horizontal swipes only: a vertical drag is a scroll. Any
+            // horizontal swipe counts, even one below the confirm threshold.
+            if (isLocked) {
+                if (eventData.dir === 'Left' || eventData.dir === 'Right') {
+                    onGuardedAttempt({ x: eventData.initial[0], y: eventData.initial[1] });
+                }
+                return;
+            }
             if (!pastThreshold(eventData.absX)) return;
             // Reversed vs F5: left -> edit, right -> delete.
             if (eventData.dir === 'Left') {
@@ -73,10 +108,13 @@ export default function ChoreTimerBar({ chore, day, isSimulating, onComplete, on
         preventScrollOnSwipe: false,
     });
 
-    function resetTask() {
+    function resetTask(event: React.MouseEvent<HTMLDivElement>) {
         if (isSimulating) return;
+        // Checked before the lock so a locked swipe's trailing click is swallowed
+        // rather than raising a second guarded attempt.
         if (swipingRef.current) { swipingRef.current = false; return; }
-        onComplete(chore.id, new Date());
+        // F20: a locked tap raises the padlock seeded at the tap instead of completing.
+        guardOr({ x: event.clientX, y: event.clientY }, () => onComplete(chore.id, new Date()));
     }
 
     // Reveal layer: which action is being uncovered depends on swipe direction.
@@ -135,7 +173,11 @@ export default function ChoreTimerBar({ chore, day, isSimulating, onComplete, on
                     <button
                         type="button"
                         className="sr-only focus:not-sr-only focus:absolute focus:right-12 focus:top-1/2 focus:-translate-y-1/2 focus:z-10 focus:px-3 focus:py-1 focus:bg-indigo-600 focus:text-white focus:text-sm focus:rounded-full"
-                        onClick={e => { e.stopPropagation(); onEdit(chore.id); }}
+                        onClick={e => {
+                            e.stopPropagation();
+                            // F20: guarded like the edit swipe; keyboard activation reports (0, 0).
+                            guardOr({ x: e.clientX, y: e.clientY }, () => onEdit(chore.id));
+                        }}
                         aria-label="Edit chore"
                     >
                         Edit chore
@@ -144,7 +186,11 @@ export default function ChoreTimerBar({ chore, day, isSimulating, onComplete, on
                 <button
                     type="button"
                     className="sr-only focus:not-sr-only focus:absolute focus:right-3 focus:top-1/2 focus:-translate-y-1/2 focus:z-10 focus:px-3 focus:py-1 focus:bg-red-600 focus:text-white focus:text-sm focus:rounded-full"
-                    onClick={e => { e.stopPropagation(); onDelete(chore.id); }}
+                    onClick={e => {
+                        e.stopPropagation();
+                        // F20: guarded like the delete swipe; keyboard activation reports (0, 0).
+                        guardOr({ x: e.clientX, y: e.clientY }, () => onDelete(chore.id));
+                    }}
                     aria-label="Delete chore"
                 >
                     Delete chore

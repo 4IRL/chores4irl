@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import App from '../App';
 import { CLOSING_SETTLE_MS } from '../components/common/TouchLockOverlay';
 import { FADE_MS } from '../components/common/ScrollToTopButton';
+import { INACTIVITY_MS } from '../hooks/useTouchLock';
 import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from '../services/choreApi';
 import { makeChore } from './fixtures/chore';
 import { FakeEventSource } from './fixtures/fakeEventSource';
@@ -27,11 +28,12 @@ const mockUseTouchLock = vi.hoisted(() => vi.fn());
 vi.mock('../hooks/useTouchLock', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../hooks/useTouchLock')>();
     mockUseTouchLock.mockImplementation(actual.useTouchLock);
-    return { useTouchLock: mockUseTouchLock };
+    return { ...actual, useTouchLock: mockUseTouchLock };
 });
 
-// Stable arm stub for the tests that hand-drive isLocked via mockReturnValue.
+// Stable arm/lock stubs for the tests that hand-drive isLocked via mockReturnValue.
 const mockArm = vi.hoisted(() => vi.fn());
+const mockLock = vi.hoisted(() => vi.fn());
 
 // Delegates to the real sort by default; spied on to observe re-sorts.
 const mockOrderChores = vi.hoisted(() => vi.fn());
@@ -47,8 +49,8 @@ vi.mock('../hooks/useScreenBlank', () => ({
     useScreenBlank: mockUseScreenBlank,
 }));
 
-// Mirrors useTouchLock's module-private INACTIVITY_MS (5 minutes).
-const IDLE_MS = 5 * 60 * 1000;
+// The idle timeout, imported from the hook itself (the mock factory spreads `actual`).
+const IDLE_MS = INACTIVITY_MS;
 
 beforeEach(async () => {
     vi.clearAllMocks();
@@ -120,7 +122,7 @@ describe('lock-time view reset (F19)', () => {
                 vi.advanceTimersByTime(IDLE_MS);
             });
 
-            expect(screen.getByTestId('touch-lock-overlay')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Unlock screen' })).toBeInTheDocument();
             expect(region.scrollTop).toBe(0);
             expect(searchInput.value).toBe('');
             expect(screen.getByText('Dust')).toBeInTheDocument();
@@ -139,15 +141,16 @@ describe('lock-time view reset (F19)', () => {
             act(() => {
                 vi.advanceTimersByTime(IDLE_MS);
             });
-            expect(screen.getByTestId('touch-lock-overlay')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Unlock screen' })).toBeInTheDocument();
 
-            // jsdom does not enforce inert, so the view can drift while locked.
+            // Under F20 the root is no longer inert, so the view may legitimately
+            // drift while locked.
             fireEvent.click(screen.getByRole('button', { name: 'Kitchen' }));
             fireEvent.change(getSearchInput(), { target: { value: 'sw' } });
 
-            const overlay = screen.getByTestId('touch-lock-overlay');
-            fireEvent.click(overlay, { clientX: 100, clientY: 100 });
-            fireEvent.click(overlay, { clientX: 100, clientY: 100 });
+            // A blocked bar tap seeds the padlock; a tap on its hit circle unlocks.
+            fireEvent.click(screen.getByTestId('chore-bar'), { clientX: 100, clientY: 100 });
+            fireEvent.click(screen.getByTestId('touch-lock-hit-area'), { clientX: 100, clientY: 100 });
 
             act(() => {
                 vi.advanceTimersByTime(CLOSING_SETTLE_MS);
@@ -164,7 +167,7 @@ describe('lock-time view reset (F19)', () => {
     });
 
     it('does not reset when the screen blanks without the lock engaging', async () => {
-        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         const { rerender } = render(<App />);
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
@@ -180,7 +183,7 @@ describe('lock-time view reset (F19)', () => {
     });
 
     it('resets when the lock engages while the screen is blanked', async () => {
-        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         const { rerender } = render(<App />);
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
@@ -188,7 +191,7 @@ describe('lock-time view reset (F19)', () => {
 
         mockUseScreenBlank.mockReturnValue({ isBlanked: true, wake: mockWake });
         rerender(<App />);
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
 
         // Blank wins over the lock overlay (F1 precedence), but the reset still ran.
@@ -201,30 +204,30 @@ describe('lock-time view reset (F19)', () => {
     });
 
     it('re-sorts on lock only when a day simulation was active', async () => {
-        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         const { rerender } = render(<App />);
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
         // Case A: already on today — the lock's setDayOffset(0) is a no-op, no re-sort.
         mockOrderChores.mockClear();
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
         expect(mockOrderChores).not.toHaveBeenCalled();
 
         // Case B: simulating two days ahead — the lock snaps back to today and re-sorts.
-        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
         fireEvent.click(screen.getByRole('button', { name: 'Next day' }));
         fireEvent.click(screen.getByRole('button', { name: 'Next day' }));
         mockOrderChores.mockClear();
-        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         rerender(<App />);
         expect(mockOrderChores).toHaveBeenCalled();
         expect(mockOrderChores.mock.calls[0][1]).toEqual(mockDay);
     });
 
     it('hides the scroll-to-top button once the lock resets the scroll', async () => {
-        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm });
+        mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         const { rerender } = render(<App />);
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
@@ -236,7 +239,7 @@ describe('lock-time view reset (F19)', () => {
             const button = screen.getByTestId('scroll-to-top');
             expect(button.className).toContain('opacity-100');
 
-            mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm });
+            mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
             rerender(<App />);
             expect(region.scrollTop).toBe(0);
 
@@ -249,6 +252,85 @@ describe('lock-time view reset (F19)', () => {
             });
             expect(screen.getByTestId('scroll-to-top')).toHaveAttribute('inert');
             expect(screen.getByTestId('scroll-to-top')).toHaveAttribute('aria-hidden', 'true');
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('resets the view again at the next idle tick when it drifted while locked', async () => {
+        vi.useFakeTimers({ now: new Date(2025, 0, 15, 12, 0, 0), shouldAdvanceTime: true });
+        try {
+            render(<App />);
+            await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+            act(() => {
+                vi.advanceTimersByTime(IDLE_MS);
+            });
+            expect(screen.getByRole('button', { name: 'Unlock screen' })).toBeInTheDocument();
+
+            // F20: the locked board stays usable, so the view can drift again.
+            const region = driftView();
+
+            act(() => {
+                vi.advanceTimersByTime(IDLE_MS);
+            });
+
+            expect(screen.getByRole('button', { name: 'Unlock screen' })).toBeInTheDocument();
+            expect(region.scrollTop).toBe(0);
+            expect(getSearchInput().value).toBe('');
+            expect(screen.getByText('Dust')).toBeInTheDocument();
+            expect(screen.queryByText('Return to today')).not.toBeInTheDocument();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('an Add form opened under the lock and left open across the next idle tick is closed, and the four resets run', async () => {
+        vi.useFakeTimers({ now: new Date(2025, 0, 15, 12, 0, 0), shouldAdvanceTime: true });
+        try {
+            render(<App />);
+            await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+            act(() => {
+                vi.advanceTimersByTime(IDLE_MS);
+            });
+            expect(screen.getByRole('button', { name: 'Unlock screen' })).toBeInTheDocument();
+
+            fireEvent.click(screen.getByText('+ Add Task'));
+            expect(screen.getByTestId('chore-modal-backdrop')).toBeInTheDocument();
+
+            const region = driftView();
+
+            act(() => {
+                vi.advanceTimersByTime(IDLE_MS);
+            });
+
+            expect(screen.queryByTestId('chore-modal-backdrop')).not.toBeInTheDocument();
+            expect(region.scrollTop).toBe(0);
+            expect(getSearchInput().value).toBe('');
+            expect(screen.getByText('Dust')).toBeInTheDocument();
+            expect(screen.queryByText('Return to today')).not.toBeInTheDocument();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('a manual lock from the indicator resets the view', async () => {
+        vi.useFakeTimers({ now: new Date(2025, 0, 15, 12, 0, 0), shouldAdvanceTime: true });
+        try {
+            render(<App />);
+            await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+            const region = driftView();
+
+            // No timer advance: lock() engages immediately.
+            fireEvent.click(screen.getByRole('button', { name: 'Lock screen' }));
+
+            expect(screen.getByRole('button', { name: 'Unlock screen' })).toBeInTheDocument();
+            expect(region.scrollTop).toBe(0);
+            expect(getSearchInput().value).toBe('');
+            expect(screen.getByText('Dust')).toBeInTheDocument();
+            expect(screen.queryByText('Return to today')).not.toBeInTheDocument();
         } finally {
             vi.useRealTimers();
         }

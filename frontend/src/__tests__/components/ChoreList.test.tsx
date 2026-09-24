@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChoreList from '../../components/chore/ChoreList';
 import { makeChore } from '../fixtures/chore';
@@ -101,5 +101,35 @@ describe('ChoreList', () => {
         ).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Delete chore' })).not.toBeInTheDocument();
         expect(container.firstElementChild!.className).toContain('px-4');
+    });
+
+    it('passes isLocked and onGuardedAttempt to each ChoreTimerBar', () => {
+        const onComplete = vi.fn();
+        const onGuardedAttempt = vi.fn();
+        const chores = [
+            makeChore({ id: 1, name: 'Sweep' }),
+            makeChore({ id: 2, name: 'Mop' }),
+        ];
+
+        render(
+            <ChoreList
+                chores={chores}
+                day={day}
+                isSimulating={false}
+                isLocked={true}
+                onGuardedAttempt={onGuardedAttempt}
+                onComplete={onComplete}
+                onDelete={vi.fn()}
+            />
+        );
+
+        const bars = screen.getAllByTestId('chore-bar');
+        expect(bars).toHaveLength(2);
+        fireEvent.click(bars[0], { clientX: 10, clientY: 20 });
+        fireEvent.click(bars[1], { clientX: 30, clientY: 40 });
+        expect(onGuardedAttempt).toHaveBeenCalledTimes(2);
+        expect(onGuardedAttempt).toHaveBeenNthCalledWith(1, { x: 10, y: 20 });
+        expect(onGuardedAttempt).toHaveBeenNthCalledWith(2, { x: 30, y: 40 });
+        expect(onComplete).not.toHaveBeenCalled();
     });
 });

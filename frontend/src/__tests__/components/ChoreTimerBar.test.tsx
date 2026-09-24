@@ -508,4 +508,139 @@ describe('ChoreTimerBar', () => {
         expect(fill.className).toContain('opacity-50');
         expect(fill.className).not.toContain('bg-opacity-50');
     });
+
+    // F20: while locked the bar blocks destructive actions only. A tap, a horizontal
+    // swipe or an sr-only Edit/Delete activation reports a guarded attempt (seeded
+    // at the blocked point) instead of acting; the bar never moves or dims.
+    describe('while locked (F20)', () => {
+        function renderLocked(overrides: Partial<Parameters<typeof ChoreTimerBar>[0]> = {}) {
+            const handlers = {
+                onComplete: vi.fn(),
+                onDelete: vi.fn(),
+                onEdit: vi.fn(),
+                onGuardedAttempt: vi.fn(),
+            };
+            const utils = render(
+                <ChoreTimerBar
+                    chore={makeChore({ id: 42 })}
+                    day={day}
+                    isSimulating={false}
+                    isLocked={true}
+                    {...handlers}
+                    {...overrides}
+                />
+            );
+            const bar = screen.getByTestId('chore-bar');
+            return { ...utils, ...handlers, bar };
+        }
+
+        it('a tap reports a guarded attempt at the click point and does not complete', () => {
+            const { bar, onGuardedAttempt, onComplete } = renderLocked();
+            fireEvent.click(bar, { clientX: 120, clientY: 40 });
+            expect(onGuardedAttempt).toHaveBeenCalledOnce();
+            expect(onGuardedAttempt).toHaveBeenCalledWith({ x: 120, y: 40 });
+            expect(onComplete).not.toHaveBeenCalled();
+        });
+
+        it('a left swipe reports one guarded attempt at its start point and does not edit/delete', () => {
+            const { bar, onGuardedAttempt, onEdit, onDelete } = renderLocked();
+            stubBarWidth(bar);
+            swipe(bar, 350, 100);
+            expect(onGuardedAttempt).toHaveBeenCalledOnce();
+            expect(onGuardedAttempt).toHaveBeenCalledWith({ x: 350, y: 50 });
+            expect(onEdit).not.toHaveBeenCalled();
+            expect(onDelete).not.toHaveBeenCalled();
+        });
+
+        it('a right swipe reports one guarded attempt at its start point and does not edit/delete', () => {
+            const { bar, onGuardedAttempt, onEdit, onDelete } = renderLocked();
+            stubBarWidth(bar);
+            swipe(bar, 50, 300);
+            expect(onGuardedAttempt).toHaveBeenCalledOnce();
+            expect(onGuardedAttempt).toHaveBeenCalledWith({ x: 50, y: 50 });
+            expect(onEdit).not.toHaveBeenCalled();
+            expect(onDelete).not.toHaveBeenCalled();
+        });
+
+        it('swallows the trailing click after a locked swipe (the guard fires once per gesture)', () => {
+            const { bar, onGuardedAttempt, onComplete } = renderLocked();
+            stubBarWidth(bar);
+            swipe(bar, 350, 100);
+            fireEvent.click(bar);
+            expect(onGuardedAttempt).toHaveBeenCalledOnce();
+            expect(onComplete).not.toHaveBeenCalled();
+        });
+
+        it('a partial locked drag does not move the bar or reveal an action layer', () => {
+            const { bar, container } = renderLocked();
+            stubBarWidth(bar);
+            fireEvent.mouseDown(bar, { clientX: 350, clientY: 50 });
+            fireEvent.mouseMove(bar, { clientX: 250, clientY: 50 });
+            fireEvent.mouseMove(bar, { clientX: 150, clientY: 50 });
+            expect(bar.style.transform).toBe('translateX(0px)');
+            expect(container.querySelector('.bg-yellow-400')).toBeNull();
+            expect(container.querySelector('.bg-red-600')).toBeNull();
+        });
+
+        it('a vertical drag (a scroll) reports no guarded attempt and no action', () => {
+            const { bar, onGuardedAttempt, onComplete, onEdit, onDelete } = renderLocked();
+            stubBarWidth(bar);
+            fireEvent.mouseDown(bar, { clientX: 100, clientY: 50 });
+            fireEvent.mouseMove(bar, { clientX: 100, clientY: 100 });
+            fireEvent.mouseMove(bar, { clientX: 100, clientY: 150 });
+            fireEvent.mouseUp(bar, { clientX: 100, clientY: 150 });
+            // The drag's trailing click is swallowed too (swipingRef is set by any
+            // swipe, vertical included), so a scroll never completes or raises the padlock.
+            fireEvent.click(bar, { clientX: 100, clientY: 150 });
+            expect(onGuardedAttempt).not.toHaveBeenCalled();
+            expect(onComplete).not.toHaveBeenCalled();
+            expect(onEdit).not.toHaveBeenCalled();
+            expect(onDelete).not.toHaveBeenCalled();
+        });
+
+        it('the sr-only Edit and Delete buttons report guarded attempts and do not edit/delete', () => {
+            const { onGuardedAttempt, onEdit, onDelete, onComplete } = renderLocked();
+            fireEvent.click(screen.getByRole('button', { name: 'Edit chore' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Delete chore' }));
+            expect(onGuardedAttempt).toHaveBeenCalledTimes(2);
+            expect(onGuardedAttempt).toHaveBeenNthCalledWith(1, { x: 0, y: 0 });
+            expect(onGuardedAttempt).toHaveBeenNthCalledWith(2, { x: 0, y: 0 });
+            expect(onEdit).not.toHaveBeenCalled();
+            expect(onDelete).not.toHaveBeenCalled();
+            expect(onComplete).not.toHaveBeenCalled();
+        });
+
+        it('does not dim or disable the locked bar', () => {
+            const { bar } = renderLocked();
+            expect(bar.className).not.toContain('opacity-60');
+            expect(bar.className).not.toContain('pointer-events-none');
+        });
+
+        it('never reports a guarded attempt when unlocked', () => {
+            const { bar, onGuardedAttempt, onComplete, onEdit, onDelete } = renderLocked({ isLocked: false });
+            stubBarWidth(bar);
+            fireEvent.click(bar, { clientX: 120, clientY: 40 });
+            swipe(bar, 350, 100);
+            swipe(bar, 50, 300);
+            fireEvent.click(screen.getByRole('button', { name: 'Edit chore' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Delete chore' }));
+            expect(onGuardedAttempt).not.toHaveBeenCalled();
+            // Sanity: the unlocked bar still acts.
+            expect(onComplete).toHaveBeenCalledOnce();
+            expect(onEdit).toHaveBeenCalled();
+            expect(onDelete).toHaveBeenCalled();
+        });
+
+        it('simulation wins over the lock (DD-7): taps and swipes do nothing', () => {
+            const { bar, onGuardedAttempt, onComplete, onEdit, onDelete } = renderLocked({ isSimulating: true });
+            stubBarWidth(bar);
+            fireEvent.click(bar, { clientX: 120, clientY: 40 });
+            swipe(bar, 350, 100);
+            swipe(bar, 50, 300);
+            expect(onGuardedAttempt).not.toHaveBeenCalled();
+            expect(onComplete).not.toHaveBeenCalled();
+            expect(onEdit).not.toHaveBeenCalled();
+            expect(onDelete).not.toHaveBeenCalled();
+        });
+    });
 });
