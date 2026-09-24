@@ -70,7 +70,7 @@ describe('ChoreList', () => {
             makeChore({ id: 3, name: 'Dust' }),
         ];
 
-        render(
+        const { container } = render(
             <ChoreList
                 chores={chores}
                 day={day}
@@ -81,10 +81,12 @@ describe('ChoreList', () => {
         );
 
         expect(screen.getAllByRole('button', { name: 'Delete chore' })).toHaveLength(3);
+        // F22: the scroller is full-bleed, so the list's root carries the 16 px inset.
+        expect(container.firstElementChild!.className).toContain('px-4');
     });
 
     it('renders the empty-state message when chores is empty', () => {
-        render(
+        const { container } = render(
             <ChoreList
                 chores={[]}
                 day={day}
@@ -98,5 +100,6 @@ describe('ChoreList', () => {
             screen.getByText('No chores yet — tap + Add Task to get started.')
         ).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Delete chore' })).not.toBeInTheDocument();
+        expect(container.firstElementChild!.className).toContain('px-4');
     });
 });

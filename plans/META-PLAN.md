@@ -355,7 +355,7 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| **F22 — fading overlay scrollbar + full-bleed scroll region** ★FOCUS *(added 2026-09-20, after the batch closed)* | pending *(ungated; F18 shipped #54)* | `feature/overlay-scrollbar` | — |
+| **F22 — fading overlay scrollbar + full-bleed scroll region** ★FOCUS *(added 2026-09-20, after the batch closed)* | in-review | `feature/overlay-scrollbar` | [#57](https://github.com/4IRL/chores4irl/pull/57) |
 | F20 — permissive touch lock *(added 2026-09-20; reworks shipped F2)* | pending *(ungated; soft after F22)* | `feature/permissive-lock` | — |
 | F19 — lock-time view reset *(added 2026-09-20; trigger amended by F20)* | in-review | `feature/lock-view-reset` | [#56](https://github.com/4IRL/chores4irl/pull/56) |
 | F15 — adopt kiosk-shell *(added 2026-07-15; kiosk-track head)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — |

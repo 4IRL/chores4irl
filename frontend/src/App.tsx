@@ -16,6 +16,7 @@ import ChoreSearchInput from './components/chore/ChoreSearchInput';
 import AddChoreButton from './components/form/AddChoreButton';
 import ChoreFormModal from './components/form/ChoreFormModal';
 import ConfirmDialog from './components/common/ConfirmDialog';
+import OverlayScrollbar from './components/common/OverlayScrollbar';
 import ScreenBlankOverlay from './components/common/ScreenBlankOverlay';
 import ScrollToTopButton from './components/common/ScrollToTopButton';
 import Toast from './components/common/Toast';
@@ -25,6 +26,14 @@ import { fetchAllChores, addChore, completeChore, removeChore, updateChore } fro
 import type { Chore } from '@customTypes/SharedTypes';
 
 type ToastState = { id: number; tone: 'success' | 'error'; message: string };
+
+// F22: the list thumb's track stops this far above the frame bottom, so at the end of
+// its travel the thumb's bottom meets the bottom of the last chore bar: the Add Task
+// deck's 80 px (py-4 + the 48 px button) plus ChoreList's pb-4 (16 px), measured in
+// Chromium at 1280×600, 600×1024 and 600×700. Re-check it if the deck's height or the
+// list's bottom padding changes (Standing invariant 12); e2e/overlay-scrollbar.spec.ts
+// pins the alignment.
+const LIST_THUMB_BOTTOM_INSET_PX = 96;
 
 export default function App() {
     const realToday = useMidnightClock();
@@ -361,7 +370,7 @@ export default function App() {
         // TouchLockOverlay's own visual mounted, not this gate.
         <div className="App h-full flex flex-col overflow-hidden" inert={isBlanked || isLocked}>
             <TouchLockIndicator isLocked={isLocked} />
-            <div className="flex flex-col h-full overflow-hidden bg-gray-900 px-4 pt-4">
+            <div className="flex flex-col h-full overflow-hidden bg-gray-900 pt-4">
                 <NavBar rooms={uniqueRooms} selectedRoom={selectedRoom} onSelect={setSelectedRoom} />
                 <StatusCountStrip counts={statusCounts} />
                 <DateNavigationBanner
@@ -372,12 +381,17 @@ export default function App() {
                 />
                 <ReturnToTodayButton dayOffset={dayOffset} onReset={() => setDayOffset(0)} />
                 <ChoreSearchInput value={searchQuery} onChange={setSearchQuery} />
-                {/* F18: the positioned frame the scroll-to-top button (and later F22's
-                    thumb) anchor against, so they neither scroll away with the list nor
+                {/* F18: the positioned frame the scroll-to-top button and F22's overlay
+                    thumb anchor against, so they neither scroll away with the list nor
                     become sticky children of the deck's region. One frame only; the
-                    scroller inside keeps its exact class string. */}
+                    scroller inside keeps its exact class string (F22 adds only
+                    scrollbar-none). The thumb reads the same single scrollRegionRef and
+                    sits before the button so the button stays the frame's last child; its
+                    track stops LIST_THUMB_BOTTOM_INSET_PX above the frame bottom, level
+                    with the last bar at full scroll. Neither has a z-index: both paint
+                    over the frost by DOM order. */}
                 <div data-testid="scroll-region-frame" className="relative flex-1 min-h-0 flex flex-col">
-                    <div ref={scrollRegionRef} className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40">
+                    <div ref={scrollRegionRef} className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40 scrollbar-none">
                         <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} onEdit={handleRequestEdit} />
                         {/* F5: sticky frosted deck — mt-auto pins it to the bottom when the list is
                             short; sticky keeps it pinned while a long list scrolls beneath the blur.
@@ -401,6 +415,7 @@ export default function App() {
                             </div>
                         </div>
                     </div>
+                    <OverlayScrollbar scrollRegionRef={scrollRegionRef} trackInsetBottomPx={LIST_THUMB_BOTTOM_INSET_PX} />
                     <ScrollToTopButton scrollRegionRef={scrollRegionRef} />
                 </div>
             </div>

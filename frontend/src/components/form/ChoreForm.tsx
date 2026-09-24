@@ -3,6 +3,11 @@ import type { Chore } from '@customTypes/SharedTypes';
 import { formatFormDate, parseFormDate } from '@utils/formDate';
 import FormField from './FormField';
 import ClearButton from '../common/ClearButton';
+import OverlayScrollbar from '../common/OverlayScrollbar';
+
+// F22: the form thumb's top and bottom track inset, equal to the card's `rounded-xl` radius
+// (0.75 rem), so the thumb stays inside the rounded corners over the `p-6` padding.
+const FORM_THUMB_TRACK_INSET_PX = 12;
 
 type FormState = {
     name: string;
@@ -53,6 +58,7 @@ export default function ChoreForm({ mode = 'add', initialChore, rooms = [], defa
         initialChore ? choreToFormState(initialChore) : initialAddState(defaultRoom),
     );
     const roomInputRef = useRef<HTMLInputElement>(null);
+    const scrollBoxRef = useRef<HTMLDivElement>(null);
 
     function handleFieldChange(name: string, value: string) {
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -71,70 +77,75 @@ export default function ChoreForm({ mode = 'add', initialChore, rooms = [], defa
         if (mode === 'add') setFormData(initialAddState(defaultRoom));
     }
 
+    // F22: the card-sized wrapper (so clicks beside the card still reach ChoreFormModal's
+    // backdrop) positions the overlay thumb beside, never inside, the scroll box.
     return (
-        <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md overflow-y-auto max-h-[90dvh]">
-            <h3 className="text-white font-semibold text-lg mb-4">{mode === 'edit' ? 'Edit Chore' : 'Add New Chore'}</h3>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-                <FormField name="name" label="Name" value={formData.name} onChange={handleFieldChange} required autoFocus clearable />
-                <div className="flex flex-col gap-1">
-                    <label htmlFor="room" className="text-sm text-gray-400 capitalize">Room</label>
-                    <div className="relative">
-                        <input
-                            ref={roomInputRef}
-                            id="room"
-                            name="room"
-                            type="text"
-                            list="room-options"
-                            value={formData.room}
-                            onChange={e => handleFieldChange('room', e.target.value)}
-                            required
-                            className="bg-gray-700 text-white rounded px-3 py-2 text-sm w-full pr-14"
-                        />
-                        {formData.room !== '' && (
-                            <ClearButton
-                                label="Clear Room"
-                                onClear={() => {
-                                    handleFieldChange('room', '');
-                                    roomInputRef.current?.focus();
-                                }}
-                                anchor="top"
+        <div className="relative w-full max-w-md">
+            <div ref={scrollBoxRef} className="bg-gray-800 rounded-xl p-6 w-full max-w-md overflow-y-auto max-h-[90dvh] scrollbar-none">
+                <h3 className="text-white font-semibold text-lg mb-4">{mode === 'edit' ? 'Edit Chore' : 'Add New Chore'}</h3>
+                <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                    <FormField name="name" label="Name" value={formData.name} onChange={handleFieldChange} required autoFocus clearable />
+                    <div className="flex flex-col gap-1">
+                        <label htmlFor="room" className="text-sm text-gray-400 capitalize">Room</label>
+                        <div className="relative">
+                            <input
+                                ref={roomInputRef}
+                                id="room"
+                                name="room"
+                                type="text"
+                                list="room-options"
+                                value={formData.room}
+                                onChange={e => handleFieldChange('room', e.target.value)}
+                                required
+                                className="bg-gray-700 text-white rounded px-3 py-2 text-sm w-full pr-14"
                             />
-                        )}
-                        <datalist id="room-options">
-                            {rooms.map(room => (
-                                <option key={room} value={room} />
-                            ))}
-                        </datalist>
+                            {formData.room !== '' && (
+                                <ClearButton
+                                    label="Clear Room"
+                                    onClear={() => {
+                                        handleFieldChange('room', '');
+                                        roomInputRef.current?.focus();
+                                    }}
+                                    anchor="top"
+                                />
+                            )}
+                            <datalist id="room-options">
+                                {rooms.map(room => (
+                                    <option key={room} value={room} />
+                                ))}
+                            </datalist>
+                        </div>
                     </div>
-                </div>
-                <FormField name="dateLastCompleted" label="Last Completed" value={formData.dateLastCompleted} onChange={handleFieldChange} type="date" required />
-                <FormField name="duration" label="Duration (minutes)" value={formData.duration} onChange={handleFieldChange} type="number" required />
-                <FormField name="frequency" label="Frequency (days)" value={formData.frequency} onChange={handleFieldChange} type="number" required />
+                    <FormField name="dateLastCompleted" label="Last Completed" value={formData.dateLastCompleted} onChange={handleFieldChange} type="date" required />
+                    <FormField name="duration" label="Duration (minutes)" value={formData.duration} onChange={handleFieldChange} type="number" required />
+                    <FormField name="frequency" label="Frequency (days)" value={formData.frequency} onChange={handleFieldChange} type="number" required />
 
-                <div className="flex flex-col gap-1">
-                    <label htmlFor="urgency" className="text-sm text-gray-400">Urgency</label>
-                    <select
-                        id="urgency"
-                        value={formData.urgency}
-                        onChange={e => setFormData(prev => ({ ...prev, urgency: e.target.value as FormState['urgency'] }))}
-                        className="bg-gray-700 text-white rounded px-3 py-2 text-sm"
-                    >
-                        <option value="">None</option>
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                    </select>
-                </div>
+                    <div className="flex flex-col gap-1">
+                        <label htmlFor="urgency" className="text-sm text-gray-400">Urgency</label>
+                        <select
+                            id="urgency"
+                            value={formData.urgency}
+                            onChange={e => setFormData(prev => ({ ...prev, urgency: e.target.value as FormState['urgency'] }))}
+                            className="bg-gray-700 text-white rounded px-3 py-2 text-sm"
+                        >
+                            <option value="">None</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
 
-                <div className="flex gap-3 mt-2">
-                    <button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg">
-                        {mode === 'edit' ? 'Save Changes' : 'Save'}
-                    </button>
-                    <button type="button" onClick={onCancel} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg">
-                        Cancel
-                    </button>
-                </div>
-            </form>
+                    <div className="flex gap-3 mt-2">
+                        <button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg">
+                            {mode === 'edit' ? 'Save Changes' : 'Save'}
+                        </button>
+                        <button type="button" onClick={onCancel} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <OverlayScrollbar scrollRegionRef={scrollBoxRef} trackInsetTopPx={FORM_THUMB_TRACK_INSET_PX} trackInsetBottomPx={FORM_THUMB_TRACK_INSET_PX} />
         </div>
     );
 }

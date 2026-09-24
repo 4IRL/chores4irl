@@ -21,13 +21,16 @@ export default function StatusCountStrip({ counts }: StatusCountStripProps) {
     const label = `${counts.doneToday} done today · ${counts.dueSoon} due soon · ${counts.overdue} overdue`;
     const allZero = counts.doneToday + counts.dueSoon + counts.overdue === 0;
 
+    // F22: the app column no longer pads horizontally, so the strip insets itself with mx-4.
+    // mx-4 replaces w-full: the column's flex-col stretch already fills the row, and w-full
+    // plus 16 px margins on each side would overflow by 32 px.
     return (
         <div
             data-testid="status-count-strip"
             role="img"
             aria-label={label}
             title={label}
-            className="flex flex-shrink-0 w-full h-5 mt-2 rounded-sm overflow-hidden bg-gray-800"
+            className="flex flex-shrink-0 mx-4 h-5 mt-2 rounded-sm overflow-hidden bg-gray-800"
         >
             {SEGMENTS.map((segment, index) => {
                 const count = counts[segment.key];

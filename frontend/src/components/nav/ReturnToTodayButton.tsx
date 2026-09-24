@@ -12,7 +12,7 @@ export default function ReturnToTodayButton({
     if (dayOffset === 0) return null;
 
     return (
-        <div className="flex justify-center flex-shrink-0 mt-2 slide-in-top">
+        <div className="flex justify-center flex-shrink-0 mt-2 slide-in-top px-4">
             <button
                 type="button"
                 onClick={onReset}
