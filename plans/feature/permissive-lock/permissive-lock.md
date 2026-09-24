@@ -80,8 +80,8 @@ Extend the hook test-first. `App` does not consume the new fields yet, so nothin
 Add `isLocked` + `onGuardedAttempt` to the bar and thread them through the list, test-first. The props are optional (`isLocked` defaults to `false`), so the 29 existing `ChoreTimerBar` renders and 4 `ChoreList` renders stay untouched.
 
 **To-do:**
-- [ ] In `frontend/src/components/common/TouchLockOverlay.tsx`, add (additively, next to the existing `FirstTap` type) `export type TapPoint = { x: number; y: number };`. It is a type-only export, so `react-refresh/only-export-components` is unaffected.
-- [ ] **Red.** In `frontend/src/__tests__/components/ChoreTimerBar.test.tsx`, add a `describe('while locked (F20)')` block modeled on the simulation-guard tests (`:148-162`, `:304-323`), reusing the file's `swipe()` and `stubBarWidth()` helpers:
+- [x] In `frontend/src/components/common/TouchLockOverlay.tsx`, add (additively, next to the existing `FirstTap` type) `export type TapPoint = { x: number; y: number };`. It is a type-only export, so `react-refresh/only-export-components` is unaffected.
+- [x] **Red.** In `frontend/src/__tests__/components/ChoreTimerBar.test.tsx`, add a `describe('while locked (F20)')` block modeled on the simulation-guard tests (`:148-162`, `:304-323`), reusing the file's `swipe()` and `stubBarWidth()` helpers:
   - A click with `{ clientX: 120, clientY: 40 }` calls `onGuardedAttempt` once with `{ x: 120, y: 40 }` and never `onComplete`.
   - Swipe-left `350 → 100` and swipe-right `50 → 300` each call `onGuardedAttempt` exactly once with the start point (`{ x: 350, y: 50 }` / `{ x: 50, y: 50 }`) and never `onEdit`/`onDelete`.
   - A follow-up `fireEvent.click(bar)` after a locked swipe does not call the guard again (trailing click swallowed; total calls = 1).
@@ -93,7 +93,7 @@ Add `isLocked` + `onGuardedAttempt` to the bar and thread them through the list,
   - `simulation wins over the lock` (DD-7): with `isSimulating={true}` and `isLocked={true}` (plus `onEdit={vi.fn()}`), `stubBarWidth(bar)`, then `fireEvent.click(bar, { clientX: 120, clientY: 40 })`, `swipe(bar, 350, 100)` and `swipe(bar, 50, 300)` call neither `onGuardedAttempt` nor `onComplete`/`onEdit`/`onDelete`. Use `fireEvent` (not `userEvent`) for the click.
 
   In `frontend/src/__tests__/components/ChoreList.test.tsx`, add `passes isLocked and onGuardedAttempt to each ChoreTimerBar`: with two chores and `isLocked`, clicking each `chore-bar` calls the guard, and `onComplete` is never called. Run both files → the guard-calling tests and the partial-drag test fail (the className, unlocked, vertical-drag and simulation-wins tests may already pass; they pin behavior).
-- [ ] **Green.** In `frontend/src/components/chore/ChoreTimerBar.tsx`:
+- [x] **Green.** In `frontend/src/components/chore/ChoreTimerBar.tsx`:
   - Import `type TapPoint` from `../common/TouchLockOverlay`.
   - Add `isLocked?: boolean;` and `onGuardedAttempt?: (point: TapPoint) => void;` to `ChoreTimerBarProps`, and destructure `isLocked = false, onGuardedAttempt`.
   - `onSwiping`: keep `if (isSimulating) return; swipingRef.current = true;`, then `if (isLocked) return;` **before** `setOffset(eventData.deltaX)`. The bar never moves, but the trailing click is still suppressed.
@@ -102,8 +102,8 @@ Add `isLocked` + `onGuardedAttempt` to the bar and thread them through the list,
   - The sr-only Edit and Delete `onClick`s: after `e.stopPropagation();` add `if (isLocked) { onGuardedAttempt?.({ x: e.clientX, y: e.clientY }); return; }`.
   - **No** className change for the locked state.
   - Add a short WHY comment at the guard (F20: the lock blocks destructive actions only; horizontal swipes only, because a vertical drag is a scroll).
-- [ ] In `frontend/src/components/chore/ChoreList.tsx`, add `import type { TapPoint } from '../common/TouchLockOverlay';` and the same two optional props to `ChoreListProps` and forward `isLocked={isLocked}` and `onGuardedAttempt={onGuardedAttempt}` to each `ChoreTimerBar`.
-- [ ] Run `cd frontend && npx vitest run src/__tests__/components/ChoreTimerBar.test.tsx src/__tests__/components/ChoreList.test.tsx` → all pass. Then run `npm run lint` and `npx tsc --noEmit -p frontend/tsconfig.json` from the repo root → clean.
+- [x] In `frontend/src/components/chore/ChoreList.tsx`, add `import type { TapPoint } from '../common/TouchLockOverlay';` and the same two optional props to `ChoreListProps` and forward `isLocked={isLocked}` and `onGuardedAttempt={onGuardedAttempt}` to each `ChoreTimerBar`.
+- [x] Run `cd frontend && npx vitest run src/__tests__/components/ChoreTimerBar.test.tsx src/__tests__/components/ChoreList.test.tsx` → all pass. Then run `npm run lint` and `npx tsc --noEmit -p frontend/tsconfig.json` from the repo root → clean.
 
 ### 3. `TouchLockIndicator` becomes the lock/unlock button; reserve its NavBar gutter
 The indicator becomes a control wired to `lock()`/`arm()`, with an optional `raised` prop (default `false`, so nothing passes it yet; Step 4 wires it to `lockAttempt` — DD-22). The lock still makes the root inert in this step (the overlay rework is Step 4), so in a real browser the indicator's unlock path is unreachable while locked (it sits inside the inert root and under the `z-[90]` overlay) until Step 4 removes the lock from the inert gate; only the jsdom test exercises it here. This is expected: do not move the `inert` change into this step, because `App.touchLock` (b)/(b2) still assert it. Also, `e2e/smoke.spec.ts` stays green: it locates the indicator by `data-testid` and inner icon testids, both kept.

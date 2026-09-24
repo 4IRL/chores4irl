@@ -17,6 +17,9 @@ type TouchLockOverlayProps = {
 
 type Phase = 'just-relocked' | 'idle' | 'awaiting-second-tap' | 'opening';
 
+// F20: the viewport point of a guarded attempt (a blocked tap/swipe on a chore bar),
+// which seeds the overlay as the first tap of the unlock double-tap.
+export type TapPoint = { x: number; y: number };
 type FirstTap = { x: number; y: number; at: number };
 
 export default function TouchLockOverlay({ onArm, justRelocked = false }: TouchLockOverlayProps) {

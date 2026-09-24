@@ -1,5 +1,6 @@
 import type { Chore } from '@customTypes/SharedTypes';
 import ChoreTimerBar from './ChoreTimerBar';
+import type { TapPoint } from '../common/TouchLockOverlay';
 
 type ChoreListProps = {
     chores: Chore[];
@@ -8,9 +9,13 @@ type ChoreListProps = {
     onComplete: (id: number, date: Date) => void;
     onDelete: (id: number) => void;
     onEdit?: (id: number) => void;
+    isLocked?: boolean;
+    onGuardedAttempt?: (point: TapPoint) => void;
 };
 
-export default function ChoreList({ chores, day, isSimulating, onComplete, onDelete, onEdit }: ChoreListProps) {
+export default function ChoreList({
+    chores, day, isSimulating, onComplete, onDelete, onEdit, isLocked, onGuardedAttempt,
+}: ChoreListProps) {
     if (chores.length === 0) {
         return (
             <div className="px-4">
@@ -31,6 +36,8 @@ export default function ChoreList({ chores, day, isSimulating, onComplete, onDel
                         onComplete={onComplete}
                         onDelete={onDelete}
                         onEdit={onEdit}
+                        isLocked={isLocked}
+                        onGuardedAttempt={onGuardedAttempt}
                     />
                 </div>
             ))}
