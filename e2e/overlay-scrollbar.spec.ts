@@ -2,13 +2,14 @@ import { test, expect } from '@playwright/test';
 
 // F22: real-browser checks jsdom can't make (vitest runs with css: false and no layout): the
 // native-scrollbar rule applies, the full-bleed frame/frost, the thumb's real geometry (including
-// its stop above the Add Task deck) and fade, the form thumb, the card-sized modal wrapper's
+// its end-of-travel alignment with the last chore bar) and fade, the form thumb, the card-sized modal wrapper's
 // hit-testing, and reduced motion. Read-only: never taps a chore bar or submits the form, so it
 // can run in a parallel worker alongside smoke.spec.ts's mutations.
 
 // App.tsx's unexported LIST_THUMB_BOTTOM_INSET_PX: the list thumb's track stops this far above the
-// frame's bottom so it never slides under the frosted Add Task deck.
-const LIST_THUMB_BOTTOM_INSET_PX = 160;
+// frame's bottom (the deck's 80 px + ChoreList's 16 px pb-4), so at full scroll the thumb's bottom
+// meets the last chore bar's bottom.
+const LIST_THUMB_BOTTOM_INSET_PX = 96;
 
 test.describe('Overlay scrollbar + full-bleed region (F22)', () => {
     test.beforeEach(async ({ page }) => {
@@ -49,7 +50,7 @@ test.describe('Overlay scrollbar + full-bleed region (F22)', () => {
         expect(Math.abs(stripBox.x - (rootBox.x + 16))).toBeLessThanOrEqual(0.5);
     });
 
-    test('the list thumb fades in on scroll, sits at the right edge, stops above the deck, is click-through, and fades out', async ({ page }) => {
+    test('the list thumb fades in on scroll, sits at the right edge, ends level with the last bar, is click-through, and fades out', async ({ page }) => {
         const region = page.locator('.overflow-y-auto');
         const frame = page.getByTestId('scroll-region-frame');
         const thumb = page.getByTestId('overlay-scrollbar');
@@ -81,6 +82,7 @@ test.describe('Overlay scrollbar + full-bleed region (F22)', () => {
                 thumbH: thumbRect.height,
                 thumbBottom: thumbRect.bottom,
                 frameBottom: frameEl.getBoundingClientRect().bottom,
+                lastBarBottom: Array.from(scroller.querySelectorAll('.bg-gray-800.rounded-full')).at(-1)!.getBoundingClientRect().bottom,
                 ch: scroller.clientHeight,
                 sh: scroller.scrollHeight,
             };
@@ -89,20 +91,24 @@ test.describe('Overlay scrollbar + full-bleed region (F22)', () => {
         // Polled: a parallel re-pull can land between React's list commit and the
         // ResizeObserver-driven re-measure, so a single read may pair a new sh with the old thumb.
         await expect.poll(async () => {
-            const m = await readThumb(false);
-            const track = m.ch - LIST_THUMB_BOTTOM_INSET_PX;
-            return Math.abs(m.thumbH - Math.min(Math.max(track * m.ch / m.sh, 24), track));
+            const metrics = await readThumb(false);
+            const track = metrics.ch - LIST_THUMB_BOTTOM_INSET_PX;
+            return Math.abs(metrics.thumbH - Math.min(Math.max(track * metrics.ch / metrics.sh, 24), track));
         }).toBeLessThanOrEqual(1);
 
-        // The track never exceeds ch - 160, so this holds whatever the list length.
+        // The track never exceeds ch - LIST_THUMB_BOTTOM_INSET_PX, so this holds whatever the list length.
         const mid = await readThumb(false);
         expect(mid.thumbBottom).toBeLessThanOrEqual(mid.frameBottom - LIST_THUMB_BOTTOM_INSET_PX + 0.5);
 
         // Each iteration re-pins scrollTop to the end, so a row added by a parallel worker cannot
-        // leave the scroller short of the end; the thumb reaches, and never passes, its track end.
+        // leave the scroller short of the end. At full scroll the thumb reaches its track end, and
+        // that end is level with the bottom of the last chore bar (the user's alignment choice).
         await expect.poll(async () => {
-            const m = await readThumb(true);
-            return Math.abs(m.thumbBottom - (m.frameBottom - LIST_THUMB_BOTTOM_INSET_PX));
+            const atEnd = await readThumb(true);
+            return Math.max(
+                Math.abs(atEnd.thumbBottom - (atEnd.frameBottom - LIST_THUMB_BOTTOM_INSET_PX)),
+                Math.abs(atEnd.thumbBottom - atEnd.lastBarBottom),
+            );
         }).toBeLessThanOrEqual(1);
 
         const hitsThumb = await thumb.evaluate(el => {
@@ -121,9 +127,8 @@ test.describe('Overlay scrollbar + full-bleed region (F22)', () => {
         await page.setViewportSize({ width: 400, height: 400 });
         await page.locator('button', { hasText: /\+ Add Task/i }).click();
 
-        // Measured: card clientHeight 360, scrollHeight 573. The list scroller behind is ~173 px
-        // tall here (inside the 160 < clientHeight ≤ 184 band), so the list thumb is a static
-        // 13 px bar — expected, not asserted, and not a bug.
+        // Measured: card clientHeight 360, scrollHeight 573. The list thumb behind the modal is
+        // not asserted here.
         const card = page.locator('.fixed.inset-0 .overflow-y-auto');
         const cardOverflowPx = await card.evaluate(el => el.scrollHeight - el.clientHeight);
         expect(cardOverflowPx).toBeGreaterThan(0);

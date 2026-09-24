@@ -888,12 +888,12 @@ describe('overlay scrollbar (F22)', () => {
         expect(frame.lastElementChild).toBe(button);
         expect(thumb.nextElementSibling).toBe(button);
         expect(thumb.className).toContain('opacity-0');
-        // List track stops 160 px above the frame bottom: track 400 - 160 = 240, 240 * 400 / 1000 = 96.
-        expect(thumb.style.height).toBe('96px');
+        // List track stops 96 px above the frame bottom: track 400 - 96 = 304, 304 * 400 / 1000 = 121.6.
+        expect(thumb.style.height).toBe('121.6px');
         expect(thumb.style.top).toBe('0px');
     });
 
-    it('shows the thumb on scroll and stops it above the deck zone at the end of the list', async () => {
+    it('shows the thumb on scroll and stops it at the track end (level with the last bar) at the end of the list', async () => {
         stubScrollableMetrics();
         render(<App />);
 
@@ -905,8 +905,8 @@ describe('overlay scrollbar (F22)', () => {
         fireEvent.scroll(region);
 
         expect(thumb.className).toContain('opacity-100');
-        // Thumb bottom 144 + 96 = 240 = 400 - LIST_THUMB_BOTTOM_INSET_PX (160).
-        expect(thumb.style.top).toBe('144px');
+        // Thumb bottom 182.4 + 121.6 = 304 = 400 - LIST_THUMB_BOTTOM_INSET_PX (96).
+        expect(thumb.style.top).toBe('182.4px');
     });
 
     it('renders no thumb with jsdom default metrics and scrolling does not throw', async () => {

@@ -20,16 +20,19 @@ SKILL.md line reads this plan's Decisions, and the META-PLAN's F22 section is de
 
 **Fold-back notes for Phase C** (user, 2026-09-23; DD-7):
 - **Invariant 12's re-check rule** gains `LIST_THUMB_BOTTOM_INSET_PX` (`App.tsx`, unexported,
-  160 px): any change to the deck's height or overhang re-checks it alongside `scroll-pb-*` and
-  the `bottom-40` line.
-- **The list thumb's track stops 160 px above the frame bottom.** This is a deliberate departure
-  from the META-PLAN's unclamped full-height formula (user, 2026-09-23): the thumb is
-  `track · clientHeight / scrollHeight` tall over `track = clientHeight − 160`, clamped to
-  `[MIN_THUMB_PX, track]`, and never enters the deck/frost zone.
-- **Invariant 14's shared `bottom-40` line** gains the thumb's relation: the thumb's track stops
-  at that line and never enters it. The thumb sits at the frame's right edge, so it never meets the
-  centred button. On the Pi (frame spans the viewport) it never meets the toast either; on desktop
-  viewports wider than 800 px a long toast pill can cover the lower track, harmlessly (`z-[80]`).
+  96 px = the deck's 80 px + `ChoreList`'s `pb-4` 16 px): any change to the deck's height or the
+  list's bottom padding re-checks it alongside `scroll-pb-*` and the `bottom-40` line;
+  `e2e/overlay-scrollbar.spec.ts` pins the alignment.
+- **At full scroll the list thumb's bottom meets the last chore bar's bottom.** The track stops
+  96 px above the frame bottom (user, 2026-09-23, after seeing it on the branch; this replaced an
+  earlier 160 px stop above the deck frost). The thumb is `track · clientHeight / scrollHeight`
+  tall over `track = clientHeight − 96`, clamped to `[MIN_THUMB_PX, track]`: a departure from the
+  META-PLAN's unclamped full-height formula. Its lower travel overlaps the deck's frosted overhang
+  but never the deck itself.
+- **Invariant 14's shared `bottom-40` line**: the thumb adds no bottom real estate. It sits at the
+  frame's right edge, so it never meets the centred button. On the Pi (frame spans the viewport)
+  it never meets the toast either; on desktop viewports wider than 800 px a long toast pill can
+  cover the lower track, harmlessly (`z-[80]`).
 - **Invariant 16** records the strip's inset decision: its root's `w-full` is **replaced** by
   `mx-4` (16 px inset, `rounded-sm` kept; `w-full` + `mx-4` would overflow by 32 px).
 - **The form card** is wrapped in a card-sized `<div className="relative w-full max-w-md">`
@@ -716,8 +719,8 @@ Run the full suites to confirm nothing is broken.
   date banner, search) and the bars keep their 16 px inset. The `NavBar` divider now spans the
   full width.
 - Touch-scroll the list: the thumb appears, tracks the scroll through momentum, and fades about 1 s
-  after the list stops. At the end of the list, the thumb stops above the frosted deck and never
-  slides into it. There are no dropped frames while scrolling. If frames drop, a follow-up
+  after the list stops. At the end of the list, the thumb's bottom lines up with the bottom of the
+  last chore bar. There are no dropped frames while scrolling. If frames drop, a follow-up
   adds `requestAnimationFrame` throttling (risk d).
 - Tap the scroll-to-top button: the thumb flashes during the programmatic scroll. Confirm this
   reads as acceptable, not as noise (risk b). Also scroll down, then type in search or switch
@@ -725,6 +728,22 @@ Run the full suites to confirm nothing is broken.
 - The status strip still looks as before: inset 16 px with rounded corners (decision f).
 - Open the Add/Edit form. If it overflows the screen, scrolling shows a thumb inside the card's
   rounded corners, and tapping outside the card still cancels.
+
+## Post-merge-gate amendment (2026-09-23, PR #57)
+
+After trying the branch, the user changed DD-3: the list thumb should not stop above the deck
+frost. At the end of its travel it should meet the bottom of the last listed chore.
+`LIST_THUMB_BOTTOM_INSET_PX` went from 160 to 96, which is the deck's 80 px plus `ChoreList`'s
+`pb-4` 16 px. A throwaway Chromium probe measured the gap below the last bar at full scroll as
+96 px at 1280×600, 600×1024 and 600×700.
+- `App.test.tsx`'s F22 expectations became height `121.6px` and end `top` `182.4px`.
+- `e2e/overlay-scrollbar.spec.ts` now asserts that the thumb's bottom equals the last bar's bottom
+  at full scroll (±1 px).
+- Short-viewport thresholds follow from the new inset: with `clientHeight ≤ 96` nothing renders,
+  and with `96 < clientHeight ≤ 120` the thumb is a static bar.
+- The Steps above keep the 160 px values they executed with; this section supersedes them.
+- Verification on the rebased branch (after F19 #56): Vitest 397/397, `tsc` and lint clean,
+  Playwright 19/19.
 
 ## Status
 finished: true

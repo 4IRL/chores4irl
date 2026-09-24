@@ -27,11 +27,13 @@ import type { Chore } from '@customTypes/SharedTypes';
 
 type ToastState = { id: number; tone: 'success' | 'error'; message: string };
 
-// F22: the list thumb's track stops this far above the frame bottom, clearing the Add
-// Task deck plus its 4rem frosted overhang. It sits on the same 10rem line as the
-// scroller's scroll-pb-40 and the button's/toast's bottom-40 (Standing invariants 12
-// and 14); re-check it if the deck's height or overhang changes.
-const LIST_THUMB_BOTTOM_INSET_PX = 160;
+// F22: the list thumb's track stops this far above the frame bottom, so at the end of
+// its travel the thumb's bottom meets the bottom of the last chore bar: the Add Task
+// deck's 80 px (py-4 + the 48 px button) plus ChoreList's pb-4 (16 px), measured in
+// Chromium at 1280×600, 600×1024 and 600×700. Re-check it if the deck's height or the
+// list's bottom padding changes (Standing invariant 12); e2e/overlay-scrollbar.spec.ts
+// pins the alignment.
+const LIST_THUMB_BOTTOM_INSET_PX = 96;
 
 export default function App() {
     const realToday = useMidnightClock();
@@ -385,9 +387,9 @@ export default function App() {
                     scroller inside keeps its exact class string (F22 adds only
                     scrollbar-none). The thumb reads the same single scrollRegionRef and
                     sits before the button so the button stays the frame's last child; its
-                    track stops LIST_THUMB_BOTTOM_INSET_PX above the frame bottom, out of
-                    the deck zone. Neither has a z-index: both paint over the frost by DOM
-                    order. */}
+                    track stops LIST_THUMB_BOTTOM_INSET_PX above the frame bottom, level
+                    with the last bar at full scroll. Neither has a z-index: both paint
+                    over the frost by DOM order. */}
                 <div data-testid="scroll-region-frame" className="relative flex-1 min-h-0 flex flex-col">
                     <div ref={scrollRegionRef} className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40 scrollbar-none">
                         <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} onEdit={handleRequestEdit} />
