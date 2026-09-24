@@ -122,7 +122,7 @@ describe('lock-time view reset (F19)', () => {
                 vi.advanceTimersByTime(IDLE_MS);
             });
 
-            expect(screen.getByTestId('touch-lock-overlay')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Unlock screen' })).toBeInTheDocument();
             expect(region.scrollTop).toBe(0);
             expect(searchInput.value).toBe('');
             expect(screen.getByText('Dust')).toBeInTheDocument();
@@ -141,15 +141,16 @@ describe('lock-time view reset (F19)', () => {
             act(() => {
                 vi.advanceTimersByTime(IDLE_MS);
             });
-            expect(screen.getByTestId('touch-lock-overlay')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Unlock screen' })).toBeInTheDocument();
 
-            // jsdom does not enforce inert, so the view can drift while locked.
+            // Under F20 the root is no longer inert, so the view may legitimately
+            // drift while locked.
             fireEvent.click(screen.getByRole('button', { name: 'Kitchen' }));
             fireEvent.change(getSearchInput(), { target: { value: 'sw' } });
 
-            const overlay = screen.getByTestId('touch-lock-overlay');
-            fireEvent.click(overlay, { clientX: 100, clientY: 100 });
-            fireEvent.click(overlay, { clientX: 100, clientY: 100 });
+            // A blocked bar tap seeds the padlock; a nearby tap on it unlocks.
+            fireEvent.click(screen.getByTestId('chore-bar'), { clientX: 100, clientY: 100 });
+            fireEvent.click(screen.getByTestId('touch-lock-overlay'), { clientX: 100, clientY: 100 });
 
             act(() => {
                 vi.advanceTimersByTime(CLOSING_SETTLE_MS);

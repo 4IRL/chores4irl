@@ -4,86 +4,111 @@ import { LockKeyhole, LockKeyholeOpen } from 'lucide-react';
 
 export const SECOND_TAP_WINDOW_MS = 1500;
 export const SECOND_TAP_MAX_DISTANCE_PX = 60;
-// Imported by App.tsx (Step 4) so its own isClosing unmount-delay timer stays
-// numerically in sync with this component's 'opening'-phase CSS transition
-// duration below. If this value ever changes, the `duration-[400ms]` class on
-// the centered padlock must be updated by hand in the same edit.
+// Imported by App.tsx, which (F20) keeps this component mounted through its
+// 'opening' animation by holding `lockAttempt` for CLOSING_SETTLE_MS after
+// onArm(), and paces the fade-out's onDismiss below. It stays numerically in
+// sync with this component's CSS transition durations: if this value ever
+// changes, the `duration-[400ms]` classes on the root (fade) and on the centered
+// padlock must be updated by hand in the same edit.
 export const CLOSING_SETTLE_MS = 400;
-
-type TouchLockOverlayProps = {
-    onArm: () => void;
-    justRelocked?: boolean;
-};
-
-type Phase = 'just-relocked' | 'idle' | 'awaiting-second-tap' | 'opening';
 
 // F20: the viewport point of a guarded attempt (a blocked tap/swipe on a chore bar),
 // which seeds the overlay as the first tap of the unlock double-tap.
 export type TapPoint = { x: number; y: number };
 type FirstTap = { x: number; y: number; at: number };
 
-export default function TouchLockOverlay({ onArm, justRelocked = false }: TouchLockOverlayProps) {
-    const [phase, setPhase] = useState<Phase>(justRelocked ? 'just-relocked' : 'idle');
-    const firstTapRef = useRef<FirstTap | null>(null);
+type TouchLockOverlayProps = {
+    firstTap: TapPoint;
+    onArm: () => void;
+    onDismiss: () => void;
+};
+
+type Phase = 'awaiting-second-tap' | 'opening' | 'dismissing';
+
+// F20: mounted by App only on a guarded attempt, and the attempt is the first tap
+// of the unlock double-tap — so it starts in 'awaiting-second-tap' with no
+// entrance animation. With no qualifying tap it fades out ('dismissing') after
+// SECOND_TAP_WINDOW_MS and asks App to unmount it via onDismiss.
+export default function TouchLockOverlay({ firstTap, onArm, onDismiss }: TouchLockOverlayProps) {
+    const [phase, setPhase] = useState<Phase>('awaiting-second-tap');
+    const firstTapRef = useRef<FirstTap | null>({ ...firstTap, at: Date.now() });
     const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const overlayRef = useRef<HTMLDivElement>(null);
 
     const clearPendingPhaseTimer = () => {
         if (phaseTimerRef.current !== null) clearTimeout(phaseTimerRef.current);
     };
 
-    // Entrance animation hand-off: mask the one-commit gap before App.tsx's
-    // isLocked-driven dialog-close effect runs by briefly showing a centered
-    // closed padlock + backdrop, then settling to 'idle'. Also clears the
-    // timer on unmount.
+    // DD-2: (re)starts the second-tap window. When it elapses the root fades out
+    // and stops catching taps, then onDismiss fires CLOSING_SETTLE_MS later. Both
+    // timers go through phaseTimerRef, so a single clear cancels whichever is
+    // pending.
+    const scheduleDismiss = () => {
+        clearPendingPhaseTimer();
+        phaseTimerRef.current = setTimeout(() => {
+            setPhase('dismissing');
+            phaseTimerRef.current = setTimeout(onDismiss, CLOSING_SETTLE_MS);
+        }, SECOND_TAP_WINDOW_MS);
+    };
+
+    // Mount: capture the overlay node and the previously focused element, focus
+    // the overlay (keeping the keyboard unlock path), and start the window
+    // (DD-2). On unmount, clear the pending timer and hand focus back (DD-6) —
+    // but only if focus is still on the overlay or nowhere, so focus the user
+    // moved elsewhere meanwhile is never stolen back (DD-15). On a real unmount
+    // React has already removed the node (focus sits on body); `active === node`
+    // covers StrictMode's simulated cleanup, where the node is still focused.
     useEffect(() => {
-        if (justRelocked) {
-            phaseTimerRef.current = setTimeout(() => {
-                setPhase('idle');
-            }, 600);
-        }
-        return clearPendingPhaseTimer;
+        const node = overlayRef.current;
+        const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        node?.focus({ preventScroll: true });
+        scheduleDismiss();
+        return () => {
+            clearPendingPhaseTimer();
+            const active = document.activeElement;
+            if ((active === null || active === document.body || active === node) && previouslyFocused?.isConnected) {
+                previouslyFocused.focus({ preventScroll: true });
+            }
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const registerTap = (tapX: number, tapY: number) => {
         // Once a qualifying second tap has fired, onArm() has already been
-        // called and this component's job is done — App.tsx (Step 4) is the
-        // only thing that decides when it unmounts. Ignore further taps/key
-        // presses that land during the CLOSING_SETTLE_MS grace window so
-        // pointer-events-none's effect can't be circumvented via keyboard,
-        // which would otherwise regress phase and could re-invoke onArm().
-        if (phase === 'opening') return;
+        // called and this component's job is done — App.tsx is the only thing
+        // that decides when it unmounts. The root stays hit-testable during
+        // 'opening' (DD-21), so this early return is what swallows both taps and
+        // key presses landing in the CLOSING_SETTLE_MS grace window; otherwise
+        // they would regress phase and could re-invoke onArm(). During
+        // 'dismissing' the root is pointer-events-none, and keys reaching the
+        // still-focused overlay are ignored the same way.
+        if (phase === 'opening' || phase === 'dismissing') return;
 
-        const firstTap = firstTapRef.current;
+        const seed = firstTapRef.current;
         const qualifies =
-            firstTap !== null &&
-            Date.now() - firstTap.at <= SECOND_TAP_WINDOW_MS &&
-            Math.hypot(tapX - firstTap.x, tapY - firstTap.y) <= SECOND_TAP_MAX_DISTANCE_PX;
+            seed !== null &&
+            Date.now() - seed.at <= SECOND_TAP_WINDOW_MS &&
+            Math.hypot(tapX - seed.x, tapY - seed.y) <= SECOND_TAP_MAX_DISTANCE_PX;
 
         if (qualifies) {
             clearPendingPhaseTimer();
             firstTapRef.current = null;
             setPhase('opening');
-            // App.tsx (Step 4) owns keeping this component mounted long enough
-            // for the 'opening' phase's shrink transition to finish via its own
-            // isClosing state — this component does not schedule any further
-            // phase change or unmount timing of its own after calling onArm().
+            // Under F20, App keeps this component mounted through the 'opening'
+            // animation by holding `lockAttempt` for CLOSING_SETTLE_MS after
+            // onArm() — this component schedules no further phase change,
+            // fade or onDismiss of its own after arming.
             onArm();
             return;
         }
 
+        // A far tap becomes the new first tap and restarts the window (DD-1).
+        // firstTapRef is never nulled by a timer; a tap at or after
+        // SECOND_TAP_WINDOW_MS is ignored because the fade timer has already
+        // moved the phase to 'dismissing' (the Date.now() window check above is
+        // a belt-and-braces guard).
         firstTapRef.current = { x: tapX, y: tapY, at: Date.now() };
-        setPhase('awaiting-second-tap');
-        clearPendingPhaseTimer();
-        // This shrink-back timeout only reverts the visual phase — it must NOT
-        // also null firstTapRef.current. Staleness has a single source of
-        // truth: the elapsed-time check inside registerTap itself. Nulling the
-        // ref here would race with (and defeat) a tap arriving at exactly
-        // SECOND_TAP_WINDOW_MS later, since fake-timer advances fire timers
-        // due at or before the advanced time inclusively.
-        phaseTimerRef.current = setTimeout(() => {
-            setPhase('idle');
-        }, SECOND_TAP_WINDOW_MS);
+        scheduleDismiss();
     };
 
     const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -95,17 +120,18 @@ export default function TouchLockOverlay({ onArm, justRelocked = false }: TouchL
             event.preventDefault();
             // Keyboard activation has no meaningful position — using a fixed
             // (0, 0) for both taps means two keyboard activations are always
-            // "close enough" to each other.
+            // "close enough" to each other (a keyboard-raised attempt is seeded
+            // at (0, 0) too).
             registerTap(0, 0);
         }
     };
 
-    const showCenteredPadlock = phase !== 'idle';
     const isOpening = phase === 'opening';
 
     return createPortal(
         <div
-            className={`fixed inset-0 z-[90] ${isOpening ? 'pointer-events-none' : ''}`}
+            ref={overlayRef}
+            className={`fixed inset-0 z-[90] transition-opacity duration-[400ms] ${phase === 'dismissing' ? 'opacity-0 pointer-events-none' : ''}`}
             onClick={handleClick}
             onKeyDown={handleKeyDown}
             tabIndex={0}
@@ -113,30 +139,22 @@ export default function TouchLockOverlay({ onArm, justRelocked = false }: TouchL
             aria-label="Tap twice to unlock"
             data-testid="touch-lock-overlay"
         >
-            {phase === 'just-relocked' && (
-                <div
-                    className="fixed inset-0 bg-black/40 transition-opacity duration-300"
-                    data-testid="touch-lock-backdrop"
-                />
-            )}
-            {showCenteredPadlock && (
-                <div
-                    className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-[400ms] scale-100 opacity-100"
-                    data-testid="touch-lock-padlock-centered"
-                >
-                    {isOpening ? (
-                        <LockKeyholeOpen
-                            className="w-16 h-16 text-white"
-                            data-testid="touch-lock-icon-open"
-                        />
-                    ) : (
-                        <LockKeyhole
-                            className="w-16 h-16 text-white"
-                            data-testid="touch-lock-icon-closed"
-                        />
-                    )}
-                </div>
-            )}
+            <div
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-[400ms] scale-100 opacity-100"
+                data-testid="touch-lock-padlock-centered"
+            >
+                {isOpening ? (
+                    <LockKeyholeOpen
+                        className="w-16 h-16 text-white"
+                        data-testid="touch-lock-icon-open"
+                    />
+                ) : (
+                    <LockKeyhole
+                        className="w-16 h-16 text-white"
+                        data-testid="touch-lock-icon-closed"
+                    />
+                )}
+            </div>
         </div>,
         document.body,
     );

@@ -21,7 +21,7 @@ import ScreenBlankOverlay from './components/common/ScreenBlankOverlay';
 import ScrollToTopButton from './components/common/ScrollToTopButton';
 import Toast from './components/common/Toast';
 import TouchLockIndicator from './components/common/TouchLockIndicator';
-import TouchLockOverlay, { CLOSING_SETTLE_MS } from './components/common/TouchLockOverlay';
+import TouchLockOverlay, { CLOSING_SETTLE_MS, type TapPoint } from './components/common/TouchLockOverlay';
 import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from './services/choreApi';
 import type { Chore } from '@customTypes/SharedTypes';
 
@@ -39,13 +39,12 @@ export default function App() {
     const realToday = useMidnightClock();
     const { isBlanked, wake } = useScreenBlank();
     const { isLocked, arm, lock } = useTouchLock();
-    const [isClosing, setIsClosing] = useState(false);
     const closingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    // Tracks the previous isLocked value across renders so justRelocked (below,
-    // computed directly in the render body) can detect the false->true edge —
-    // i.e. the overlay just mounted because a fresh lock engaged, not because
-    // it was already locked when this component first mounted.
-    const wasLockedRef = useRef(isLocked);
+    // F20: a guarded attempt (a blocked tap/swipe/sr-only Edit/Delete on a chore
+    // bar while locked) mounts TouchLockOverlay seeded at that point. The id keys
+    // the overlay so each new attempt remounts it fresh (full opacity, new window).
+    const [lockAttempt, setLockAttempt] = useState<{ id: number; point: TapPoint } | null>(null);
+    const lockAttemptIdRef = useRef<number>(0);
     const [dayOffset, setDayOffset] = useState<number>(0);
     const simulatedDate = useMemo(() => addDays(realToday, dayOffset), [realToday, dayOffset]);
     const isSimulating = dayOffset > 0;
@@ -155,21 +154,25 @@ export default function App() {
         flushPendingRefresh();
     }, [showForm, editingId, pendingDeleteId, flushPendingRefresh]);
 
-    // Blanking or locking begins: close any open confirm-dialog/form so nothing
-    // stays keyboard-reachable in a createPortal layer behind the (inert) app
-    // content.
+    // Blanking begins: close any open confirm-dialog/form so nothing stays
+    // keyboard-reachable in a createPortal layer behind the blank's inert gate.
+    // A lock engaging (idle or manual) closes them too, as abandonment (Open risk
+    // (b)) — the F20 lock is no longer inert, it guards in the bars. Both drop any
+    // stale guarded attempt, so its padlock never reappears after a wake.
     useEffect(() => {
         if (isBlanked || isLocked) {
             setPendingDeleteId(null);
             setEditingId(null);
             setShowForm(false);
+            setLockAttempt(null);
         }
     }, [isBlanked, isLocked]);
 
     // F19: the lock engaging returns the view to the boot state — top of the
     // list, every room, no search, today — so the next person at the kiosk
     // meets the canonical view. Lock-only (never on blank or unlock); the
-    // scroll is instant because the app is inert behind the padlock.
+    // scroll is instant because the lock engages on idle expiry, when nobody is
+    // watching the board.
     // F20 note: once useTouchLock exposes an idle-expiry tick, re-key this to
     // also re-run on each tick while locked and on a manual lock, first closing
     // an Add modal left open under the lock (META-PLAN F19 "Amended by F20").
@@ -324,52 +327,56 @@ export default function App() {
         }
     }
 
-    // Re-arming re-locks the app immediately (inert gate clears via isLocked),
-    // but the overlay's own 'opening'-phase shrink animation still needs to
-    // finish visually — isClosing keeps TouchLockOverlay mounted for that.
-    const handleArm = () => {
-        arm();
-        setIsClosing(true);
-        if (closingTimerRef.current) clearTimeout(closingTimerRef.current);
-        closingTimerRef.current = setTimeout(() => setIsClosing(false), CLOSING_SETTLE_MS);
+    // F20: a chore bar reports a destructive attempt made while locked; show the
+    // padlock seeded with it as the first tap of the unlock double-tap.
+    const handleGuardedAttempt = (point: TapPoint) => {
+        lockAttemptIdRef.current += 1;
+        setLockAttempt({ id: lockAttemptIdRef.current, point });
     };
 
-    // Computed directly in the render body (not a useEffect) so the flag
-    // reflects the isLocked transition on the same render it occurs, rather
-    // than lagging a render behind. The ref's own update is deferred to a
-    // useEffect (below) instead of being mutated here, so StrictMode's
-    // dev-mode double-invocation of the render body can't advance the ref
-    // before the committed render reads its previous value.
-    const justRelocked = isLocked && !wasLockedRef.current;
+    // A qualifying double-tap unlocks immediately, but the overlay's own
+    // 'opening'-phase animation still needs to finish visually — lockAttempt
+    // stays set for CLOSING_SETTLE_MS so TouchLockOverlay stays mounted for that
+    // (the CLOSING_SETTLE_MS handshake). A stale timer clears whatever attempt is
+    // current when it fires; that is non-destructive (DD-4).
+    const handleArm = () => {
+        arm();
+        if (closingTimerRef.current) clearTimeout(closingTimerRef.current);
+        closingTimerRef.current = setTimeout(() => setLockAttempt(null), CLOSING_SETTLE_MS);
+    };
 
-    useEffect(() => {
-        wasLockedRef.current = isLocked;
-    }, [isLocked]);
+    // DD-3: unlocking from the corner indicator also drops a pending attempt's
+    // padlock at once (there is no opening animation to wait for).
+    const handleIndicatorUnlock = () => {
+        arm();
+        setLockAttempt(null);
+    };
 
     if (loading) {
         return (
-            // isClosing deliberately not included here — once arm() fires the
-            // app should already be interactive again; isClosing only keeps
-            // TouchLockOverlay's own visual mounted, not this gate.
-            <div className="App" inert={isBlanked || isLocked}>
+            // The root gate is blank-only: under F20 the lock no longer makes the
+            // app inert, it guards destructive actions in the chore bars (there
+            // are none here, so no attempt overlay either).
+            <div className="App" inert={isBlanked}>
                 <TouchLockIndicator isLocked={isLocked} onLock={lock} onUnlock={arm} />
                 <div className="mx-auto px-4 bg-gray-900 h-screen flex items-center justify-center">
                     <div className="text-white text-lg">Loading chores...</div>
                 </div>
                 {isBlanked && <ScreenBlankOverlay onWake={wake} />}
-                {(isLocked || isClosing) && !isBlanked && (
-                    <TouchLockOverlay onArm={handleArm} justRelocked={justRelocked} />
-                )}
             </div>
         );
     }
 
     return (
-        // isClosing deliberately not included here — once arm() fires the app
-        // should already be interactive again; isClosing only keeps
-        // TouchLockOverlay's own visual mounted, not this gate.
-        <div className="App h-full flex flex-col overflow-hidden" inert={isBlanked || isLocked}>
-            <TouchLockIndicator isLocked={isLocked} onLock={lock} onUnlock={arm} />
+        // The root gate is blank-only: under F20 the lock no longer makes the app
+        // inert, it guards destructive actions in the chore bars.
+        <div className="App h-full flex flex-col overflow-hidden" inert={isBlanked}>
+            <TouchLockIndicator
+                isLocked={isLocked}
+                onLock={lock}
+                onUnlock={handleIndicatorUnlock}
+                raised={lockAttempt !== null}
+            />
             <div className="flex flex-col h-full overflow-hidden bg-gray-900 pt-4">
                 <NavBar rooms={uniqueRooms} selectedRoom={selectedRoom} onSelect={setSelectedRoom} />
                 <StatusCountStrip counts={statusCounts} />
@@ -392,7 +399,7 @@ export default function App() {
                     over the frost by DOM order. */}
                 <div data-testid="scroll-region-frame" className="relative flex-1 min-h-0 flex flex-col">
                     <div ref={scrollRegionRef} className="flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40 scrollbar-none">
-                        <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} onComplete={handleCompleteChore} onDelete={handleRequestDelete} onEdit={handleRequestEdit} />
+                        <ChoreList chores={orderedChores} day={simulatedDate} isSimulating={isSimulating} isLocked={isLocked} onGuardedAttempt={handleGuardedAttempt} onComplete={handleCompleteChore} onDelete={handleRequestDelete} onEdit={handleRequestEdit} />
                         {/* F5: sticky frosted deck — mt-auto pins it to the bottom when the list is
                             short; sticky keeps it pinned while a long list scrolls beneath the blur.
                             The tint + blur live on a backing layer that reaches 4rem above the deck
@@ -419,7 +426,7 @@ export default function App() {
                     <ScrollToTopButton scrollRegionRef={scrollRegionRef} />
                 </div>
             </div>
-            {/* F21: inline (not portaled) so the root's inert covers it while blanked/locked,
+            {/* F21: inline (not portaled) so the root's inert covers it while blanked,
                 like the strip it replaces; fixed, so DOM position is layout-neutral. */}
             {toast && <Toast key={toast.id} tone={toast.tone} message={toast.message} onDismiss={dismissToast} />}
             {showForm && (
@@ -430,7 +437,11 @@ export default function App() {
                     onCancel={() => setShowForm(false)}
                 />
             )}
-            {!showForm && editingChore && (
+            {/* DD-14: the edit modal and ConfirmDialog are gated on !isLocked — the
+                force-close effect clears their state one passive-effect after the lock
+                commits, and with the root no longer inert that gap would leave them
+                clickable. The Add form stays allowed while locked. */}
+            {!showForm && !isLocked && editingChore && (
                 <ChoreFormModal
                     mode="edit"
                     initialChore={editingChore}
@@ -439,7 +450,7 @@ export default function App() {
                     onCancel={handleCancelEdit}
                 />
             )}
-            {pendingChore && (
+            {pendingChore && !isLocked && (
                 <ConfirmDialog
                     message={`Delete "${pendingChore.name}"? This can't be undone.`}
                     onConfirm={handleConfirmDelete}
@@ -447,8 +458,13 @@ export default function App() {
                 />
             )}
             {isBlanked && <ScreenBlankOverlay onWake={wake} />}
-            {(isLocked || isClosing) && !isBlanked && (
-                <TouchLockOverlay onArm={handleArm} justRelocked={justRelocked} />
+            {lockAttempt && !isBlanked && (
+                <TouchLockOverlay
+                    key={lockAttempt.id}
+                    firstTap={lockAttempt.point}
+                    onArm={handleArm}
+                    onDismiss={() => setLockAttempt(null)}
+                />
             )}
         </div>
     );
