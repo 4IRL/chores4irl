@@ -276,9 +276,9 @@ Rewrite the user-facing paragraph and the META-PLAN contracts the Expected end s
 Run the full suites and confirm the META-PLAN's F20 "Expected end state".
 
 **To-do:**
-- [ ] Run `cd frontend && npx vitest run` and confirm the whole Vitest suite passes.
-- [ ] Run `npm run lint` and `npx tsc --noEmit -p frontend/tsconfig.json` from the repo root. Both must be clean. Then confirm `git status --porcelain` lists no `tsconfig.tsbuildinfo`, and delete it if one appeared.
-- [ ] Confirm the grep facts from the repo root:
+- [x] Run `cd frontend && npx vitest run` and confirm the whole Vitest suite passes.
+- [x] Run `npm run lint` and `npx tsc --noEmit -p frontend/tsconfig.json` from the repo root. Both must be clean. Then confirm `git status --porcelain` lists no `tsconfig.tsbuildinfo`, and delete it if one appeared.
+- [x] Confirm the grep facts from the repo root:
   - `grep -n "inert=" frontend/src/App.tsx` → two lines, both `inert={isBlanked}`.
   - `grep -c "onGuardedAttempt" frontend/src/components/chore/ChoreTimerBar.tsx` → ≥ `4`.
   - `grep -c "opacity-60" frontend/src/components/chore/ChoreTimerBar.tsx` → `1` (the `isSimulating` class only).
@@ -288,13 +288,13 @@ Run the full suites and confirm the META-PLAN's F20 "Expected end state".
   - `grep -c "return { isLocked, arm, lock, idleExpiries };" frontend/src/hooks/useTouchLock.ts` → `1`.
   - `grep -c '}, \[isLocked, idleExpiries\]);' frontend/src/App.tsx` → `1`.
   - `grep -c "ref={scrollRegionRef}" frontend/src/App.tsx` → `1`.
-- [ ] Run the Playwright smoke spec as `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/smoke.spec.ts` from the repo root.
+- [x] Run the Playwright smoke spec as `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/smoke.spec.ts` from the repo root.
   - If it fails with `… is already used …` or `Process from config.webServer was not able to start`, retry about every 30 s with jitter for up to ~10 min.
   - If it still fails, leave this box unticked, write directly under it `UNRESOLVED — requires user decision/action: Playwright ports 3000/5174 occupied (<ss -ltnp output if available>)`, end your final report with that same line, and stop. On a later run where the gate passes, delete that marker line before ticking the box.
   - Never kill the listener, drop `CI=1`, or edit `playwright.config.ts`.
-- [ ] Also run `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/scroll-to-top.spec.ts e2e/overlay-scrollbar.spec.ts` (the same port-conflict handling applies) and confirm `F18`'s and `F22`'s e2e specs still pass.
-- [ ] Copy the `## Manual checks (human, on the Pi)` section below verbatim into your final report. **Orchestrator (/run-plan): include that section verbatim in your Completion summary**, so the user sees it. When `/git-push` then fills its PR body's "How to manually verify" bullet, use this section for it. Also add to your final report — and, **orchestrator, to your Completion summary** — a line headed `Intended deviations from META-PLAN § F20 (Phase C deletes that section):` listing (1) the smoke F2 test is rewritten into a lock-exercising F20 test (the Expected end state says "none expected"); (2) `App.lockViewReset` tests 1–2 changed their assertions/interaction for the permissive lock; (3) `isClosing` is removed and the `CLOSING_SETTLE_MS` handshake is carried by `lockAttempt` (the Design says "`isClosing` handshake stays"). `/run-feature` Phase A step 8 must not "reconcile" these back.
-- [ ] Investigate and fix any failures before marking the plan finished.
+- [x] Also run `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/scroll-to-top.spec.ts e2e/overlay-scrollbar.spec.ts` (the same port-conflict handling applies) and confirm `F18`'s and `F22`'s e2e specs still pass.
+- [x] Copy the `## Manual checks (human, on the Pi)` section below verbatim into your final report. **Orchestrator (/run-plan): include that section verbatim in your Completion summary**, so the user sees it. When `/git-push` then fills its PR body's "How to manually verify" bullet, use this section for it. Also add to your final report — and, **orchestrator, to your Completion summary** — a line headed `Intended deviations from META-PLAN § F20 (Phase C deletes that section):` listing (1) the smoke F2 test is rewritten into a lock-exercising F20 test (the Expected end state says "none expected"); (2) `App.lockViewReset` tests 1–2 changed their assertions/interaction for the permissive lock; (3) `isClosing` is removed and the `CLOSING_SETTLE_MS` handshake is carried by `lockAttempt` (the Design says "`isClosing` handshake stays"). `/run-feature` Phase A step 8 must not "reconcile" these back.
+- [x] Investigate and fix any failures before marking the plan finished.
 
 ## Manual checks (human, on the Pi)
 - Wait 5 minutes (or tap the top-left padlock) to lock. Then scroll the list, use scroll-to-top, type a search and clear it with ✕, switch rooms, step the day forward and back, and add a chore. All of it should work with no padlock popping up, and the board should look normal (no dimming).
@@ -309,4 +309,4 @@ Run the full suites and confirm the META-PLAN's F20 "Expected end state".
 - At 21:00 the blank screen still covers everything, and after the 06:00 wake no stray padlock overlay is showing.
 
 ## Status
-finished: false
+finished: true
