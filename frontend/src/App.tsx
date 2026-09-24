@@ -157,6 +157,21 @@ export default function App() {
         }
     }, [isBlanked, isLocked]);
 
+    // F19: the lock engaging returns the view to the boot state — top of the
+    // list, every room, no search, today — so the next person at the kiosk
+    // meets the canonical view. Lock-only (never on blank or unlock); the
+    // scroll is instant because the app is inert behind the padlock.
+    // F20 note: once useTouchLock exposes an idle-expiry tick, re-key this to
+    // also re-run on each tick while locked and on a manual lock, first closing
+    // an Add modal left open under the lock (META-PLAN F19 "Amended by F20").
+    useEffect(() => {
+        if (!isLocked) return;
+        if (scrollRegionRef.current) scrollRegionRef.current.scrollTop = 0;
+        setSelectedRoom('all');
+        setSearchQuery('');
+        setDayOffset(0);
+    }, [isLocked]);
+
     // Clear any pending close-animation hand-off timer on unmount.
     useEffect(() => {
         return () => {
