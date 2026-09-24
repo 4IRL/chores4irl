@@ -15,7 +15,7 @@ export const CLOSING_SETTLE_MS = 400;
 // F20: the viewport point of a guarded attempt (a blocked tap/swipe on a chore bar),
 // which seeds the overlay as the first tap of the unlock double-tap.
 export type TapPoint = { x: number; y: number };
-type FirstTap = { x: number; y: number; at: number };
+type FirstTap = TapPoint & { at: number };
 
 type TouchLockOverlayProps = {
     firstTap: TapPoint;

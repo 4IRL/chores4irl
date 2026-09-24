@@ -455,14 +455,36 @@ test.describe('Chores App Smoke Tests', () => {
         await expect(overlay).toBeVisible();
         page.off('request', deleteListener);
 
+        // Pause the page clock (install() otherwise lets it run in real time)
+        // through the fade and the tap sequence below, so the 400 ms
+        // 'dismissing' and 'opening' windows cannot elapse between Playwright
+        // calls and the in-window assertions are deterministic. pauseAt must
+        // target a future instant, hence the small margin. Resumed before DD-8.
+        const pageNow = await page.evaluate(() => Date.now());
+        await page.clock.pauseAt(pageNow + 100);
+
         // Let that attempt fade out before the tap sequence. Two fastForwards:
         // Playwright's fastForward fires every due timer once at the target time,
         // so the CLOSING_SETTLE_MS onDismiss timer scheduled by the 1500 ms fade
         // timer's callback lands after a single target (clockSource.js
         // _innerFastForwardTo).
         await page.clock.fastForward(1600);
+
+        // DD-2: mid-fade ('dismissing', onDismiss not yet fired) the overlay is
+        // still mounted but pointer-events-none, so a real click reaches the
+        // search input beneath it and focus stays there once the overlay unmounts
+        // (DD-15: focus the user moved is never stolen back).
+        await expect(overlay).toHaveCount(1);
+        const searchInput = page.getByPlaceholder('Search for a chore');
+        const searchBox = await searchInput.boundingBox();
+        if (!searchBox) throw new Error('Could not get bounding box for the search input');
+        await page.mouse.click(searchBox.x + searchBox.width / 2, searchBox.y + searchBox.height / 2);
+        await expect(searchInput).toBeFocused();
+        await expect(overlay).toHaveCount(1);
+
         await page.clock.fastForward(500);
         await expect(overlay).toHaveCount(0);
+        await expect(searchInput).toBeFocused();
 
         // A real tap on a bar while locked completes nothing and raises the
         // padlock; a second tap on the same spot (well inside the 1.5 s window)
@@ -488,14 +510,23 @@ test.describe('Chores App Smoke Tests', () => {
         await expect(overlay).toBeVisible();
         await page.mouse.click(tapX, tapY);
 
-        // handleArm() unlocked at once; lockAttempt keeps the overlay mounted for
-        // CLOSING_SETTLE_MS so its opening animation can finish (DD-21: it
-        // swallows taps meanwhile). Advance past that window.
+        // DD-21: handleArm() unlocked at once, but lockAttempt keeps the overlay
+        // mounted and hit-testable through its CLOSING_SETTLE_MS 'opening'
+        // animation. A rapid third tap on the same spot lands on the overlay and
+        // is swallowed, so it does not complete the (now unlocked) chore beneath.
+        await expect(overlay.getByTestId('touch-lock-icon-open')).toBeVisible();
+        await page.mouse.click(tapX, tapY);
+        await page.waitForTimeout(250);
+        expect(mutationFired).toBe(false);
+        await expect(overlay).toHaveCount(1);
+
+        // Advance past the opening window.
         await page.clock.fastForward(500);
         await expect(overlay).not.toBeVisible();
         await expect(indicatorOpen).toBeVisible();
         expect(mutationFired).toBe(false);
         page.off('request', mutationListener);
+        await page.clock.resume();
 
         // DD-8: a tap-to-complete now succeeds for real.
         const patchDone = page.waitForResponse(

@@ -510,6 +510,79 @@ describe('touch lock wiring', () => {
         }
     });
 
+    // F20 accepted interaction (plan "Accepted interactions"): during the 400 ms
+    // 'opening' animation the app is already unlocked but the indicator is still
+    // raised, so a corner tap there re-locks (its normal unlocked behavior) and
+    // the force-close effect then drops the attempt.
+    it('(g2) a raised-indicator tap inside the opening window re-locks and the attempt is dropped', async () => {
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' })]);
+
+        const { rerender } = render(<App />);
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        vi.useFakeTimers();
+        try {
+            fireEvent.click(screen.getByTestId('chore-bar'), { clientX: 100, clientY: 100 });
+            fireEvent.click(screen.getByTestId('touch-lock-overlay'), { clientX: 100, clientY: 100 });
+            expect(mockArm).toHaveBeenCalledOnce();
+
+            // What the real hook does once arm() fires.
+            mockUseTouchLock.mockReturnValue({ isLocked: false, arm: mockArm, lock: mockLock, idleExpiries: 0 });
+            rerender(<App />);
+
+            // Still inside CLOSING_SETTLE_MS: the overlay is mid-'opening' and the
+            // indicator is still raised, now offering "Lock screen".
+            act(() => {
+                vi.advanceTimersByTime(CLOSING_SETTLE_MS - 1);
+            });
+            expect(screen.getByTestId('touch-lock-overlay')).toBeInTheDocument();
+            const indicator = screen.getByTestId('touch-lock-indicator');
+            expect(indicator.className).toContain('z-[95]');
+
+            fireEvent.click(screen.getByRole('button', { name: 'Lock screen' }));
+            expect(mockLock).toHaveBeenCalledOnce();
+            expect(mockArm).toHaveBeenCalledOnce();
+
+            // What the real hook does once lock() fires: the force-close effect
+            // drops the attempt at once, without waiting for the settle timer.
+            mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
+            rerender(<App />);
+            expect(screen.queryByTestId('touch-lock-overlay')).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Unlock screen' }).className).toContain('z-40');
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    // F20 accepted interaction: a keyboard sr-only-pill attempt made with the Add
+    // form open raises the indicator above the form's z-50 backdrop, so the
+    // corner then unlocks (dropping the padlock) rather than cancelling the form.
+    it('(g3) with the Add form open, a keyboard attempt raises the indicator and a corner tap unlocks', async () => {
+        const user = userEvent.setup();
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
+        vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' })]);
+
+        render(<App />);
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        await user.click(screen.getByText('+ Add Task'));
+        expect(screen.getByText('Add New Chore')).toBeInTheDocument();
+
+        // fireEvent.click carries (0, 0), like a keyboard activation of the pill.
+        fireEvent.click(screen.getByRole('button', { name: 'Edit chore' }));
+        expect(screen.getByTestId('touch-lock-overlay')).toBeInTheDocument();
+        expect(screen.getByTestId('touch-lock-indicator').className).toContain('z-[95]');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Unlock screen' }));
+
+        expect(mockArm).toHaveBeenCalledOnce();
+        expect(mockLock).not.toHaveBeenCalled();
+        expect(screen.queryByTestId('touch-lock-overlay')).not.toBeInTheDocument();
+        expect(screen.getByText('Add New Chore')).toBeInTheDocument();
+        expect(updateChore).not.toHaveBeenCalled();
+    });
+
     it('(h) SSE-driven re-pull keeps flowing while isLocked is true', async () => {
         mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         vi.mocked(fetchAllChores).mockResolvedValue([makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' })]);

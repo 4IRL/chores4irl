@@ -589,6 +589,9 @@ describe('ChoreTimerBar', () => {
             fireEvent.mouseMove(bar, { clientX: 100, clientY: 100 });
             fireEvent.mouseMove(bar, { clientX: 100, clientY: 150 });
             fireEvent.mouseUp(bar, { clientX: 100, clientY: 150 });
+            // The drag's trailing click is swallowed too (swipingRef is set by any
+            // swipe, vertical included), so a scroll never completes or raises the padlock.
+            fireEvent.click(bar, { clientX: 100, clientY: 150 });
             expect(onGuardedAttempt).not.toHaveBeenCalled();
             expect(onComplete).not.toHaveBeenCalled();
             expect(onEdit).not.toHaveBeenCalled();

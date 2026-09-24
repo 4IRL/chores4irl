@@ -5,21 +5,20 @@ import TouchLockOverlay, { CLOSING_SETTLE_MS } from '../../components/common/Tou
 // F20: App mounts the overlay only on a guarded attempt (a blocked tap/swipe on a
 // chore bar), seeded with that attempt as the first tap of the unlock double-tap.
 describe('TouchLockOverlay', () => {
-    let onArm: ReturnType<typeof vi.fn<() => void>>;
-    let onDismiss: ReturnType<typeof vi.fn<() => void>>;
-
     beforeEach(() => {
         vi.useFakeTimers();
-        onArm = vi.fn<() => void>();
-        onDismiss = vi.fn<() => void>();
     });
 
     afterEach(() => {
         vi.useRealTimers();
     });
 
-    const renderSeeded = (firstTap = { x: 100, y: 100 }) =>
+    const renderSeeded = (firstTap = { x: 100, y: 100 }) => {
+        const onArm = vi.fn();
+        const onDismiss = vi.fn();
         render(<TouchLockOverlay firstTap={firstTap} onArm={onArm} onDismiss={onDismiss} />);
+        return { onArm, onDismiss };
+    };
 
     it('renders a full-viewport element with the expected testid, role and label', () => {
         renderSeeded();
@@ -32,7 +31,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('mounts in awaiting-second-tap: shows the centred closed padlock immediately and has focus', () => {
-        renderSeeded();
+        const { onArm } = renderSeeded();
 
         const overlay = screen.getByTestId('touch-lock-overlay');
         const centered = screen.getByTestId('touch-lock-padlock-centered');
@@ -42,7 +41,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('fades when SECOND_TAP_WINDOW_MS elapses with no qualifying tap, then calls onDismiss once after CLOSING_SETTLE_MS, and never onArm', () => {
-        renderSeeded();
+        const { onArm, onDismiss } = renderSeeded();
         const overlay = screen.getByTestId('touch-lock-overlay');
 
         act(() => {
@@ -62,7 +61,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('a qualifying tap calls onArm once, shows the open icon, keeps swallowing taps through the opening animation and emits nothing more', () => {
-        renderSeeded();
+        const { onArm, onDismiss } = renderSeeded();
         const overlay = screen.getByTestId('touch-lock-overlay');
 
         // hypot(30, 40) === 50
@@ -89,7 +88,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('treats a tap more than 60px away as a new first tap and restarts the window', () => {
-        renderSeeded();
+        const { onArm, onDismiss } = renderSeeded();
         const overlay = screen.getByTestId('touch-lock-overlay');
 
         act(() => {
@@ -119,7 +118,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('a tap near the re-seeded first tap qualifies', () => {
-        renderSeeded();
+        const { onArm } = renderSeeded();
         const overlay = screen.getByTestId('touch-lock-overlay');
 
         fireEvent.click(overlay, { clientX: 300, clientY: 300 });
@@ -130,7 +129,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('qualifies a second tap at exactly the max distance boundary (60px)', () => {
-        renderSeeded();
+        const { onArm } = renderSeeded();
 
         // hypot(36, 48) === 60
         fireEvent.click(screen.getByTestId('touch-lock-overlay'), { clientX: 136, clientY: 148 });
@@ -139,7 +138,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('qualifies a second tap at 1499 ms', () => {
-        renderSeeded();
+        const { onArm } = renderSeeded();
 
         act(() => {
             vi.advanceTimersByTime(1499);
@@ -150,7 +149,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('is fading at exactly 1500 ms and ignores a tap after that (no onArm, no re-seed)', () => {
-        renderSeeded();
+        const { onArm, onDismiss } = renderSeeded();
         const overlay = screen.getByTestId('touch-lock-overlay');
 
         act(() => {
@@ -179,7 +178,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('qualifies a single Enter press after a keyboard-originated attempt', () => {
-        renderSeeded({ x: 0, y: 0 });
+        const { onArm } = renderSeeded({ x: 0, y: 0 });
 
         fireEvent.keyDown(screen.getByTestId('touch-lock-overlay'), { key: 'Enter' });
 
@@ -187,7 +186,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('qualifies a single Space press after a keyboard-originated attempt', () => {
-        renderSeeded({ x: 0, y: 0 });
+        const { onArm } = renderSeeded({ x: 0, y: 0 });
 
         fireEvent.keyDown(screen.getByTestId('touch-lock-overlay'), { key: ' ' });
 
@@ -195,7 +194,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('ignores auto-repeated key presses, so a held key cannot unlock', () => {
-        renderSeeded({ x: 0, y: 0 });
+        const { onArm } = renderSeeded({ x: 0, y: 0 });
 
         fireEvent.keyDown(screen.getByTestId('touch-lock-overlay'), { key: 'Enter', repeat: true });
 
@@ -203,7 +202,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('does not qualify Enter after a pointer seed; it becomes a new first tap', () => {
-        renderSeeded();
+        const { onArm } = renderSeeded();
         const overlay = screen.getByTestId('touch-lock-overlay');
 
         // Enter registers (0, 0), 141 px from the (100, 100) seed.
@@ -215,7 +214,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('ignores further taps/key presses once phase is opening, so onArm is not re-invoked and phase does not regress', () => {
-        renderSeeded();
+        const { onArm } = renderSeeded();
         const overlay = screen.getByTestId('touch-lock-overlay');
 
         fireEvent.click(overlay, { clientX: 110, clientY: 105 });
@@ -233,7 +232,7 @@ describe('TouchLockOverlay', () => {
     });
 
     it('ignores further clicks once phase is opening, so onArm is not re-invoked and phase does not regress', () => {
-        renderSeeded();
+        const { onArm } = renderSeeded();
         const overlay = screen.getByTestId('touch-lock-overlay');
 
         fireEvent.click(overlay, { clientX: 110, clientY: 105 });
@@ -254,6 +253,8 @@ describe('TouchLockOverlay', () => {
     });
 
     it('restores focus to the previously focused element on unmount', () => {
+        const onArm = vi.fn();
+        const onDismiss = vi.fn();
         const Harness = ({ show }: { show: boolean }) => (
             <>
                 <button>Before</button>
@@ -272,6 +273,8 @@ describe('TouchLockOverlay', () => {
     });
 
     it('does not steal focus if it moved elsewhere before unmount', () => {
+        const onArm = vi.fn();
+        const onDismiss = vi.fn();
         const Harness = ({ show }: { show: boolean }) => (
             <>
                 <button>Before</button>
