@@ -564,7 +564,7 @@ frost, the thumb's real geometry (including the stop above the deck) and fade, t
 the card-sized backdrop hit-testing, and reduced motion.
 
 **To-do:**
-- [ ] Create `e2e/overlay-scrollbar.spec.ts`, modelled on `e2e/scroll-to-top.spec.ts`. It is
+- [x] (COMPLETE 2026-09-23) Create `e2e/overlay-scrollbar.spec.ts`, modelled on `e2e/scroll-to-top.spec.ts`. It is
   read-only: it never taps a bar or submits the form. Use
   `test.describe('Overlay scrollbar + full-bleed region (F22)')` with the same `beforeEach`:
   `page.setViewportSize({ width: 1280, height: 600 })`,
@@ -655,8 +655,8 @@ the card-sized backdrop hit-testing, and reduced motion.
       `.transition-opacity` + `@media (prefers-reduced-motion: reduce) { .motion-reduce\:transition-none }`
       element computes `transition-property` to `none` under `reduce` and to `opacity` under
       `no-preference`.
-- [ ] Run `npm run lint` (root). It must be clean: the new spec is in ESLint's `**/*.{ts,tsx}` scope.
-- [ ] From the repo root, run the spec as `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/overlay-scrollbar.spec.ts`.
+- [x] (COMPLETE 2026-09-23) Run `npm run lint` (root). It must be clean: the new spec is in ESLint's `**/*.{ts,tsx}` scope.
+- [x] (COMPLETE 2026-09-23) From the repo root, run the spec as `env -u PLAYWRIGHT_BASE_URL CI=1 npx playwright test e2e/overlay-scrollbar.spec.ts`.
   `CI=1` stops Playwright from silently adopting a sibling worktree's dev servers on :3000/:5174.
   If it fails with `is already used` / `was not able to start`, retry about every 30 s (with
   jitter) for up to ~10 min. Never kill the listener, drop `CI=1` or edit `playwright.config.ts`.
