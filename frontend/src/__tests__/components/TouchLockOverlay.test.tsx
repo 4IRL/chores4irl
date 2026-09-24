@@ -57,6 +57,30 @@ describe('TouchLockOverlay', () => {
         expect(farCornerHitArea.style.top).toBe(`${768 - 120}px`);
     });
 
+    it('re-clamps the hit circle when the viewport is resized while it shows', () => {
+        const originalWidth = window.innerWidth;
+        const originalHeight = window.innerHeight;
+        try {
+            // jsdom's viewport is 1024 x 768: a (1000, 700) seed clamps to (964, 700).
+            renderSeeded({ x: 1000, y: 700 });
+            const hitArea = screen.getByTestId('touch-lock-hit-area');
+            expect(hitArea.style.left).toBe(`${964 - 60}px`);
+            expect(hitArea.style.top).toBe(`${700 - 60}px`);
+
+            // Shrink to 800 x 600 (e.g. a kiosk rotation): the centre re-clamps to (740, 540).
+            act(() => {
+                Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800 });
+                Object.defineProperty(window, 'innerHeight', { configurable: true, value: 600 });
+                window.dispatchEvent(new Event('resize'));
+            });
+            expect(hitArea.style.left).toBe(`${740 - 60}px`);
+            expect(hitArea.style.top).toBe(`${540 - 60}px`);
+        } finally {
+            Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+            Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalHeight });
+        }
+    });
+
     it('mounts in awaiting-second-tap: shows the closed padlock immediately and has focus', () => {
         const { onArm } = renderSeeded();
 
@@ -101,6 +125,7 @@ describe('TouchLockOverlay', () => {
 
         expect(onArm).toHaveBeenCalledOnce();
         expect(within(hitArea).getByTestId('touch-lock-icon-open')).toBeInTheDocument();
+        expect(hitArea).toHaveClass('ring-green-400/70');
         // DD-21: the hit circle stays hit-testable in 'opening'; the root never is.
         expect(hitArea.className).toContain('pointer-events-auto');
         expect(overlay.className).toContain('pointer-events-none');

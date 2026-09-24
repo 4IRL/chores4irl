@@ -215,7 +215,9 @@ describe('touch lock wiring', () => {
         expect(indicator.className).not.toContain('z-40');
 
         // jsdom does no hit-testing, so the z-index class is what pins that a real
-        // corner tap reaches the indicator; the smoke proves it in Chromium.
+        // corner tap reaches the indicator; the smoke proves it in Chromium, both
+        // for a mid-list pointer attempt and for a keyboard-raised one whose hit
+        // circle clamps into the corner over the indicator.
         fireEvent.click(screen.getByRole('button', { name: 'Unlock screen' }));
 
         expect(mockArm).toHaveBeenCalledOnce();
@@ -227,8 +229,10 @@ describe('touch lock wiring', () => {
     // root is pointer-events-none and only the hit circle around the seed catches
     // taps — so the board stays usable while an attempt shows. jsdom does no
     // hit-testing, so this pins that nothing in App tears the attempt down or
-    // re-seeds it on those interactions; the smoke proves the pass-through in
-    // Chromium.
+    // re-seeds it on those interactions. The F20 smoke proves the real-click
+    // pass-through in Chromium for each of them — a room tab, the search input
+    // (typed into and cleared) and Next day / Return to today — plus a wheel
+    // scroll, all during the same attempt's awaiting window.
     it('a room tab, the search input and the next-day button work while an attempt overlay shows, and the overlay stays up', async () => {
         mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
         vi.mocked(fetchAllChores).mockResolvedValue([

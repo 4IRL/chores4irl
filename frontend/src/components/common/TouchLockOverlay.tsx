@@ -33,7 +33,8 @@ const HIT_RADIUS_PX = SECOND_TAP_MAX_DISTANCE_PX;
 // seed is always on-screen, so this only moves the circle when the tap was
 // within HIT_RADIUS_PX of an edge; a keyboard seed is (0, 0), so its circle sits
 // in the top-left corner (under the raised z-[95] indicator, which still wins
-// the overlap — DD-22).
+// the overlap — DD-22). On a viewport narrower or shorter than 2 × HIT_RADIUS_PX
+// (120 px) the centre pins to HIT_RADIUS_PX and the circle overflows that axis.
 const clampToViewport = (value: number, viewportSize: number) =>
     Math.min(Math.max(value, HIT_RADIUS_PX), Math.max(HIT_RADIUS_PX, viewportSize - HIT_RADIUS_PX));
 
@@ -55,6 +56,10 @@ export default function TouchLockOverlay({ firstTap, onArm, onDismiss }: TouchLo
     const firstTapRef = useRef<FirstTap | null>({ ...firstTap, at: Date.now() });
     const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const overlayRef = useRef<HTMLDivElement>(null);
+    // F20 (push review 3): the clamp reads the viewport size from state, not at
+    // render time, so a resize (e.g. a kiosk rotation) while the padlock shows
+    // re-renders the circle and re-clamps it on-screen.
+    const [viewportSize, setViewportSize] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }));
 
     const clearPendingPhaseTimer = () => {
         if (phaseTimerRef.current !== null) clearTimeout(phaseTimerRef.current);
@@ -90,9 +95,15 @@ export default function TouchLockOverlay({ firstTap, onArm, onDismiss }: TouchLo
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    useEffect(() => {
+        const handleResize = () => setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const hitCenter: TapPoint = {
-        x: clampToViewport(firstTap.x, window.innerWidth),
-        y: clampToViewport(firstTap.y, window.innerHeight),
+        x: clampToViewport(firstTap.x, viewportSize.width),
+        y: clampToViewport(firstTap.y, viewportSize.height),
     };
 
     // `anchor` is what the tap is measured against: the hit circle's centre for a
@@ -165,7 +176,7 @@ export default function TouchLockOverlay({ firstTap, onArm, onDismiss }: TouchLo
                 third tap is swallowed); pointer-events-none while 'dismissing'
                 (DD-2), so the fading padlock passes every tap through. */}
             <div
-                className={`absolute flex items-center justify-center rounded-full bg-gray-900/60 shadow-lg shadow-black/40 ring-2 transition-shadow duration-[400ms] ${isOpening ? 'ring-emerald-400/70' : 'ring-white/40'} ${isDismissing ? 'pointer-events-none' : 'pointer-events-auto'}`}
+                className={`absolute flex items-center justify-center rounded-full bg-gray-900/60 shadow-lg shadow-black/40 ring-2 transition-shadow duration-[400ms] ${isOpening ? 'ring-green-400/70' : 'ring-white/40'} ${isDismissing ? 'pointer-events-none' : 'pointer-events-auto'}`}
                 style={{
                     left: hitCenter.x - HIT_RADIUS_PX,
                     top: hitCenter.y - HIT_RADIUS_PX,

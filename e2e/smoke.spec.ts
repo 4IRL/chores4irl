@@ -552,6 +552,43 @@ test.describe('Chores App Smoke Tests', () => {
         await expect(padlockClosed).toBeVisible();
         expect(mutationFired).toBe(false);
 
+        // Push review 3: the search input and the day arrows also take real
+        // clicks through the non-blocking overlay while the padlock shows. Each
+        // click point is asserted to be clear of the hit circle first, so a pass
+        // proves pass-through rather than a lucky miss of a blocking layer.
+        const hitAreaCenterX = hitAreaBox.x + hitAreaBox.width / 2;
+        const hitAreaCenterY = hitAreaBox.y + hitAreaBox.height / 2;
+        const clickClearOfHitCircle = async (target: import('@playwright/test').Locator, label: string) => {
+            const targetBox = await target.boundingBox();
+            if (!targetBox) throw new Error(`Could not get bounding box for ${label}`);
+            const clickX = targetBox.x + targetBox.width / 2;
+            const clickY = targetBox.y + targetBox.height / 2;
+            expect(Math.hypot(clickX - hitAreaCenterX, clickY - hitAreaCenterY)).toBeGreaterThan(hitAreaBox.width / 2);
+            await page.mouse.click(clickX, clickY);
+        };
+
+        await clickClearOfHitCircle(searchInput, 'the search input');
+        await expect(searchInput).toBeFocused();
+        await page.keyboard.type('Sweep Sunroom');
+        await expect(page.getByText('Sweep Sunroom Floor')).toBeVisible();
+        await expect(page.getByText('Vacuum Bedroom Floor')).toHaveCount(0);
+        await expect(padlockClosed).toBeVisible();
+        await searchInput.fill('');
+        await expect(page.getByText('Vacuum Bedroom Floor')).toBeVisible();
+
+        await clickClearOfHitCircle(page.getByRole('button', { name: 'Next day' }), 'the Next day button');
+        const returnToToday = page.getByRole('button', { name: 'Return to today' });
+        await expect(returnToToday).toBeVisible();
+        await expect(padlockClosed).toBeVisible();
+        await clickClearOfHitCircle(returnToToday, 'the Return to today button');
+        await expect(returnToToday).toHaveCount(0);
+        expect(mutationFired).toBe(false);
+
+        // The same attempt is still up (the page clock is paused, so its 1.5 s
+        // window has not elapsed), ready for the second tap.
+        await expect(page.getByTestId('touch-lock-hit-area')).toBeAttached();
+        await expect(padlockClosed).toBeVisible();
+
         await page.mouse.click(tapX, tapY);
 
         // DD-21: handleArm() unlocked at once, but lockAttempt keeps the overlay
@@ -615,5 +652,57 @@ test.describe('Chores App Smoke Tests', () => {
         await page.waitForTimeout(250);
         expect(completePatchFired).toBe(false);
         page.off('request', completeListener);
+
+        // Push review 3 / DD-22 corner case: a keyboard-raised attempt (Enter on a
+        // bar's sr-only Delete pill) is seeded at (0, 0), so its hit circle clamps
+        // into the top-left corner, over the indicator. The raised indicator must
+        // still win a corner tap. The page clock is paused so neither the 1.5 s
+        // window nor a 400 ms 'opening' hold can elapse: if the tap landed on the
+        // circle instead, the overlay would stay mounted showing the open padlock;
+        // only the indicator's unlock (DD-3) removes it at once.
+        let cornerDeleteFired = false;
+        const cornerDeleteListener = (request: import('@playwright/test').Request) => {
+            if (request.method() === 'DELETE' && request.url().includes('/api/chores')) {
+                cornerDeleteFired = true;
+            }
+        };
+        page.on('request', cornerDeleteListener);
+        await indicator.click();
+        await expect(indicatorClosed).toBeVisible();
+        const cornerPageNow = await page.evaluate(() => Date.now());
+        await page.clock.pauseAt(cornerPageNow + 100);
+        await page.getByRole('button', { name: 'Delete chore' }).first().focus();
+        await page.keyboard.press('Enter');
+        await expect(overlay).toBeVisible();
+        await expect(page.getByTestId('confirm-dialog-confirm')).not.toBeVisible();
+
+        const cornerHitAreaBox = await page.getByTestId('touch-lock-hit-area').boundingBox();
+        const cornerIndicatorBox = await indicator.boundingBox();
+        if (!cornerHitAreaBox || !cornerIndicatorBox) throw new Error('Could not measure the corner hit circle or the indicator');
+        expect(cornerHitAreaBox.x).toBe(0);
+        expect(cornerHitAreaBox.y).toBe(0);
+        const indicatorCenterX = cornerIndicatorBox.x + cornerIndicatorBox.width / 2;
+        const indicatorCenterY = cornerIndicatorBox.y + cornerIndicatorBox.height / 2;
+        // The indicator's centre lies inside the circle, so without the raise the
+        // corner tap would land on (and qualify on) the circle.
+        expect(
+            Math.hypot(indicatorCenterX - (cornerHitAreaBox.x + cornerHitAreaBox.width / 2), indicatorCenterY - (cornerHitAreaBox.y + cornerHitAreaBox.height / 2))
+        ).toBeLessThan(cornerHitAreaBox.width / 2);
+        const topmostAtCorner = await page.evaluate(
+            ([pointX, pointY]) => document
+                .elementFromPoint(pointX, pointY)
+                ?.closest('[data-testid="touch-lock-indicator"], [data-testid="touch-lock-hit-area"]')
+                ?.getAttribute('data-testid'),
+            [indicatorCenterX, indicatorCenterY] as const,
+        );
+        expect(topmostAtCorner).toBe('touch-lock-indicator');
+
+        await page.mouse.click(indicatorCenterX, indicatorCenterY);
+        await expect(overlay).toHaveCount(0);
+        await expect(indicatorOpen).toBeVisible();
+        await page.waitForTimeout(250);
+        expect(cornerDeleteFired).toBe(false);
+        page.off('request', cornerDeleteListener);
+        await page.clock.resume();
     });
 });

@@ -91,3 +91,46 @@ All 8 Review 1 items are genuinely covered (real-browser opening/dismissing clic
 - [ ] **Drop the inert padlock animation classes** — `frontend/src/components/common/TouchLockOverlay.tsx` (~line 142) — remove `transition-all duration-[400ms] scale-100 opacity-100` from the centred-padlock div. Keep the root's `transition-opacity duration-[400ms]` fade.
 - [ ] **Clarify `arm` as the unlock action** — `frontend/src/hooks/useTouchLock.ts` — rename the returned `arm` to `unlock` (and every consumer and mock), or add a one-line comment at the return saying `arm` unlocks and restarts the idle countdown.
 - [ ] **Move `TapPoint` to a shared types home** — `frontend/src/components/common/TouchLockOverlay.tsx`, `ChoreTimerBar.tsx`, `ChoreList.tsx`, `App.tsx` — define `TapPoint` in a small shared module (e.g. `frontend/src/types/touchLock.ts`, or wherever the repo keeps shared frontend types) and import it from there.
+
+## Review 3
+Generated: 2026-09-24
+Comparison: origin/feature/permissive-lock...HEAD (commit 2c361fb, non-blocking padlock hit circle)
+Verdict: **BLOCKED**
+
+### Results by Reviewer
+
+#### 1. Safety & Security — PASS
+The destructive guard lives in `ChoreTimerBar.guardOr()`, independent of the overlay, so no pass-through tap can complete, edit or delete a chore while locked.
+
+#### 2. Correctness — PASS
+- minor — `TouchLockOverlay.tsx:37`: on a viewport under 120 px, `clampToViewport` pins the centre to 60 and the circle overflows (undocumented).
+- minor — `TouchLockOverlay.tsx:93`: `hitCenter` reads `innerWidth`/`innerHeight` at render time, so a resize while the padlock shows leaves the circle stale.
+
+#### 3. Simplicity & Conciseness — PASS
+
+#### 4. Test Coverage — FAIL
+- **major** — `App.touchLock.test.tsx` claims "the smoke proves the pass-through in Chromium" for the room tab, search and next-day. The smoke test only clicks a room tab and scrolls during the awaiting window; the search input and Next day are never tapped in Chromium while the circle shows.
+- minor — the DD-22 real-browser corner-tap test seeds mid-list. It never covers the case where `raised` matters: a keyboard (0,0) seed whose circle clamps into the corner.
+- minor — clamping is only checked in jsdom (acceptable: pure arithmetic).
+
+#### 5. Completeness & Cleanup — PASS
+- minor — the same inaccurate coverage claim in the `App.touchLock.test.tsx` comment.
+
+#### 6. Consistency & Style — PASS
+- minor — `TouchLockOverlay.tsx:168`: `ring-emerald-400/70` adds a new green family; the app uses `green-*`.
+
+#### 7. Integration Risk — PASS
+
+#### 8. Error Handling & Silent Failures — PASS
+
+### To-Do: Required Changes
+
+- [x] **Prove search and Next day work in Chromium while the padlock shows** — `e2e/smoke.spec.ts` (F20 test, awaiting window) — with real `page.mouse.click`s outside the circle:
+  - Focus and type into the search input: the list filters. Clear it.
+  - Click Next day: `Return to today` appears. Click Return to today.
+  - Assert the padlock/hit area is still attached before the second tap.
+  - Make the `App.touchLock.test.tsx` comment's coverage claim accurate.
+- [x] **Cover the corner overlap case where `raised` matters** — `e2e/smoke.spec.ts` or `App.touchLock.test.tsx` — raise a keyboard-seeded attempt: focus a bar's sr-only Delete/Edit pill and press Enter, so the seed is (0,0) and the circle clamps into the top-left. Then click the corner (the indicator centre) and assert it unlocks via the indicator (open icon, overlay gone, `arm` called) rather than hitting the circle.
+- [x] **Re-render the circle on viewport resize** — `frontend/src/components/common/TouchLockOverlay.tsx` — while mounted, track `innerWidth`/`innerHeight` in state via a `resize` listener (cleaned up on unmount) so `hitCenter` re-clamps. Add a jsdom test that changes the size, dispatches `resize`, and asserts the circle moved.
+- [x] **Document the sub-120 px viewport caveat** — `frontend/src/components/common/TouchLockOverlay.tsx` — one line in the `clampToViewport` comment.
+- [x] **Use the app's existing green for the opening ring** — `frontend/src/components/common/TouchLockOverlay.tsx` — `ring-emerald-400/70` → `ring-green-400/70`, and update any test asserting the class.
