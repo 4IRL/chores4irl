@@ -359,7 +359,7 @@ pi-kiosk repo's own planning, not here.
 
 | Feature | Status | Branch | PR |
 |---|---|---|---|
-| **F20 — permissive touch lock** ★FOCUS *(added 2026-09-20; reworks shipped F2)* | pending *(ungated; runnable now — F22 shipped #57)* | `feature/permissive-lock` | — |
+| **F20 — permissive touch lock** ★FOCUS *(added 2026-09-20; reworks shipped F2)* | in-progress | `feature/permissive-lock` | — |
 | F15 — adopt kiosk-shell *(added 2026-07-15; kiosk-track head)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — |
 | F11 — undo *(re-scoped 2026-07-15: `kiosk/v1` contract)* | pending *(gated on external pi-kiosk Phase 4)* | `feature/undo` | — |
 | F12 — redo *(re-scoped 2026-07-15)* | pending *(gated on F11 + same external gate)* | `feature/redo` | — |

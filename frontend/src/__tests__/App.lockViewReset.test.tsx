@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import App from '../App';
 import { CLOSING_SETTLE_MS } from '../components/common/TouchLockOverlay';
 import { FADE_MS } from '../components/common/ScrollToTopButton';
+import { INACTIVITY_MS } from '../hooks/useTouchLock';
 import { fetchAllChores, addChore, completeChore, removeChore, updateChore } from '../services/choreApi';
 import { makeChore } from './fixtures/chore';
 import { FakeEventSource } from './fixtures/fakeEventSource';
@@ -27,7 +28,7 @@ const mockUseTouchLock = vi.hoisted(() => vi.fn());
 vi.mock('../hooks/useTouchLock', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../hooks/useTouchLock')>();
     mockUseTouchLock.mockImplementation(actual.useTouchLock);
-    return { useTouchLock: mockUseTouchLock };
+    return { ...actual, useTouchLock: mockUseTouchLock };
 });
 
 // Stable arm stub for the tests that hand-drive isLocked via mockReturnValue.
@@ -47,8 +48,8 @@ vi.mock('../hooks/useScreenBlank', () => ({
     useScreenBlank: mockUseScreenBlank,
 }));
 
-// Mirrors useTouchLock's module-private INACTIVITY_MS (5 minutes).
-const IDLE_MS = 5 * 60 * 1000;
+// The idle timeout, imported from the hook itself (the mock factory spreads `actual`).
+const IDLE_MS = INACTIVITY_MS;
 
 beforeEach(async () => {
     vi.clearAllMocks();
