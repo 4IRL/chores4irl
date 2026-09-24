@@ -38,12 +38,12 @@
 `/run-feature F20`, branch `feature/permissive-lock`) — see *Shortest path to the focus
 feature* below. *(Advanced 2026-09-23 at `F22`'s fold-back (#57): `F22` held the ★ from
 `F18`'s fold-back (#55); with it shipped, the ★ moves to the next item in the chore-list
-soft order `F22` → `F20` → `F19`, which has zero prerequisites. `F15` — the ★ before `F21`
-— stays **gated** on external pi-kiosk Phase 2 parity as the kiosk-track head.)*
+soft order `F22` → `F20` (`F19`, originally after `F20`, shipped #56 ahead of it), which
+has zero prerequisites. `F15` — the ★ before `F21`
+— stays **gated** on external pi-kiosk Phase 2 parity as the kiosk-track head. `F19`'s
+fold-back did not move the ★ — `F19` shipped without holding it.)*
 **`F20` (permissive touch lock), added 2026-09-20 via `/new-feature`, is the feature in
-this repo that is runnable today** — zero prerequisites, chore-list track. `F19` (lock-time
-view reset) also merged, as #56; its fold-back is pending, so its ledger row and section
-below still read as before and are not re-described here. (`F21` — the batch's bug fix —
+this repo that is runnable today** — zero prerequisites, chore-list track. (`F21` — the batch's bug fix —
 shipped #46 and retired the off-by-one caveat; `F16` — the status-bucketed midnight
 re-sort — shipped #50 and left the shared `classifyStatus(daysSince, frequency)` in
 `utils/choreBarMath.ts`; `F17` — the status-count strip — shipped #52 between `NavBar` and
@@ -52,16 +52,18 @@ single `scrollRegionRef` on the scroller plus the positioned `scroll-region-fram
 it; `F22` — the fading overlay scrollbar + full-bleed scroll region — shipped #57, hid the
 native scrollbars behind indicator-only overlay thumbs in that frame and in the form card,
 and moved the outer column's `px-4` onto the header rows and list content so the `F5`
-frost reaches both screen edges; `F20` reworks the shipped `F2` lock into a *permissive*
+frost reaches both screen edges; `F19` — the lock-time view reset — shipped #56 as one
+lock-engage effect in `App.tsx` keyed off `isLocked` alone (Standing invariant 19), which
+`F20` must re-key to its idle tick; `F20` reworks the shipped `F2` lock into a *permissive*
 lock — padlock only on a blocked complete/edit/delete, everything else usable — and
-exposes the idle-expiry tick `F19` consumes; together they hand `F15` a re-sourcing
+exposes the idle-expiry tick the shipped `F19` reset must then also fire on; together they hand `F15` a re-sourcing
 obligation and reshape pi-kiosk's DD-2; see *Cross-feature couplings*.) The capture batch
 is **closed** — further ideas enter one at a time via `/new-feature`, each re-evaluating
 the ★ on its own; `F22` was the first such single add (later on 2026-09-20).
 
 **Shipped through PR #57** — merged work is recorded by git, not re-tabulated here
 (`gh pr list --state merged` / `git log --oneline main`). Since #32: #33, #35, #36, #37,
-#40, #41, #42, #44, #45, #47, #48, #49, #51 and #53 were docs/skills-only (META-PLAN reconciles and
+#40, #41, #42, #44, #45, #47, #48, #49, #51, #53, #55 and #59 were docs/skills-only (META-PLAN reconciles and
 fold-backs, the replacement of the `plans/*-PROMPT.md` templates by the `/run-feature`,
 `/worktree`, `/compact-plans` skills, and plans sweeps); the app-code merges are **#34 —
 `F14`, the clear-✕ affordance** (Standing invariant 10), **#38 — `F4`, the removal of the
@@ -71,18 +73,19 @@ invariant 11), **#39 — `F5`, the frosted sticky *Add Task* deck** (Standing in
 (Standing invariant 14), **#50 — `F16`, the status-bucketed quota sort with red-quota
 escalation + Urgency weighting over the shared `classifyStatus`** (Standing invariant 15),
 **#52 — `F17`, the live status-count strip under the room tabs** (Standing invariant
-16), and **#54 — `F18`, the floating bottom-centre scroll-to-top button plus the shared
+16), **#54 — `F18`, the floating bottom-centre scroll-to-top button plus the shared
 `scrollRegionRef` + positioned `scroll-region-frame` around the list scroller** (Standing
-invariant 17, with its frame and toast-line clauses in invariants 12 and 14), and **#57 —
+invariant 17, with its frame and toast-line clauses in invariants 12 and 14), **#56 —
+`F19`, the lock-time view reset: one lock-engage effect in `App.tsx` returning the view to
+top / All / no search / today** (Standing invariant 19), and **#57 —
 `F22`, the fading indicator-only overlay scrollbar on the list and the form card plus the
 full-bleed scroll region** (Standing invariant 18, with its clauses in invariants 12, 14
-and 16); **#56 — `F19`, the lock-time view reset** also merged, but its fold-back is
-pending, so it is not yet folded here; the one
+and 16); the one
 deploy-side merge is **#43 — `F6`, the LAN name `c4i` / `c4i.local`** (no app code;
 `deploy/pi/set-hostname.sh` + a cloud-init drop-in + deploy docs — Standing invariant 13),
-all (except `F19`) now folded into the Baseline below. With `F6` the **infra track is
+all now folded into the Baseline below. With `F6` the **infra track is
 complete**; the chore-list track, re-opened by the 2026-09-20 batch, has one ungated item
-left (`F20`) after `F21`, `F16`, `F17`, `F18`, `F22` and `F19`. What each merge left behind that still matters
+left (`F20`) after `F21`, `F16`, `F17`, `F18`, `F19` and `F22`. What each merge left behind that still matters
 is captured
 *forward*: in the Baseline, the Standing invariants, and the few completed-feature
 contracts kept below because a remaining feature builds on or must remove them. **History
@@ -124,14 +127,13 @@ features that shipped without one (F9-L, F3-L).
 ```
 Chore-list track (re-opened 2026-09-20 by F16–F22; no prerequisites — runnable now):
   ★ F20 (permissive touch lock: padlock only on blocked complete/edit/delete; indicator = lock/unlock control, M)  [FOCUS]
-                 [reworks shipped F2; drops the lock's inert gate; timer runs while locked → idle tick]
-      ─soft→ F19 (lock-time view reset: top / All / search cleared / today, S)  [keyed off F2/F20's lock signal + idle tick; reuses F18's shipped scrollRegionRef]
-             (F19 merged #56 ahead of F20; its fold-back is pending)
+                 [reworks shipped F2; drops the lock's inert gate; timer runs while locked → idle tick; re-keys shipped F19's reset to it]
     (earlier: F14 — clear-✕ on free-text inputs — shipped #34; F4 — remove Details/Long-term — shipped #38;
      F5 — frosted Add-Task deck — shipped #39; F21 — form date-math fix + defaults + Toast — shipped #46;
      F16 — status-bucketed midnight re-sort + red-quota escalation + Urgency weighting — shipped #50;
      F17 — status-count strip under the room tabs — shipped #52;
      F18 — floating scroll-to-top button + shared frame/ref — shipped #54;
+     F19 — lock-time view reset (top / All / search cleared / today on lock-engage) — shipped #56;
      F22 — fading overlay scrollbar + full-bleed scroll region — shipped #57)
 
 Kiosk extraction track (2026-07-15 — see plans/feature/kiosk-shell-extraction/):
@@ -147,7 +149,7 @@ Infra track (complete):
     (F6 — local URL alias c4i.local / c4i — shipped #43)
 ```
 
-- **Chore-list track: re-opened by `F16`–`F22`; `F21`, `F16`, `F17`, `F18` and `F22` shipped (`F19` merged #56, fold-back pending).** `F14` (#34), `F4` (#38) and `F5` (#39) shipped
+- **Chore-list track: re-opened by `F16`–`F22`; `F21`, `F16`, `F17`, `F18`, `F19` and `F22` shipped.** `F14` (#34), `F4` (#38) and `F5` (#39) shipped
   in the user's 2026-07-08 order (`F14` → `F4` → `F5`); the shared `ChoreForm` carries
   exactly Name (`clearable`), the Room `<datalist>`, Last Completed, Duration, Frequency and
   the Urgency `<select>`, and the *Add Task* deck is the frosted sticky surface recorded in
@@ -169,7 +171,18 @@ Infra track (complete):
   button floats bottom-centre over the list at the `F21` toast's `bottom-40` line (a toast
   covers it while shown), fades in once the scroller passes 80 px and scrolls it back to
   the top; it also created the single `scrollRegionRef` on the `.overflow-y-auto` scroller
-  and the positioned `scroll-region-frame` around it that `F22` and `F19` reuse.
+  and the positioned `scroll-region-frame` around it that `F22`'s thumb reuses and `F19`'s
+  reset writes to.
+  **`F19`** (added 2026-09-20) shipped #56 on 2026-09-23 and now lives in the Baseline's
+  `App.tsx` Key-UI bullet + Standing invariant 19 (and its kept contract under
+  Completed-Feature Contracts, because `F20` and `F15` target it): when `F2`'s touch lock
+  engages, one effect in `App.tsx` keyed directly off `isLocked` (the user's choice over an
+  app-owned idle timer) scrolls the list to the top instantly through `F18`'s
+  `scrollRegionRef`, returns the room tab to *All*, clears the search and puts the day
+  simulator back on today — so whoever next walks up to the wall meets the canonical boot
+  view behind the padlock. It is the first feature to give "locked" an *app-side meaning*
+  beyond `inert`, which sets the principle `F15` must honor: **the kiosk owns the
+  inactivity timer; the app owns what "locked" means for it** (see `F15`'s Open risks (e)).
   **`F22`** (added later on 2026-09-20, after the batch closed) shipped #57 on 2026-09-23 and
   now lives in the Baseline's `OverlayScrollbar` Key-UI bullet + Standing invariants 12, 14,
   16 and 18: the native scrollbars on the list and on the Add/Edit form card are hidden
@@ -177,15 +190,8 @@ Infra track (complete):
   after the last one; the list's thumb sits in `F18`'s frame (before the button) and ends
   level with the last chore bar at full scroll; the outer column's `px-4` moved onto the
   header rows and `ChoreList`, so the scroll container and the `F5` frost run edge to edge.
-  **`F19`** (added 2026-09-20) resets the view when `F2`'s touch lock engages — list
-  scrolled to the top instantly, room tab back to *All*, search cleared, day simulator back
-  to today — so whoever next walks up to the wall meets the canonical boot view behind the
-  padlock. One lock-transition effect in `App.tsx` keyed directly off `isLocked` (the
-  user's choice over an app-owned idle timer), reusing the `scrollRegionRef` `F18` shipped
-  (#54, also read by `F22`'s shipped thumb). It is the first feature to give "locked" an *app-side meaning* beyond
-  `inert`, which sets the principle `F15` must honor: **the kiosk owns the inactivity timer;
-  the app owns what "locked" means for it** (see `F15`'s Open risks (e)). (`F19` merged #56;
-  its fold-back is pending.)
+  `F19`'s programmatic lock-time `scrollTop = 0` fires a native `scroll`, so the list's
+  thumb flashes on lock — accepted, no programmatic flag.
   **`F20`** (added 2026-09-20; ★FOCUS since `F22`'s fold-back) is now the track's head. It makes that principle concrete by reworking the shipped `F2`
   lock into a **permissive lock**: the padlock overlay appears *only* when a disallowed
   action is attempted — completing (single tap), edit/delete (swipes; bars don't move) —
@@ -193,7 +199,9 @@ Infra track (complete):
   the app root drops its `inert` gate for the lock (blank keeps it). Two unlock paths: the
   blocked tap counts as the first of the existing double-tap, and the top-left indicator
   becomes a single-tap lock/unlock control (manual lock without waiting 5 min). The
-  inactivity timer keeps running while locked, exposing the idle tick `F19` consumes. It
+  inactivity timer keeps running while locked, exposing an idle tick, and `F20` re-keys the
+  shipped `F19` reset to fire on every tick and on a manual lock, closing an Add modal left
+  open under the lock first (Standing invariant 19; `F19` kept contract). It
   retires pi-kiosk DD-2's "shell overlay blocks all input" shape: the shell will own the
   timer + state + indicator control, the app the guard + padlock (`F15` Open risks (e)/(f)).
 - **Kiosk extraction track (replaces the device-control panel track):** the console and
@@ -202,7 +210,7 @@ Infra track (complete):
   design doc's Migration Phases. What stays here: `F15` (adopt kiosk-shell — an ordinary
   chores4irl feature, gated on the **external** pi-kiosk Phase 2, removing the shipped
   `F1` overlay code and the lock's *timer/state/indicator*; Standing invariants 8–9 hold
-  until then — and, once `F19`/`F20` have shipped, re-sourcing the lock signal from the
+  until then — and, since `F19` has shipped (and once `F20` has), re-sourcing the lock signal from the
   shell's `kiosk-state { locked }` message and sending `lock-request` back rather than
   deleting the app-side lock semantics outright), and `F11`/`F12`
   (app-data undo/redo, re-scoped onto the `kiosk/v1` contract, gated on the external
@@ -218,14 +226,15 @@ Infra track (complete):
 fold-back (#57): `F22` had taken the ★ at `F18`'s fold-back (#55) and shipped the fading
 indicator-only overlay scrollbar on the list and the form card plus the full-bleed scroll
 region (Standing invariants 12, 14, 16 and 18); with it merged, the next item in the
-chore-list soft order `F22` → `F20` → `F19` — `F20`, zero prerequisites — is the
+chore-list soft order `F22` → `F20` — `F20`, zero prerequisites — is the
 unambiguous next step. Path: `/run-feature F20` on branch `feature/permissive-lock` — no
 prerequisites; it amends the shipped `F2` contract (Standing invariant 9), must keep the
-shipped `F18` button usable under the lock (Standing invariant 17), and leaves `F22`'s
-thumbs untouched (they read no lock state — Standing invariant 18). `F19` (`feature/lock-view-reset`,
-the soft-order item after `F20`) merged #56 ahead of it; its fold-back is pending, and
-`F20`'s cold survey must read the as-built `F19` effect in `App.tsx` (see *F20 ↔ F19*
-under couplings). **Gated, not ★:** `F15` (kiosk-track head)
+shipped `F18` button usable under the lock (Standing invariant 17), leaves `F22`'s
+thumbs untouched (they read no lock state — Standing invariant 18), and re-keys the
+shipped `F19` reset (#56, the soft-order item originally after `F20`, which ran ahead of
+it) to its idle tick + manual lock with the close-Add-modal step 0 (Standing invariant 19
+and the `F19` kept contract; see *F20 ↔ the shipped F19 reset* under couplings). `F19`
+shipped while `F22` held the ★ and did not move it. **Gated, not ★:** `F15` (kiosk-track head)
 cannot start until pi-kiosk Phase 2 parity (blank window, wake-tap swallow, 5-min
 re-blank, lock re-arm, double-tap unlock) is verified on the wall Pi and recorded in
 `plans/feature/kiosk-shell-adoption/`; `/run-feature F15` must check that gate in its cold
@@ -238,11 +247,12 @@ returns to `F15` (gated) by the usual fold-back. `F6`'s alias is live — pi-kio
   fields are gone (#38, with the `db.ts` boot migration), the clear-✕ affordance shipped
   (#34), the frosted deck shipped (#39), the form-boundary date fix + add-mode defaults
   + feedback `Toast` shipped (#46), the status-bucketed quota sort shipped (#50), the
-  status-count strip shipped (#52), the scroll-to-top button shipped (#54), and the overlay
-  scrollbar + full-bleed scroll region shipped (#57); Standing invariants 10–12 and 14–18
-  record all eight as verified-shipped facts.
+  status-count strip shipped (#52), the scroll-to-top button shipped (#54), the lock-time
+  view reset shipped (#56), and the overlay scrollbar + full-bleed scroll region shipped
+  (#57); Standing invariants 10–12 and 14–19 record all nine as verified-shipped facts
+  (`F20`'s re-key of the `F19` reset is `F20`'s own scope, not a reopening of `F19`).
   Follow-up polish on any of them (e.g. the six minor push-review notes harvested for
-  `F21`, `F16`'s, `F17`'s, `F18`'s and `F22`'s push-review minors, on-Pi tuning of the `SORT_*`
+  `F21`, `F16`'s, `F17`'s, `F18`'s, `F19`'s and `F22`'s push-review minors, on-Pi tuning of the `SORT_*`
   constants, or on-Pi tuning of the strip's height/contrast) enters via
   `/new-feature` (or, for the constants, a direct edit of `assets/constants.ts`), not by
   reopening the F-ID.
@@ -267,33 +277,34 @@ returns to `F15` (gated) by the usual fold-back. `F6`'s alias is live — pi-kio
 > where it steers future work: the Baseline, the Standing invariants, the Legacy →
 > current ID map, and the kept contracts under Completed-Feature Contracts below.
 
-### Remaining (current numbering, incl. `F15`–`F22`; reassessed against current `main` at the 2026-09-20 `/new-feature` reconciles — batch closed at `F21`; `F22` added singly the same day; `F21` shipped #46 on 2026-09-22, `F16` shipped #50 on 2026-09-22, `F17` shipped #52 on 2026-09-23, `F18` shipped #54 on 2026-09-23 and `F22` shipped #57 on 2026-09-23, all leaving the table; `F19` merged #56 on 2026-09-23 — its fold-back is pending, so its row stays until then)
+### Remaining (current numbering, incl. `F15`–`F22`; reassessed against current `main` at the 2026-09-20 `/new-feature` reconciles — batch closed at `F21`; `F22` added singly the same day; `F21` shipped #46 on 2026-09-22, `F16` shipped #50 on 2026-09-22, `F17` shipped #52 on 2026-09-23, `F18` shipped #54 on 2026-09-23, `F19` shipped #56 on 2026-09-23 and `F22` shipped #57 on 2026-09-23, all leaving the table)
 
 | Order | Feature | Effort | Depends on | Track |
 |---|---|---|---|---|
-| ★ 1 *(runnable now)* | **F20** — Permissive touch lock: padlock only on a blocked complete/edit/delete; scroll, search, rooms, day-sim, Add Task usable while locked; indicator = single-tap lock/unlock control **[FOCUS]** *(added 2026-09-20; reworks shipped F2)* | **M** | none hard; amends the shipped `F2` contract (Standing invariant 9) | Chore-list |
-| 2 *(merged #56; fold-back pending)* | **F19** — Lock-time view reset: on lock-engage (and each 5-min idle expiry while locked) scroll to top, room → All, search cleared, day → today *(added 2026-09-20; trigger amended by F20)* | **S** | none hard; keyed off the lock signal + idle tick (Standing invariant 9 / F20); reuses F18's shipped `scrollRegionRef` (#54); soft after F20 (tick) | Chore-list |
-| 3 *(gated)* | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee **[kiosk-track head — gated]** *(added 2026-07-15)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi | Kiosk extraction |
-| 4 | **F11** — Undo *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* | **M–L** | **external:** pi-kiosk Phase 4 (`kiosk/v1` contract) | Kiosk extraction |
-| 5 | **F12** — Redo *(re-scoped 2026-07-15)* | **M** | F11 + same external gate | Kiosk extraction |
+| ★ 1 *(runnable now)* | **F20** — Permissive touch lock: padlock only on a blocked complete/edit/delete; scroll, search, rooms, day-sim, Add Task usable while locked; indicator = single-tap lock/unlock control **[FOCUS]** *(added 2026-09-20; reworks shipped F2)* | **M** | none hard; amends the shipped `F2` contract (Standing invariant 9) and re-keys the shipped `F19` reset to its idle tick + manual lock (Standing invariant 19) | Chore-list |
+| 2 *(gated)* | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee **[kiosk-track head — gated]** *(added 2026-07-15)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi | Kiosk extraction |
+| 3 | **F11** — Undo *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* | **M–L** | **external:** pi-kiosk Phase 4 (`kiosk/v1` contract) | Kiosk extraction |
+| 4 | **F12** — Redo *(re-scoped 2026-07-15)* | **M** | F11 + same external gate | Kiosk extraction |
 | ~~—~~ | ~~**F3 · F7 · F8 · F9 · F10 · F13** — device-control console + its controls~~ | — | **superseded 2026-07-15** — migrated to pi-kiosk (shell console / agent controls / settings; `F13`'s plan harvested, see its banner) | *(migrated)* |
 
 **Effort tally (remaining, in this repo).** Chore-list track: F20 (M=2) ≈ **2 pts**,
-ungated (`F19` merged #56 and is out of the tally; its fold-back is pending). Infra track: **0 pts** (complete). Kiosk extraction track: F15
+ungated. Infra track: **0 pts** (complete). Kiosk extraction track: F15
 (M=2, re-check at planning — see below) + F11 (M–L≈2–3) + F12 (M=2) ≈ **6–7 pts**, all gated on external pi-kiosk phases.
 Total ≈ **8–9 pts**. (S=1 / M=2 / L=3 / XL=5.) F15/F20/F11/F12 were re-checked
 against `main` at #44 for `F21`'s add, and all of them again for `F22`'s: nothing
 landed since their last estimate (same day), so their scores stand; `F21` itself shipped
 #46 (2026-09-22) at its estimated S–M and left the tally; `F16` shipped #50 (2026-09-22) at
 its estimated M and left it too; `F17` shipped #52 (2026-09-23) at its estimated S–M and
-left it; `F18` shipped #54 (2026-09-23) at its estimated S and left it; `F22` shipped #57
+left it; `F18` shipped #54 (2026-09-23) at its estimated S and left it; `F19` shipped #56
+(2026-09-23) at its estimated S and left it; `F22` shipped #57
 (2026-09-23) at its estimated S–M and left it as well. `F15` stays **M** on paper but changes *shape*: after `F20` its lock
 half is no longer "delete the overlay" — the in-app guard/padlock stays, and only the
 timer, lock state and indicator control move to the shell over a `kiosk/v1` addition
 (`kiosk-state { locked }` in, `lock-request { locked }` out) that pi-kiosk schedules for
 **Phase 4**, not Phase 2. Its plan must decide whether to split (blank removal at Phase 2 /
-lock hand-over at Phase 4) — Open risks (f). `F19` stays **S**; the `F20` amendment adds
-one more trigger to the same effect.
+lock hand-over at Phase 4) — Open risks (f). `F20` stays **M**: re-keying the shipped
+`F19` effect to the idle tick + manual lock (with the close-Add-modal step 0) is one more
+trigger on an existing effect plus two App-level tests.
 The former device-control tally (~11 pts placeholder-ship + connections) now lives in the
 pi-kiosk repo's own planning, not here.
 
@@ -328,7 +339,7 @@ pi-kiosk repo's own planning, not here.
 | *(none — new, added 2026-09-20; bare `F16` is distinct from retired `F16-L` redo)* | **F16** — status-bucketed midnight re-sort with red-quota escalation + Urgency weighting *(shipped #50 — folded into Baseline **Sort** / Standing invariant 15)* |
 | *(none — new, added 2026-09-20; bare `F17` is distinct from retired `F17-L` rotate)* | **F17** — status-count strip under the room tabs (done-today / due-soon / overdue, live, visible list) *(shipped #52 — folded into Baseline `StatusCountStrip` Key UI / Standing invariant 16)* |
 | *(none — new, added 2026-09-20)* | **F18** — floating scroll-to-top button over the list (shown only once scrolled) *(shipped #54 — folded into Baseline `ScrollToTopButton` Key UI / Standing invariants 12, 14 and 17)* |
-| *(none — new, added 2026-09-20)* | **F19** — lock-time view reset (on lock-engage + each idle expiry while locked: scroll to top, room → All, search cleared, day → today) |
+| *(none — new, added 2026-09-20)* | **F19** — lock-time view reset (on lock-engage + each idle expiry while locked: scroll to top, room → All, search cleared, day → today) *(shipped #56 — folded into Baseline `App.tsx` Key UI / Standing invariant 19; lock-engage only as built — the idle-tick trigger is `F20`'s to add; contract kept below for `F20`/`F15`)* |
 | *(none — new, added 2026-09-20)* | **F20** — permissive touch lock (reworks shipped `F2`: padlock only on a blocked complete/edit/delete; scroll, search, rooms, day-sim, Add Task usable while locked; indicator = lock/unlock control) |
 | *(none — new, added 2026-09-20; promotes the `F2-L` follow-up list of 2026-07-08)* | **F21** — add/edit form polish + date-math fix *(shipped #46 — folded into Baseline / Standing invariant 14; the `F2-L` kept contract it targeted was deleted with it)* |
 | *(none — new, added 2026-09-20 after the batch closed)* | **F22** — fading overlay scrollbar + full-bleed scroll region (native scrollbar hidden; indicator-only overlay thumb on the list + form scroll box, shown while scrolling, fades ≈ 1 s after; outer `px-4` moved to header rows + list content so the container, deck backing and thumb reach the screen edges) *(shipped #57 — folded into Baseline `OverlayScrollbar` Key UI / Standing invariants 12, 14, 16 and 18)* |
@@ -349,29 +360,30 @@ pi-kiosk repo's own planning, not here.
 | Feature | Status | Branch | PR |
 |---|---|---|---|
 | **F20 — permissive touch lock** ★FOCUS *(added 2026-09-20; reworks shipped F2)* | pending *(ungated; runnable now — F22 shipped #57)* | `feature/permissive-lock` | — |
-| F19 — lock-time view reset *(added 2026-09-20; trigger amended by F20)* | in-review | `feature/lock-view-reset` | [#56](https://github.com/4IRL/chores4irl/pull/56) |
 | F15 — adopt kiosk-shell *(added 2026-07-15; kiosk-track head)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — |
 | F11 — undo *(re-scoped 2026-07-15: `kiosk/v1` contract)* | pending *(gated on external pi-kiosk Phase 4)* | `feature/undo` | — |
 | F12 — redo *(re-scoped 2026-07-15)* | pending *(gated on F11 + same external gate)* | `feature/redo` | — |
 | F3 · F7 · F8 · F9 · F10 · F13 — device-control console + controls | **superseded** *(2026-07-15 — migrated to pi-kiosk; branches never created)* | — | — |
 
 **Branch/dir cleanup:** `F16` (#50, merged 2026-09-22), `F17` (#52, merged 2026-09-23),
-`F18` (#54, merged 2026-09-23) and `F22` (#57, merged 2026-09-23) are the four outstanding
-sweeps — `plans/feature/status-bucketed-sort/`, `plans/feature/status-count-strip/`,
-`plans/feature/scroll-to-top/` and `plans/feature/overlay-scrollbar/` (each plan + review +
+`F18` (#54, merged 2026-09-23), `F19` (#56, merged 2026-09-23) and `F22` (#57, merged
+2026-09-23) are the five outstanding sweeps — `plans/feature/status-bucketed-sort/`,
+`plans/feature/status-count-strip/`, `plans/feature/scroll-to-top/`,
+`plans/feature/lock-view-reset/` and `plans/feature/overlay-scrollbar/` (each plan + review +
 push-review) await their `/compact-plans` freeze under `plans/completed/`, and their
 non-blocking push-review minors (`reviews/push-review-feature-status-bucketed-sort.md`,
 `reviews/push-review-feature-status-count-strip.md`,
-`reviews/push-review-feature-scroll-to-top.md` and
+`reviews/push-review-feature-scroll-to-top.md`,
+`reviews/push-review-feature-lock-view-reset.md` and
 `reviews/push-review-feature-overlay-scrollbar.md`; listed under *`F16` follow-ups*, *`F17`
-follow-ups*, *`F18` follow-ups* and *`F22` follow-ups* below) await harvesting into
-`plans/PUSH-REVIEW-FINDINGS.md`; the local `feature/status-bucketed-sort`,
-`feature/status-count-strip`, `feature/scroll-to-top` and `feature/overlay-scrollbar`
-branches are prunable, as are the local `chore/compact-plans-before-f16` (#48),
-`chore/compact-plans-batched-cadence` (#49), `chore/meta-plan-update-f16` (#51),
-`chore/meta-plan-update-f17` (#53) and `chore/meta-plan-update-f18` (#55) branches (GitHub
+follow-ups*, *`F18` follow-ups*, *`F19` follow-ups* and *`F22` follow-ups* below) await
+harvesting into `plans/PUSH-REVIEW-FINDINGS.md`; the local `feature/status-bucketed-sort`,
+`feature/status-count-strip`, `feature/scroll-to-top`, `feature/lock-view-reset` and
+`feature/overlay-scrollbar` branches are prunable, as are the local
+`chore/compact-plans-before-f16` (#48), `chore/compact-plans-batched-cadence` (#49),
+`chore/meta-plan-update-f16` (#51), `chore/meta-plan-update-f17` (#53),
+`chore/meta-plan-update-f18` (#55) and `chore/meta-plan-update-f22` (#59) branches (GitHub
 auto-deleted the remote side of each on merge — verify with `gh api` before pruning).
-`F19` (#56) merged too; its dir, branch and fold-back are handled by its own pending Phase C.
 Everything before them was clean as
 of the 2026-09-22 sweep (#48): `F21` (#46) was frozen under
 `plans/completed/form-polish-date-fix/` with its push-review minors harvested into
@@ -394,10 +406,10 @@ in the feature's own commits/PR.
 
 ## Baseline: the codebase as it exists today (`main` at PR #57, `0277f79`)
 
-> **This Baseline reflects `main` after PR #57 (`0277f79`) — `F22`** (which includes `F19`'s #56,
-> `fca7118`; `F19`'s fold-back is pending, so its delta is not yet described here). It is the literal current
+> **This Baseline reflects `main` after PR #57 (`0277f79`) — `F22`** (on top of `F19`'s #56,
+> `fca7118`, whose delta is described below too). It is the literal current
 > state and the **assumed starting state for every remaining feature.** (PRs #33, #35, #36,
-> #37, #40, #41, #42, #44, #45, #47, #48, #49, #51, #53 and #55 touched only `plans/` docs and `.claude/skills/`; **#43 (`1c63e0a`) —
+> #37, #40, #41, #42, #44, #45, #47, #48, #49, #51, #53, #55 and #59 touched only `plans/` docs and `.claude/skills/`; **#43 (`1c63e0a`) —
 > `F6`** touched no app code — `deploy/pi/set-hostname.sh`, `deploy/pi/cloud-init/`,
 > `deploy/pi/README.md`, root `README.md` and `plans/`; the app-code deltas since #32
 > are **#34 (`3533b67`) — `F14`**, all under `frontend/src/`, **#38 (`d728989`) — `F4`**,
@@ -418,7 +430,11 @@ in the feature's own commits/PR.
 > new, `components/common/ScrollToTopButton.tsx` new, the `App.tsx` `scrollRegionRef` +
 > `scroll-region-frame` wiring, tests), one new e2e spec `e2e/scroll-to-top.spec.ts`, root
 > `README.md` and `plans/` — no backend, type, schema, sort, bar, deck or form change; the
-> scroller's class string is unchanged, and **#57 (`0277f79`) — `F22`**, confined to
+> scroller's class string is unchanged, **#56 (`fca7118`) — `F19`**, confined to one
+> 15-line lock-engage `useEffect` in `frontend/src/App.tsx`, one new test file
+> `frontend/src/__tests__/App.lockViewReset.test.tsx`, a touch-lock paragraph in the root
+> `README.md` and `plans/` — no backend, type, schema, sort, component, hook, styling or
+> e2e change; the scroller's class string is unchanged, and **#57 (`0277f79`) — `F22`**, confined to
 > `frontend/src/` (`hooks/useScrollIndicator.ts` new, `components/common/OverlayScrollbar.tsx`
 > new, `App.tsx`, `components/form/ChoreForm.tsx`, the `px-4` relocation across `NavBar`,
 > `DateNavigationBanner`, `ReturnToTodayButton`, `ChoreSearchInput`, `ChoreList` and
@@ -497,7 +513,7 @@ migrated to 7 columns.
 **Frontend API** (`frontend/src/services/choreApi.ts`): `fetchAllChores`, `addChore`, `updateChore(id, chore)`, `completeChore`, `removeChore`.
 
 **Key UI**
-- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (`searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`), **the feedback toast (`F21`, #46)** — a single `toast: { id, tone: 'success' | 'error', message } | null` state (`ToastState`) with `showToast(tone, message)` / `dismissToast` `useCallback`s and a `toastIdRef` counter so `{toast && <Toast key={toast.id} …/>}` remounts (and restarts the timer) on every new toast, rendered **inline inside the `.App` root** (so the root's `inert` covers it like the strip it replaced), after the main column and before the modals; **there is no `error` state and no top-of-page error strip any more** — every former `setError(msg)` is `showToast('error', msg)` with the same message expressions (`loadChores` initial-only, add, delete, complete, edit), `Added "<name>"` / `Saved "<name>"` / `Deleted "<name>"` fire only after the awaited `addChore` / `updateChore` / `removeChore` resolves (never on the optimistic write), and a successful tap-to-complete raises no toast but clears a standing error one (`setToast(prev => prev?.tone === 'error' ? null : prev)`); `loadChores`'s deps are `[reconcileChores, showToast]` — and the **two kiosk overlays**: `useScreenBlank()` → `{ isBlanked, wake }` rendering `<ScreenBlankOverlay onWake={wake} />` when `isBlanked` (`F1`, shipped #27), and `useTouchLock()` → `{ isLocked, arm }` rendering `TouchLockIndicator` always plus `TouchLockOverlay` when `(isLocked || isClosing) && !isBlanked` (`F2`, shipped #28), the app root `inert` while either is active, with a force-close-dialogs effect on blank/lock. **Both overlays are slated for removal by `F15`** (kiosk-layer extraction — their behavior moves to the pi-kiosk shell). **Add Task deck (`F5`, shipped #39) — a frosted sticky surface *inside* the scroll region:** the scroll container is `flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40 scrollbar-none` (`scrollbar-none` added by `F22`, #57; the literal `overflow-y-auto` token must stay on this element — `App.search.test.tsx` locates it by class), `ChoreList` first, then the deck as its last child: `data-testid="add-task-deck"`, `sticky bottom-0 mt-auto flex-shrink-0 flex justify-center py-4` with **no border or background of its own**. The tint + blur live on an `aria-hidden` `data-testid="add-task-deck-backing"` child — `pointer-events-none absolute inset-x-0 -top-16 bottom-0 bg-gray-900/60 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,transparent,black_4rem)]` — a progressive blur that fades in over a 4rem overhang above the ~81px deck rather than stopping at a hard edge (tuned on the Pi kiosk: 2rem read as abrupt, 4rem accepted). `AddChoreButton` (`bg-blue-500 hover:bg-blue-600`, now **fully opaque**) sits in a `relative` wrapper *after* the backing so it paints on top. `mt-auto` pins the deck to the bottom for short/empty lists, `sticky` while a long list scrolls beneath the blur; `scroll-pb-40` (160px ≥ 81px deck + 64px overhang) declares the deck plus its fade as obscured so `scrollIntoView`/keyboard focus land bars clear of it (Chrome aligns a Tab-focused sr-only pill's *own* rect to the scroll-padding edge — measured). **Scroll-region frame + shared ref (`F18`, #54):** the scroll container carries `ref={scrollRegionRef}` — the **single** `useRef<HTMLDivElement>(null)` on that element, declared in `App.tsx` with a comment reserving it for `F18` (read/scroll to top), `F19` (reset on lock) and `F22` (overlay thumb); never add a second ref there — and is wrapped by exactly one positioned frame, `<div data-testid="scroll-region-frame" className="relative flex-1 min-h-0 flex flex-col">`, whose children are, in order, the scroller (keeping its exact class string as a `flex-1` child — no `h-full`), then **`F22`'s list thumb** `<OverlayScrollbar scrollRegionRef={scrollRegionRef} trackInsetBottomPx={LIST_THUMB_BOTTOM_INSET_PX} />` (#57), and, as the frame's **last child**, `<ScrollToTopButton scrollRegionRef={scrollRegionRef} />`. The frame, not the scroller, is what floating controls anchor against. `LIST_THUMB_BOTTOM_INSET_PX = 96` (module-level in `App.tsx`, unexported) = the deck's 80 px (`py-4` + the 48 px button) + `ChoreList`'s `pb-4` 16 px, so at full scroll the thumb's bottom meets the last chore bar's bottom (the user's choice after seeing the branch, replacing a 160 px stop above the frost; `e2e/overlay-scrollbar.spec.ts` pins the alignment). **Full-bleed column (`F22`, #57):** the frame (with the scroll container and deck inside) sits inside the outer `flex flex-col h-full overflow-hidden bg-gray-900 pt-4` column — **no horizontal padding** (locate it by that class string — its line number drifts; `grep -n "flex flex-col h-full overflow-hidden bg-gray-900 pt-4" frontend/src/App.tsx`) — which renders, in order, `NavBar` → **`StatusCountStrip`** (`F17`, #52) → `DateNavigationBanner` → `ReturnToTodayButton` → `ChoreSearchInput` → the `scroll-region-frame`. The 16 px inset lives on the content instead: `px-4` on the roots of `NavBar` (`border-b border-gray-700 flex-shrink-0 px-4`, so its divider is full-bleed while the tabs stay inset), `DateNavigationBanner`, `ReturnToTodayButton`'s wrapper, `ChoreSearchInput`, and both `ChoreList` branch roots (empty `px-4`, populated `space-y-3 pb-4 px-4`); `StatusCountStrip` carries `mx-4` instead of `w-full`. So the scroll container, the deck backing's `inset-x-0` frost and the thumb span the full width while bars, tabs, strip, banner and search keep their inset. `index.css`'s `.scrollbar-none` utility (`scrollbar-width: none` + `::-webkit-scrollbar { display: none }`) is used by `NavBar`'s chip row, the list scroller and `ChoreForm`'s card (all since #57 except `NavBar`). The loading branch's `mx-auto px-4` wrapper is a separate tree and unchanged. The deck's own box keeps default pointer events (a frosted surface must not pass taps to half-hidden bars); the overhang is `pointer-events-none` so bars under the fade stay tappable. No z-index anywhere. Tailwind 4.1.18 emits both `-webkit-`/unprefixed `mask-image` and `backdrop-filter`. Note that Tailwind's built-in `mask-t-*` utilities fade the *bottom* edge in (`to top, black <from>, transparent <to>`), so the arbitrary `mask-image` property is the simplest correct form — verified by compiling both (F5 push Review 2). `NavBar` renders room chips **and the persistent search input** above the list. **There is no settings/device-control panel on `main`, and there never will be** — `F3` was superseded 2026-07-15 (migrated to pi-kiosk).
+- `App.tsx` — orchestrator: holds `choreData`, `sortedIds`, day-simulation (`simulatedDate`/`isSimulating`, real clock via `realToday`), room filter (`uniqueRooms` derived; `useRoomFilter(choreData, selectedRoom)` → `filteredChores`), **search filter** (`searchFilteredChores` derived from `filteredChores`, feeding `orderedChores`), day-simulation handlers, add/edit/delete handlers (F4-L/F2-L/F5-L trio), SSE subscription (`useChoreEvents` + gated `reconcileChores`), **the feedback toast (`F21`, #46)** — a single `toast: { id, tone: 'success' | 'error', message } | null` state (`ToastState`) with `showToast(tone, message)` / `dismissToast` `useCallback`s and a `toastIdRef` counter so `{toast && <Toast key={toast.id} …/>}` remounts (and restarts the timer) on every new toast, rendered **inline inside the `.App` root** (so the root's `inert` covers it like the strip it replaced), after the main column and before the modals; **there is no `error` state and no top-of-page error strip any more** — every former `setError(msg)` is `showToast('error', msg)` with the same message expressions (`loadChores` initial-only, add, delete, complete, edit), `Added "<name>"` / `Saved "<name>"` / `Deleted "<name>"` fire only after the awaited `addChore` / `updateChore` / `removeChore` resolves (never on the optimistic write), and a successful tap-to-complete raises no toast but clears a standing error one (`setToast(prev => prev?.tone === 'error' ? null : prev)`); `loadChores`'s deps are `[reconcileChores, showToast]` — and the **two kiosk overlays**: `useScreenBlank()` → `{ isBlanked, wake }` rendering `<ScreenBlankOverlay onWake={wake} />` when `isBlanked` (`F1`, shipped #27), and `useTouchLock()` → `{ isLocked, arm }` rendering `TouchLockIndicator` always plus `TouchLockOverlay` when `(isLocked || isClosing) && !isBlanked` (`F2`, shipped #28), the app root `inert` while either is active, with a force-close-dialogs effect on blank/lock. **Lock-time view reset (`F19`, #56):** directly after that force-close effect sits a second `useEffect` on `[isLocked]` — `if (!isLocked) return;` then `scrollRegionRef.current.scrollTop = 0` (null-guarded — the ref is unset during the loading render — and instant, never smooth: the app is `inert` behind the padlock), `setSelectedRoom('all')`, `setSearchQuery('')`, `setDayOffset(0)`. It fires on the lock *engage* only — never on unlock, and never on blank (`isBlanked` is not referenced), though a lock engaging *under* a blank still resets, so the 06:00 wake shows the reset view; `setDayOffset(0)` re-sorts only when a simulation was active (through the existing `[simulatedDate]` effect). It adds no ref, frame, component, hook or state (it reuses `F18`'s `scrollRegionRef`), and its code comment carries the `F20` note (re-key to the idle-expiry tick + manual lock, closing an Add modal left open first — Standing invariant 19). **Both overlays are slated for removal by `F15`** (kiosk-layer extraction — their behavior moves to the pi-kiosk shell). **Add Task deck (`F5`, shipped #39) — a frosted sticky surface *inside* the scroll region:** the scroll container is `flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40 scrollbar-none` (`scrollbar-none` added by `F22`, #57; the literal `overflow-y-auto` token must stay on this element — `App.search.test.tsx` locates it by class), `ChoreList` first, then the deck as its last child: `data-testid="add-task-deck"`, `sticky bottom-0 mt-auto flex-shrink-0 flex justify-center py-4` with **no border or background of its own**. The tint + blur live on an `aria-hidden` `data-testid="add-task-deck-backing"` child — `pointer-events-none absolute inset-x-0 -top-16 bottom-0 bg-gray-900/60 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,transparent,black_4rem)]` — a progressive blur that fades in over a 4rem overhang above the ~81px deck rather than stopping at a hard edge (tuned on the Pi kiosk: 2rem read as abrupt, 4rem accepted). `AddChoreButton` (`bg-blue-500 hover:bg-blue-600`, now **fully opaque**) sits in a `relative` wrapper *after* the backing so it paints on top. `mt-auto` pins the deck to the bottom for short/empty lists, `sticky` while a long list scrolls beneath the blur; `scroll-pb-40` (160px ≥ 81px deck + 64px overhang) declares the deck plus its fade as obscured so `scrollIntoView`/keyboard focus land bars clear of it (Chrome aligns a Tab-focused sr-only pill's *own* rect to the scroll-padding edge — measured). **Scroll-region frame + shared ref (`F18`, #54):** the scroll container carries `ref={scrollRegionRef}` — the **single** `useRef<HTMLDivElement>(null)` on that element, declared in `App.tsx` with a comment reserving it for `F18` (read/scroll to top), `F19` (reset on lock — its effect writes `scrollTop = 0` through it since #56) and `F22` (overlay thumb); never add a second ref there — and is wrapped by exactly one positioned frame, `<div data-testid="scroll-region-frame" className="relative flex-1 min-h-0 flex flex-col">`, whose children are, in order, the scroller (keeping its exact class string as a `flex-1` child — no `h-full`), then **`F22`'s list thumb** `<OverlayScrollbar scrollRegionRef={scrollRegionRef} trackInsetBottomPx={LIST_THUMB_BOTTOM_INSET_PX} />` (#57), and, as the frame's **last child**, `<ScrollToTopButton scrollRegionRef={scrollRegionRef} />`. The frame, not the scroller, is what floating controls anchor against. `LIST_THUMB_BOTTOM_INSET_PX = 96` (module-level in `App.tsx`, unexported) = the deck's 80 px (`py-4` + the 48 px button) + `ChoreList`'s `pb-4` 16 px, so at full scroll the thumb's bottom meets the last chore bar's bottom (the user's choice after seeing the branch, replacing a 160 px stop above the frost; `e2e/overlay-scrollbar.spec.ts` pins the alignment). **Full-bleed column (`F22`, #57):** the frame (with the scroll container and deck inside) sits inside the outer `flex flex-col h-full overflow-hidden bg-gray-900 pt-4` column — **no horizontal padding** (locate it by that class string — its line number drifts; `grep -n "flex flex-col h-full overflow-hidden bg-gray-900 pt-4" frontend/src/App.tsx`) — which renders, in order, `NavBar` → **`StatusCountStrip`** (`F17`, #52) → `DateNavigationBanner` → `ReturnToTodayButton` → `ChoreSearchInput` → the `scroll-region-frame`. The 16 px inset lives on the content instead: `px-4` on the roots of `NavBar` (`border-b border-gray-700 flex-shrink-0 px-4`, so its divider is full-bleed while the tabs stay inset), `DateNavigationBanner`, `ReturnToTodayButton`'s wrapper, `ChoreSearchInput`, and both `ChoreList` branch roots (empty `px-4`, populated `space-y-3 pb-4 px-4`); `StatusCountStrip` carries `mx-4` instead of `w-full`. So the scroll container, the deck backing's `inset-x-0` frost and the thumb span the full width while bars, tabs, strip, banner and search keep their inset. `index.css`'s `.scrollbar-none` utility (`scrollbar-width: none` + `::-webkit-scrollbar { display: none }`) is used by `NavBar`'s chip row, the list scroller and `ChoreForm`'s card (all since #57 except `NavBar`). The loading branch's `mx-auto px-4` wrapper is a separate tree and unchanged. The deck's own box keeps default pointer events (a frosted surface must not pass taps to half-hidden bars); the overhang is `pointer-events-none` so bars under the fade stay tappable. No z-index anywhere. Tailwind 4.1.18 emits both `-webkit-`/unprefixed `mask-image` and `backdrop-filter`. Note that Tailwind's built-in `mask-t-*` utilities fade the *bottom* edge in (`to top, black <from>, transparent <to>`), so the arbitrary `mask-image` property is the simplest correct form — verified by compiling both (F5 push Review 2). `NavBar` renders room chips **and the persistent search input** above the list. **There is no settings/device-control panel on `main`, and there never will be** — `F3` was superseded 2026-07-15 (migrated to pi-kiosk).
   - **SSE sync — unchanged contract:** subscribes via `useChoreEvents(onChange)` (`hooks/useChoreEvents.ts`; `new EventSource('/api/events')` + `visibilitychange→visible` re-fire). Re-pulls are gated by `isRepullGated()` (`isMutatingRef` || `showForm` || `editingId` || `pendingDeleteId`); deferred via `pendingRefreshRef`. **Any new frontend feature holding uncommitted user input in `App.tsx` state must be added to this gate** — the `F21` toast state is *not* user input and is deliberately outside it (a re-pull while a toast shows is fine).
   - **Visible-list pipeline (three-stage):** `filteredChores = useRoomFilter(choreData, selectedRoom)` → `searchFilteredChores` (substring on `name`, from `F9-L`) → `orderedChores` (maps `sortedIds` over a `Map` of `searchFilteredChores`). Beside it (`F17`, #52), `statusCounts = useMemo(() => countStatuses(searchFilteredChores, simulatedDate), [searchFilteredChores, simulatedDate])` feeds `<StatusCountStrip counts={statusCounts} />` — derived from the live chore data, never from `sortedIds`, so it updates on completion, edit and SSE re-pull while the list order stays midnight-only.
   - **`F1`'s real-clock scheduling (shipped):** `frontend/src/hooks/useScreenBlank.ts` — window-boundary re-arming timeouts driven by `realToday`, **not** `simulatedDate` (adapted from the `useMidnightClock.ts` single-`setTimeout`-to-boundary pattern, which remains available as a precedent for any future real-clock feature).
@@ -512,8 +528,8 @@ migrated to 7 columns.
 - `components/common/OverlayScrollbar.tsx` + `hooks/useScrollIndicator.ts` (`F22`, #57) — the indicator-only overlay scrollbar that stands in for the hidden native one. **Pure geometry:** `computeThumbGeometry(scrollTop, scrollHeight, clientHeight, trackInsetTopPx = 0, trackInsetBottomPx = 0): ThumbGeometry | null` over a *track* `= clientHeight − top − bottom`: `height = min(max(track · clientHeight / scrollHeight, MIN_THUMB_PX), track)`, `top = trackInsetTopPx + clamp(scrollTop / (scrollHeight − clientHeight), 0, 1) · (track − height)`; `null` when `scrollHeight ≤ clientHeight` or `track ≤ 0` (a deliberate departure from the original unclamped `clientHeight² / scrollHeight` full-height formula — the thumb never leaves its track). **Hook:** `useScrollIndicator(ref, trackInsetTopPx = 0, trackInsetBottomPx = 0) → { geometry, isVisible }` measures on attach, attaches its own passive `scroll` listener (beside `F18`'s, not replacing it) that re-measures, sets `isVisible` and restarts an `IDLE_FADE_MS = 1000` idle timer, and — only where `ResizeObserver` exists (guarded: jsdom has none) — re-measures on resizes of the scroller and its children present at attach time; it skips a `setState` when the geometry is unchanged; `isVisible` starts false, so there is **no mount flash** (boot/unblank view pixel-identical). Like `useScrollPastThreshold`, it needs the element mounted when the caller's effects run. Exported: `IDLE_FADE_MS = 1000`, `MIN_THUMB_PX = 24`, `ThumbGeometry`. **Component:** `{ scrollRegionRef; trackInsetTopPx?; trackInsetBottomPx? }`; renders **nothing** when geometry is `null`, otherwise a `<div data-testid="overlay-scrollbar" aria-hidden="true">` with class `pointer-events-none absolute rounded-full bg-gray-300/50 transition-opacity motion-reduce:transition-none` + `opacity-100 duration-150` (visible) / `opacity-0 duration-400` (hidden) and inline `top`/`height`/`width: THUMB_WIDTH_PX (4)`/`right: THUMB_EDGE_INSET_PX (2)`; **no z-index** (paints over the scroller and the frost by DOM order), no `role`, not draggable, never `bg-gray-800` (e2e locates bars by `.bg-gray-800.rounded-full`). Exported `FADE_IN_MS = 150` / `FADE_OUT_MS = 400` document the literal classes (Tailwind needs literals). Two call sites: the list (in `F18`'s `scroll-region-frame`, bottom inset `LIST_THUMB_BOTTOM_INSET_PX`) and the form card (top/bottom inset `FORM_THUMB_TRACK_INSET_PX`). It reads no lock state. The README's UI overview has one paragraph on it.
 
 **Tests**
-- **Vitest** unit tests both sides (backend 43 across 5 files — untouched by `F16`/`F17`/`F18`/`F21`/`F22`; frontend 397 across 40 files as of #57 — of the 31 added since #54, `F19`'s #56 brought 6 in one file (its fold-back is pending) and `F22` added 25: `hooks/useScrollIndicator.test.ts` (11 — `computeThumbGeometry` null/size/min-clamp/track-inset cases, no mount flash, show on scroll + hide after `IDLE_FADE_MS` with the timer restarted per event, passive listener + cleanup, a stubbed `ResizeObserver` observed/re-measured/disconnected, and no throw without one), `components/OverlayScrollbar.test.tsx` (6 — nothing when not scrollable, hidden z-index-free thumb with inline px geometry, fade under fake timers, form- and list-shaped insets, the fade constants pinned to the class literals), a 4-case `overlay scrollbar (F22)` describe in `App.test.tsx` (thumb in the frame between the scroller and the button, hidden on load; the track end level with the last bar under stubbed metrics; no thumb at jsdom's default metrics; the full-bleed column with each content row inset), a 2-case `overlay scrollbar (F22)` describe in `ChoreForm.test.tsx` (the card-sized wrapper's exact className + the inset thumb), and inset assertions in `ReturnToTodayButton.test.tsx` / `StatusCountStrip.test.tsx` (plus an updated one in `ChoreList.test.tsx`); `F22` also updated `F18`'s pinned scroller-className literal to add `scrollbar-none`; before that `F18` added 20: `hooks/useScrollPastThreshold.test.ts` (8), `components/ScrollToTopButton.test.tsx` (9 — hidden + non-interactive at mount, visible + interactive past the threshold, the two-phase `FADE_MS` fade-out under fake timers incl. re-show cancel and unmount cleanup, smooth / reduced-motion / no-`matchMedia` clicks with `Element.prototype.scrollTo` stubbed, the centred opaque 44 px classes with no z-index) and a 3-case `scroll-to-top button (F18)` describe in `App.test.tsx` whose case 1 pins the scroller's **exact** className (`'flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40 scrollbar-none'` since `F22`, #57), the single `.overflow-y-auto`, the button as a child of `scroll-region-frame` outside the scroller, and the deck as the scroller's last child — note that jsdom neither dispatches `scroll` on a programmatic `scrollTop` write (tests call `fireEvent.scroll(region)`) nor honours `inert` (tests assert the attribute only); before that `F17` added 24 in three new files: `utils/choreStatusCounts.test.ts` (8), `components/StatusCountStrip.test.tsx` (10 — proportional widths, zero collapse with all segments mounted, all-zero full-green `0`, labels, accessible label, colour tokens = `STATUS_BAR_COLOR`, the bar's transition, identity across a grow rerender, selector avoidance) and `App.statusStrip.test.tsx` (6 — position after `NavBar`, live update on completion and SSE re-pull, room/search narrowing, displayed day); before that `F16` added 26, almost all in the rewritten `utils/choreSort.test.ts` (bucket ↔ `classifyStatus` agreement across the boundaries, monotonic red ranking, most-recent-first greens, 4/2/2 fill, donation, escalation to an all-red fold, `high`/`low` urgency flipping rank and pressure, unset = `medium`, `frequency === 0`, empty input, stable ties, the `SORT_BASE_QUOTA` sum pin, the stale-`longTermTask` flag still ignored) plus `classifyStatus` cases in `components/ChoreTimerBar.barMath.test.ts`, with only comments re-worded in `App.test.tsx` / `App.search.test.tsx` (their expected orders held); before that `F21` added 42 frontend tests: `utils/formDate.test.ts`, the TZ-pinned `components/ChoreForm.dateBoundary.test.tsx` (Cases A/B/B2/C/D under New York + Tokyo, each verified red on the pre-fix code), `components/Toast.test.tsx` (7), an add-mode-defaults describe in `ChoreForm.test.tsx`, a `defaultRoom` forwarding test in `ChoreFormModal.test.tsx`, and in `App.test.tsx` two room-tab pre-fill tests plus the 11-test `feedback toast (F21)` describe with a module-scope `openAndFillForm` helper), now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`), the reversed swipe mapping + threshold (`F10-L`), the clear-✕ affordance (component-level show/clear/refocus + App-level clear-restores-room-filter, from `F14`), and `F4`'s removal: `backend/src/__tests__/db-migration.test.ts` (7 cases — idempotency on `:memory:`, boot wiring against a legacy 9-column temp file, rows/other columns preserved), stale-client-key drop tests on `POST`/`PUT` and `createChore`/`updateChore`, a `ChoreForm` absence test (no Details / Long-term inputs) and a stale-`longTermTask`-flag-ignored sort test, plus `F5`'s `Add Task deck (F5)` describe in `App.test.tsx` (deck sticky/`mt-auto`/last-child inside `.overflow-y-auto` for populated and empty lists, the masked backing layer's classes and backing-before-button paint order, `scroll-pb-40`) and the opaque-button assertion in `AddChoreButton.test.tsx`.
-- **Playwright e2e**: `e2e/smoke.spec.ts` (14 tests) plus, since `F18` (#54), the read-only `e2e/scroll-to-top.spec.ts` (1 test — hidden + `inert` at load, fade-in past 80 px, anchored while the region scrolls, clear of the deck's frosted overhang, click → back to top, still hit-testable and not `inert` at the first faded frame, hidden + `inert` after the fade) and, since `F22` (#57), the read-only `e2e/overlay-scrollbar.spec.ts` (4 tests — full-bleed scroll region + frost with inset header rows and bars and `scrollbar-width: none` applied; the list thumb fades in on scroll at the right edge, ends level with the last bar's bottom at full scroll (±1 px), is click-through and fades out; the form thumb stays inside the card and a tap beside the card still closes the modal; reduced motion drops the transition) — 19 in all. Headless Playwright Chromium runs with `--hide-scrollbars`, so no e2e can prove the *visible* gutter is gone — that is a Pi check (*`F22` follow-ups*). Since #54 smoke's `.bg-gray-800.rounded-full` bar locators also match the (icon-only, later-in-DOM) scroll-to-top button; they stay correct because each uses `.first()` or a `hasText` filter — keep it that way. `swipeBar(page, bar, 'left')` now triggers **edit**, `'right'` triggers **delete** (flipped by F10-L). Still depends on seed chore `Vacuum Bedroom Floor` and the `+ Add Task` flow. Since `F21` (#46): the error toast is located by the `ERROR_TOAST` constant (`[data-testid="toast"][data-tone="error"]`, replacing every `.bg-red-700` locator), the four post-mutation chore-name assertions are scoped to `.bg-gray-800.rounded-full` bars (the success toast's text would otherwise make the substring `text=<name>` engine resolve to two elements — a non-retriable strict-mode violation), the add test asserts the green `Added "…"` pill's text/tone, and it asserts the added bar shows `Thu Jan 01 2026` (the typed local day; red pre-fix only on a behind-UTC host — the Vitest TZ suite is the real guard). Playwright's `fill()` replaces the pre-filled date default, so the five `fill` lines are unchanged. `F17` (#52) changed no e2e file — the strip's root avoids the `.bg-gray-800.rounded-full` bar selector (it is `rounded-sm`).
+- **Vitest** unit tests both sides (backend 43 across 5 files — untouched by `F16`/`F17`/`F18`/`F19`/`F21`/`F22`; frontend 397 across 40 files as of #57 — of the 31 added since #54, `F19` (#56) added 6 in the new `App.lockViewReset.test.tsx` (real `useTouchLock` + fake timers: lock after 5 min idle resets scroll/room/search/day; a double-tap unlock does not reset; a blank alone does not reset; a lock engaging under a blank resets; the lock re-sorts only when a day simulation was active; `F18`'s scroll-to-top button hides after the reset — `fireEvent.scroll(region)` after the write, then `vi.advanceTimersByTime(FADE_MS)` before asserting `inert`/`aria-hidden`) and `F22` added 25: `hooks/useScrollIndicator.test.ts` (11 — `computeThumbGeometry` null/size/min-clamp/track-inset cases, no mount flash, show on scroll + hide after `IDLE_FADE_MS` with the timer restarted per event, passive listener + cleanup, a stubbed `ResizeObserver` observed/re-measured/disconnected, and no throw without one), `components/OverlayScrollbar.test.tsx` (6 — nothing when not scrollable, hidden z-index-free thumb with inline px geometry, fade under fake timers, form- and list-shaped insets, the fade constants pinned to the class literals), a 4-case `overlay scrollbar (F22)` describe in `App.test.tsx` (thumb in the frame between the scroller and the button, hidden on load; the track end level with the last bar under stubbed metrics; no thumb at jsdom's default metrics; the full-bleed column with each content row inset), a 2-case `overlay scrollbar (F22)` describe in `ChoreForm.test.tsx` (the card-sized wrapper's exact className + the inset thumb), and inset assertions in `ReturnToTodayButton.test.tsx` / `StatusCountStrip.test.tsx` (plus an updated one in `ChoreList.test.tsx`); `F22` also updated `F18`'s pinned scroller-className literal to add `scrollbar-none`; before that `F18` added 20: `hooks/useScrollPastThreshold.test.ts` (8), `components/ScrollToTopButton.test.tsx` (9 — hidden + non-interactive at mount, visible + interactive past the threshold, the two-phase `FADE_MS` fade-out under fake timers incl. re-show cancel and unmount cleanup, smooth / reduced-motion / no-`matchMedia` clicks with `Element.prototype.scrollTo` stubbed, the centred opaque 44 px classes with no z-index) and a 3-case `scroll-to-top button (F18)` describe in `App.test.tsx` whose case 1 pins the scroller's **exact** className (`'flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40 scrollbar-none'` since `F22`, #57), the single `.overflow-y-auto`, the button as a child of `scroll-region-frame` outside the scroller, and the deck as the scroller's last child — note that jsdom neither dispatches `scroll` on a programmatic `scrollTop` write (tests call `fireEvent.scroll(region)`) nor honours `inert` (tests assert the attribute only); before that `F17` added 24 in three new files: `utils/choreStatusCounts.test.ts` (8), `components/StatusCountStrip.test.tsx` (10 — proportional widths, zero collapse with all segments mounted, all-zero full-green `0`, labels, accessible label, colour tokens = `STATUS_BAR_COLOR`, the bar's transition, identity across a grow rerender, selector avoidance) and `App.statusStrip.test.tsx` (6 — position after `NavBar`, live update on completion and SSE re-pull, room/search narrowing, displayed day); before that `F16` added 26, almost all in the rewritten `utils/choreSort.test.ts` (bucket ↔ `classifyStatus` agreement across the boundaries, monotonic red ranking, most-recent-first greens, 4/2/2 fill, donation, escalation to an all-red fold, `high`/`low` urgency flipping rank and pressure, unset = `medium`, `frequency === 0`, empty input, stable ties, the `SORT_BASE_QUOTA` sum pin, the stale-`longTermTask` flag still ignored) plus `classifyStatus` cases in `components/ChoreTimerBar.barMath.test.ts`, with only comments re-worded in `App.test.tsx` / `App.search.test.tsx` (their expected orders held); before that `F21` added 42 frontend tests: `utils/formDate.test.ts`, the TZ-pinned `components/ChoreForm.dateBoundary.test.tsx` (Cases A/B/B2/C/D under New York + Tokyo, each verified red on the pre-fix code), `components/Toast.test.tsx` (7), an add-mode-defaults describe in `ChoreForm.test.tsx`, a `defaultRoom` forwarding test in `ChoreFormModal.test.tsx`, and in `App.test.tsx` two room-tab pre-fill tests plus the 11-test `feedback toast (F21)` describe with a module-scope `openAndFillForm` helper), now also covering the search filter (component + App-level substring/room composition + SSE-survival tests from `F9-L`), the reversed swipe mapping + threshold (`F10-L`), the clear-✕ affordance (component-level show/clear/refocus + App-level clear-restores-room-filter, from `F14`), and `F4`'s removal: `backend/src/__tests__/db-migration.test.ts` (7 cases — idempotency on `:memory:`, boot wiring against a legacy 9-column temp file, rows/other columns preserved), stale-client-key drop tests on `POST`/`PUT` and `createChore`/`updateChore`, a `ChoreForm` absence test (no Details / Long-term inputs) and a stale-`longTermTask`-flag-ignored sort test, plus `F5`'s `Add Task deck (F5)` describe in `App.test.tsx` (deck sticky/`mt-auto`/last-child inside `.overflow-y-auto` for populated and empty lists, the masked backing layer's classes and backing-before-button paint order, `scroll-pb-40`) and the opaque-button assertion in `AddChoreButton.test.tsx`.
+- **Playwright e2e**: `e2e/smoke.spec.ts` (14 tests) plus, since `F18` (#54), the read-only `e2e/scroll-to-top.spec.ts` (1 test — hidden + `inert` at load, fade-in past 80 px, anchored while the region scrolls, clear of the deck's frosted overhang, click → back to top, still hit-testable and not `inert` at the first faded frame, hidden + `inert` after the fade) and, since `F22` (#57), the read-only `e2e/overlay-scrollbar.spec.ts` (4 tests — full-bleed scroll region + frost with inset header rows and bars and `scrollbar-width: none` applied; the list thumb fades in on scroll at the right edge, ends level with the last bar's bottom at full scroll (±1 px), is click-through and fades out; the form thumb stays inside the card and a tap beside the card still closes the modal; reduced motion drops the transition) — 19 in all. Headless Playwright Chromium runs with `--hide-scrollbars`, so no e2e can prove the *visible* gutter is gone — that is a Pi check (*`F22` follow-ups*). Since #54 smoke's `.bg-gray-800.rounded-full` bar locators also match the (icon-only, later-in-DOM) scroll-to-top button; they stay correct because each uses `.first()` or a `hasText` filter — keep it that way. `swipeBar(page, bar, 'left')` now triggers **edit**, `'right'` triggers **delete** (flipped by F10-L). Still depends on seed chore `Vacuum Bedroom Floor` and the `+ Add Task` flow. Since `F21` (#46): the error toast is located by the `ERROR_TOAST` constant (`[data-testid="toast"][data-tone="error"]`, replacing every `.bg-red-700` locator), the four post-mutation chore-name assertions are scoped to `.bg-gray-800.rounded-full` bars (the success toast's text would otherwise make the substring `text=<name>` engine resolve to two elements — a non-retriable strict-mode violation), the add test asserts the green `Added "…"` pill's text/tone, and it asserts the added bar shows `Thu Jan 01 2026` (the typed local day; red pre-fix only on a behind-UTC host — the Vitest TZ suite is the real guard). Playwright's `fill()` replaces the pre-filled date default, so the five `fill` lines are unchanged. `F17` (#52) changed no e2e file — the strip's root avoids the `.bg-gray-800.rounded-full` bar selector (it is `rounded-sm`); `F19` (#56) changed none either.
 - **CI**: `.github/workflows/ci.yml` unchanged — backend + frontend tests on PRs to `main`; `main` branch-protected.
 
 **Standing invariants now baked into `main` (must not regress):**
@@ -525,16 +541,17 @@ migrated to 7 columns.
 6. **Room field is a `<datalist>`** sourced from `uniqueRooms`, on both Add and Edit (F3-L).
 7. **Persistent name-search filter**, view-only, ANDs with the room filter, survives SSE re-pulls, sits above the scroll region (F9-L).
 8. **Auto screen-blank overlay**: `useScreenBlank()` + `ScreenBlankOverlay`, driven by real wall-clock time (`realToday`, never `simulatedDate`), blanks 21:00–06:00 local, tap-to-wake swallows the waking tap, re-blanks after 5 minutes' inactivity inside the window (F1, shipped #27). *Holds until `F15` relocates this behavior to pi-kiosk and removes the in-app code.*
-9. **Double-tap touch lock**: `useTouchLock()` + `TouchLockOverlay`/`TouchLockIndicator` — local-only/per-tab, arms after 5 minutes' inactivity, unlocks on a second tap within 1500 ms and 60 px, 400 ms `CLOSING_SETTLE_MS` closing handshake, `z-[90]` always defers to the blank overlay's `z-[100]` (F2, shipped #28). *Holds until `F15` relocates this behavior to pi-kiosk and removes the in-app code.* **Pending amendment by `F20`** (added 2026-09-20): the always-on overlay + app-root `inert` gate become a *permissive* lock — padlock only on a blocked complete/edit/delete, everything else usable, indicator = single-tap lock/unlock control, timer running while locked. Once `F20` ships this invariant is rewritten to `F20`'s contract, and what `F15`/pi-kiosk must reproduce is `F20`'s, not the original.
+9. **Double-tap touch lock**: `useTouchLock()` + `TouchLockOverlay`/`TouchLockIndicator` — local-only/per-tab, arms after 5 minutes' inactivity, unlocks on a second tap within 1500 ms and 60 px, 400 ms `CLOSING_SETTLE_MS` closing handshake, `z-[90]` always defers to the blank overlay's `z-[100]` (F2, shipped #28). *Holds until `F15` relocates this behavior to pi-kiosk and removes the in-app code.* **Pending amendment by `F20`** (added 2026-09-20): the always-on overlay + app-root `inert` gate become a *permissive* lock — padlock only on a blocked complete/edit/delete, everything else usable, indicator = single-tap lock/unlock control, timer running while locked. Once `F20` ships this invariant is rewritten to `F20`'s contract, and what `F15`/pi-kiosk must reproduce is `F20`'s, not the original. Since `F19` (#56) the lock's *engage* transition also has an app-side consequence — the lock-time view reset (Standing invariant 19) — so `isLocked` is no longer only an `inert` gate.
 10. **Clear-✕ affordance on every free-text input**: search bar, form Name, form Room each render the shared `ClearButton` only when non-empty; clicking clears that field's local state only (never submits/closes) and refocuses the input; `FormField`'s affordance is opt-in via `clearable` (default off), so no other `FormField` usage (Last Completed, Duration, Frequency) gains it (F14, shipped #34; verified intact after F4 — `ClearButton.tsx`, `ChoreSearchInput.tsx`, `FormField.tsx` had no diff in #38).
 11. **No `details` / `longTermTask` anywhere in the live model**: `Chore` is `id, name, room, dateLastCompleted, duration, frequency, urgency?`; the shared `ChoreForm` has no Details field or Long-term checkbox; `app.ts`/`chores.ts` never read or write them (stale keys from old clients are dropped silently, never rejected — deliberate, so a not-yet-reloaded kiosk page keeps working through the rollout; don't "fix" it with a 400); `db.ts` runs the idempotent, crash-loud `dropLegacyChoreColumns` boot migration (`pragma table_info` guard, `BEGIN IMMEDIATE`) so an existing 9-column `data.db` migrates itself to 7 columns on first boot and later boots are no-ops; `orderChores` has no long-term partition (F4, shipped #38) and, since `F16` (#50), is the status-bucketed quota sort (Standing invariant 15). Any future schema change adds its own guarded step beside that migration — `CREATE TABLE IF NOT EXISTS` never alters an existing `data.db`. The pre-F4 image cannot write to a migrated DB (its SQL still names the dropped columns), so a rollback restores the pre-deploy snapshot together with the old image.
-12. **Frosted sticky *Add Task* deck**: the deck lives *inside* the scroll region as its `sticky bottom-0 mt-auto` last child with no border/background of its own; tint + blur come from a masked, `aria-hidden`, `pointer-events-none` backing layer that overhangs the deck by 4rem and fades in (`bg-gray-900/60 backdrop-blur-sm` + `mask-image` gradient); `AddChoreButton` is fully opaque and paints above the backing; the scroll container carries `scroll-pb-40` so focus/scrollIntoView never rest a bar under the deck or its fade; `.overflow-y-auto` stays the single scrolling element and `ChoreSearchInput` stays outside it (F5, shipped #39). Any change to the deck's height or overhang must re-check `scroll-pb-*` (≥ deck + overhang) and the Tab-focus clearance measured in `plans/feature/translucent-add-deck/` (or its frozen copy under `plans/completed/`). **Scroll-region frame (`F18`, shipped #54; amended by `F22`, shipped #57):** the scroller — class string exactly `flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40 scrollbar-none` (`F22` added only `scrollbar-none`, hiding the native bar), pinned byte-for-byte by `App.test.tsx`'s `scroll-to-top button (F18)` case 1 — carries the app's **single** `scrollRegionRef` and is wrapped by exactly **one** positioned frame, `data-testid="scroll-region-frame"`, `relative flex-1 min-h-0 flex flex-col` (the scroller stays its `flex-1` child; no `h-full`); floating controls live in that frame **after** the scroller, never inside it — in order `F22`'s list `OverlayScrollbar` (Standing invariant 18) then, as the **last child**, `F18`'s `ScrollToTopButton` (`absolute bottom-40 left-1/2 -translate-x-1/2`, no z-index; Standing invariant 17). Every consumer (`F18`'s button, `F22`'s thumb, and any later one) reuses this ref and frame — never a second ref on the scroller or a second frame; the deck stays the scroller's last child. **Full-bleed (`F22`, #57):** the outer column carries no horizontal padding (`flex flex-col h-full overflow-hidden bg-gray-900 pt-4`), so the scroller, the backing's `inset-x-0` frost and the thumb reach both screen edges; the 16 px inset lives on the header rows' roots (`NavBar`, `DateNavigationBanner`, `ReturnToTodayButton`'s wrapper, `ChoreSearchInput` — `px-4`; `StatusCountStrip` — `mx-4`) and on both `ChoreList` branch roots (`px-4`) — never re-add it to the column or a wrapper div (`App.statusStrip.test.tsx` pins `NavBar`'s next sibling). `#root`'s 768 px desktop cap is unchanged. **Re-check rule:** any change to the deck's height or overhang, or to `ChoreList`'s bottom padding, re-checks together `scroll-pb-*` (≥ deck + overhang), the button's and toast's `bottom-40` line, and `LIST_THUMB_BOTTOM_INSET_PX` in `App.tsx` (96 = deck 80 px + `ChoreList` `pb-4` 16 px, so the thumb ends level with the last bar — pinned by `e2e/overlay-scrollbar.spec.ts`).
+12. **Frosted sticky *Add Task* deck**: the deck lives *inside* the scroll region as its `sticky bottom-0 mt-auto` last child with no border/background of its own; tint + blur come from a masked, `aria-hidden`, `pointer-events-none` backing layer that overhangs the deck by 4rem and fades in (`bg-gray-900/60 backdrop-blur-sm` + `mask-image` gradient); `AddChoreButton` is fully opaque and paints above the backing; the scroll container carries `scroll-pb-40` so focus/scrollIntoView never rest a bar under the deck or its fade; `.overflow-y-auto` stays the single scrolling element and `ChoreSearchInput` stays outside it (F5, shipped #39). Any change to the deck's height or overhang must re-check `scroll-pb-*` (≥ deck + overhang) and the Tab-focus clearance measured in `plans/feature/translucent-add-deck/` (or its frozen copy under `plans/completed/`). **Scroll-region frame (`F18`, shipped #54; amended by `F22`, shipped #57):** the scroller — class string exactly `flex-1 overflow-y-auto min-h-0 flex flex-col scroll-pb-40 scrollbar-none` (`F22` added only `scrollbar-none`, hiding the native bar), pinned byte-for-byte by `App.test.tsx`'s `scroll-to-top button (F18)` case 1 — carries the app's **single** `scrollRegionRef` and is wrapped by exactly **one** positioned frame, `data-testid="scroll-region-frame"`, `relative flex-1 min-h-0 flex flex-col` (the scroller stays its `flex-1` child; no `h-full`); floating controls live in that frame **after** the scroller, never inside it — in order `F22`'s list `OverlayScrollbar` (Standing invariant 18) then, as the **last child**, `F18`'s `ScrollToTopButton` (`absolute bottom-40 left-1/2 -translate-x-1/2`, no z-index; Standing invariant 17). Every consumer (`F18`'s button, `F22`'s thumb, `F19`'s lock-time `scrollTop = 0` write — #56, Standing invariant 19 — and any later one) reuses this ref and frame — never a second ref on the scroller or a second frame; the deck stays the scroller's last child. **Full-bleed (`F22`, #57):** the outer column carries no horizontal padding (`flex flex-col h-full overflow-hidden bg-gray-900 pt-4`), so the scroller, the backing's `inset-x-0` frost and the thumb reach both screen edges; the 16 px inset lives on the header rows' roots (`NavBar`, `DateNavigationBanner`, `ReturnToTodayButton`'s wrapper, `ChoreSearchInput` — `px-4`; `StatusCountStrip` — `mx-4`) and on both `ChoreList` branch roots (`px-4`) — never re-add it to the column or a wrapper div (`App.statusStrip.test.tsx` pins `NavBar`'s next sibling). `#root`'s 768 px desktop cap is unchanged. **Re-check rule:** any change to the deck's height or overhang, or to `ChoreList`'s bottom padding, re-checks together `scroll-pb-*` (≥ deck + overhang), the button's and toast's `bottom-40` line, and `LIST_THUMB_BOTTOM_INSET_PX` in `App.tsx` (96 = deck 80 px + `ChoreList` `pb-4` 16 px, so the thumb ends level with the last bar — pinned by `e2e/overlay-scrollbar.spec.ts`).
 13. **LAN name `c4i`**: the Pi's hostname is `c4i`, reachable as `http://c4i.local/` and `http://c4i/` with `http://192.168.1.214/` still working; the mechanism is `deploy/pi/set-hostname.sh` + `deploy/pi/cloud-init/99-c4i-hostname.cfg` (idempotent, backup-then-write, crash-safe re-run, rollback = run it with the old name) and nothing in the app is name-aware — no feature may hard-code a hostname or IP in app code, `nginx.conf`, or the kiosk `.desktop` (which stays `http://localhost/`), and any future Pi rename runs the script (it also clears Chromium's hostname-keyed profile lock) rather than `hostnamectl` alone (F6, shipped #43). The deployed `deploy/pi/` copies are refreshed by every redeploy; the installed system files are not.
 14. **Local calendar days at the form boundary + one feedback toast**: the form parses and formats `dateLastCompleted` as a *local* calendar day through `utils/formDate.ts` (`parseFormDate` / `formatFormDate`; never `new Date('yyyy-mm-dd')` or `toISOString().slice(0, 10)` in `ChoreForm.tsx`), so a same-day add is `daysSince === 0` in every timezone and an instant round-trips through the edit form on the same day — every `daysSince` consumer keeps its local-`startOfDay` expression and **no consumer may "fix" timezone drift in-band** (that would double-correct); add mode opens with Last Completed = today (real clock, never `simulatedDate`) and Room = the active room tab (blank under *All*), both re-applied by the post-submit reset; **there is no top-of-page error strip** — add/edit/delete success and every failure surface through the single bottom-centre `Toast` (`components/common/Toast.tsx`: click-through frame `fixed inset-x-4 bottom-40 z-[80]`, never inside `.overflow-y-auto`, above the `z-50` modals and below lock/blank; success `bg-green-600` auto-dismisses after `SUCCESS_TOAST_MS` and is click-through, error `bg-red-700` persists until tapped or ✕'d), success fires only after the awaited request (never on an optimistic write), a later successful mutation — including tap-to-complete, which raises no toast of its own — retires a standing error, one toast at a time (keyed remount), and **toast state stays outside `isRepullGated()`** (F21, shipped #46). `F18`'s scroll-to-top button (shipped #54, Standing invariant 17) **shares the toast's bottom-centre `bottom-40` line** — centred in the scroll-region frame, no z-index — so a toast (`z-[80]`, fixed, later in DOM) covers it while shown and it is usable again once the toast dismisses (the user's call on #54 over raising the button above the toast; this supersedes the earlier "bottom-right beside the toast" plan). `F22`'s list thumb (shipped #57, Standing invariant 18) **adds no bottom real estate**: it rides the frame's right edge (4 px wide, 2 px in), so it never meets the centred button; its track ends `LIST_THUMB_BOTTOM_INSET_PX` (96 px) above the frame bottom — level with the last bar, so its lower travel overlaps the deck's frosted overhang but never the deck itself; on the Pi (frame spans the viewport) it never meets the `fixed inset-x-4` toast, and on desktop viewports wider than 800 px (`#root` capped at 768 px and centred) a long toast pill can cover the lower track — harmless, the toast (`z-[80]`) paints above the z-index-free thumb. Any further feature that adds bottom real estate uses the same `bottom-40` clearance and must decide its relation to that shared line; anything that widens the modal or the blank/lock layers must keep the `z-50 < z-[80] < z-[90] < z-[100]` ladder.
 15. **Sort ↔ bar status agreement**: `orderChores` (`utils/choreSort.ts`) buckets chores red / orange / green **only** via `classifyStatus(daysSince, frequency)` in `utils/choreBarMath.ts` — the one classifier `computeBar` also uses for `isOverdue` / `barColor` (colours from the single `STATUS_BAR_COLOR` map) — so sort, bar and every status consumer — including the shipped `F17` strip's `countStatuses` (#52, Standing invariant 16) and any future one — can never disagree; status thresholds change **only** there and in `statusColors` (never a copied `0.375` or `daysSince > frequency` literal elsewhere). `urgency` weights the **sort only** (`SORT_URGENCY_MULTIPLIER`, unset = `medium`), never bar colour or status. Ranking, fold quota and red escalation are tuned solely through the `SORT_*` constants in `assets/constants.ts` (`SORT_BASE_QUOTA` must sum to `SORT_FOLD` — test-pinned). **Re-sort triggers are unchanged:** first load (`reconcileChores`), local midnight and day-simulation steps (the `simulatedDate` effect) — **never** on completion, edit, SSE re-pull or unblank (F16, shipped #50).
 16. **Live status-count strip under the room tabs**: `StatusCountStrip` renders directly after `NavBar` (before `DateNavigationBanner`), `flex-shrink-0`, outside `.overflow-y-auto`; its counts are `countStatuses(searchFilteredChores, simulatedDate)` — the *visible* list (room ∧ search) on the *displayed* day, recomputed from live chore data on every change and **never** from `sortedIds` (the strip is live while the list order stays midnight-only — deliberate). `daysSince === 0` is done today; otherwise status comes **only** from `classifyStatus` (Standing invariant 15) and colour **only** from `STATUS_BAR_COLOR` — no copied threshold or `bg-*-500` literal. Widths ∝ counts (`flexGrow = count`, `min-w-5` per non-zero segment), all three segments always mounted so a change animates with the bar's `transition-all duration-300 ease-in-out`; segments paint at `opacity-50` over a `bg-gray-800` track like the bar, labels bold white at full opacity; all-zero → a full green `0`; one `role="img"` `aria-label`/`title` on the root. The root must **never** gain `rounded-full` or `overflow-y-auto` (it would capture e2e's `.bg-gray-800.rounded-full` `.first()` and the tests' `.overflow-y-auto` first-match selectors), and its four `data-testid`s (`status-count-strip`, `status-count-done-today`, `status-count-due-soon`, `status-count-overdue`) are the test contract (F17, shipped #52). **Inset (`F22`, shipped #57):** with the outer column no longer padded, the root's `w-full` was **replaced** by `mx-4` (16 px inset — `w-full` + `mx-4` would overflow by 32 px; the column's `align-items: stretch` fills the row), keeping `rounded-sm` and today's look; the root class is exactly `flex flex-shrink-0 mx-4 h-5 mt-2 rounded-sm overflow-hidden bg-gray-800` (`StatusCountStrip.test.tsx` asserts the `mx-4`). Any later re-layout of the header rows keeps the strip's position and these rules and only revisits its inset.
-17. **Floating scroll-to-top button**: `ScrollToTopButton` (`data-testid="scroll-to-top"`, `aria-label="Scroll to top"`, lucide `ArrowUp`, a 44 px opaque `bg-gray-800` `rounded-full` circle) is the last child of the `scroll-region-frame`, **never inside** `.overflow-y-auto`, positioned `absolute bottom-40 left-1/2 -translate-x-1/2` with **no z-index** — bottom-centre on the `F21` toast's line, which covers it while a toast shows (Standing invariants 12 + 14). Visibility comes from `useScrollPastThreshold(scrollRegionRef, SCROLL_TO_TOP_THRESHOLD_PX)` (passive `scroll` listener + one `scrollTop` read on attach; shows while `scrollTop > 80`); opacity fades with `transition-opacity duration-500` (`FADE_MS = 500`, kept equal to the class). The non-interactive state (`inert`, `aria-hidden`, `tabIndex={-1}`, `pointer-events-none`) applies at boot and otherwise only **after** a fade-out's `FADE_MS` has elapsed, so a tap mid-fade re-scrolls rather than completing the bar beneath; the boot/unblank view at the top is pixel-identical to pre-F18. Click → `scrollTo({ top: 0, behavior: 'smooth' })`, `'auto'` under `prefers-reduced-motion: reduce`, and nothing else (room, search, day offset untouched). It reads no lock state — screen-blank's root `inert` disables it, and it must keep working under `F20`'s permissive lock (F18, shipped #54). Its `data-testid`s (`scroll-to-top`, `scroll-region-frame`) and the frame's single-ref/single-frame rule are the test contract; smoke's `.bg-gray-800.rounded-full` bar locators must keep using `.first()` / `hasText` since the button also matches them.
-18. **Fading overlay scrollbar + full-bleed scroll region**: no native scrollbar shows on the chore list or the Add/Edit form card — both scrollers carry `.scrollbar-none` (`index.css`; also on `NavBar`'s chip row) — and each has one indicator-only `OverlayScrollbar` (`data-testid="overlay-scrollbar"`, `aria-hidden`, `pointer-events-none`, no `role`, **no z-index**, never `bg-gray-800`) rendered in a positioned wrapper **after, never inside**, its scroller: the list's in `F18`'s `scroll-region-frame` between the scroller and `ScrollToTopButton` (reading the single `scrollRegionRef`; still one ref, one frame — Standing invariant 12), the form's in `ChoreForm`'s card-sized `relative w-full max-w-md` wrapper after the card (backdrop-click cancel unchanged). Geometry comes only from `computeThumbGeometry` over a track clamped to `[MIN_THUMB_PX = 24, track]` (list: bottom inset `LIST_THUMB_BOTTOM_INSET_PX = 96`, so at full scroll the thumb's bottom meets the last chore bar's bottom; form: top/bottom `FORM_THUMB_TRACK_INSET_PX = 12`, the `rounded-xl` radius); nothing renders when the scroller does not overflow. Visibility: `opacity-0` on mount (no flash — the boot/unblank view is pixel-identical), shown on every `scroll` event (its own passive listener, beside `F18`'s) and faded `IDLE_FADE_MS = 1000` after the last one (`duration-150` in / `duration-400` out, `FADE_IN_MS`/`FADE_OUT_MS` pinned to those literals; `motion-reduce:transition-none`). Programmatic scrolls (`F18`'s `scrollTo`, a lock-time `scrollTop = 0`, a filter shrinking a scrolled list) flash it — accepted, no "programmatic" flag. `ResizeObserver` use stays guarded (jsdom lacks it). It reads no lock state and must keep showing while a locked user scrolls under `F20`'s permissive lock. The outer column stays unpadded and the inset stays on the content rows (Standing invariants 12 + 16) (F22, shipped #57). Its `data-testid`, the thumb-before-button frame order and the exact scroller/card/wrapper classNames are the test contract; `e2e/overlay-scrollbar.spec.ts` pins the last-bar alignment in real Chromium.
+17. **Floating scroll-to-top button**: `ScrollToTopButton` (`data-testid="scroll-to-top"`, `aria-label="Scroll to top"`, lucide `ArrowUp`, a 44 px opaque `bg-gray-800` `rounded-full` circle) is the last child of the `scroll-region-frame`, **never inside** `.overflow-y-auto`, positioned `absolute bottom-40 left-1/2 -translate-x-1/2` with **no z-index** — bottom-centre on the `F21` toast's line, which covers it while a toast shows (Standing invariants 12 + 14). Visibility comes from `useScrollPastThreshold(scrollRegionRef, SCROLL_TO_TOP_THRESHOLD_PX)` (passive `scroll` listener + one `scrollTop` read on attach; shows while `scrollTop > 80`); opacity fades with `transition-opacity duration-500` (`FADE_MS = 500`, kept equal to the class). The non-interactive state (`inert`, `aria-hidden`, `tabIndex={-1}`, `pointer-events-none`) applies at boot and otherwise only **after** a fade-out's `FADE_MS` has elapsed, so a tap mid-fade re-scrolls rather than completing the bar beneath; the boot/unblank view at the top is pixel-identical to pre-F18. Click → `scrollTo({ top: 0, behavior: 'smooth' })`, `'auto'` under `prefers-reduced-motion: reduce`, and nothing else (room, search, day offset untouched). It reads no lock state — screen-blank's root `inert` disables it, and it must keep working under `F20`'s permissive lock (F18, shipped #54); `F19`'s lock-time `scrollTop = 0` (#56, Standing invariant 19) drops it back below the threshold, so the unlock view has no stray button (test-pinned in `App.lockViewReset.test.tsx`). Its `data-testid`s (`scroll-to-top`, `scroll-region-frame`) and the frame's single-ref/single-frame rule are the test contract; smoke's `.bg-gray-800.rounded-full` bar locators must keep using `.first()` / `hasText` since the button also matches them.
+18. **Fading overlay scrollbar + full-bleed scroll region**: no native scrollbar shows on the chore list or the Add/Edit form card — both scrollers carry `.scrollbar-none` (`index.css`; also on `NavBar`'s chip row) — and each has one indicator-only `OverlayScrollbar` (`data-testid="overlay-scrollbar"`, `aria-hidden`, `pointer-events-none`, no `role`, **no z-index**, never `bg-gray-800`) rendered in a positioned wrapper **after, never inside**, its scroller: the list's in `F18`'s `scroll-region-frame` between the scroller and `ScrollToTopButton` (reading the single `scrollRegionRef`; still one ref, one frame — Standing invariant 12), the form's in `ChoreForm`'s card-sized `relative w-full max-w-md` wrapper after the card (backdrop-click cancel unchanged). Geometry comes only from `computeThumbGeometry` over a track clamped to `[MIN_THUMB_PX = 24, track]` (list: bottom inset `LIST_THUMB_BOTTOM_INSET_PX = 96`, so at full scroll the thumb's bottom meets the last chore bar's bottom; form: top/bottom `FORM_THUMB_TRACK_INSET_PX = 12`, the `rounded-xl` radius); nothing renders when the scroller does not overflow. Visibility: `opacity-0` on mount (no flash — the boot/unblank view is pixel-identical), shown on every `scroll` event (its own passive listener, beside `F18`'s) and faded `IDLE_FADE_MS = 1000` after the last one (`duration-150` in / `duration-400` out, `FADE_IN_MS`/`FADE_OUT_MS` pinned to those literals; `motion-reduce:transition-none`). Programmatic scrolls (`F18`'s `scrollTo`, `F19`'s lock-time `scrollTop = 0` — Standing invariant 19, a filter shrinking a scrolled list) flash it — accepted, no "programmatic" flag. `ResizeObserver` use stays guarded (jsdom lacks it). It reads no lock state and must keep showing while a locked user scrolls under `F20`'s permissive lock. The outer column stays unpadded and the inset stays on the content rows (Standing invariants 12 + 16) (F22, shipped #57). Its `data-testid`, the thumb-before-button frame order and the exact scroller/card/wrapper classNames are the test contract; `e2e/overlay-scrollbar.spec.ts` pins the last-bar alignment in real Chromium.
+19. **Lock-time view reset**: one `useEffect` on `[isLocked]` in `App.tsx`, directly after the force-close-dialogs effect, returns the view to the canonical boot state when the touch lock **engages** — `if (!isLocked) return;` then `scrollRegionRef.current.scrollTop = 0` (null-guarded, **instant, never smooth**), `setSelectedRoom('all')`, `setSearchQuery('')`, `setDayOffset(0)`. It runs on the lock-engage transition only: **never on unlock** and **never on blank** (`isBlanked` is not referenced), while a lock that engages *under* a blank still resets (the lock timer keeps running under the blank, so the 06:00 wake shows the reset view). It reuses `F18`'s single `scrollRegionRef` — no new ref, frame, component, hook or state; the scroller's class string is unchanged by it. `setDayOffset(0)` re-sorts only when a simulation was active (via the existing `[simulatedDate]` effect — a day-simulation step, consistent with Standing invariant 15); with `dayOffset === 0` a lock never re-sorts. None of the four resets is uncommitted user input, so `isRepullGated()` is untouched, and the reset touches view state only (never chore data — not undoable). Its `scrollTop = 0` fires a native `scroll`, so `F22`'s list thumb flashes on lock — accepted, no programmatic flag (Standing invariant 18). The six tests in `frontend/src/__tests__/App.lockViewReset.test.tsx` are the contract (F19, shipped #56). **Obligations it hands on:** `F20` must re-key this effect so it also re-runs on **every idle-expiry tick while locked** and on a **manual lock** from its indicator control, and each tick first **closes an Add modal left open under the lock (step 0)** before the four resets — the code comment's "META-PLAN F19 'Amended by F20'" pointer resolves to this invariant and the `F19` kept contract below; `F15`, when it re-sources the lock from the pi-kiosk shell, must keep an **app-side `isLocked`** feeding this effect (never delete the reset with the overlay) — *the kiosk owns the inactivity timer; the app owns what "locked" means for it*. Any flicker fix (observe on the Pi — see *`F19` follow-ups*) gates the reset with `CLOSING_SETTLE_MS`-style timing *inside* the lock, never moves it to unlock.
 
 **Assumptions to revisit at planning time**
 1. **Resolved (F4, shipped #38):** `better-sqlite3` bundles SQLite 3.51.3 (≥ 3.35), so `ALTER TABLE … DROP COLUMN` is available and the boot migration uses it — no table-rebuild fallback was needed. Re-verify only if `better-sqlite3` is ever downgraded.
@@ -691,6 +708,26 @@ invariants on its own small follow-up PR. It never starts a second feature.
   button inside the frosted deck beside Add Task (couples two unrelated actions), tapping
   the date heading (undiscoverable; collides with the day-simulation chevrons), and raising
   the button above the toast (the user chose "toast covers it" on #54).
+- **`F19` follow-ups** *(from #56, 2026-09-23)*: (a) **accepted, observe on the Pi** — the
+  reset happens *behind* the padlock; confirm the `bg-black/40` backdrop is dim enough that
+  the jump reads as unobtrusive (if it flickers, gate the reset with `CLOSING_SETTLE_MS`-style
+  timing *inside* the lock — never move it to unlock); the `NavBar` room-tab strip's
+  horizontal `scrollLeft` is **not** reset, so with many rooms the *All* chip could stay
+  scrolled off-screen (out of scope — file a follow-up via `/new-feature` if seen); `F22`'s
+  thumb flashes on the programmatic `scrollTop = 0` — accepted, no programmatic flag
+  (Standing invariant 18; see *`F22` follow-ups* (a)). Keep Standing invariant 19 when
+  adjusting. (b) Four non-blocking push-review minors (reuse the `driftView()` /
+  `getSearchInput()` / `getScrollRegion()` helpers in the first test; add a
+  lock-during-loading test exercising the `scrollRegionRef.current` null guard; add an
+  already-locked-mount test — optional until `F20` re-keys the effect; expect a META-PLAN
+  Status-ledger conflict with `F22`'s branch and keep both rows' edits — moot now that both
+  merged) sit in
+  `plans/feature/lock-view-reset/reviews/push-review-feature-lock-view-reset.md` until
+  `/compact-plans` harvests them. (c) **Rejected — do not re-propose:** resetting on
+  *unlock* (stale state behind the padlock for the whole locked period, and the view would
+  jump under the unlocking finger); an app-owned 5-minute idle timer sharing
+  `useTouchLock`'s listeners (the user prefers the app to *react to* the lock signal, not
+  run a parallel timer); resetting on blank as well (lock covers it in practice).
 - **`F22` follow-ups** *(from #57, 2026-09-23)*: (a) **observe on the Pi** (the PR's manual
   checks; headless e2e cannot see scrollbars) — the native gutter is really gone (bars widen
   by the old scrollbar width); the frost reaches both screen edges while tabs, strip, banner,
@@ -755,6 +792,45 @@ local-to-the-kiosk semantics forward).
 **Known follow-up:** relocation to the pi-kiosk shell (Phase 2), then removal here via
 `F15` — see `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`.
 
+## F19 — Lock-time view reset  ·  merged (#56, `fca7118`)  ·  kept: `F20` must re-key it to the idle tick + manual lock; `F15` must keep an app-side `isLocked` feeding it
+
+**Implemented contract (as built):** Standing invariant 19 — one `[isLocked]` effect in
+`frontend/src/App.tsx`, after the force-close-dialogs effect: on the lock *engage* only
+(never unlock, never blank; a lock under a blank still resets) it sets
+`scrollRegionRef.current.scrollTop = 0` (null-guarded, instant), `selectedRoom` → `'all'`,
+`searchQuery` → `''`, `dayOffset` → `0` (re-sorting only if a simulation was active). Tests:
+`frontend/src/__tests__/App.lockViewReset.test.tsx` (6, real `useTouchLock` + fake timers).
+Kept here because two remaining features target it.
+
+**Amended by `F20` (what `F20` must do to it).** `F20` keeps scroll / search / room / day-sim
+usable *while locked*, so the view can drift during the locked period. The effect must
+therefore also re-fire on **every subsequent 5-minute idle expiry while locked** (the tick
+`F20`'s `useTouchLock` exposes) and on a **manual lock** from `F20`'s indicator control (an
+engage like any other). **Step 0 on every tick — close the open Add modal, if any:** `F20`
+lets the Add modal open *under* the lock, and the force-close-dialogs effect only fires on
+the `isLocked` transition, so a form opened after the lock engaged and then abandoned would
+otherwise stay open across every later reset; each tick force-closes it (the only dialog
+reachable while locked — `F20` Open risks (c)) before the four resets, on the same
+abandonment reasoning as the engage case (`F20` Open risks (b)). "Instant, never smooth"
+still holds: with `F20` the app is no longer `inert` under the lock, but the reset happens at
+an idle expiry, so nobody is watching. `F20` adds the "drifted while locked → reset at next
+expiry" and "Add form left open across a second tick → closed" tests, and keeps the six
+`App.lockViewReset` tests green under the new semantics. The `App.tsx` comment's pointer
+("META-PLAN F19 'Amended by F20'") resolves here.
+
+**What `F15` must keep.** The governing principle: **the kiosk owns the inactivity timer;
+the app owns what "locked" means for it.** A `locked` signal does not mean no interaction
+is possible — only that certain actions are guarded. When `F15` removes the `F2`
+overlay/timer (or, after `F20`, moves the timer/state/indicator to the shell), it keeps a
+minimal app-side `isLocked` fed by the shell (`kiosk/v1` `kiosk-state { locked }` plus the
+idle tick, DD-3 — or an interim source until Phase 4; `F15` Open risks (e)/(f)) and re-keys
+this effect to it. Deleting the reset along with the overlay would regress Standing
+invariant 19. `F19` itself deliberately added no `kiosk/v1` listener (the contract is
+Phase 4).
+
+**Delete this entry** once both `F20` and `F15` have shipped and folded their parts into
+Standing invariant 19.
+
 ---
 
 # REMAINING FEATURES (current numbering, incl. `F15`–`F22`)
@@ -772,8 +848,10 @@ local-to-the-kiosk semantics forward).
 > Key-UI bullet, the `App.tsx` bullet's scroll-region-frame paragraph and Standing
 > invariants 12, 14 and 17; `F22` (#57) shipped and lives in the Baseline's `OverlayScrollbar`
 > Key-UI bullet, the `App.tsx` bullet's full-bleed paragraph, the `components/form/` and
-> `StatusCountStrip` bullets and Standing invariants 12, 14, 16 and 18; `F19` (#56) merged and
-> its fold-back is pending.
+> `StatusCountStrip` bullets and Standing invariants 12, 14, 16 and 18; `F19` (#56) shipped
+> and lives in the `App.tsx` Key-UI bullet's lock-time-view-reset paragraph and Standing
+> invariant 19, with its contract also kept under Completed-Feature Contracts because `F20`
+> re-keys it and `F15` must keep feeding it.
 > The **focus feature is `F20` — ungated, runnable now** (see "Shortest path" above); `F15` is the gated kiosk-track head. `F3`/`F7`/`F8`/`F9`/`F10`/`F13`
 > are **superseded — migrated to `rehankalu/pi-kiosk`** (2026-07-15, see
 > `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`); their sections below
@@ -781,7 +859,8 @@ local-to-the-kiosk semantics forward).
 `F16`–`F21` were added 2026-09-20 (`F20` reworks the shipped `F2` lock; `F21` promoted the
 `F2-L` follow-up list, held the ★ and shipped #46 on 2026-09-22; `F16` then held the ★ and
 shipped #50 on 2026-09-22; `F17` then held the ★ and shipped #52 on 2026-09-23; `F18` then
-held the ★ and shipped #54 on 2026-09-23 — none of the four has a section below); `F22` was
+held the ★ and shipped #54 on 2026-09-23; `F19` shipped #56 on 2026-09-23 without holding
+the ★ — none of the five has a section below, `F19`'s kept contract aside); `F22` was
 added singly later that day, then held the ★ and shipped #57 on 2026-09-23 (no section below
 either).
 
@@ -951,10 +1030,10 @@ feature runs. No in-repo dependency.
 **Expected end state** (repo-checkable):
 - `grep -rn "useScreenBlank\|useTouchLock\|ScreenBlankOverlay\|TouchLockOverlay\|TouchLockIndicator" frontend/src`
   → no matches; no `inert` kiosk gate or `isClosing` handshake remains in `App.tsx`.
-  **If `F19` has shipped first:** its lock-time view reset must *survive* — the app keeps an
+  **`F19` shipped first (#56):** its lock-time view reset must *survive* — the app keeps an
   app-side `isLocked` state (no overlay, no timer of its own) fed by the shell, and `F19`'s
-  effect is re-keyed to it; see Open risks (e). Deleting the reset along with the overlay
-  would regress `F19`'s cumulative invariant.
+  effect is re-keyed to it; see Open risks (e) and the `F19` kept contract. Deleting the
+  reset along with the overlay would regress Standing invariant 19.
   **If `F20` has shipped first (expected):** the grep above is *wrong* for the lock half —
   `TouchLockOverlay` (the in-app padlock feedback) and the bar-level guard **stay**; what
   leaves is `useTouchLock`'s timer/state ownership and the `TouchLockIndicator` control
@@ -984,12 +1063,13 @@ natural `target_url` for any *remote* kiosk; on the wall Pi itself keep `http://
 — the kiosk would otherwise depend on Avahi + `nss-mdns` being up at login (boot-order
 risk), and the Pi resolves its own `c4i.local` to the Docker bridge `172.18.0.1`
 (served, but pointless). Record the choice in pi-kiosk's config when Phase 1/2 land.
-(e) **App-side meaning of "locked" (principle set by `F19`, 2026-09-20):** *the kiosk owns
+(e) **App-side meaning of "locked" (principle set by `F19`, 2026-09-20; shipped #56 —
+Standing invariant 19):** *the kiosk owns
 the inactivity timer; the app owns what "locked" means for it.* A `locked` signal — today
 `useTouchLock`'s `isLocked`, after this feature the shell's `kiosk/v1` `kiosk-state {
 locked }` message (design doc DD-3) — does **not** necessarily mean no interaction is
-possible with the app, only that certain actions are guarded by the lock (`F19`'s view
-reset is the first such app-side behavior; the blanket `inert` gate is today's
+possible with the app, only that certain actions are guarded by the lock (`F19`'s shipped
+view reset is the first such app-side behavior; the blanket `inert` gate is today's
 implementation of "guarded", not the definition). Consequence for this feature: remove the
 overlays, the indicator and the timer, but **keep a minimal app-side `isLocked` state** and
 source it from the shell. The gap is that `kiosk-state` arrives with pi-kiosk **Phase 4**
@@ -1005,9 +1085,9 @@ day-sim / Add Task must work while locked, and the blocked-tap-as-first-tap unlo
 tap to reach the app). The cross-repo split becomes: **shell** owns the inactivity timer
 (global evdev feed — it sees activity the app can't), the lock *state*, and the top-left
 indicator control (single tap: lock ↔ unlock); **app** owns the guard, the padlock feedback,
-the second-tap detection, and `F19`'s reset. Contract additions to specify in the design doc
+the second-tap detection, and the shipped `F19` reset. Contract additions to specify in the design doc
 (DD-2/DD-3 amendment) when this feature plans: shell → app `kiosk-state { blanked, locked }`
-(already in DD-3) plus an idle-expiry tick while locked (for `F19`); app → shell
+(already in DD-3) plus an idle-expiry tick while locked (for the re-keyed `F19` reset); app → shell
 `lock-request { locked: false }` (double-tap path) — and `{ locked: true }` only if the app
 ever grows a lock control of its own. Because these ride the `kiosk/v1` contract (Phase 4),
 this feature's lock half is effectively Phase-4-gated while its blank half is Phase-2-gated:
@@ -1018,126 +1098,6 @@ not `F2`'s.
 
 **Session loop.** Run the Per-Feature Session Contract on branch
 `feature/kiosk-shell-adoption`.
-
----
-
-## F19 — Lock-time view reset  ·  runnable now (ungated; soft after `F20`; reuses shipped `F18`'s ref)  ·  Effort S  ·  (added 2026-09-20; trigger amended by `F20` the same day)
-
-**Goal.** Whoever next walks up to the wall kiosk meets the canonical boot view — top of the
-list, every room, no search, today — instead of whatever the last person left behind
-(scrolled to the bottom, a single room tab, a stale search string, or a day-simulation five
-days out). Ledger item: `F19` in `plans/ledger/260920_feature_ledger.md`.
-
-**Design (settled with the user 2026-09-20):**
-- **Trigger: `F2`'s touch-lock *engage* transition only** — `isLocked` going `false → true`
-  (the 5-minute inactivity padlock, any time of day). **Not** the `F1` screen-blank (the
-  user explicitly chose lock-only; the lock timer keeps running under a blank, so a blanked
-  screen still resets within 5 minutes of its last touch and the 06:00 wake reveals the
-  reset view). Never on unlock, never on a repeated render while locked (use a
-  transition guard — `justRelocked` already exists in `App.tsx` for the overlay handshake,
-  or a `useEffect` on `isLocked` with an early return when `false`).
-- **Four resets, in one effect, all synchronous:**
-  1. **Scroll to top** — `scrollRegionRef.current.scrollTop = 0` (or `scrollTo({ top: 0,
-     behavior: 'auto' })`). **Instant, never smooth**: the app root is `inert` and dimmed
-     under the padlock's `bg-black/40` backdrop; nobody is watching the animation.
-  2. **Room → All** — `setSelectedRoom('all')`.
-  3. **Search cleared** — `setSearchQuery('')` (the user chose to include it: a stale search
-     string on the wall display is the same class of leftover state as a stale room tab).
-  4. **Day simulator → today** — `setDayOffset(0)`. When a simulation *was* active this
-     changes `simulatedDate`, and the existing `simulatedDate` effect re-sorts — exactly
-     what the Return-to-today button does today. That is a day-simulation step, so it is
-     consistent with the midnight/simulation-only re-sort rule (Standing invariant 15); when no
-     simulation was active, `dayOffset` is already `0` and nothing re-sorts.
-- **Where it lives.** One effect in `App.tsx` beside the existing force-close-dialogs
-  effect (which already fires on `isBlanked || isLocked`; this one is lock-only). No new
-  component, hook, state or backend change. The `ref` on the `.overflow-y-auto` container
-  is the `scrollRegionRef` `F18` shipped (#54, Standing invariant 12) — reuse it, never add
-  a second; the container's class string is unchanged.
-- **Trigger source: keyed directly off `useTouchLock`'s `isLocked`** (chosen 2026-09-20 over
-  an app-owned idle timer and over deferring to Phase 4). This binds `F19` to the shipped
-  `F2` contract (Standing invariant 9) and hands `F15` an obligation — see *F15 ↔ F19*
-  under couplings and `F15`'s Open risks (e). The governing principle, recorded so `F15`
-  and pi-kiosk honor it: **the kiosk owns the inactivity timer; the app owns what "locked"
-  means for it.** A `locked` signal does not necessarily mean no interaction is possible —
-  only that certain actions are guarded by the lock. `F19` is the first app-side behavior
-  attached to that signal beyond the blanket `inert` gate.
-- **Amended by `F20` (2026-09-20):** because `F20` keeps scroll / search / room / day-sim
-  usable *while locked*, the view can drift during the locked period. `F19` therefore also
-  re-fires on **every subsequent 5-minute idle expiry while locked** (the tick `F20`'s
-  `useTouchLock` exposes) and on a **manual lock** from `F20`'s indicator control (an engage
-  like any other). If `F19` runs before `F20` it keys off `isLocked` alone and `F20` re-keys
-  it to the tick — hence the soft order `F20` → `F19`. "Instant, never smooth" still holds:
-  with `F20` the app is no longer `inert` under the lock, but the reset happens at an idle
-  expiry, so nobody is watching. **Step 0 on every tick — close the open Add modal, if
-  any.** `F20` lets the Add modal open *under* the lock, and the existing force-close-dialogs effect
-  only fires on the `isLocked` transition, so a form opened after the lock engaged and then
-  abandoned would otherwise stay open across every later reset. Each idle-expiry tick
-  therefore also force-closes the Add modal (the only dialog reachable while locked — `F20`
-  Open risks (c)) before the four resets, on the same abandonment reasoning as the engage
-  case (`F20` Open risks (b)).
-- **Rejected alternatives** (recorded so they aren't re-proposed): resetting on *unlock*
-  (the wall display would show stale state behind the padlock for the whole locked period,
-  and the unlocking person would see the view jump under their finger); an app-owned
-  5-minute idle timer sharing `useTouchLock`'s listeners (survives `F15` on its own, but the
-  user prefers the app to *react to* the lock signal rather than run a parallel timer);
-  resetting on blank as well (excluded — lock covers it in practice).
-
-**Rank rationale.** Ungated and small; last of the 2026-09-20 chore-list adds because its
-`F20` coupling (consume the idle tick rather than be re-keyed later) is cheaper to honor
-second than first; its `F18` coupling (reuse the ref) is already satisfied — `F18` shipped
-#54. It composes with the shipped `F17` strip, `F16` sort and `F18` button without
-depending on them.
-
-**Effort: S.** One effect reusing `F18`'s `scrollRegionRef` in `App.tsx`, four to six
-App-level tests, one README line. No backend, data, sort, component or styling change.
-
-**Assumed starting state** = **Baseline** (`F2` on `main` — `useTouchLock` exposes
-`isLocked`; `App.tsx` holds `selectedRoom`, `searchQuery`, `dayOffset`). Verify:
-- `App.tsx` has the force-close-dialogs effect on `[isBlanked, isLocked]` and the
-  `justRelocked` / `wasLockedRef` transition guard (true at #44).
-- `useTouchLock`'s `INACTIVITY_MS = 5 * 60 * 1000`; `App.touchLock` tests drive the lock
-  with fake timers (reuse that setup).
-- `F18` shipped (#54): `scrollRegionRef` already exists on the `.overflow-y-auto` element
-  inside the `scroll-region-frame`, with `ScrollToTopButton` as the frame's last child
-  (Standing invariants 12 + 17) — reuse the ref, do not add a second ref or frame.
-
-**Expected end state** (repo-checkable):
-- `App.tsx` contains a lock-engage effect that sets `scrollTop = 0` on the scroll container,
-  `selectedRoom` to `'all'`, `searchQuery` to `''` and `dayOffset` to `0`; it does not run on
-  `isBlanked` and does not run on unlock. **With `F20` present**, the same effect also runs
-  on each idle-expiry tick while locked and on a manual lock from the indicator control,
-  and each tick first closes an Add modal left open under the lock.
-- Tests (App-level, fake timers): after scrolling, picking a room, typing a search and
-  stepping the day forward, advancing 5 minutes idle → all four reset and
-  `scrollTop === 0`; unlocking (double-tap) does *not* re-run the reset; blanking alone
-  (21:00 without the lock timer elapsing) does *not* reset; the re-sort effect fires on
-  lock only when `dayOffset` was non-zero (spy on `orderChores` or assert the order);
-  `F18`'s button is hidden after the reset (jsdom does not dispatch `scroll` on a
-  programmatic `scrollTop` write, so the test calls `fireEvent.scroll(region)` after
-  setting `scrollTop = 0`; "hidden" is `opacity-0` at once, and asserting `inert` /
-  `aria-hidden` also needs `vi.advanceTimersByTime(FADE_MS)` under fake timers — the
-  button's non-interactive state lands only after the fade); **with `F20`**: Add form opened
-  while locked and left open across a second idle tick → closed (and the four resets ran).
-- README's touch-lock paragraph gains one line ("locking also returns the view to the top /
-  All / today").
-- `.overflow-y-auto` keeps its exact class string; e2e unaffected.
-
-**Open risks / decisions.** (a) jsdom: set `scrollTop` directly and assert it (no layout),
-then `fireEvent.scroll` so listeners see it; if the reset uses `scrollTo`, stub
-`Element.prototype.scrollTo` per test the way `F18`'s `App.test.tsx` describe does
-(assigned `vi.fn()` in `beforeEach`, deleted in `afterEach`). (b) The reset happens
-*behind* the padlock — confirm on the Pi that the `bg-black/40` backdrop is dim enough that
-the jump is unobtrusive; if it reads as a flicker, gate the reset behind
-`CLOSING_SETTLE_MS`-style timing *inside* the lock, never move it to unlock. (c) SSE re-pull
-gate: none of the four resets is uncommitted user input, so `isRepullGated()` is untouched;
-a re-pull arriving mid-reset is harmless (order is `sortedIds`-driven). (d) `F15` inherits
-the re-sourcing of `isLocked` — this feature must not try to future-proof it by adding a
-`kiosk/v1` listener now (the contract is Phase 4; DD-3 is the spec when it lands). (e) If
-this runs before `F20`, key off `isLocked` alone and leave a one-line note for `F20` to
-re-key to the idle tick; if after, consume `useTouchLock`'s tick from the start and add the
-"drifted while locked → reset at next expiry" test.
-
-**Session loop.** Run the Per-Feature Session Contract on branch `feature/lock-view-reset`.
 
 ---
 
@@ -1187,10 +1147,13 @@ prevent destructive behavior; creative behavior is accepted.**
 - **Timer semantics.** `useTouchLock`'s inactivity timer **keeps running while locked**
   (today it detaches its listeners once locked): activity re-arms it as before, and each
   expiry while already locked is exposed as an **idle tick** (e.g. an incrementing
-  `idleExpiries` counter or an `onIdle` subscription) that `F19` consumes to re-run its
-  view reset. The hook also exposes `lock()` for the indicator control. `INACTIVITY_MS`
+  `idleExpiries` counter or an `onIdle` subscription). **`F19` shipped first (#56)**, keyed
+  off `isLocked` alone, so `F20` re-keys its effect: it also re-runs the view reset on
+  every tick while locked and on a manual `lock()`, and each tick first closes an Add modal
+  left open under the lock (step 0) — Standing invariant 19 and the `F19` kept contract.
+  The hook also exposes `lock()` for the indicator control. `INACTIVITY_MS`
   stays 5 min. `isLocked` semantics (engage on expiry, `arm()` unlocks + re-arms) are
-  unchanged so `F19`'s engage trigger still works.
+  unchanged so `F19`'s shipped engage trigger still works.
 - **Blank precedence unchanged:** `ScreenBlankOverlay` (`z-[100]`) still wins; the padlock
   overlay renders only when `!isBlanked`; `CLOSING_SETTLE_MS` / `isClosing` handshake stays
   for the unlock animation. The `justRelocked` entrance animation (centered padlock on
@@ -1206,9 +1169,9 @@ prevent destructive behavior; creative behavior is accepted.**
 shipped #57 and the ★ advanced to the next soft-order item (see *Where the rollout
 stands*). Ungated; the biggest day-to-day feel change of the batch and the one that
 reshapes `F15`/pi-kiosk DD-2 — worth settling before `F15` plans. It sat after `F18` and
-`F22` (both shipped) because it is larger and touches the lock suites, and was placed
-before `F19` so `F19` would consume the idle tick once instead of being re-keyed; `F19`
-merged first (#56, fold-back pending), so the *if reversed* clauses below apply.
+`F22` (both shipped) because it is larger and touches the lock suites. It was meant to
+precede `F19` so `F19` could consume the idle tick once; `F19` shipped first (#56), so
+`F20` now carries the re-key of `F19`'s effect as part of its own scope.
 
 **Effort: M.** Four existing files reworked (`useTouchLock.ts`, `TouchLockOverlay.tsx`,
 `TouchLockIndicator.tsx`, `ChoreTimerBar.tsx`) plus `ChoreList` prop threading and the
@@ -1227,8 +1190,12 @@ Verify:
 - `useTouchLock.ts`: activity listeners attached only while `!isLocked` (the line to change).
 - `F18` shipped (#54): its button lives in the `scroll-region-frame` outside
   `.overflow-y-auto`, reads no lock state, and must stay usable under the lock (Standing
-  invariant 17) — today the app root's lock `inert` disables it, which `F20` lifts; if
-  `F19` shipped, its effect keys off `isLocked` and needs the tick added.
+  invariant 17) — today the app root's lock `inert` disables it, which `F20` lifts.
+- `F19` shipped (#56): the `[isLocked]` lock-engage effect sits right after the
+  force-close-dialogs effect in `App.tsx` (its comment carries the `F20` note) and keys off
+  `isLocked` alone — `F20` adds the idle tick + manual lock + close-Add-modal step 0
+  (Standing invariant 19); `App.lockViewReset.test.tsx` (6 tests) drives the real
+  `useTouchLock` with fake timers.
 - `F22` shipped (#57): the list and form `OverlayScrollbar`s read no lock state and are
   `pointer-events-none` + `aria-hidden` (Standing invariant 18), so lifting the lock's
   `inert` needs nothing from them; once scrolling works under the lock, the list thumb
@@ -1247,15 +1214,21 @@ Verify:
   ≥ 44 px target; single tap toggles via `lock()` / `arm()`.
 - `useTouchLock` exposes `{ isLocked, arm, lock, idleExpiries }` (names may vary); the
   timer re-arms on activity while locked and increments the tick on expiry while locked.
+- `F19`'s lock-view-reset effect in `App.tsx` also re-runs on each idle tick while locked
+  and on a manual lock, and each tick first closes an Add modal left open under the lock;
+  its `F20` code-comment note is resolved (removed or rewritten as-built).
 - Tests: guard on tap/swipe while locked (and not while unlocked); blocked-tap-then-second-
   tap unlocks and the *second* tap does not complete the chore; no second tap → overlay
   hidden after 1500 ms and still locked; indicator single-tap locks (immediately) and
   unlocks; search / room / day-sim / Add Task + submit work while locked (App-level);
   scroll container not `inert` while locked; blank still wins over the padlock; idle tick
   increments every 5 min while locked and resets on activity; `F18`'s scroll-to-top button
-  works while locked (App-level); `F22`'s suites still pass; `F18`'s suites and `F19`'s, if the latter is present, still pass with
-  the new semantics.
-- Standing invariant 9 rewritten to this contract; the `F2` kept-contract section rewritten
+  works while locked (App-level); view drifted while locked → reset at the next idle tick,
+  and an Add form opened under the lock and left open across a second tick → closed (and
+  the four resets ran); `F22`'s suites still pass; `F18`'s suites and `F19`'s six
+  `App.lockViewReset` tests still pass with the new semantics.
+- Standing invariants 9 and 19 rewritten to this contract (and the `F19` kept-contract
+  entry trimmed to what `F15` still needs); the `F2` kept-contract section rewritten
   to the as-built shape; README's touch-lock paragraph describes the permissive lock and
   the indicator control.
 - e2e: `e2e/smoke.spec.ts` — verify nothing waits on the lock (none expected).
@@ -1264,11 +1237,11 @@ Verify:
 start point (`initial` from `react-swipeable`'s event data) so a follow-up tap on the same
 bar qualifies within 60 px. (b) **Lock engaging with the Add form open:** the existing
 force-close-dialogs effect closes it on engage; keep that (5 minutes idle with a half-typed
-form is abandonment, and `F19` resets the view at the same moment) — but do **not** close
+form is abandonment, and the shipped `F19` effect resets the view at the same moment) — but do **not** close
 it on a *manual* lock from the indicator if the form is open (the person is present);
 decide at planning, default: manual lock also closes it for simplicity. The same
 abandonment rule covers a form opened *under* the lock: every subsequent idle-expiry tick
-closes it too (`F19`'s step 0), since the transition-keyed effect never re-fires. (c) **Dialogs
+closes it too (step 0 of the re-keyed `F19` reset — Standing invariant 19), since the transition-keyed effect never re-fires. (c) **Dialogs
 reachable while locked:** none — edit/delete are guarded, so `ConfirmDialog` and the edit
 modal cannot open under the lock; the add modal can, and that is intended. (d) **Overlay
 mount strategy:** mount-on-attempt is simplest but the entrance must be instant (no
@@ -1287,10 +1260,8 @@ visible focus ring and its label must flip with state; the overlay keeps its key
 ## Chain integrity (remaining work, current numbering, incl. `F15`–`F22`)
 
 ```
-CHORE-LIST TRACK (re-opened 2026-09-20; F14 shipped #34, F4 shipped #38, F5 shipped #39, F21 shipped #46, F16 shipped #50, F17 shipped #52, F18 shipped #54, F22 shipped #57 — the 2026-07-08 order F14 → F4 → F5 and the 2026-09-20 "F21 first" then F16 → F17 → F18 → F22 order are honored by history)
-  ★ F20 (permissive touch lock, reworks shipped F2) — no prerequisites, runnable now; drops the lock's inert gate; exposes the idle tick
-    ─soft→ F19 (lock-time view reset) — no prerequisites; keyed off the lock signal + F20's idle tick; reuses F18's shipped scrollRegionRef
-           (F19 merged #56 ahead of F20; its fold-back is pending)
+CHORE-LIST TRACK (re-opened 2026-09-20; F14 shipped #34, F4 shipped #38, F5 shipped #39, F21 shipped #46, F16 shipped #50, F17 shipped #52, F18 shipped #54, F19 shipped #56, F22 shipped #57 — the 2026-07-08 order F14 → F4 → F5 and the 2026-09-20 "F21 first" then F16 → F17 → F18 → F22 order are honored by history; F19 ran ahead of its soft slot after F20)
+  ★ F20 (permissive touch lock, reworks shipped F2) — no prerequisites, runnable now; drops the lock's inert gate; exposes the idle tick; re-keys the shipped F19 reset to it (+ manual lock, + close-Add-modal step 0)
 
 KIOSK EXTRACTION TRACK (2026-07-15 — external gates; see plans/feature/kiosk-shell-extraction/)
   [pi-kiosk Phase 1: shell scaffold + iframe passthrough]
@@ -1307,13 +1278,13 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
 - **No hard chain remains inside this repo.** The old device-control edge (`F3` gates
   `F7`–`F13`) left the repo with the migration — pi-kiosk's Migration Phases carry that
   sequencing now. What remains here: the chore-list track holds one ungated item, `F20`
-  (soft order `F20` ─soft→ `F19`, but `F19` merged first as #56 — its fold-back is pending;
+  (`F19`, soft-ordered after it, shipped first as #56, so `F20` re-keys it;
   its earlier soft `F14` → `F4` → `F5` preference of 2026-07-08 was honored — #34, #38,
   #39 — and the 2026-09-20 "`F21` first" preference by #46, then `F16` by #50, `F17` by #52, `F18` by #54 and `F22` by #57), and two **external** gates (`F15` on pi-kiosk Phase 2 parity; `F11`/`F12` on Phase
   4's `kiosk/v1` contract, with `F12` also following `F11`). The infra track completed with
   `F6` (#43).
-- **Focus path:** `F20` — ★FOCUS, ungated, the next session (`/run-feature F20`). `F19`,
-  its soft successor, already merged (#56; fold-back pending). `F15` is the gated kiosk-track head
+- **Focus path:** `F20` — ★FOCUS, ungated, the next session (`/run-feature F20`); it is the
+  last ungated chore-list item (`F19`, its former soft successor, shipped #56). `F15` is the gated kiosk-track head
   (pi-kiosk Phase 2 parity) and takes the ★ back once the chore-list items are gone;
   `F11`/`F12` follow on Phase 4. The 2026-09-20 capture batch is closed — no deferred
   re-evaluation remains.
@@ -1361,13 +1332,13 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
     fade-out ends it is `pointer-events-none` + `inert`, so touches reach the bars; a tap
     mid-fade lands on the button and only re-scrolls. Any later floating control must
     likewise never fire *and* start a bar swipe (see *`F18` follow-ups* for the Pi check).
-  - **The shipped F22 thumb / F19 ↔ the shipped F18 frame + ref (Standing invariants 12,
-    17 + 18):** the one `scroll-region-frame` holds, after the scroller, `F22`'s list thumb
+  - **The shipped F22 thumb / the shipped F19 reset ↔ the shipped F18 frame + ref (Standing
+    invariants 12, 17, 18 + 19):** the one `scroll-region-frame` holds, after the scroller, `F22`'s list thumb
     and then `F18`'s button (the frame's last child); `scrollRegionRef` is the one ref
     (`F18` reads `scrollTop` and calls `scrollTo`, `F22` reads the scroll metrics and
-    listens to `scroll`, `F19` resets it) — never two frames, never two refs. Thumb (right
-    edge) and button (bottom-centre) cannot overlap. A programmatic `scrollTop = 0` fires
-    `scroll` in a browser (not in jsdom — tests `fireEvent.scroll`), so the thumb flashes —
+    listens to `scroll`, `F19` writes `scrollTop = 0` on lock since #56) — never two frames, never two refs. Thumb (right
+    edge) and button (bottom-centre) cannot overlap. `F19`'s programmatic `scrollTop = 0` fires
+    `scroll` in a browser (not in jsdom — tests `fireEvent.scroll`), so the thumb flashes on lock —
     accepted at `F22` (#57), no programmatic flag (see *`F22` follow-ups* for the Pi check).
   - **The shipped F22 full-bleed region ↔ F5 + the shipped F17 strip (Standing invariants
     12, 16 + 18):** the column is unpadded, so the deck backing's `inset-x-0` frost and the
@@ -1391,10 +1362,12 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
     (blank-only afterwards), the indicator (a single-tap lock/unlock control) and the timer
     (runs while locked). Invariant 9 and the `F2` kept-contract section are rewritten to
     `F20`'s as-built shape when it ships.
-  - **F20 ↔ F19 (idle tick):** `F20` keeps the inactivity timer running while locked and
-    exposes each expiry; `F19` re-runs its reset on every tick (and on a manual lock from
-    the indicator, which is an engage). Soft order `F20` → `F19`; if reversed, `F20`
-    re-keys `F19`'s effect.
+  - **F20 ↔ the shipped F19 reset (idle tick, Standing invariant 19):** `F20` keeps the
+    inactivity timer running while locked and exposes each expiry. The intended soft order
+    `F20` → `F19` was reversed — `F19` shipped first (#56) keyed off `isLocked` alone — so
+    **`F20` re-keys `F19`'s effect**: the reset re-runs on every tick and on a manual lock
+    from the indicator (an engage), and each tick first closes an Add modal left open under
+    the lock (step 0). `F20` owns the tests for both (see the `F19` kept contract).
   - **F20 ↔ the shipped F18 button (Standing invariant 17):** scrolling is allowed while
     locked, so `F18`'s button must work under the lock (no `inert`, no guard) — `F20` runs
     second, so the test is `F20`'s.
@@ -1407,37 +1380,39 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
     may read `isLocked`.
   - **F20 ↔ F15 / pi-kiosk (cross-repo):** `F20` retires DD-2's all-input-blocking shell
     overlay. Split after `F15`: shell = timer + lock state + indicator control; app = guard
-    + padlock + second-tap detection + `F19`'s reset. Messages: `kiosk-state { locked }` +
+    + padlock + second-tap detection + the shipped `F19` reset. Messages: `kiosk-state { locked }` +
     an idle tick in, `lock-request { locked }` out — `kiosk/v1`, Phase 4 (`F15` Open risks
     (f)). The parity checklist for the lock half is `F20`'s contract.
   - **F20 ↔ F11/F12:** independent — undo/redo are console actions on chore data; whether
     the shell's console is reachable while locked is a pi-kiosk decision, not this repo's.
-  - **F19 ↔ F2 (Standing invariant 9):** `F19` is keyed directly off `useTouchLock`'s
-    `isLocked` *engage* transition (plus `F20`'s idle tick once present) — never unlock,
-    never blank. It adds app-side meaning to "locked" beyond the `inert` gate; the lock
-    contract itself (timer, double-tap unlock, z-order) is untouched by `F19` (it is
-    `F20` that amends it).
-  - **F19 ↔ F15 (cross-repo principle):** *the kiosk owns the inactivity timer; the app owns
-    what "locked" means for it.* When `F15` removes the `F2` overlay/timer, it must keep an
-    app-side `isLocked` state fed by the shell (`kiosk/v1` `kiosk-state { locked }`, DD-3 —
-    or an interim source until Phase 4; `F15` Open risks (e)) and re-key `F19`'s reset to
-    it. A `locked` signal does not mean "no interaction possible", only "certain actions are
-    guarded"; pi-kiosk's shell must therefore forward the lock state to the app, not merely
-    overlay it.
-  - **F19 ↔ the shipped F18 ref + button (Standing invariant 17):** `F19` reuses
-    `F18`'s `scrollRegionRef` (#54) — never a second ref; its `scrollTop = 0` also hides
-    `F18`'s button (the test is `F19`'s: `fireEvent.scroll(region)` after the write, and
-    `vi.advanceTimersByTime(FADE_MS)` before asserting `inert`/`aria-hidden`).
-  - **F19 ↔ the shipped F17 strip (Standing invariant 16):** resetting room → All and
-    search → '' widens the visible list (and day → today moves the displayed day), so the
-    strip's counts jump to today's whole-board figures on lock — live, as designed; `F19`
-    changes nothing in the strip.
-  - **F19 ↔ the shipped F16 sort (re-sort rule, Standing invariant 15):** the day → today reset re-sorts *only* when a simulation
-    was active (it is a day-simulation step, the same path as Return-to-today); a lock with
+  - **The shipped F19 reset ↔ F2 (Standing invariants 9 + 19):** since #56 the reset is
+    keyed directly off `useTouchLock`'s `isLocked` *engage* transition (`F20`'s idle tick
+    joins it when `F20` re-keys it) — never unlock, never blank. It adds app-side meaning
+    to "locked" beyond the `inert` gate; the lock contract itself (timer, double-tap unlock,
+    z-order) was untouched by `F19` (it is `F20` that amends it).
+  - **The shipped F19 reset ↔ F15 (cross-repo principle, Standing invariant 19):** *the
+    kiosk owns the inactivity timer; the app owns what "locked" means for it.* When `F15`
+    removes the `F2` overlay/timer, it must keep an app-side `isLocked` state fed by the
+    shell (`kiosk/v1` `kiosk-state { locked }` + idle tick, DD-3 — or an interim source
+    until Phase 4; `F15` Open risks (e)) and re-key `F19`'s reset to it. A `locked` signal
+    does not mean "no interaction possible", only "certain actions are guarded"; pi-kiosk's
+    shell must therefore forward the lock state to the app, not merely overlay it.
+  - **The shipped F19 reset ↔ the shipped F18 ref + button (Standing invariants 17 + 19):**
+    `F19` reuses `F18`'s `scrollRegionRef` (#54) — no second ref; its `scrollTop = 0` also
+    hides `F18`'s button, pinned by `App.lockViewReset.test.tsx` (`fireEvent.scroll(region)`
+    after the write, and `vi.advanceTimersByTime(FADE_MS)` before asserting
+    `inert`/`aria-hidden`).
+  - **The shipped F19 reset ↔ the shipped F17 strip (Standing invariant 16):** resetting
+    room → All and search → '' widens the visible list (and day → today moves the displayed
+    day), so the strip's counts jump to today's whole-board figures on lock — live, as
+    designed; `F19` changed nothing in the strip.
+  - **The shipped F19 reset ↔ the shipped F16 sort (re-sort rule, Standing invariants 15 +
+    19):** the day → today reset re-sorts *only* when a simulation was active (it is a
+    day-simulation step, the same path as Return-to-today — test-pinned); a lock with
     `dayOffset === 0` never re-sorts — "unblank/lock never re-sorts" still holds for the
     normal case.
-  - **F19 ↔ F11/F12:** independent — the reset touches view state only, never chore data,
-    so it is not an undoable action and must not enter the undo cache.
+  - **The shipped F19 reset ↔ F11/F12:** independent — the reset touches view state only,
+    never chore data, so it is not an undoable action and must not enter the undo cache.
   - **F11/F12 ↔ the shipped F16 sort (Standing invariant 15):** an undo that restores an earlier `dateLastCompleted` is a mutation
     like any other — it does **not** re-sort (sticky order until midnight); the undone
     chore keeps its position and its bar simply re-colours.
@@ -1494,11 +1469,14 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
     outer column is unpadded, so the scroll container and the F5 deck backing span the full
     width while bars, room tabs, strip (`mx-4`), date banner and search keep a 16 px inset;
     the scroller's class tokens (now incl. `scrollbar-none`) and the deck contract hold.
-  - From **F19**: the touch-lock *engage* transition (and, with `F20`, every idle expiry
-    while locked and every manual lock) resets the view — list scrolled to the top
-    (instantly), room → All, search cleared, day → today (re-sorting only if a simulation
-    was active); never on unlock, never on blank alone. The app-side `isLocked` signal
-    this keys off must survive `F15` (re-sourced from the shell, not deleted).
+  - From **F19** *(shipped #56 — Standing invariant 19)*: the touch-lock *engage*
+    transition resets the view — list scrolled to the top (instantly, through the one
+    `scrollRegionRef`), room → All, search cleared, day → today (re-sorting only if a
+    simulation was active); never on unlock, never on blank alone (a lock under a blank
+    still resets). Once `F20` re-keys it, also every idle expiry while locked and every
+    manual lock, each tick first closing an Add modal left open under the lock. The
+    app-side `isLocked` signal this keys off must survive `F15` (re-sourced from the shell,
+    not deleted).
   - From **F20**: the lock is permissive — the padlock overlay appears only on a blocked
     complete / edit / delete (bars inert to tap and swipe, never dimmed); scroll, search,
     room tabs, day simulation and Add Task (incl. submit) work while locked; the app root
