@@ -51,8 +51,9 @@ smoothly back to the top (instantly when the OS asks for reduced motion)
 
 After 5 minutes without a touch the app locks and the top-left padlock closes. Scrolling,
 search, the room tabs, the day arrows and *Add Task* keep working while locked; completing,
-editing or deleting a chore shows a padlock instead, and tapping again near the same spot
-unlocks. Tapping the top-left padlock unlocks, or locks right away when unlocked
+editing or deleting a chore shows a padlock at that spot instead, and tapping the padlock
+unlocks. The rest of the board stays usable while the padlock shows; it fades after a
+moment if left alone. Tapping the top-left padlock unlocks, or locks right away when unlocked
 (`frontend/src/hooks/useTouchLock.ts`).
 Locking also returns the view to the top of the list, the *All* tab, an empty search and today,
 and does so again after every further 5 idle minutes while locked.

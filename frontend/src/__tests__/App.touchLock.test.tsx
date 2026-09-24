@@ -155,7 +155,7 @@ describe('touch lock wiring', () => {
         await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
 
         fireEvent.click(screen.getByTestId('chore-bar'), { clientX: 120, clientY: 40 });
-        fireEvent.click(screen.getByTestId('touch-lock-overlay'), { clientX: 125, clientY: 45 });
+        fireEvent.click(screen.getByTestId('touch-lock-hit-area'), { clientX: 125, clientY: 45 });
 
         expect(mockArm).toHaveBeenCalledOnce();
         expect(completeChore).not.toHaveBeenCalled();
@@ -179,12 +179,14 @@ describe('touch lock wiring', () => {
             act(() => {
                 vi.advanceTimersByTime(1499);
             });
-            expect(screen.getByTestId('touch-lock-overlay').className).not.toContain('pointer-events-none');
+            expect(screen.getByTestId('touch-lock-overlay').className).not.toContain('opacity-0');
+            expect(screen.getByTestId('touch-lock-hit-area').className).toContain('pointer-events-auto');
 
             act(() => {
                 vi.advanceTimersByTime(1);
             });
-            expect(screen.getByTestId('touch-lock-overlay').className).toContain('pointer-events-none');
+            expect(screen.getByTestId('touch-lock-overlay').className).toContain('opacity-0');
+            expect(screen.getByTestId('touch-lock-hit-area').className).toContain('pointer-events-none');
 
             act(() => {
                 vi.advanceTimersByTime(CLOSING_SETTLE_MS);
@@ -219,6 +221,44 @@ describe('touch lock wiring', () => {
         expect(mockArm).toHaveBeenCalledOnce();
         expect(screen.queryByTestId('touch-lock-overlay')).not.toBeInTheDocument();
         expect(screen.getByTestId('touch-lock-indicator').className).toContain('z-40');
+    });
+
+    // Post-PR amendment (2026-09-24): the padlock overlay is non-blocking — its
+    // root is pointer-events-none and only the hit circle around the seed catches
+    // taps — so the board stays usable while an attempt shows. jsdom does no
+    // hit-testing, so this pins that nothing in App tears the attempt down or
+    // re-seeds it on those interactions; the smoke proves the pass-through in
+    // Chromium.
+    it('a room tab, the search input and the next-day button work while an attempt overlay shows, and the overlay stays up', async () => {
+        mockUseTouchLock.mockReturnValue({ isLocked: true, arm: mockArm, lock: mockLock, idleExpiries: 0 });
+        vi.mocked(fetchAllChores).mockResolvedValue([
+            makeChore({ id: 1, name: 'Sweep', room: 'Kitchen' }),
+            makeChore({ id: 2, name: 'Dust', room: 'Bathroom' }),
+        ]);
+
+        render(<App />);
+        await waitFor(() => expect(screen.getByText('Sweep')).toBeInTheDocument());
+
+        fireEvent.click(screen.getAllByTestId('chore-bar')[0], { clientX: 120, clientY: 40 });
+        const overlay = screen.getByTestId('touch-lock-overlay');
+        expect(overlay.className).toContain('pointer-events-none');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Kitchen' }));
+        expect(screen.queryByText('Dust')).not.toBeInTheDocument();
+
+        const search = screen.getByPlaceholderText('Search for a chore');
+        search.focus();
+        fireEvent.change(search, { target: { value: 'sw' } });
+        expect(search).toHaveValue('sw');
+        expect(screen.getByText('Sweep')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Next day' }));
+        expect(screen.getByRole('button', { name: 'Return to today' })).toBeInTheDocument();
+
+        // The same attempt is still showing: not dismissed, not re-keyed.
+        expect(screen.getByTestId('touch-lock-overlay')).toBe(overlay);
+        expect(mockArm).not.toHaveBeenCalled();
+        expect(completeChore).not.toHaveBeenCalled();
     });
 
     it('swipes and the sr-only Edit/Delete buttons are guarded while locked', async () => {
@@ -483,12 +523,12 @@ describe('touch lock wiring', () => {
 
         vi.useFakeTimers();
         try {
-            // A bar tap seeds the attempt; a nearby tap on the overlay drives the
+            // A bar tap seeds the attempt; a nearby tap on its hit circle drives the
             // real registerTap logic, which calls the real App-level handleArm —
             // this calls the mocked arm() and schedules the CLOSING_SETTLE_MS
             // timer that clears lockAttempt.
             fireEvent.click(screen.getByTestId('chore-bar'), { clientX: 100, clientY: 100 });
-            fireEvent.click(screen.getByTestId('touch-lock-overlay'), { clientX: 100, clientY: 100 });
+            fireEvent.click(screen.getByTestId('touch-lock-hit-area'), { clientX: 100, clientY: 100 });
 
             expect(mockArm).toHaveBeenCalledOnce();
             expect(screen.getByTestId('touch-lock-overlay')).toBeInTheDocument();
@@ -524,7 +564,7 @@ describe('touch lock wiring', () => {
         vi.useFakeTimers();
         try {
             fireEvent.click(screen.getByTestId('chore-bar'), { clientX: 100, clientY: 100 });
-            fireEvent.click(screen.getByTestId('touch-lock-overlay'), { clientX: 100, clientY: 100 });
+            fireEvent.click(screen.getByTestId('touch-lock-hit-area'), { clientX: 100, clientY: 100 });
             expect(mockArm).toHaveBeenCalledOnce();
 
             // What the real hook does once arm() fires.

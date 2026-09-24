@@ -471,9 +471,10 @@ test.describe('Chores App Smoke Tests', () => {
         await page.clock.fastForward(1600);
 
         // DD-2: mid-fade ('dismissing', onDismiss not yet fired) the overlay is
-        // still mounted but pointer-events-none, so a real click reaches the
-        // search input beneath it and focus stays there once the overlay unmounts
-        // (DD-15: focus the user moved is never stolen back).
+        // still mounted but passes every tap through (its root is always
+        // pointer-events-none, and the fading hit circle is too), so a real click
+        // reaches the search input beneath it and focus stays there once the
+        // overlay unmounts (DD-15: focus the user moved is never stolen back).
         await expect(overlay).toHaveCount(1);
         const searchInput = page.getByPlaceholder('Search for a chore');
         const searchBox = await searchInput.boundingBox();
@@ -487,8 +488,10 @@ test.describe('Chores App Smoke Tests', () => {
         await expect(searchInput).toBeFocused();
 
         // A real tap on a bar while locked completes nothing and raises the
-        // padlock; a second tap on the same spot (well inside the 1.5 s window)
-        // unlocks, and that second tap completes nothing either.
+        // padlock in a hit circle at the tap; while it shows, the board stays
+        // usable (post-PR amendment 2026-09-24); a second tap on the same spot
+        // (the page clock is paused, so still inside the 1.5 s window) lands on
+        // the circle and unlocks, and that second tap completes nothing either.
         let mutationFired = false;
         const mutationListener = (request: import('@playwright/test').Request) => {
             if (
@@ -508,12 +511,54 @@ test.describe('Chores App Smoke Tests', () => {
         await page.waitForTimeout(250);
         expect(mutationFired).toBe(false);
         await expect(overlay).toBeVisible();
+        const padlockClosed = overlay.getByTestId('touch-lock-icon-closed');
+        await expect(padlockClosed).toBeVisible();
+
+        // The padlock is drawn at the tap, not in the screen centre.
+        const hitAreaBox = await page.getByTestId('touch-lock-hit-area').boundingBox();
+        if (!hitAreaBox) throw new Error('Could not get bounding box for the padlock hit circle');
+        expect(Math.abs(hitAreaBox.x + hitAreaBox.width / 2 - tapX)).toBeLessThanOrEqual(1);
+        expect(Math.abs(hitAreaBox.y + hitAreaBox.height / 2 - tapY)).toBeLessThanOrEqual(1);
+
+        // During the awaiting window a real click on a room tab reaches it
+        // through the non-blocking overlay (a single-room filter), and the
+        // padlock stays up. Clicked by coordinates so a regression that makes the
+        // overlay catch the click fails here instead of Playwright waiting for
+        // the tab to become clickable.
+        const sunroomTab = page.getByRole('button', { name: 'Sunroom', exact: true });
+        // The chip row scrolls horizontally at 768 px; bring the tab on-screen
+        // (this scrolls the chip row only, and clicks nothing).
+        await sunroomTab.scrollIntoViewIfNeeded();
+        const sunroomTabBox = await sunroomTab.boundingBox();
+        if (!sunroomTabBox) throw new Error('Could not get bounding box for the Sunroom tab');
+        await page.mouse.click(sunroomTabBox.x + sunroomTabBox.width / 2, sunroomTabBox.y + sunroomTabBox.height / 2);
+        await expect(page.getByText('Vacuum Bedroom Floor')).toHaveCount(0);
+        await expect(padlockClosed).toBeVisible();
+        const allTab = page.getByRole('button', { name: 'All', exact: true });
+        await allTab.scrollIntoViewIfNeeded();
+        const allTabBoxNow = await allTab.boundingBox();
+        if (!allTabBoxNow) throw new Error('Could not get bounding box for the All tab');
+        await page.mouse.click(allTabBoxNow.x + allTabBoxNow.width / 2, allTabBoxNow.y + allTabBoxNow.height / 2);
+        await expect(page.getByText('Vacuum Bedroom Floor')).toBeVisible();
+
+        // A mouse-wheel over the list, well clear of the hit circle, scrolls it.
+        const scrollRegion = page.locator('.overflow-y-auto');
+        const regionBox = await scrollRegion.boundingBox();
+        if (!regionBox) throw new Error('Could not get bounding box for the scroll region');
+        await scrollRegion.evaluate(el => { el.scrollTop = 0; });
+        await page.mouse.move(tapX, Math.min(tapY + 200, regionBox.y + regionBox.height - 20));
+        await page.mouse.wheel(0, 150);
+        await expect.poll(() => scrollRegion.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+        await expect(padlockClosed).toBeVisible();
+        expect(mutationFired).toBe(false);
+
         await page.mouse.click(tapX, tapY);
 
         // DD-21: handleArm() unlocked at once, but lockAttempt keeps the overlay
-        // mounted and hit-testable through its CLOSING_SETTLE_MS 'opening'
-        // animation. A rapid third tap on the same spot lands on the overlay and
-        // is swallowed, so it does not complete the (now unlocked) chore beneath.
+        // mounted and its hit circle hit-testable through the CLOSING_SETTLE_MS
+        // 'opening' animation. A rapid third tap on the same spot lands on the
+        // circle and is swallowed, so it does not complete the (now unlocked)
+        // chore beneath.
         await expect(overlay.getByTestId('touch-lock-icon-open')).toBeVisible();
         await page.mouse.click(tapX, tapY);
         await page.waitForTimeout(250);
@@ -546,8 +591,8 @@ test.describe('Chores App Smoke Tests', () => {
         await indicator.click();
         await expect(indicatorClosed).toBeVisible();
 
-        // DD-22: while a padlock shows, the indicator is raised above it, so a
-        // single corner tap unlocks instead of being swallowed as a far tap.
+        // DD-22: while a padlock shows, the indicator is raised above the
+        // overlay, so a single corner tap unlocks it.
         let completePatchFired = false;
         const completeListener = (request: import('@playwright/test').Request) => {
             if (

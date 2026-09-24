@@ -148,9 +148,9 @@ describe('lock-time view reset (F19)', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Kitchen' }));
             fireEvent.change(getSearchInput(), { target: { value: 'sw' } });
 
-            // A blocked bar tap seeds the padlock; a nearby tap on it unlocks.
+            // A blocked bar tap seeds the padlock; a tap on its hit circle unlocks.
             fireEvent.click(screen.getByTestId('chore-bar'), { clientX: 100, clientY: 100 });
-            fireEvent.click(screen.getByTestId('touch-lock-overlay'), { clientX: 100, clientY: 100 });
+            fireEvent.click(screen.getByTestId('touch-lock-hit-area'), { clientX: 100, clientY: 100 });
 
             act(() => {
                 vi.advanceTimersByTime(CLOSING_SETTLE_MS);

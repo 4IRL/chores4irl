@@ -14,7 +14,11 @@ type TouchLockIndicatorProps = {
 // the `z-50` modal backdrops, so a corner tap with a modal open cancels the modal
 // and never toggles the lock (DD-5). `raised` lifts it to `z-[95]` (above the
 // `z-[90]` lock overlay, under the `z-[100]` blank) while a guarded-attempt padlock
-// shows, so a corner tap unlocks instead of being swallowed as a far tap (DD-22).
+// shows (DD-22). Since the post-PR amendment the overlay's root passes taps
+// through and only its padlock hit circle catches them, so the raise matters only
+// when that circle overlaps the corner (a keyboard-raised attempt, seeded at
+// (0, 0), clamps its circle there): the corner tap then still unlocks instead of
+// landing on the circle.
 export default function TouchLockIndicator({ isLocked, onLock, onUnlock, raised = false }: TouchLockIndicatorProps) {
     return (
         <button
