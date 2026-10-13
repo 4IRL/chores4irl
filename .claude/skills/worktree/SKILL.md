@@ -116,7 +116,7 @@ If any confirmed entry is **Merged**, fetch `origin` once first, through the str
 ```bash
 ~/.claude/hooks/gh-app-token/gh-git.sh fetch origin || { echo "STOP: gh-git.sh fetch origin failed — origin/main may be stale; report the helper's error above before removing anything"; }
 ```
-On that `STOP:` the per-entry loop must not start — halt Teardown and report it; nothing below runs until `origin/main` has actually been fetched by one of those routes.
+On that `STOP:` the per-entry loop must not start — halt Teardown and report it; nothing below runs until `origin/main` has actually been fetched — a `gh-git.sh fetch origin` that exited 0.
 
 Then, for each confirmed entry in turn, pass the gate matching its Step 2 classification before removing anything — `git branch -D` is the only force-delete in this skill, reachable solely through one of these gates (each already behind Step 3's confirmation):
 - **Merged** → re-verify the PR; `<number>` is the PR number Step 2 recorded:
