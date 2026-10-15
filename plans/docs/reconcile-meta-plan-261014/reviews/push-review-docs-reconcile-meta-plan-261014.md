@@ -21,5 +21,5 @@ The F23 section is complete: Goal, Dependencies, Sizing, Start/End state, Test d
 ### To-Do: Required Changes
 
 - [x] **Update the shipped-through heading**: `plans/META-PLAN.md` ~line 72. Change "Shipped through PR #60" to "Shipped through PR #62" so it matches the list and the Baseline.
-- [ ] **Qualify F23's Open risks reference**: `plans/META-PLAN.md` ~line 1258, F23 Dependencies bullet. Change "Phase-2 half of its split (Open risks (f))" to "(F15's Open risks (f))" so it can't be read as F23's own (f).
+- [x] **Qualify F23's Open risks reference**: `plans/META-PLAN.md` ~line 1258, F23 Dependencies bullet. Change "Phase-2 half of its split (Open risks (f))" to "(F15's Open risks (f))" so it can't be read as F23's own (f).
 - [ ] **Fix the stale "current ledger" phrase in the header**: `plans/META-PLAN.md` ~line 4. Reword it to "features in the Feature list (see Source list lineage below)", since the ledger files are now frozen history.

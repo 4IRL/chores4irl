@@ -1251,7 +1251,7 @@ start of the planning step:
   file.
 - **Rollout step 2 done.** pi-kiosk runs on the Pi 4 against the C4I that runs there now,
   and step 2 has decided which features stay in C4I. In this repo that means `F15`, or the
-  Phase-2 half of its split (Open risks (f)), is merged. The pi-kiosk `target_url` is the
+  Phase-2 half of its split (`F15`'s Open risks (f)), is merged. The pi-kiosk `target_url` is the
   knob this feature turns.
 - **Branch protection on `main`** with the CI test check required (§3). It is already true
   (Baseline *CI*); re-verify it.
