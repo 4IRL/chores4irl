@@ -1,7 +1,7 @@
 # META-PLAN — chores4irl future-feature rollout
 
 > **What this file is.** An orchestration manifest, not a script. It sequences the
-> features in the current ledger (see *Source list lineage* below) and defines, for each one,
+> features in the Feature list (see *Source list lineage* below) and defines, for each one,
 > a *self-contained* per-feature session that a fresh agent (with no memory of prior
 > sessions) can run end-to-end using **only this file and the repository**. This file
 > is never run top-to-bottom. It is the index; each feature is a separate session.
