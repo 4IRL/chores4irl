@@ -1,3 +1,6 @@
+> **STATUS: Merged** `c3982e9` (#60). Frozen — historical record, do not edit.
+> **Outcome:** Permissive touch lock shipped: only complete/edit/delete are guarded, the board stays usable, and a manual lock/unlock indicator was added. Review 3 made the padlock a non-blocking hit circle at the tap point, clamped to the viewport and re-clamped on resize/rotation (closing Review 4's doc item). The touch lock that `F15` targets is this one. Four findings harvested.
+
 # Permissive touch lock (F20)
 
 ## Summary

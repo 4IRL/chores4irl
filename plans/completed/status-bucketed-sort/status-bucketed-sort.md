@@ -1,3 +1,6 @@
+> **STATUS: Merged** `7bbbdab` (#50). Frozen — historical record, do not edit.
+> **Outcome:** Midnight re-sort into status buckets with the red-quota fill/escalation and Urgency weighting shipped as planned; `classifyStatus` in `utils/choreBarMath.ts` is the shared bucket source that `F17`'s strip counts against. Current contract: META-PLAN Codebase map. Five minor push-review findings harvested to `plans/PUSH-REVIEW-FINDINGS.md`.
+
 # F16 — Status-bucketed midnight re-sort with red-quota escalation + Urgency weighting
 
 ## Summary

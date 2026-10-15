@@ -36,11 +36,11 @@ backlog is visible and actionable instead of scattered.
   format those skills expect.
 
 ## Quick batch view (by theme)
-- `[test]`     — 23 items: assertion hardening, missing-branch coverage, brittle-selector fixes, `rearmTick` self-heal (auto-screen-blank), `!event.repeat` guard (touch-lock), post-submit clear-✕ reset (clear-input-buttons), `BEGIN IMMEDIATE` two-connection migration test (remove-details-longterm), deck-class assertions (translucent-add-deck), three accepted-risk `set-hostname.sh` matrix cases (local-url-alias), delete/edit smoke-test toast assertions + cross-mutation error-clear case (form-polish-date-fix)
-- `[style]`/`[dx]` — 47 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup, native `<button>`/`z-50` (auto-screen-blank), repeat-key `preventDefault` + plan-step comment cleanup (touch-lock), `clearable` type-safety (clear-input-buttons), META-PLAN policy-restatement consolidation (deferred), migration count-alias + tagged log line (remove-details-longterm), `/compact-plans` Step 7 scan doc nits (phase-c-guard), ledger/paragraph tidies deferred to `/new-feature` (meta-plan-update-f5), `set-hostname.sh` naming/message/guard-shape nits + `*.sh` gitignore anchor (local-url-alias), three `/compact-plans` Step 5/7 snippet nits (compact-plans-260919), F15 gate bullet + invariant-13 trim (meta-plan-update-f6), F6 freeze-Outcome trim (meta-plan-additions-260920), `Toast` `onDismiss` ref + `defaultRoom` doc reword + silent `loadChores` re-pull failure (form-polish-date-fix)
+- `[test]`     — 35 items: assertion hardening, missing-branch coverage, brittle-selector fixes, `rearmTick` self-heal (auto-screen-blank), `!event.repeat` guard (touch-lock), post-submit clear-✕ reset (clear-input-buttons), `BEGIN IMMEDIATE` two-connection migration test (remove-details-longterm), deck-class assertions (translucent-add-deck), three accepted-risk `set-hostname.sh` matrix cases (local-url-alias), delete/edit smoke-test toast assertions + cross-mutation error-clear case (form-polish-date-fix), `statusColors` invariant + optional e2e fold-order (status-bucketed-sort), fill/label test IDs + shrink-to-zero rerender (status-count-strip), click-during-fade-out (scroll-to-top), lock-during-loading + already-locked-mount (lock-view-reset), fade-constant/className pin + `px-4` inset assertions + overscroll clamp (overlay-scrollbar), smoke `pauseAt` margin + resize-listener cleanup (permissive-lock)
+- `[style]`/`[dx]` — 57 items: DRY helpers, hook ordering, import-style consistency, clarifying comments, SSE mutation-gate/open-refetch tidies, swipe-reveal threshold-calc dedup, native `<button>`/`z-50` (auto-screen-blank), repeat-key `preventDefault` + plan-step comment cleanup (touch-lock), `clearable` type-safety (clear-input-buttons), META-PLAN policy-restatement consolidation (deferred), migration count-alias + tagged log line (remove-details-longterm), `/compact-plans` Step 7 scan doc nits (phase-c-guard), ledger/paragraph tidies deferred to `/new-feature` (meta-plan-update-f5), `set-hostname.sh` naming/message/guard-shape nits + `*.sh` gitignore anchor (local-url-alias), three `/compact-plans` Step 5/7 snippet nits (compact-plans-260919), F15 gate bullet + invariant-13 trim (meta-plan-update-f6), F6 freeze-Outcome trim (meta-plan-additions-260920), `Toast` `onDismiss` ref + `defaultRoom` doc reword + silent `loadChores` re-pull failure (form-polish-date-fix), `remainingRatio` dedup + callback rename + `graphify-out` comment (status-bucketed-sort), exhaustive `SEGMENTS` + fallback-by-key (status-count-strip), null-ref warn + `isInteractive` seeding (scroll-to-top), drift-helper reuse (lock-view-reset), `arm`→`unlock` clarity + shared `TapPoint` type (permissive-lock)
 - `[a11y]`     — 3 items: `focus-visible:` reveal, focus-ring clipping (bar-redesign); aria-label sentence-casing (clear-input-buttons)
 - `[security]` — 5 items: server-side `urgency` enum validation (edit-task); SSE connection cap + host-specifics redaction (docker-raspberry-pi and local-url-alias) + predecessor-ledger username (all opt / only-if-public)
-- `[design]`   — 3 items: both had a blocking dependency that **has since merged** — now decidable (see ⚠ below); plus the F5 `relative`-wrapper removal, which needs a Pi kiosk re-verification first
+- `[design]`   — 6 items: both had a blocking dependency that **has since merged** — now decidable (see ⚠ below); plus the F5 `relative`-wrapper removal, which needs a Pi kiosk re-verification first; plus three conditional opts — `StatusCounts` guard (status-count-strip), lockstep a11y toggles (scroll-to-top), discriminated-union hook return (overlay-scrollbar)
 
 ---
 
@@ -267,6 +267,73 @@ Source: `plans/completed/form-polish-date-fix/reviews/push-review-feature-form-p
 
 ---
 
+## F16 (current numbering) — status-bucketed-sort  (`7bbbdab`, #50)
+Source: `plans/completed/status-bucketed-sort/reviews/push-review-feature-status-bucketed-sort.md`
+> Harvested by the 2026-10-15 `/compact-plans` sweep. One review round, all nine reviewers PASS; every item below was deferred at push time and is still present on `main` (spot-checked).
+
+- [ ] `[style]` minor — Compute `remainingRatio` once — `frontend/src/utils/choreBarMath.ts` — extract a small `remainingRatioOf(daysSince, frequency)` helper used by both `classifyStatus` and `computeBar` (or have `classifyStatus` return it) so the formula can't drift.
+- [ ] `[style]` minor — Rename the single-letter callback — `frontend/src/utils/choreBarMath.ts` `classifyStatus` — `statusColors.find(s => …)` → `statusColors.find(entry => remainingRatio > entry.threshold)`.
+- [ ] `[test]` minor — Pin the `statusColors` invariant in a test — `frontend/src/__tests__/components/ChoreTimerBar.barMath.test.ts` — assert `statusColors.at(-1)?.threshold === -Infinity` and thresholds strictly descending.
+- [ ] `[style]` minor — Give `graphify-out/*` its own comment — `.gitignore` — add `# graphify — generated knowledge-graph output` above the entry (or move it to a fitting section).
+- [ ] `[test]` opt — e2e fold-order assertion — `e2e/smoke.spec.ts` — only if unit/browser behaviour is later seen to drift.
+
+---
+
+## F17 (current numbering) — status-count-strip  (`9da2c64`, #52)
+Source: `plans/completed/status-count-strip/reviews/push-review-feature-status-count-strip.md`
+> Harvested by the 2026-10-15 `/compact-plans` sweep. Two review rounds (Review 2 covers the PR #52 animated-width follow-up). Review 1's *adjacent-import conflict with F18* awareness item is **not** carried: both F17 (#52) and F18 (#54) merged, so it is moot.
+
+- [ ] `[style]` opt — Make `SEGMENTS` exhaustive over `StatusCounts` at compile time — `frontend/src/components/nav/StatusCountStrip.tsx` — declare `const SEGMENT_META = { doneToday: {…}, dueSoon: {…}, overdue: {…} } satisfies Record<keyof StatusCounts, { testId: string; status: ChoreStatus }>` and derive the ordered array from a fixed key tuple, so adding a `StatusCounts` field without a segment fails `tsc`. Optional hardening; both sets are closed and low-churn.
+- [ ] `[design]` opt *(conditional)* — Guard `StatusCounts` if a second producer appears — `frontend/src/utils/choreStatusCounts.ts` — no action now; if counts ever come from outside `countStatuses` (a form or an API), add a runtime non-negative-integer guard or a branded type.
+- [ ] `[style]` minor — Select the all-zero fallback segment by key — `frontend/src/components/nav/StatusCountStrip.tsx` — replace `allZero && index === 0` with `allZero && segment.key === 'doneToday'` and drop the unused `index` map argument.
+- [ ] `[test]` minor — Give the fill and label stable test IDs — `frontend/src/components/nav/StatusCountStrip.tsx`, `frontend/src/__tests__/components/StatusCountStrip.test.tsx` — add `data-testid="<segment>-fill"` / `data-testid="<segment>-label"` and query by those in `fillOf`/`labelOf` instead of `firstElementChild` and `querySelector('span')`.
+- [ ] `[test]` minor — Cover the shrink-to-zero rerender — `frontend/src/__tests__/components/StatusCountStrip.test.tsx` — rerender from `{ doneToday: 2, dueSoon: 0, overdue: 1 }` to `{ doneToday: 0, dueSoon: 0, overdue: 1 }`; assert the same node, `flexGrow` `'0'`, and empty `textContent`.
+
+---
+
+## F18 (current numbering) — scroll-to-top  (`3bb26ee`, #54)
+Source: `plans/completed/scroll-to-top/reviews/push-review-feature-scroll-to-top.md`
+> Harvested by the 2026-10-15 `/compact-plans` sweep. One review round, all eight reviewers PASS; all four items deferred at push time and still open on `main`.
+
+- [ ] `[test]` minor — Add a unit case for a click during the fade-out — `frontend/src/__tests__/components/ScrollToTopButton.test.tsx` — scroll to threshold+1, back to 0 (fading, still interactive), `fireEvent.click` the button, assert the `scrollTo` stub is called again with `{ top: 0, behavior: 'smooth' }`.
+- [ ] `[dx]` opt — Decide whether to warn on a null ref in `useScrollPastThreshold` — `frontend/src/hooks/useScrollPastThreshold.ts` — optional dev-only `console.warn` in the null branch so a future invariant violation is visible; not needed for current callers.
+- [ ] `[dx]` opt — Consider seeding `isInteractive` from the initial DOM read — `frontend/src/components/common/ScrollToTopButton.tsx` — removes the one-render mount lag if a future caller mounts the button while already scrolled.
+- [ ] `[design]` opt *(conditional)* — Revisit the lockstep `aria-hidden`/`tabIndex`/`inert` toggles — `frontend/src/components/common/ScrollToTopButton.tsx` — only if the spec's explicit `aria-hidden` + `tabIndex={-1}` requirement is relaxed; otherwise keep as is.
+
+---
+
+## F19 (current numbering) — lock-view-reset  (`fca7118`, #56)
+Source: `plans/completed/lock-view-reset/reviews/push-review-feature-lock-view-reset.md`
+> Harvested by the 2026-10-15 `/compact-plans` sweep. One review round, all PASS. The *META-PLAN ledger conflict with F22* item is **not** carried: both merged and the fold-backs were serialized (#59, then #58 as invariant 19). The already-locked-mount test was "optional until F20 re-keys the effect" — F20 (#60) has since re-keyed it to `[isLocked, idleExpiries]`, so it is **now decidable**.
+
+- [ ] `[style]` minor — Reuse the drift helpers in the first F19 test — `frontend/src/__tests__/App.lockViewReset.test.tsx` — in `it('resets scroll, room, search and day when the lock engages after 5 minutes idle')`, replace the inline Kitchen/search/Next-day/scroll sequence with `const region = driftView();` (plus one extra `Next day` click if two simulated days are still wanted) and use `getSearchInput()` in the assertions.
+- [ ] `[test]` minor — Add a lock-during-loading test — same file — drive `mockUseTouchLock` to `{ isLocked: true }` while `fetchAllChores` is still pending, then resolve it or rerender; assert nothing throws and the view is at the defaults (All, empty search, no "Return to today"). Exercises the `scrollRegionRef.current` null guard in the F19 effect in `frontend/src/App.tsx`. Note the mock's return is now four-field (`isLocked`, `arm`, `lock`, `idleExpiries`) since F20.
+- [ ] `[test]` minor — Add an already-locked-mount test — same file — mock `useTouchLock` as locked before the first render and assert the app renders in the reset state with no transition needed. **Now decidable** (F20 re-keyed the effect).
+
+---
+
+## F22 (current numbering) — overlay-scrollbar  (`0277f79`, #57)
+Source: `plans/completed/overlay-scrollbar/reviews/push-review-feature-overlay-scrollbar.md`
+> Harvested by the 2026-10-15 `/compact-plans` sweep. One review round, all nine reviewers PASS. The *keep both edits when resolving the conflict with PR #56* item is **not** carried: both merged and the conflict was resolved (#59 / #58). The single-letter-local rename was already `[x]`.
+
+- [ ] `[test]` minor — Resolve the fade-constant/class-literal duplication — `frontend/src/components/common/OverlayScrollbar.tsx`, `frontend/src/__tests__/components/OverlayScrollbar.test.tsx` — either drop the exported `FADE_IN_MS`/`FADE_OUT_MS` (the literals `duration-150`/`duration-400` become the only source), or have the test assert the rendered className contains `` `duration-${FADE_IN_MS}` `` / `` `duration-${FADE_OUT_MS}` `` (today it only asserts the constants' values). Don't template the class string — Tailwind's scanner needs literals.
+- [ ] `[test]` minor — Add named inset assertions — `frontend/src/__tests__/components/ChoreSearchInput.test.tsx`, `frontend/src/__tests__/components/DateNavigationBanner.test.tsx` — assert each component's root className contains `px-4`, following the `ReturnToTodayButton`/`StatusCountStrip` tests.
+- [ ] `[test]` minor — Test the overscroll clamp — `frontend/src/__tests__/hooks/useScrollIndicator.test.ts` — add `computeThumbGeometry` cases for `scrollTop = -50` and `scrollTop = scrollHeight`, asserting `top` stays within [`trackInsetTopPx`, `trackInsetTopPx + track - height`].
+- [ ] `[design]` opt *(conditional)* — Make the hook's return a discriminated union — `frontend/src/hooks/useScrollIndicator.ts` — only if a second consumer of `useScrollIndicator` appears: `{ isVisible: false } | { isVisible: true; geometry: ThumbGeometry }`.
+
+---
+
+## F20 (current numbering) — permissive-lock  (`c3982e9`, #60)
+Source: `plans/completed/permissive-lock/reviews/push-review-feature-permissive-lock.md`
+> Harvested by the 2026-10-15 `/compact-plans` sweep. Four review rounds; Reviews 1 and 3 were fully resolved (`[x]`) before push. Two open boxes are **not** carried: Review 2's *drop the inert padlock animation classes* landed via Review 3's hit-circle rework (no `transition-all … scale-100 opacity-100` remains in `TouchLockOverlay.tsx`), and Review 4's *document the resize re-clamp* now lives in the frozen plan's Outcome header.
+
+- [ ] `[test]` minor — Widen the smoke clock-pause margin — `e2e/smoke.spec.ts` (two sites: `pauseAt(pageNow + 100)` and `pauseAt(cornerPageNow + 100)`) — use a 250–500 ms margin so a loaded CI machine can't throw "Cannot fast-forward to the past"; check the following `fastForward(1600)` still lands in the intended fade window.
+- [ ] `[dx]` minor — Clarify `arm` as the unlock action — `frontend/src/hooks/useTouchLock.ts` — rename the returned `arm` to `unlock` (and every consumer and mock), or add a one-line comment at the return saying `arm` unlocks and restarts the idle countdown.
+- [ ] `[style]` minor — Move `TapPoint` to a shared types home — `frontend/src/components/common/TouchLockOverlay.tsx`, `ChoreTimerBar.tsx`, `ChoreList.tsx`, `App.tsx` — define `TapPoint` in a small shared module (e.g. `frontend/src/types/touchLock.ts`) and import it from there. Worth weighing against `F15`, which moves the lock's timer/state into the kiosk shell.
+- [ ] `[test]` minor — Pin the resize-listener cleanup — `frontend/src/__tests__/components/TouchLockOverlay.test.tsx` — spy on `window.removeEventListener` and assert the `resize` listener is removed on unmount.
+
+---
+
 ## Resolved / archived
 Findings whose feature reviews reached 0-open at push time (kept for provenance, no action):
 - **date-navigation-simulation** (`c36d867`, #12) — both review rounds fully resolved (8/8 done).
@@ -274,3 +341,6 @@ Findings whose feature reviews reached 0-open at push time (kept for provenance,
 - **meta-plan-update-f4** (`89a9675`, #40) — push review reached 0-open at push time; archived by the 2026-09-19 sweep with nothing to harvest.
 - **meta-plan-workflow-improvements-260910** (`9d3e7a4`, #35) — push review reached 0-open at push time; archived by the 2026-09-19 sweep with nothing to harvest.
 - **plans-housekeeping** (`b823ad4`, #20) — two doc-hygiene findings resolved in the 2026-06-30 `/compact-plans` sweep: (1) freeze headers added to the six older completed plans that lacked them; (2) `progress-bar-decay.md` corrected to **Merged `e929b75` (#7)** with an F6-consolidation note (the prior "never merged" claim was contradicted by git).
+- **compact-plans-before-f16** (`85f8a55`, #48), **compact-plans-batched-cadence** (`433c1c4`, #49) — append-only convention: every Review 1 box landed per Review 2's Comparison line; Review 2's remaining "refresh two stale META-PLAN passages" item was absorbed by later Phase C rewrites (the *Branch/dir cleanup* paragraph now lists F16–F22). Archived by the 2026-10-15 sweep with nothing to harvest.
+- **meta-plan-update-f17** (`01a9f1c`, #53), **meta-plan-update-f18** (`da27ff9`, #55), **meta-plan-update-f22** (`ef82c89`, #59) — each open box was a rebase/fold-back awareness item or a META-PLAN wording fix for the next fold-back; all were overtaken by the serialized F18/F19/F22/F20 fold-backs (#55, #59, #58, #61), whose Baseline now counts tests "as of #60". Archived by the 2026-10-15 sweep with nothing to harvest.
+- **docs/reconcile-meta-plan-261014** (`894fb3f`, #63) — push review reached 0-open at push time; archived by the 2026-10-15 sweep.

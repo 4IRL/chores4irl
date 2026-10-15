@@ -1,3 +1,6 @@
+> **STATUS: Merged** `3bb26ee` (#54). Frozen — historical record, do not edit.
+> **Outcome:** Centred, opaque floating scroll-to-top button over the list (inside `scroll-region-frame`, no z-index, two-phase fade with `inert`) shipped; `useScrollPastThreshold` is reused by `F19`'s reset test and `F22` sits beside its scroll listener. Current contract: META-PLAN Codebase map. Four findings harvested.
+
 # Floating Scroll-to-Top Button (F18)
 
 ## Summary

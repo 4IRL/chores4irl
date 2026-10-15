@@ -1,3 +1,6 @@
+> **STATUS: Merged** `9da2c64` (#52). Frozen — historical record, do not edit.
+> **Outcome:** Live done-today / due-soon / overdue strip under the room tabs shipped; a PR follow-up changed segments to always mount and animate `flexGrow` with bar-matched colour/opacity (zero-count segments collapse rather than unmount). `countStatuses` reuses `F16`'s `classifyStatus`. Current contract: META-PLAN Codebase map. Five findings harvested.
+
 # F17 — Status-Count Strip Under the Room Tabs
 
 ## Summary

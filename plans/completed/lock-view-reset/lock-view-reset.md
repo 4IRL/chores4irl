@@ -1,3 +1,6 @@
+> **STATUS: Merged** `fca7118` (#56). Frozen — historical record, do not edit.
+> **Outcome:** Lock engagement resets scroll / room / search / simulated day (META-PLAN Standing invariant 19). `F20` (#60) later re-keyed the reset to `[isLocked, idleExpiries]` so it also re-runs at each idle tick while locked and on a manual lock. Three findings harvested.
+
 # Lock-time view reset (F19)
 
 ## Summary

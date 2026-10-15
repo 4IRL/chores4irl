@@ -1,3 +1,6 @@
+> **STATUS: Merged** `0277f79` (#57). Frozen — historical record, do not edit.
+> **Outcome:** Fading indicator-only overlay scrollbar + full-bleed scroll region shipped. Deviation: thumb geometry is clamped to an inset track (never leaves it) instead of the original unclamped `clientHeight² / scrollHeight` formula, so the list thumb ends level with the last bar. Visible-gutter removal is a Pi check (headless Chromium hides scrollbars). Four findings harvested.
+
 # Fading Overlay Scrollbar + Full-Bleed Scroll Region (F22)
 
 ## Summary
