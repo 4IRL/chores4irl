@@ -69,7 +69,7 @@ The capture batch is **closed** — further ideas enter one at a time via `/new-
 each re-evaluating the ★ on its own (an ungated add would take it back from the gated
 `F15`); `F22` was the first such single add (later on 2026-09-20).
 
-**Shipped through PR #60** — merged work is recorded by git, not re-tabulated here
+**Shipped through PR #62** — merged work is recorded by git, not re-tabulated here
 (`gh pr list --state merged` / `git log --oneline main`). Since #32: #33, #35, #36, #37,
 #40, #41, #42, #44, #45, #47, #48, #49, #51, #53, #55, #58, #59, #61 and #62 were docs/skills-only (META-PLAN reconciles and
 fold-backs, the replacement of the `plans/*-PROMPT.md` templates by the `/run-feature`,
