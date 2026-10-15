@@ -1,20 +1,21 @@
 # META-PLAN — chores4irl future-feature rollout
 
 > **What this file is.** An orchestration manifest, not a script. It sequences the
-> features in the current ledger (see *Source list lineage* below) and defines, for each one,
+> features in the Feature list (see *Source list lineage* below) and defines, for each one,
 > a *self-contained* per-feature session that a fresh agent (with no memory of prior
 > sessions) can run end-to-end using **only this file and the repository**. This file
 > is never run top-to-bottom. It is the index; each feature is a separate session.
 >
-> **Source list lineage.** `plans/ledger/260920_feature_ledger.md` is the **current**
-> source of truth for the backlog; every older ledger carries a `PREDECESSOR` banner and
-> loses on any disagreement. Backlog changes go through the global `/new-feature` skill
-> (which appends a new dated ledger and reconciles this file); the reconcile-by-reconcile
+> **Source list lineage.** Since 2026-10-14 the backlog's intake record is this file's
+> **Feature list** section (below *Where the rollout stands*), seeded from
+> `plans/ledger/260920_feature_ledger.md`. The `plans/ledger/` files are frozen history and
+> are never written again. Backlog changes go through the global `/new-feature` skill, which
+> appends to the Feature list and reconciles this file. The reconcile-by-reconcile
 > narrative lives in git history (PRs #26, #29, #30), not here.
 >
 > **F-ID scheme (fixed at the 2026-07-07 reconcile; never renumber).** Current features
 > use the bare `F#` labels from the 260707 ledger — `F1`–`F13`, extended by later adds
-> (`F14`, `F15`, `F16`, `F17`, `F18`, `F19`, `F20`, `F21`, `F22`, …) in ledger order. Features completed *before* that reconcile keep their
+> (`F14`, `F15`, `F16`, `F17`, `F18`, `F19`, `F20`, `F21`, `F22`, `F23`, …) in intake order. Features completed *before* that reconcile keep their
 > old 260630-era number with an `-L` (legacy) suffix, because several legacy digits were
 > reused for unrelated current features (e.g. legacy `F4-L` = confirm-delete, current
 > `F4` = remove Details/Long-term). The **Legacy → current ID map** below is the full
@@ -42,8 +43,12 @@ must refuse in its cold survey until then; branch `feature/kiosk-shell-adoption`
 has no ungated item left, so — by the rule this file set — the ★ returns to `F15`, the
 gated kiosk-track head that held it before `F21` took it on 2026-09-20. `F19`'s fold-back
 did not move the ★ — `F19` shipped without holding it.)*
-**Nothing in this repo is runnable today** — every remaining feature waits on an external
-pi-kiosk phase (`F15` on Phase 2 parity; `F11`/`F12` on Phase 4). (`F21` — the batch's bug fix —
+**Nothing in this repo is runnable today**. Every remaining feature waits on an external
+gate: `F15` on pi-kiosk Phase 2 parity, `F11`/`F12` on pi-kiosk Phase 4, and `F23` (added
+2026-10-14, re-opening the infra track) on homelab's Pi 5 bootstrap plus rollout step 2.
+`F23` moves C4I to the Pi 5 at `https://chores.milarachi.app`. It is the household hosting
+rollout's step 3 (`~/Code/_STRONGHOLD/decisions/2026-10-13-household-hosting-rollout.md`).
+It is gated, so it does not take the ★. (`F21` — the batch's bug fix —
 shipped #46 and retired the off-by-one caveat; `F16` — the status-bucketed midnight
 re-sort — shipped #50 and left the shared `classifyStatus(daysSince, frequency)` in
 `utils/choreBarMath.ts`; `F17` — the status-count strip — shipped #52 between `NavBar` and
@@ -64,9 +69,9 @@ The capture batch is **closed** — further ideas enter one at a time via `/new-
 each re-evaluating the ★ on its own (an ungated add would take it back from the gated
 `F15`); `F22` was the first such single add (later on 2026-09-20).
 
-**Shipped through PR #60** — merged work is recorded by git, not re-tabulated here
+**Shipped through PR #62** — merged work is recorded by git, not re-tabulated here
 (`gh pr list --state merged` / `git log --oneline main`). Since #32: #33, #35, #36, #37,
-#40, #41, #42, #44, #45, #47, #48, #49, #51, #53, #55, #58 and #59 were docs/skills-only (META-PLAN reconciles and
+#40, #41, #42, #44, #45, #47, #48, #49, #51, #53, #55, #58, #59, #61 and #62 were docs/skills-only (META-PLAN reconciles and
 fold-backs, the replacement of the `plans/*-PROMPT.md` templates by the `/run-feature`,
 `/worktree`, `/compact-plans` skills, and plans sweeps); the app-code merges are **#34 —
 `F14`, the clear-✕ affordance** (Standing invariant 10), **#38 — `F4`, the removal of the
@@ -128,7 +133,7 @@ side on merge). A cold survey finding only `main` (plus any live feature branch)
 expected state — do not resurrect pruned branches, and do not expect plan dirs for
 features that shipped without one (F9-L, F3-L).
 
-### Remaining work — three tracks (current numbering, incl. `F15`–`F22`)
+### Remaining work — three tracks (current numbering, incl. `F15`–`F23`)
 
 ```
 Chore-list track (re-opened 2026-09-20 by F16–F22; all shipped — no remaining item):
@@ -151,8 +156,10 @@ Kiosk extraction track (2026-07-15 — see plans/feature/kiosk-shell-extraction/
     F11 (undo) ─→ F12 (redo) ── remain here, re-scoped onto the kiosk/v1 postMessage
         contract; deferred until pi-kiosk Phase 4 delivers the contract
 
-Infra track (complete):
+Infra track (re-opened 2026-10-14 by F23):
     (F6 — local URL alias c4i.local / c4i — shipped #43)
+    [external] homelab step 1 (Pi 5 `m4i`: Tailscale, Docker, Caddy DNS-01, deploy poller, R2 backups) ─┐
+    [external] rollout step 2 (pi-kiosk on the Pi 4 against today's C4I; + F15 / its split) ───────────┴─► F23 (C4I → m4i at https://chores.milarachi.app, L)  [gated]
 ```
 
 - **Chore-list track: re-opened by `F16`–`F22`; all shipped (`F21`, `F16`, `F17`, `F18`, `F19`, `F22`, `F20`).** `F14` (#34), `F4` (#38) and `F5` (#39) shipped
@@ -225,10 +232,17 @@ Infra track (complete):
   deleting the app-side lock semantics outright), and `F11`/`F12`
   (app-data undo/redo, re-scoped onto the `kiosk/v1` contract, gated on the external
   Phase 4).
-- **Infra track: complete.** `F6` (#43) renamed the Pi to `c4i`, so the app answers at
+- **Infra track: re-opened by `F23` (2026-10-14).** `F6` (#43) renamed the Pi to `c4i`, so the app answers at
   `http://c4i.local/` (mDNS) and `http://c4i/` (router DNS) — Standing invariant 13 and
   the Baseline's *Deployment* paragraph record the mechanism. Its alias is the natural
-  `target_url` for pi-kiosk (see `F15`'s Open risks (d)).
+  `target_url` for pi-kiosk (see `F15`'s Open risks (d)). **`F23`** is rollout step 3 of
+  the household hosting decision. It moves the stack off the Pi 4 to the Pi 5 (`m4i`),
+  where homelab's Caddy serves it at `https://chores.milarachi.app` (tailnet-only, DNS-01
+  certificate). Deploys happen on merge through homelab's poller, with a backup and a
+  health check on every deploy. The Pi 4 kiosk is pointed at the HTTPS URL, and C4I's
+  containers on the Pi 4 are retired. That rewrites Standing invariant 13's
+  `http://localhost/` kiosk clause and makes the `c4i` / `c4i.local` aliases stop serving
+  the app. Gated on homelab step 1 and rollout step 2 (see § F23).
 
 ### Shortest path to the focus feature (`F15`)
 
@@ -270,7 +284,9 @@ pi-kiosk's `target_url` question now belongs to `F15`'s Open risks (d).
 - **Do not** re-open `F6`'s surface — the Pi is `c4i`; `deploy/pi/set-hostname.sh` is
   idempotent and re-applies/rolls back; `http://192.168.1.214/` still works; the kiosk
   keeps `http://localhost/`. Standing invariant 13 records it; follow-ups (e.g. pinning Avahi
-  to `wlan0`, anchoring the `*.sh` gitignore rule) enter via `/new-feature`.
+  to `wlan0`, anchoring the `*.sh` gitignore rule) enter via `/new-feature`. `F23` is the
+  sanctioned successor: it is the only feature that may change invariant 13's kiosk/alias
+  clauses, and only when it moves C4I to `m4i`.
 - **Do not** start `F3`/`F7`/`F8`/`F9`/`F10`/`F13` in this repo at all — they are
   superseded (migrated to pi-kiosk, 2026-07-15). `F15` cannot start until pi-kiosk
   Phase 2 parity is verified on the Pi; `F11`/`F12` cannot start until pi-kiosk Phase 4
@@ -281,6 +297,23 @@ pi-kiosk's `target_url` question now belongs to `F15`'s Open risks (d).
 
 ---
 
+## Feature list (intake record)
+
+> The owner's wording for every open F-ID, in ID order. Created 2026-10-14 from
+> `plans/ledger/260920_feature_ledger.md` (its still-open items) when the global
+> `/new-feature` skill moved the intake record into this file; the ledger files are left
+> untouched as frozen history. From here on `/new-feature` appends here and never writes a
+> ledger file; a line is deleted when its feature is verified merged.
+
+**Next F-ID:** `F24`
+
+- [ ] **F11** (added 2026-07-07; re-scoped 2026-07-15): Undo — allow the user to recover from accidental touch and chore completion. Bounded undo cache (1–2 levels sufficient if complexity/size limited); an undo is itself a write that must emit on the SSE bus. **Implemented in chores4irl**, surfaced through the pi-kiosk console via the `kiosk/v1` postMessage contract (chores4irl is the contract's first app-side client). Deferred until pi-kiosk Phase 4 delivers the contract — see `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`.
+- [ ] **F12** (added 2026-07-07; re-scoped 2026-07-15): Redo — re-apply an action undone via F11; pairs with F11's cache (same 1–2-level bound). Same surfacing as F11 (`kiosk/v1` contract); depends on F11 + pi-kiosk Phase 4.
+- [ ] **F15** (added 2026-07-15): Adopt kiosk-shell — remove the F1 auto-screen-blank and F2 touch-lock overlays from the app (their behavior is now provided by the pi-kiosk shell in front of the iframe-embedded app), and commit the embeddability guarantee (no `X-Frame-Options`/`frame-ancestors` denying the shell origin; recorded as an nginx.conf comment + README note). Runs only after pi-kiosk Phase 2 parity is verified on the Pi. See `plans/feature/kiosk-shell-extraction/kiosk-shell-extraction.md`.
+- [ ] **F23** (added 2026-10-14): Serve chores4irl at chores.milarachi.app over HTTPS via Tailscale. Follow the hosting decision as outlined by `2026-10-13-household-hosting-rollout.md`. Put Caddy in front of the existing stack on c4i, with a Cloudflare DNS-01 certificate and the Pi's Tailscale address in DNS. The kiosk stays on http://localhost/. c4i.local and c4i remain plain-http LAN fallbacks. Exit check: the app loads at https://chores.milarachi.app from a phone on cellular with Tailscale on. (scope clarified 2026-10-14 by the owner: this is the decision's rollout step 3. C4I moves to the Pi 5 (`m4i`) behind homelab's Caddy; it is not an interim Caddy on `c4i`. The kiosk and LAN-fallback bullets therefore follow the decision, as recorded in § F23.)
+
+---
+
 ## Backlog summary (remaining work only)
 
 > Merged features are **not** tabulated here — git is the authority on what shipped
@@ -288,19 +321,22 @@ pi-kiosk's `target_url` question now belongs to `F15`'s Open risks (d).
 > where it steers future work: the Baseline, the Standing invariants, the Legacy →
 > current ID map, and the kept contracts under Completed-Feature Contracts below.
 
-### Remaining (current numbering, incl. `F15`–`F22`; reassessed against current `main` at the 2026-09-20 `/new-feature` reconciles — batch closed at `F21`; `F22` added singly the same day; `F21` shipped #46 on 2026-09-22, `F16` shipped #50 on 2026-09-22, `F17` shipped #52 on 2026-09-23, `F18` shipped #54 on 2026-09-23, `F19` shipped #56 on 2026-09-23, `F22` shipped #57 on 2026-09-23 and `F20` shipped #60 on 2026-09-24, all leaving the table)
+### Remaining (current numbering, incl. `F15`–`F23`; reassessed against current `main` at the 2026-09-20 `/new-feature` reconciles — batch closed at `F21`; `F22` added singly the same day; `F21` shipped #46 on 2026-09-22, `F16` shipped #50 on 2026-09-22, `F17` shipped #52 on 2026-09-23, `F18` shipped #54 on 2026-09-23, `F19` shipped #56 on 2026-09-23, `F22` shipped #57 on 2026-09-23 and `F20` shipped #60 on 2026-09-24, all leaving the table)
 
 | Order | Feature | Effort | Depends on | Track |
 |---|---|---|---|---|
 | ★ 1 *(gated)* | **F15** — Adopt kiosk-shell: remove F1/F2 overlays + embeddability guarantee **[FOCUS — kiosk-track head, gated]** *(added 2026-07-15; lock half reshaped by the shipped F20)* | **M** | **external:** pi-kiosk Phase 2 parity verified on the Pi (lock half: `F20`'s as-built contract; the lock hand-over rides Phase 4's `kiosk/v1` — Open risks (f)) | Kiosk extraction |
 | 2 | **F11** — Undo *(re-scoped 2026-07-15 onto the `kiosk/v1` contract)* | **M–L** | **external:** pi-kiosk Phase 4 (`kiosk/v1` contract) | Kiosk extraction |
 | 3 | **F12** — Redo *(re-scoped 2026-07-15)* | **M** | F11 + same external gate | Kiosk extraction |
+| 4 *(gated)* | **F23** — Serve C4I at `https://chores.milarachi.app` from the Pi 5 (`m4i`); hosting rollout step 3 *(added 2026-10-14)* | **L** | **external:** homelab step 1 live on `m4i` (Caddy DNS-01, deploy poller, R2 backups) **+** rollout step 2 done (pi-kiosk on the Pi 4; `F15` or its Phase-2 half merged) | Infra |
 | ~~—~~ | ~~**F3 · F7 · F8 · F9 · F10 · F13** — device-control console + its controls~~ | — | **superseded 2026-07-15** — migrated to pi-kiosk (shell console / agent controls / settings; `F13`'s plan harvested, see its banner) | *(migrated)* |
 
 **Effort tally (remaining, in this repo).** Chore-list track: **0 pts** (all shipped).
-Infra track: **0 pts** (complete). Kiosk extraction track: F15
+Infra track: F23 (L=3; intake estimate, unscored). Kiosk extraction track: F15
 (M=2, re-check at planning — see below) + F11 (M–L≈2–3) + F12 (M=2) ≈ **6–7 pts**, all gated on external pi-kiosk phases.
-Total ≈ **6–7 pts**, none of it runnable today. (S=1 / M=2 / L=3 / XL=5.) F15/F20/F11/F12 were re-checked
+Total ≈ **9–10 pts**, none of it runnable today. At `F23`'s add (2026-10-14), F15, F11
+and F12 were re-checked against `main` at `9a7489b`. Only #61 (META-PLAN) and #62
+(`.claude/skills/`) landed after #60, so their estimates stand. (S=1 / M=2 / L=3 / XL=5.) F15/F20/F11/F12 were re-checked
 against `main` at #44 for `F21`'s add, and all of them again for `F22`'s: nothing
 landed since their last estimate (same day), so their scores stand; `F21` itself shipped
 #46 (2026-09-22) at its estimated S–M and left the tally; `F16` shipped #50 (2026-09-22) at
@@ -353,6 +389,7 @@ pi-kiosk repo's own planning, not here.
 | *(none — new, added 2026-09-20)* | **F20** — permissive touch lock (reworks shipped `F2`: padlock only on a blocked complete/edit/delete; scroll, search, rooms, day-sim, Add Task usable while locked; indicator = lock/unlock control) *(shipped #60 — folded into Baseline `App.tsx` / `ChoreTimerBar` / touch-lock Key UI and Standing invariants 9, 12 and 19; its contract is the `F2` kept contract below, for `F15` — no separate `F20` entry)* |
 | *(none — new, added 2026-09-20; promotes the `F2-L` follow-up list of 2026-07-08)* | **F21** — add/edit form polish + date-math fix *(shipped #46 — folded into Baseline / Standing invariant 14; the `F2-L` kept contract it targeted was deleted with it)* |
 | *(none — new, added 2026-09-20 after the batch closed)* | **F22** — fading overlay scrollbar + full-bleed scroll region (native scrollbar hidden; indicator-only overlay thumb on the list + form scroll box, shown while scrolling, fades ≈ 1 s after; outer `px-4` moved to header rows + list content so the container, deck backing and thumb reach the screen edges) *(shipped #57 — folded into Baseline `OverlayScrollbar` Key UI / Standing invariants 12, 14, 16 and 18)* |
+| *(none — new, added 2026-10-14)* | **F23** — serve C4I at `https://chores.milarachi.app` from the Pi 5 (`m4i`) behind homelab's Caddy (household hosting rollout step 3) |
 
 ---
 
@@ -372,6 +409,7 @@ pi-kiosk repo's own planning, not here.
 | **F15 — adopt kiosk-shell** ★FOCUS *(added 2026-07-15; kiosk-track head)* | pending *(gated on external pi-kiosk Phase 2 parity)* | `feature/kiosk-shell-adoption` | — |
 | F11 — undo *(re-scoped 2026-07-15: `kiosk/v1` contract)* | pending *(gated on external pi-kiosk Phase 4)* | `feature/undo` | — |
 | F12 — redo *(re-scoped 2026-07-15)* | pending *(gated on F11 + same external gate)* | `feature/redo` | — |
+| F23 — serve at chores.milarachi.app from the Pi 5 *(added 2026-10-14; rollout step 3)* | pending *(gated on homelab step 1 + rollout step 2)* | `feature/milarachi-app-hosting` | — |
 | F3 · F7 · F8 · F9 · F10 · F13 — device-control console + controls | **superseded** *(2026-07-15 — migrated to pi-kiosk; branches never created)* | — | — |
 
 **Branch/dir cleanup:** `F16` (#50, merged 2026-09-22), `F17` (#52, merged 2026-09-23),
@@ -416,12 +454,12 @@ in the feature's own commits/PR.
 
 ---
 
-## Baseline: the codebase as it exists today (`main` at PR #60, `c3982e9`)
+## Baseline: the codebase as it exists today (`main` at PR #62, `9a7489b`; app code unchanged since PR #60, `c3982e9`)
 
 > **This Baseline reflects `main` after PR #60 (`c3982e9`) — `F20`** (on top of `F22`'s #57,
 > `0277f79`, and `F19`'s #56, `fca7118`, whose deltas are described below too). It is the literal current
 > state and the **assumed starting state for every remaining feature.** (PRs #33, #35, #36,
-> #37, #40, #41, #42, #44, #45, #47, #48, #49, #51, #53, #55, #58 and #59 touched only `plans/` docs and `.claude/skills/`; **#43 (`1c63e0a`) —
+> #37, #40, #41, #42, #44, #45, #47, #48, #49, #51, #53, #55, #58, #59, #61 and #62 touched only `plans/` docs and `.claude/skills/`; **#43 (`1c63e0a`) —
 > `F6`** touched no app code — `deploy/pi/set-hostname.sh`, `deploy/pi/cloud-init/`,
 > `deploy/pi/README.md`, root `README.md` and `plans/`; the app-code deltas since #32
 > are **#34 (`3533b67`) — `F14`**, all under `frontend/src/`, **#38 (`d728989`) — `F4`**,
@@ -899,7 +937,7 @@ Standing invariant 19.
 
 ---
 
-# REMAINING FEATURES (current numbering, incl. `F15`–`F22`)
+# REMAINING FEATURES (current numbering, incl. `F15`–`F23`)
 
 > Every remaining feature's **Assumed starting state is the Baseline above**. `F1` (#27)
 > and `F2` (#28) shipped — their implemented contracts (`F2`'s as reworked by `F20`) are kept
@@ -1183,7 +1221,138 @@ never overlay the iframe while locked.
 
 ---
 
-## Chain integrity (remaining work, current numbering, incl. `F15`–`F22`)
+## F23 — Serve C4I at `https://chores.milarachi.app` from the Pi 5 (household hosting rollout step 3)  ·  Infra track  ·  Effort L  ·  gated  ·  (added 2026-10-14)
+
+**Goal.** Household members can open chores4irl at `https://chores.milarachi.app` from any
+tailnet device, at home or away, with a trusted certificate. The address is unreachable off
+the tailnet. Owner's wording: Feature list § F23. The owner confirmed the scope on
+2026-10-14 as the decision record's **rollout step 3**: C4I moves to the Pi 5 (`m4i`)
+behind homelab's Caddy. This is not an interim Caddy on the Pi 4 (`c4i`). Governing
+records, all under `~/Code/_STRONGHOLD/decisions/`:
+- `2026-10-13-household-hosting-rollout.md`: host roles (§1), plan order (§2),
+  deployment rules 1–7 and the pull-based poller (§3), and R2 backups (§4).
+- `2026-10-11-milarachi-app-hosting.md`: naming, the private tier, DNS-01 certificates,
+  the app contract, LAN fallback and the registry.
+
+Rollout step 3 is: move C4I to the Pi 5 at `chores.milarachi.app` with deploy-on-merge and
+cloud backups, point the Pi 4 kiosk at it, and retire C4I's containers on the Pi 4.
+
+**Rank rationale.** It is last in the backlog and gated. It cannot start until the Pi 5
+host exists (homelab step 1) and pi-kiosk has landed on the Pi 4 against today's C4I
+(rollout step 2). It does not compete for the ★: the ★ rule gives it to ungated adds only,
+and `F15` (the ★) is on its upstream path.
+
+**Dependencies.** All of them are external, and each is verified and recorded at the
+start of the planning step:
+- **homelab step 1 live on `m4i`.** This covers Tailscale with MagicDNS name `m4i`,
+  Docker, a Caddy build with `caddy-dns/cloudflare` and a root-only zone-scoped token, the
+  `deploy`-user poller timer with its CI gate, the restic → R2 nightly job, and the memory
+  guards of §3 rule 7. Verify it from `homelab`'s own plans and live state, never from this
+  file.
+- **Rollout step 2 done.** pi-kiosk runs on the Pi 4 against the C4I that runs there now,
+  and step 2 has decided which features stay in C4I. In this repo that means `F15`, or the
+  Phase-2 half of its split (`F15`'s Open risks (f)), is merged. The pi-kiosk `target_url` is the
+  knob this feature turns.
+- **Branch protection on `main`** with the CI test check required (§3). It is already true
+  (Baseline *CI*); re-verify it.
+
+**Sizing.** unscored (intake estimate L); split check pending.
+
+**Assumed starting state** = **Baseline**, plus whatever `F15` (or its split) left. Verify:
+- `docker-compose.yml`'s `frontend` publishes `"80:80"` on all interfaces, and `nginx.conf`
+  (`server_name _`) serves the SPA and proxies `/api/` and `/api/events` to `backend:3000`
+  **with the `/api` prefix kept**. The backend's routes are `/api`-prefixed (`app.ts`).
+- There is no `/api/healthz` route. `Dockerfile.backend`'s `HEALTHCHECK` fetches
+  `/api/chores`.
+- `deploy.sh` pushes a `git archive HEAD` tarball to `rmilarachi@c4i` over `scp`/`ssh`, and
+  `deploy/pi/chores4irl-backup.{service,timer}` run the snapshot on the Pi 4.
+- Standing invariant 13 holds: the kiosk is on `http://localhost/`, and the app answers at
+  `http://c4i.local/` / `http://c4i/` / `http://192.168.1.214/`.
+
+**Expected end state** (repo-checkable, with the out-of-repo facts recorded in
+`plans/feature/milarachi-app-hosting/`):
+- The backend exposes a cheap `GET /api/healthz`, covered by a backend route test. Both
+  the poller's post-deploy check (§3 rule 4) and the container `HEALTHCHECK` use it.
+- The prod compose config publishes nothing on `0.0.0.0` (§3 rule 2; the 2026-10-11 record
+  says apps listen on loopback only). Caddy reaches C4I on a loopback port. Prod containers
+  carry a memory limit, `restart: unless-stopped` and a negative `oom_score_adj` (§3 rule 7).
+  Prod data lives in a Docker volume or under `/srv/chores4irl/data`, outside Claude's
+  sandbox scope (§3 rule 3).
+- A per-app deploy entry point is committed. homelab's poller calls it for a new
+  CI-green SHA and it runs: SQLite online backup → build/up → `/api/healthz` → roll back to
+  the previous image on failure (§3 rules 1 and 4). `deploy.sh` no longer targets `c4i`. It
+  is either deleted or reduced to a documented break-glass manual deploy to `m4i`.
+- README and deploy docs name `https://chores.milarachi.app` as the address, the
+  chosen plain-http LAN fallback (Open risks (c)), and the kiosk's target. Standing
+  invariant 13 is rewritten. The `c4i` hostname and `set-hostname.sh` stay, but `c4i` no
+  longer serves the app, and the kiosk loads the HTTPS URL.
+- Recorded live, outside the repo:
+  - the Pi 4's `data.db` migrated to `m4i` (row counts match);
+  - the Cloudflare grey-cloud record `chores` pointing at `m4i`'s 100.x address;
+  - homelab's Caddyfile site block for `chores.milarachi.app`, in homelab's repo;
+  - the Pi 4 kiosk loading the HTTPS URL;
+  - C4I's containers and backup timer on the Pi 4 stopped and removed;
+  - **exit check:** the app loads at `https://chores.milarachi.app` from a phone on
+    cellular (Wi-Fi off) with Tailscale on, and on the home LAN (2026-10-11 onboarding
+    step 4).
+- All suites green. Standing invariants 1–12 and 14–19 are untouched.
+
+**Test-suite deltas.** A backend route test for `/api/healthz`. If the deploy entry point
+carries testable logic (rollback selection, health polling), it gets a shell-level or
+Vitest test. No frontend or e2e change is expected: the app never hard-codes its hostname
+(Standing invariant 13).
+
+**Open risks / decisions.**
+- **(a) Repo split.** The Caddyfile, poller, restic job, Cloudflare token and DNS record
+  belong to **homelab**. This repo owns the compose config, the healthz route, the per-app
+  deploy hook and the docs. Recommended: keep it that way. Agree the hook's interface
+  (path, arguments, exit codes) with homelab's step 1 plan, and never commit host secrets
+  (§3 rule 6).
+- **(b) The app contract vs C4I's `/api` routes.** The 2026-10-11 contract has Caddy serve
+  the built frontend and reverse-proxy `/api` **stripping the prefix** (meals4irl's
+  convention). C4I's Express routes keep `/api`. Option 1 (recommended): Caddy
+  reverse-proxies everything to the existing nginx container on a loopback port. nginx
+  keeps doing SPA fallback, asset caching and the unbuffered `/api/events` SSE proxy, and
+  no app change is needed. Option 2: Caddy serves the static build and proxies `/api`
+  without stripping it. Option 3: strip the prefix and re-route the backend. Options 2 and
+  3 retire nginx but need the SSE settings copied into Caddy (`flush_interval -1`, long
+  read timeout). If the chosen option departs from the contract, record that in the
+  decision record from a `~/Code` session.
+- **(c) LAN fallback after the move.** Once C4I leaves the Pi 4, `http://c4i.local/` /
+  `http://c4i/` stop serving it. Port 80 there goes to Pi-hole in step 4. The decision's
+  fallback is `<host>.local` over plain http, which means `m4i`. But `m4i`'s Caddy will
+  also host M4I and the canary, so a bare `http://m4i.local/` is ambiguous. Decide between
+  a per-app plain-http port (`http://m4i.local:<port>/`), a hostname-routed http site, or
+  HTTPS only. The owner's original wording kept `c4i` / `c4i.local` as fallbacks; that is
+  superseded by the step 3 scope, so confirm the replacement with the owner at planning.
+- **(d) The wall display now depends on the network.** The Pi 4 kiosk needs Tailscale up
+  on `c4i`, `m4i` up, and DNS resolving the 100.x record. The router's rebinding protection
+  is an open question in the 2026-10-11 record, with Pi-hole split DNS as the planned
+  answer in step 4. Today the kiosk only needs `localhost`. A `m4i` development reboot now
+  blanks the wall. Decide whether pi-kiosk shows a retry/offline page, and confirm that
+  the shell's iframe and `kiosk/v1` postMessage origin checks accept
+  `https://chores.milarachi.app` (embedding it from an `http://localhost` shell is not
+  mixed content). If the owner wants the kiosk to keep a local copy, that needs its own
+  decision.
+- **(e) Data cut-over.** This is a one-time move of the live SQLite DB from the Pi 4's
+  `chores-data` volume. Take an online backup with writes quiesced: stop the Pi 4 stack
+  first, so the kiosk can't write mid-copy. Verify row counts on `m4i` before the kiosk
+  is repointed. Keep the Pi 4 volume untouched as the rollback until the exit check passes.
+  SSE clients reconnect by themselves (`visibilitychange` re-fire).
+- **(f) Backups move.** `deploy/pi/chores4irl-backup.{service,timer}` are superseded by the
+  deploy's pre-deploy online backup plus homelab's nightly restic → R2 job, with a second
+  copy on the other Pi (§4). Decide whether this repo keeps a snapshot script for the
+  poller to call, or homelab owns it outright.
+- **(g) Records to update afterwards, from a `~/Code` session, not here.** The 2026-10-13
+  record's step 3 Status (`planned in chores4irl` now, `live <date>` at the end) and the
+  2026-10-11 registry row (`chores4irl`: host Pi 5, status live).
+
+**Session.** `/run-feature F23` on branch `feature/milarachi-app-hosting`; plan at
+`plans/feature/milarachi-app-hosting/milarachi-app-hosting.md`.
+
+---
+
+## Chain integrity (remaining work, current numbering, incl. `F15`–`F23`)
 
 ```
 CHORE-LIST TRACK (re-opened 2026-09-20, complete again; F14 shipped #34, F4 shipped #38, F5 shipped #39, F21 shipped #46, F16 shipped #50, F17 shipped #52, F18 shipped #54, F19 shipped #56, F22 shipped #57, F20 shipped #60 — the 2026-07-08 order F14 → F4 → F5 and the 2026-09-20 "F21 first" then F16 → F17 → F18 → F22 → F20 order are honored by history; F19 ran ahead of its soft slot after F20)
@@ -1198,7 +1367,11 @@ KIOSK EXTRACTION TRACK (2026-07-15 — external gates; see plans/feature/kiosk-s
   [pi-kiosk Phase 3: console + agent controls  ·  absorbs F3/F7/F8/F10/F13 — superseded here]
   [pi-kiosk Phase 4: settings (absorbs F9) + kiosk/v1 contract] ──► F11 (undo) ─→ F12 (redo)
 
-INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live; see F15's Open risks (d) for pi-kiosk's target_url)
+INFRA TRACK (re-opened 2026-10-14; F6 shipped #43 — the LAN alias c4i.local / c4i is live; see F15's Open risks (d) for pi-kiosk's target_url)
+  [homelab step 1: Pi 5 `m4i` bootstrap — Caddy DNS-01, deploy poller, R2 backups] ─┐
+  [rollout step 2: pi-kiosk on the Pi 4 against today's C4I; F15 or its Phase-2 half] ┴──► F23 (C4I → m4i at https://chores.milarachi.app)  [gated]
+      (F23 rewrites Standing invariant 13's kiosk/alias clauses and retires C4I's Pi 4 containers;
+       homelab step 4 — Pi-hole on c4i — waits on F23 freeing port 80 there)
 ```
 
 - **No hard chain remains inside this repo.** The old device-control edge (`F3` gates
@@ -1208,13 +1381,27 @@ INFRA TRACK (complete; F6 shipped #43 — the LAN alias c4i.local / c4i is live;
   after `F20`); its earlier soft `F14` → `F4` → `F5` preference of 2026-07-08 was honored — #34, #38,
   #39 — and the 2026-09-20 "`F21` first" preference by #46, then `F16` by #50, `F17` by #52, `F18` by #54, `F22` by #57 and `F20` by #60 — and two **external** gates (`F15` on pi-kiosk Phase 2 parity; `F11`/`F12` on Phase
   4's `kiosk/v1` contract, with `F12` also following `F11`). The infra track completed with
-  `F6` (#43).
+  `F6` (#43) and was re-opened on 2026-10-14 by `F23`. `F23` is gated on homelab step 1
+  and rollout step 2, so it chains after `F15` (or its Phase-2 half) but has no in-repo
+  prerequisite of its own.
 - **Focus path:** `F15` — ★FOCUS, **gated** on pi-kiosk Phase 2 parity (the kiosk-track
   head; the ★ returned to it at `F20`'s fold-back, #60, because no ungated chore-list item
   remains). Nothing in this repo is runnable until that gate opens; `F11`/`F12` follow on
   Phase 4. A new ungated `/new-feature` add would take the ★ back. The 2026-09-20 capture
   batch is closed — no deferred re-evaluation remains.
 - **Cross-feature couplings to honor:**
+  - **F23 ↔ F15 / pi-kiosk `target_url` (F15's Open risks (d)) ↔ the shipped F6
+    (Standing invariant 13):** `F15`'s (d) keeps the wall kiosk on `http://localhost/`.
+    That holds only while C4I runs on the Pi 4. `F23` repoints the kiosk at
+    `https://chores.milarachi.app` and rewrites invariant 13's kiosk clause, and `c4i` /
+    `c4i.local` stop serving the app (`F23`'s Open risks (c)). If `F15` plans before `F23`,
+    its embeddability guarantee and `kiosk/v1` origin handling must not assume the app is
+    same-host. The shell's allowed app origin must be configurable, not hard-coded to
+    `localhost`.
+  - **F23 ↔ the backend's `HEALTHCHECK` and the SSE proxy (Standing invariant 5):** a new
+    `/api/healthz` route serves the poller and the container check. Whatever proxy fronts
+    the app on `m4i` must keep `/api/events` unbuffered with a long read timeout, as
+    `nginx.conf` does today (`F23`'s Open risks (b)).
   - **`daysSince` consumers (the shipped F16 sort, the shipped F17 strip, `ChoreTimerBar`) ↔
     the shipped F21 boundary (Standing invariant 14):** the form now means local midnight in
     / local calendar day out; `choreSort.ts`, `ChoreTimerBar.tsx` and
