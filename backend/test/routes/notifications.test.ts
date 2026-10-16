@@ -40,10 +40,10 @@ function jsonResponse(body: unknown, status = 200) {
 function provisionResponseBody(overrides: Record<string, unknown> = {}) {
   return {
     user_id: 'notifs-user-1',
-    app_id: 'tasktracker',
+    app_id: 'chores4irl',
     person_hash: PROVISION_HASH,
-    topic_pattern: `tasktracker-${PROVISION_HASH}-*`,
-    broadcast_topic: 'tasktracker-broadcast',
+    topic_pattern: `chores4irl-${PROVISION_HASH}-*`,
+    broadcast_topic: 'chores4irl-broadcast',
     token: PROVISION_TOKEN,
     ...overrides,
   };
@@ -58,7 +58,7 @@ function stubFetch(opts: { provisionStatus?: number; provisionBody?: unknown; nt
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     if (url === TEST_JWKS_URL) return jsonResponse(primaryJwks);
     if (url === PROVISION_URL) return jsonResponse(provisionBody, provisionStatus);
-    if (url.startsWith(`${NOTIFS_TEST_ENV.NTFY_BASE_URL}/tasktracker-`)) {
+    if (url.startsWith(`${NOTIFS_TEST_ENV.NTFY_BASE_URL}/chores4irl-`)) {
       return new Response('{}', { status: ntfyStatus, headers: { 'content-type': 'application/json' } });
     }
     return new Response('not found', { status: 404 });
@@ -117,7 +117,7 @@ describe('GET /api/notifications', () => {
         enabled: true,
         // Full origin (scheme + host), not host-only — new URL(NTFY_BASE_URL).origin.
         server: 'https://notifs.test.fixture',
-        topic: `tasktracker-${SEED_HASH}-all`,
+        topic: `chores4irl-${SEED_HASH}-all`,
         subscriberToken: SEED_TOKEN,
       },
     });
@@ -188,7 +188,7 @@ describe('POST /api/notifications/enable', () => {
         provisioned: true,
         enabled: true,
         server: 'https://notifs.test.fixture',
-        topic: `tasktracker-${PROVISION_HASH}-all`,
+        topic: `chores4irl-${PROVISION_HASH}-all`,
         subscriberToken: PROVISION_TOKEN,
       },
     });
@@ -243,7 +243,7 @@ describe('POST /api/notifications/enable', () => {
 
     // Response carries the original token/topic, not the provisioning stub's.
     expect(body.data.subscriberToken).toBe(SEED_TOKEN);
-    expect(body.data.topic).toBe(`tasktracker-${SEED_HASH}-all`);
+    expect(body.data.topic).toBe(`chores4irl-${SEED_HASH}-all`);
   });
 });
 
@@ -263,7 +263,7 @@ describe('POST /api/notifications/test', () => {
 
     const ntfyCalls = callsTo(
       fetchMock,
-      (url) => url === `${NOTIFS_TEST_ENV.NTFY_BASE_URL}/tasktracker-${SEED_HASH}-all`,
+      (url) => url === `${NOTIFS_TEST_ENV.NTFY_BASE_URL}/chores4irl-${SEED_HASH}-all`,
     );
     expect(ntfyCalls).toHaveLength(1);
     const headers = ntfyCalls[0][1]?.headers as Record<string, string>;

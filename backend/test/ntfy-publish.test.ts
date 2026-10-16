@@ -7,20 +7,20 @@ const TEST_ENV = {
 };
 
 const PERSON_HASH = 'abc123hash';
-const PUBLISH_URL = 'https://ntfy.test/tasktracker-abc123hash-all';
+const PUBLISH_URL = 'https://ntfy.test/chores4irl-abc123hash-all';
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe('personTopic', () => {
-  it('builds the per-user topic as tasktracker-{personHash}-all', () => {
-    expect(personTopic(PERSON_HASH)).toBe('tasktracker-abc123hash-all');
+  it('builds the per-user topic as chores4irl-{personHash}-all', () => {
+    expect(personTopic(PERSON_HASH)).toBe('chores4irl-abc123hash-all');
   });
 });
 
 describe('publishTest', () => {
-  it('POSTs to {NTFY_BASE_URL}/tasktracker-{personHash}-all with Bearer auth and the expected headers, returning ok', async () => {
+  it('POSTs to {NTFY_BASE_URL}/chores4irl-{personHash}-all with Bearer auth and the expected headers, returning ok', async () => {
     const calls: { url: string; init?: RequestInit }[] = [];
     vi.stubGlobal(
       'fetch',

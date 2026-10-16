@@ -21,10 +21,10 @@ function jsonResponse(body: unknown, status = 200) {
 function provisionBody() {
   return {
     user_id: 42,
-    app_id: 'tasktracker',
+    app_id: 'chores4irl',
     person_hash: 'abc123hash',
-    topic_pattern: 'tasktracker-abc123hash-*',
-    broadcast_topic: 'tasktracker-broadcast',
+    topic_pattern: 'chores4irl-abc123hash-*',
+    broadcast_topic: 'chores4irl-broadcast',
     token: 'tk_subscriber-token',
   };
 }
@@ -55,7 +55,7 @@ describe('provisionUser', () => {
     expect(calls[0].url).toBe(PROVISION_URL);
     expect(calls[0].init?.method).toBe('POST');
     expect(JSON.parse(calls[0].init!.body as string)).toEqual({
-      app_id: 'tasktracker',
+      app_id: 'chores4irl',
       email: 'user@example.com',
     });
   });

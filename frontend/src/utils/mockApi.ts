@@ -144,7 +144,7 @@ function seedNotifications(): MockNotifications {
     provisioned: false,
     enabled: false,
     server: 'https://notifs.4irl.app',
-    topic: 'tasktracker-previewhash4e5tei-all',
+    topic: 'chores4irl-previewhash4e5tei-all',
     subscriberToken: 'tk_preview_9f2a7c1e4b6d8035',
   };
 }
