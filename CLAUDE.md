@@ -1,4 +1,4 @@
-# chore-reaper — Project Instructions
+# chores4irl — Project Instructions
 
 `ARCHITECTURE.md` is the main documentation for this app — stack, dev/staging/prod environments,
 frontend/backend design, CI/CD, database/migrations, auth model, and a "where to look for X" index.
@@ -29,10 +29,10 @@ commits and PRs on this repo show **bot-only attribution** — no `Co-Authored-B
      repo-local `chore-reaper-claude` App toolkit that lived under .claude/scripts/ has been removed. Account-specific App/install IDs and GraphQL IDs are NOT
      inlined here (secrets policy); only the public bot login + noreply email are recorded. -->
 
-- **Repo slug:** `4IRL/chores4irl` (directory `tasktracker`, app `chore-reaper`, live at chores.4irl.app)
+- **Repo slug:** `4IRL/chores4irl` (directory `chores4irl`, live at chores.4irl.app; the old `GPropersi/chore-reaper` repo is abandoned, and runtime ids such as the Worker name and the `tasktracker` ntfy app id keep their old names)
 - **Default branch:** `main`
-- **Plans store (central):** `~/code/plans/tasktracker/{open,completed,research}/<topic>/` <!-- reviews/mocks/plan-research co-located per plan; full rules in ~/code/CLAUDE.md "Central Plans Store" -->
-- **Plans bucket:** `tasktracker` <!-- directory under ~/code/plans/ for this repo's plans; explicit, never inferred from the slug or the directory name -->
+- **Plans store (central):** `~/code/plans/chores4irl/{open,completed,research}/<topic>/` <!-- reviews/mocks/plan-research co-located per plan; full rules in ~/code/CLAUDE.md "Central Plans Store" -->
+- **Plans bucket:** `chores4irl` <!-- directory under ~/code/plans/ for this repo's plans; explicit, never inferred from the slug or the directory name -->
 - **Push gate:** (suites a push must pass; first matching row wins per changed path, all matched suites run sequentially)
   | Paths (space-separated globs)                         | Command                      |
   | ----------------------------------------------------- | ---------------------------- |
