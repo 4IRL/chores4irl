@@ -29,7 +29,7 @@ commits and PRs on this repo show **bot-only attribution** — no `Co-Authored-B
      repo-local `chore-reaper-claude` App toolkit that lived under .claude/scripts/ has been removed. Account-specific App/install IDs and GraphQL IDs are NOT
      inlined here (secrets policy); only the public bot login + noreply email are recorded. -->
 
-- **Repo slug:** `4IRL/chores4irl` (directory `chores4irl`, live at chores.4irl.app; the old `GPropersi/chore-reaper` repo is abandoned, and runtime ids such as the Worker name and the `tasktracker` ntfy app id keep their old names)
+- **Repo slug:** `4IRL/chores4irl` (directory `chores4irl`, live at chores.4irl.app; the old `GPropersi/chore-reaper` repo is abandoned, and runtime ids such as the Worker name `chore-reaper-backend` keep their old names)
 - **Default branch:** `main`
 - **Plans store (central):** `~/code/plans/chores4irl/{open,completed,research}/<topic>/` <!-- reviews/mocks/plan-research co-located per plan; full rules in ~/code/CLAUDE.md "Central Plans Store" -->
 - **Plans bucket:** `chores4irl` <!-- directory under ~/code/plans/ for this repo's plans; explicit, never inferred from the slug or the directory name -->
