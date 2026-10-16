@@ -29,7 +29,7 @@ commits and PRs on this repo show **bot-only attribution** — no `Co-Authored-B
      repo-local `chore-reaper-claude` App toolkit that lived under .claude/scripts/ has been removed. Account-specific App/install IDs and GraphQL IDs are NOT
      inlined here (secrets policy); only the public bot login + noreply email are recorded. -->
 
-- **Repo slug:** `GPropersi/chore-reaper` (this directory is named `tasktracker` but the repo is `chore-reaper`, live at chores.4irl.app)
+- **Repo slug:** `4IRL/chores4irl` (directory `tasktracker`, app `chore-reaper`, live at chores.4irl.app)
 - **Default branch:** `main`
 - **Plans store (central):** `~/code/plans/tasktracker/{open,completed,research}/<topic>/` <!-- reviews/mocks/plan-research co-located per plan; full rules in ~/code/CLAUDE.md "Central Plans Store" -->
 - **Plans bucket:** `tasktracker` <!-- directory under ~/code/plans/ for this repo's plans; explicit, never inferred from the slug or the directory name -->
@@ -62,7 +62,7 @@ commits and PRs on this repo show **bot-only attribution** — no `Co-Authored-B
   | New worktree       | `make worktree-new name=<slug> [b=<branch>] [base=<ref>]` (see docs/worktrees.md) |
   | Remove worktree    | `make worktree-rm` (run inside the worktree)                                      |
 - **GitHub project board:** n/a
-- **Issue labels:** resolve at runtime via `gh label list --repo GPropersi/chore-reaper` (do not invent labels)
+- **Issue labels:** resolve at runtime via `gh label list --repo 4IRL/chores4irl` (do not invent labels)
 - **PR reviewer:** GPropersi
 - **Worktree policy:** `full`
 - **Worktree link:** `backend/.dev.vars frontend/.env.development.local`
