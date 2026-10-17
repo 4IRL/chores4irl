@@ -18,7 +18,7 @@ export type PublishResult = { status: 'ok' } | { status: 'failed'; reason: strin
 // The per-user topic. `-all` is this user's catch-all subscription topic; the
 // hash namespaces it so topics aren't guessable across users.
 export function personTopic(personHash: string): string {
-  return `tasktracker-${personHash}-all`;
+  return `chores4irl-${personHash}-all`;
 }
 
 export async function publishTest(env: NtfyEnv, personHash: string): Promise<PublishResult> {

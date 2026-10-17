@@ -11,7 +11,7 @@
 
 // The application identifier registered with 4irl-notifs. Must match
 // `^[a-z0-9][a-z0-9_]{0,62}$`.
-export const NOTIFS_APP_ID = 'tasktracker';
+export const NOTIFS_APP_ID = 'chores4irl';
 
 export type ProvisioningEnv = {
   NOTIFS_API_BASE_URL: string;
@@ -61,7 +61,7 @@ export async function provisionUser(env: ProvisioningEnv, email: string): Promis
 
   // Charset-guard person_hash: it's interpolated into the ntfy topic/outbound URL
   // and the frontend QR subscribe URL (the topic is a substring, e.g.
-  // `tasktracker-${personHash}-all`), so a `/` or other unsafe char would alter
+  // `chores4irl-${personHash}-all`), so a `/` or other unsafe char would alter
   // path segments. Require a safe alphanumeric charset and fail closed otherwise.
   if (!/^[a-z0-9]+$/i.test(body.person_hash)) {
     const reason = 'invalid person_hash charset in provisioning response';

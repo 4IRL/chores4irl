@@ -41,7 +41,7 @@ const PROVISIONED: NotificationStatus = {
   provisioned: true,
   enabled: true,
   server: 'https://notifs.4irl.app',
-  topic: 'tasktracker-abc123-all',
+  topic: 'chores4irl-abc123-all',
   subscriberToken: 'tk_test_abc123',
 };
 
@@ -216,7 +216,7 @@ describe('SettingsModal — notifications', () => {
     await user.click(await screen.findByRole('checkbox'));
 
     // The topic appears both as the Topic value line and in the install steps.
-    expect((await screen.findAllByText('tasktracker-abc123-all')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('chores4irl-abc123-all')).length).toBeGreaterThan(0);
     expect(screen.getByText('tk_test_abc123')).toBeInTheDocument();
     // No follow-up GET — the panel came from the enable response (setStatus(body.data)).
     const getCalls = fetchMock.mock.calls.filter(
@@ -255,7 +255,7 @@ describe('SettingsModal — notifications', () => {
     // (origin + single '/' + topic, in that order) that QRCodeSVG receives, so a
     // wrong separator/order/missing-origin regression is caught.
     const qr = await screen.findByTestId('qr-code');
-    expect(qr).toHaveAttribute('data-qr-value', 'https://notifs.4irl.app/tasktracker-abc123-all');
+    expect(qr).toHaveAttribute('data-qr-value', 'https://notifs.4irl.app/chores4irl-abc123-all');
   });
 
   it('a guarded onChange no-ops while the checkbox is aria-disabled (DD-D)', async () => {
@@ -338,7 +338,7 @@ describe('SettingsModal — notifications', () => {
       resolveEnable(new Response(JSON.stringify({ success: true, data: PROVISIONED })));
     });
 
-    expect((await screen.findAllByText('tasktracker-abc123-all')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('chores4irl-abc123-all')).length).toBeGreaterThan(0);
     expect(screen.queryByText('Setting up your notifications…')).not.toBeInTheDocument();
   });
 
@@ -477,7 +477,7 @@ describe('SettingsModal — notifications', () => {
     await user.click(await screen.findByRole('button', { name: 'Disable' }));
 
     expect(await screen.findByText('Enable push notifications')).toBeInTheDocument();
-    expect(screen.queryByText('tasktracker-abc123-all')).not.toBeInTheDocument();
+    expect(screen.queryByText('chores4irl-abc123-all')).not.toBeInTheDocument();
     const checkbox = screen.getByRole('checkbox');
     expect(checkbox).not.toBeChecked();
     await waitFor(() => expect(checkbox).toHaveFocus());
