@@ -43,6 +43,8 @@ const PROVISIONED: NotificationStatus = {
   server: 'https://notifs.4irl.app',
   topic: 'chores4irl-abc123-all',
   subscriberToken: 'tk_test_abc123',
+  username: 'u_abc123',
+  setupUrl: 'https://notifs-setup.4irl.app/?app=chores4irl&user=u_abc123&name=Chores4irl',
 };
 
 function stubClipboard(writeText: () => Promise<void>) {
@@ -242,7 +244,7 @@ describe('SettingsModal — notifications', () => {
     expect(screen.getByText('Push notifications enabled')).toBeInTheDocument();
   });
 
-  it('encodes the composed `${server}/${topic}` subscribe URL into the QR code', async () => {
+  it('encodes the server-provided setupUrl into the QR code, with a visible caption', async () => {
     vi.stubGlobal(
       'fetch',
       makeFetchStub({
@@ -251,11 +253,69 @@ describe('SettingsModal — notifications', () => {
     );
     renderModal();
 
-    // subscribeUrl = `${status.server}/${status.topic}` — assert the exact string
-    // (origin + single '/' + topic, in that order) that QRCodeSVG receives, so a
-    // wrong separator/order/missing-origin regression is caught.
     const qr = await screen.findByTestId('qr-code');
-    expect(qr).toHaveAttribute('data-qr-value', 'https://notifs.4irl.app/chores4irl-abc123-all');
+    expect(qr).toHaveAttribute('data-qr-value', PROVISIONED.setupUrl);
+    expect(qr).toHaveAttribute('title', 'Scan to open setup on your phone');
+    expect(screen.getByText('Scan to open setup on your phone')).toBeInTheDocument();
+  });
+
+  it('shows the Username and Topic rows alongside Server and Access token', async () => {
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    expect(await screen.findByText('Username')).toBeInTheDocument();
+    expect(screen.getByText('u_abc123')).toBeInTheDocument();
+    expect(screen.getByText('Topic')).toBeInTheDocument();
+    expect(screen.getByText('chores4irl-abc123-all')).toBeInTheDocument();
+    expect(screen.getByText('Access token')).toBeInTheDocument();
+    expect(screen.getByText('https://notifs.4irl.app')).toBeInTheDocument();
+  });
+
+  it('renders "Set up the ntfy app →" as a new-tab link to setupUrl, styled as the primary action', async () => {
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    const link = await screen.findByRole('link', { name: 'Set up the ntfy app →' });
+    expect(link).toHaveAttribute('href', PROVISIONED.setupUrl);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noreferrer');
+    expect(link.className).toContain('bg-indigo-600');
+    expect(
+      screen.getByText('Step-by-step for iPhone and Android, with your details filled in.'),
+    ).toBeInTheDocument();
+    // Send test is now the neutral style so the setup link is the single primary action.
+    expect(screen.getByRole('button', { name: 'Send test notification' }).className).not.toContain(
+      'bg-indigo-600',
+    );
+  });
+
+  it('no longer renders the old install steps or app-store links', async () => {
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    await screen.findByRole('link', { name: 'Set up the ntfy app →' });
+    expect(screen.queryByText(/manual entry/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Install the/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Subscribe to topic/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /App Store/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Google Play/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /ntfy web/ })).not.toBeInTheDocument();
+    expect(document.querySelector('ol')).toBeNull();
   });
 
   it('a guarded onChange no-ops while the checkbox is aria-disabled (DD-D)', async () => {
@@ -537,7 +597,30 @@ describe('SettingsModal — notifications', () => {
     expect(screen.getByText('Push notifications enabled')).toBeInTheDocument();
   });
 
-  it('Copy token flips to "Copied!" and reverts after ~2s (DD-23)', async () => {
+  it.each([
+    ['Copy username', 'u_abc123'],
+    ['Copy topic', 'chores4irl-abc123-all'],
+    ['Copy token', 'tk_test_abc123'],
+  ])('%s writes its own value to the clipboard', async (label, value) => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(() => Promise.resolve());
+    // userEvent.setup() installs its own clipboard stub; override after setup.
+    stubClipboard(writeText);
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('button', { name: label }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(value));
+    expect(writeText).toHaveBeenCalledTimes(1);
+  });
+
+  it('Copy topic flips only that button to "Copied!" and reverts after ~2s (DD-23)', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     stubClipboard(() => Promise.resolve());
@@ -549,19 +632,44 @@ describe('SettingsModal — notifications', () => {
     );
     renderModal();
 
-    const copyButton = await screen.findByRole('button', { name: 'Copy token' });
-    await user.click(copyButton);
+    await user.click(await screen.findByRole('button', { name: 'Copy topic' }));
 
-    expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument();
+    // Exactly one "Copied!" — the other copy buttons keep their labels.
+    expect(await screen.findAllByRole('button', { name: 'Copied!' })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Copy username' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy token' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy topic' })).not.toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(2000);
     });
 
-    expect(await screen.findByRole('button', { name: 'Copy token' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Copy topic' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copied!' })).not.toBeInTheDocument();
   });
 
-  it('Copy token surfaces an inline failure note and does not claim success when clipboard write rejects (DD-E)', async () => {
+  it('copying a second field moves "Copied!" to it and clears the first', async () => {
+    const user = userEvent.setup();
+    stubClipboard(() => Promise.resolve());
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('button', { name: 'Copy username' }));
+    expect(await screen.findAllByRole('button', { name: 'Copied!' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Copy username' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Copy token' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Copy username' })).toBeInTheDocument());
+    expect(screen.getAllByRole('button', { name: 'Copied!' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Copy token' })).not.toBeInTheDocument();
+  });
+
+  it("a denied clipboard shows only that field's alert and does not claim success (DD-E)", async () => {
     const user = userEvent.setup();
     stubClipboard(() => Promise.reject(new Error('denied')));
     vi.stubGlobal(
@@ -572,11 +680,35 @@ describe('SettingsModal — notifications', () => {
     );
     renderModal();
 
-    const copyButton = await screen.findByRole('button', { name: 'Copy token' });
-    await user.click(copyButton);
+    await user.click(await screen.findByRole('button', { name: 'Copy topic' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t copy — select the token above.');
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent('Couldn’t copy — select the topic above.');
     expect(screen.queryByRole('button', { name: 'Copied!' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Copy token' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy topic' })).toBeInTheDocument();
+  });
+
+  it("a new copy attempt clears the previous field's failure alert", async () => {
+    const user = userEvent.setup();
+    let attempt = 0;
+    stubClipboard(() => {
+      attempt += 1;
+      return attempt === 1 ? Promise.reject(new Error('denied')) : Promise.resolve();
+    });
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('button', { name: 'Copy username' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('select the username above.');
+
+    await user.click(screen.getByRole('button', { name: 'Copy token' }));
+    await screen.findByRole('button', { name: 'Copied!' });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

@@ -25,11 +25,11 @@ const SWIPE_STYLE_OPTIONS: SwipeStyleOption[] = [
 
 const DEFAULT_STATUS: NotificationStatus = { provisioned: false, enabled: false };
 
-// ntfy app install links — real store/web destinations (native keyboard-operable
-// anchors, DD-10).
-const NTFY_APP_STORE_URL = 'https://apps.apple.com/app/ntfy/id1625396347';
-const NTFY_GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=io.heckel.ntfy';
-const NTFY_WEB_URL = 'https://ntfy.sh/app';
+// Which copyable field a copy button / failure alert belongs to. `password` is
+// used by the password reveal (Step 5).
+type CopyField = 'username' | 'topic' | 'token' | 'password';
+
+const COPY_BUTTON_CLASS = 'text-indigo-400 text-[13px] underline min-h-[44px] inline-flex items-center';
 
 type TestMessage = { kind: 'ok' | 'err'; text: string };
 
@@ -50,8 +50,8 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
   const [testMsg, setTestMsg] = useState<TestMessage | null>(null);
   const [actionPending, setActionPending] = useState(false); // shared Send-test/Disable guard (DD-6)
   const [enabling, setEnabling] = useState(false); // dedicated enable-in-flight flag (DD-21)
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState(false);
+  const [copiedField, setCopiedField] = useState<CopyField | null>(null);
+  const [copyErrorField, setCopyErrorField] = useState<CopyField | null>(null);
 
   const toggleRef = useRef<HTMLInputElement>(null);
   const prevEnabled = useRef(status.enabled);
@@ -199,24 +199,42 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
     }
   }
 
-  function handleCopy() {
-    setCopyError(false); // clear any prior failure note on the next attempt (DD-E)
+  function handleCopy(value: string, field: CopyField) {
+    setCopyErrorField(null); // clear any prior failure note on the next attempt (DD-E)
     navigator.clipboard
-      .writeText(status.subscriberToken ?? '')
+      .writeText(value)
       .then(() => {
-        setCopied(true);
+        setCopiedField(field);
         if (copyTimer.current) clearTimeout(copyTimer.current);
-        copyTimer.current = setTimeout(() => setCopied(false), 2000); // DD-11 — ~2s revert
+        copyTimer.current = setTimeout(() => setCopiedField(null), 2000); // DD-11 — ~2s revert
       })
       .catch(() => {
-        // DD-E — clipboard denied/insecure context: don't claim success; the token
+        // DD-E — clipboard denied/insecure context: don't claim success; the value
         // is still visible above for manual selection.
-        setCopied(false);
-        setCopyError(true);
+        if (copyTimer.current) clearTimeout(copyTimer.current);
+        setCopiedField(null);
+        setCopyErrorField(field);
       });
   }
 
-  const subscribeUrl = `${status.server}/${status.topic}`;
+  // One labelled value row with its own copy button + failure alert, keyed by field
+  // so only the clicked button shows "Copied!".
+  function renderCopyField(label: string, value: string, field: CopyField, buttonLabel: string) {
+    return (
+      <div className="mb-1.5">
+        <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-0.5">{label}</div>
+        <div className="text-xs text-gray-200 font-mono break-all">{value}</div>
+        <button type="button" onClick={() => handleCopy(value, field)} className={COPY_BUTTON_CLASS}>
+          {copiedField === field ? 'Copied!' : buttonLabel}
+        </button>
+        {copyErrorField === field && (
+          <p role="alert" className="text-red-400 text-xs mt-1">
+            Couldn’t copy — select the {field} above.
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return createPortal(
     <div
@@ -283,84 +301,46 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
           {status.enabled && (
             <div className="mt-3.5">
               <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 flex flex-wrap gap-4 items-center">
-                <div className="w-48 h-48 shrink-0 bg-white rounded-md p-2 flex items-center justify-center">
-                  <QRCodeSVG
-                    value={subscribeUrl}
-                    size={176}
-                    marginSize={0}
-                    title="Scan to subscribe to notifications in the ntfy app"
-                  />
+                <div className="shrink-0">
+                  <div className="w-48 h-48 bg-white rounded-md p-2 flex items-center justify-center">
+                    <QRCodeSVG
+                      value={status.setupUrl ?? ''}
+                      size={176}
+                      marginSize={0}
+                      title="Scan to open setup on your phone"
+                    />
+                  </div>
+                  <p className="text-[11px] text-gray-400 text-center mt-1.5">
+                    Scan to open setup on your phone
+                  </p>
                 </div>
                 <div className="min-w-0">
                   <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-0.5">Server</div>
                   <div className="text-xs text-gray-200 font-mono break-all mb-2.5">{status.server}</div>
-                  <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-0.5">Topic</div>
-                  <div className="text-xs text-gray-200 font-mono break-all mb-2.5">{status.topic}</div>
-                  <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-0.5">Access token</div>
-                  <div className="text-xs text-gray-200 font-mono break-all mb-1.5">
-                    {status.subscriberToken}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="text-indigo-400 text-[13px] underline min-h-[44px] inline-flex items-center"
-                  >
-                    {copied ? 'Copied!' : 'Copy token'}
-                  </button>
-                  {copyError && (
-                    <p role="alert" className="text-red-400 text-xs mt-1">
-                      Couldn’t copy — select the token above.
-                    </p>
-                  )}
+                  {renderCopyField('Username', status.username ?? '', 'username', 'Copy username')}
+                  {renderCopyField('Topic', status.topic ?? '', 'topic', 'Copy topic')}
+                  {renderCopyField('Access token', status.subscriberToken ?? '', 'token', 'Copy token')}
                 </div>
               </div>
 
-              <ol className="list-decimal pl-[18px] text-xs text-gray-400 leading-relaxed mt-3.5 mb-1 space-y-1">
-                <li>
-                  Install the <strong>ntfy</strong> app.
-                </li>
-                <li>
-                  Add server <span className="font-mono">{status.server}</span> with the access token above
-                  (manual entry).
-                </li>
-                <li>
-                  Subscribe to topic <span className="font-mono">{status.topic}</span>, or scan the QR above.
-                </li>
-              </ol>
-
-              <div className="flex flex-wrap gap-2.5 my-2">
-                <a
-                  href={NTFY_APP_STORE_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-indigo-400 text-[13px] underline min-h-[44px] inline-flex items-center"
-                >
-                  App Store ↗
-                </a>
-                <a
-                  href={NTFY_GOOGLE_PLAY_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-indigo-400 text-[13px] underline min-h-[44px] inline-flex items-center"
-                >
-                  Google Play ↗
-                </a>
-                <a
-                  href={NTFY_WEB_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-indigo-400 text-[13px] underline min-h-[44px] inline-flex items-center"
-                >
-                  ntfy web ↗
-                </a>
-              </div>
+              <a
+                href={status.setupUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3.5 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium min-h-[44px] rounded-lg inline-flex items-center justify-center"
+              >
+                Set up the ntfy app →
+              </a>
+              <p className="text-xs text-gray-400 mt-1.5">
+                Step-by-step for iPhone and Android, with your details filled in.
+              </p>
 
               <div className="flex gap-2.5 mt-4">
                 <button
                   type="button"
                   onClick={handleTest}
                   disabled={actionPending}
-                  className="flex-1 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg"
+                  className="flex-1 min-h-[44px] bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg"
                 >
                   Send test notification
                 </button>
