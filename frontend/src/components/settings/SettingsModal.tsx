@@ -398,7 +398,10 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
 
           {status.enabled && (
             <div className="mt-3.5">
-              <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 flex flex-wrap gap-4 items-center">
+              <div
+                data-testid="ntfy-meta-card"
+                className="bg-gray-900 border border-gray-700 rounded-lg p-4 flex flex-wrap gap-4 items-center"
+              >
                 <div className="shrink-0">
                   <div className="w-48 h-48 bg-white rounded-md p-2 flex items-center justify-center">
                     <QRCodeSVG
@@ -415,94 +418,107 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
                 <div className="min-w-0">
                   <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-0.5">Server</div>
                   <div className="text-xs text-gray-200 font-mono break-all mb-2.5">{status.server}</div>
-                  {renderCopyField('Username', status.username ?? '', 'username', 'Copy username')}
                   {renderCopyField('Topic', status.topic ?? '', 'topic', 'Copy topic')}
                   {renderCopyField('Access token', status.subscriberToken ?? '', 'token', 'Copy token')}
                 </div>
               </div>
 
-              {revealedPassword ? (
+              {/* One grouped "Sign in to ntfy" set: Username directly above Password, which is
+                  what a person typing into the iOS ntfy sign-in needs together. */}
+              <div
+                role="group"
+                aria-labelledby="ntfy-signin-heading"
+                data-testid="ntfy-signin"
+                className="mt-3.5 bg-gray-900 border border-gray-700 rounded-lg p-4"
+              >
                 <div
-                  role="status"
-                  aria-live="polite"
-                  className="mt-3.5 bg-gray-900 border border-gray-700 rounded-lg p-4"
+                  id="ntfy-signin-heading"
+                  className="text-[11px] text-gray-400 uppercase tracking-wide mb-2"
                 >
-                  {renderCopyField(
-                    'Your ntfy password',
-                    revealedPassword,
-                    'password',
-                    'Copy password',
-                    copyPasswordRef,
-                  )}
-                  <p className="text-xs text-gray-300 leading-relaxed mt-2">
-                    The ntfy app needs a sign-in to deliver your notifications, so we created one for you.
-                    It&apos;s not a personal account, just the link between ntfy and your 4IRL apps.
-                  </p>
-                  <p className="text-xs text-gray-300 leading-relaxed mt-1.5">
-                    You only enter it once. Your phone stays signed in.
-                  </p>
-                  {revealFromReset && (
-                    <p className="text-xs text-gray-300 leading-relaxed mt-1.5">
-                      Sign in again on each phone with this new password.
-                    </p>
-                  )}
-                  <p className="text-xs text-amber-400 font-medium mt-1.5">Shown once. Copy it now.</p>
+                  Sign in to ntfy
                 </div>
-              ) : confirmOpen ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="mt-3.5 bg-gray-900 border border-gray-700 rounded-lg p-4"
-                >
-                  <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">ntfy password</div>
-                  <p className="text-sm text-gray-200 leading-relaxed">
-                    Phones using the current password will stop getting notifications until they sign in with
-                    the new one.
-                  </p>
-                  <div className="flex gap-2.5 mt-3">
-                    <button
-                      type="button"
-                      onClick={handleGenerate}
-                      disabled={resetPending || actionPending}
-                      className="flex-1 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg"
-                    >
-                      {resetPending ? 'Generating…' : 'Generate new password'}
-                    </button>
-                    <button
-                      ref={cancelRef}
-                      type="button"
-                      onClick={() => setConfirmOpen(false)}
-                      disabled={resetPending}
-                      className="flex-1 min-h-[44px] bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-3.5 bg-gray-900 border border-gray-700 rounded-lg p-4">
-                  <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">ntfy password</div>
-                  <p className="text-sm text-gray-200 leading-relaxed">
-                    Your ntfy sign-in is set up and works for every 4IRL app. Your phone stays signed in, so
-                    you won&apos;t need the password again.
-                  </p>
-                  <button
-                    ref={generateLinkRef}
-                    type="button"
-                    onClick={() => setConfirmOpen(true)}
-                    disabled={actionPending}
-                    className="text-indigo-400 text-[13px] underline min-h-[44px] inline-flex items-center disabled:opacity-50"
-                  >
-                    Generate a new password
-                  </button>
-                  <p className="text-xs text-gray-400">Only for a new phone or a lost password.</p>
-                  {resetError && (
-                    <p role="alert" className="text-red-400 text-sm mt-2">
-                      {resetError}
-                    </p>
+                {renderCopyField('Username', status.username ?? '', 'username', 'Copy username')}
+                <div className="mt-2.5 pt-2.5 border-t border-gray-700">
+                  {revealedPassword ? (
+                    <div role="status" aria-live="polite">
+                      {renderCopyField(
+                        'Your ntfy password',
+                        revealedPassword,
+                        'password',
+                        'Copy password',
+                        copyPasswordRef,
+                      )}
+                      <p className="text-xs text-gray-300 leading-relaxed mt-2">
+                        The ntfy app needs a sign-in to deliver your notifications, so we created one for you.
+                        It&apos;s not a personal account, just the link between ntfy and your 4IRL apps.
+                      </p>
+                      <p className="text-xs text-gray-300 leading-relaxed mt-1.5">
+                        You only enter it once. Your phone stays signed in.
+                      </p>
+                      {revealFromReset && (
+                        <p className="text-xs text-gray-300 leading-relaxed mt-1.5">
+                          Sign in again on each phone with this new password.
+                        </p>
+                      )}
+                      <p className="text-xs text-amber-400 font-medium mt-1.5">Shown once. Copy it now.</p>
+                    </div>
+                  ) : confirmOpen ? (
+                    <div role="status" aria-live="polite">
+                      <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">
+                        ntfy password
+                      </div>
+                      <p className="text-sm text-gray-200 leading-relaxed">
+                        Phones using the current password will stop getting notifications until they sign in
+                        with the new one.
+                      </p>
+                      <div className="flex gap-2.5 mt-3">
+                        <button
+                          type="button"
+                          onClick={handleGenerate}
+                          disabled={resetPending || actionPending}
+                          className="flex-1 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg"
+                        >
+                          {resetPending ? 'Generating…' : 'Generate new password'}
+                        </button>
+                        <button
+                          ref={cancelRef}
+                          type="button"
+                          onClick={() => setConfirmOpen(false)}
+                          disabled={resetPending}
+                          className="flex-1 min-h-[44px] bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">
+                        ntfy password
+                      </div>
+                      <p className="text-sm text-gray-200 leading-relaxed">
+                        Your ntfy sign-in is set up and works for every 4IRL app. Your phone stays signed in,
+                        so you won&apos;t need the password again.
+                      </p>
+                      <button
+                        ref={generateLinkRef}
+                        type="button"
+                        onClick={() => setConfirmOpen(true)}
+                        disabled={actionPending}
+                        className="text-indigo-400 text-[13px] underline min-h-[44px] inline-flex items-center disabled:opacity-50"
+                      >
+                        Generate a new password
+                      </button>
+                      <p className="text-xs text-gray-400">Only for a new phone or a lost password.</p>
+                      {resetError && (
+                        <p role="alert" className="text-red-400 text-sm mt-2">
+                          {resetError}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
+              </div>
 
               <a
                 href={status.setupUrl}

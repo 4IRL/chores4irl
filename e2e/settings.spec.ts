@@ -74,8 +74,15 @@ test('Settings notifications: one-time password, set-up state and generate a new
   await expect(modal.getByText('Shown once. Copy it now.')).toBeVisible();
   await expect(modal.getByRole('button', { name: 'Copy password' })).toBeFocused();
 
-  // Username, Topic and the setup link come from the response.
-  await expect(modal.getByText(username, { exact: true })).toBeVisible();
+  // Username and Password are grouped in one "Sign in to ntfy" block; the QR/meta card
+  // keeps Server, Topic and Access token only.
+  const signIn = modal.getByRole('group', { name: 'Sign in to ntfy' });
+  await expect(signIn.getByText(username, { exact: true })).toBeVisible();
+  await expect(signIn.getByRole('button', { name: 'Copy username' })).toBeVisible();
+  await expect(signIn.getByText('k7mq-2xfp-9wnr-h3tc')).toBeVisible();
+  await expect(modal.getByTestId('ntfy-meta-card').getByText(username, { exact: true })).toHaveCount(0);
+
+  // Topic and the setup link come from the response.
   await expect(modal.getByText('chores4irl-e2eperson-all', { exact: true })).toBeVisible();
   const setupLink = modal.getByRole('link', { name: 'Set up the ntfy app →' });
   await expect(setupLink).toHaveAttribute('href', setupUrl);
@@ -86,6 +93,7 @@ test('Settings notifications: one-time password, set-up state and generate a new
   await expect(modal).toBeHidden();
   await page.getByRole('button', { name: 'Settings' }).click();
   await expect(modal.getByText(/Your ntfy sign-in is set up/)).toBeVisible();
+  await expect(signIn.getByText(username, { exact: true })).toBeVisible();
   await expect(modal.getByText('k7mq-2xfp-9wnr-h3tc')).toHaveCount(0);
   await expect(modal.getByRole('button', { name: 'Copy password' })).toHaveCount(0);
 

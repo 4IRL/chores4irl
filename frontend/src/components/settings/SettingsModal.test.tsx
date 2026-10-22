@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, waitFor, cleanup, act } from '@testing-library/react';
+import { render, screen, waitFor, cleanup, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SettingsModal from './SettingsModal';
 import type { NotificationStatus } from '@customTypes/SharedTypes';
@@ -275,6 +275,79 @@ describe('SettingsModal — notifications', () => {
     expect(screen.getByText('chores4irl-abc123-all')).toBeInTheDocument();
     expect(screen.getByText('Access token')).toBeInTheDocument();
     expect(screen.getByText('https://notifs.4irl.app')).toBeInTheDocument();
+  });
+
+  it('keeps only Server, Topic and Access token in the QR/meta card (no Username)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    const meta = await screen.findByTestId('ntfy-meta-card');
+    expect(within(meta).getByText('Server')).toBeInTheDocument();
+    expect(within(meta).getByText('Topic')).toBeInTheDocument();
+    expect(within(meta).getByText('Access token')).toBeInTheDocument();
+    expect(within(meta).queryByText('Username')).not.toBeInTheDocument();
+    expect(within(meta).queryByText('u_abc123')).not.toBeInTheDocument();
+    expect(within(meta).queryByRole('button', { name: 'Copy username' })).not.toBeInTheDocument();
+  });
+
+  it('groups Username above the password reveal inside one "Sign in to ntfy" block, before the setup CTA', async () => {
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () =>
+          jsonResponse({ success: true, data: { provisioned: false, enabled: false } }),
+        'POST /api/notifications/enable': () =>
+          jsonResponse({ success: true, data: { ...PROVISIONED, password: 'abcd-efgh-jkmn-pqrs' } }),
+      }),
+    );
+    const user = userEvent.setup();
+    renderModal();
+
+    await user.click(await screen.findByRole('checkbox'));
+    const group = await screen.findByRole('group', { name: 'Sign in to ntfy' });
+    expect(within(group).getByText('Username')).toBeInTheDocument();
+    expect(within(group).getByText('u_abc123')).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: 'Copy username' })).toBeInTheDocument();
+    expect(within(group).getByText('abcd-efgh-jkmn-pqrs')).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: 'Copy password' })).toBeInTheDocument();
+    expect(within(group).getByText('Shown once. Copy it now.')).toBeInTheDocument();
+    // The reveal box (role=status) lives inside the group.
+    expect(within(group).getByRole('status')).toHaveTextContent('Shown once. Copy it now.');
+
+    // Username comes directly before the password in document order.
+    const username = within(group).getByText('u_abc123');
+    const password = within(group).getByText('abcd-efgh-jkmn-pqrs');
+    expect(username.compareDocumentPosition(password) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // The sign-in block comes before the setup CTA.
+    const cta = screen.getByRole('link', { name: 'Set up the ntfy app →' });
+    expect(group.compareDocumentPosition(cta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('keeps Username and the set-up text together in the same group in the set-up and confirm states', async () => {
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    const user = userEvent.setup();
+    renderModal();
+
+    const group = await screen.findByRole('group', { name: 'Sign in to ntfy' });
+    expect(within(group).getByText('u_abc123')).toBeInTheDocument();
+    expect(within(group).getByText(/Your ntfy sign-in is set up/)).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: 'Generate a new password' })).toBeInTheDocument();
+
+    await user.click(within(group).getByRole('button', { name: 'Generate a new password' }));
+    expect(within(group).getByText('u_abc123')).toBeInTheDocument();
+    expect(within(group).getByText(/Phones using the current password will stop/)).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
   });
 
   it('renders "Set up the ntfy app →" as a new-tab link to setupUrl, styled as the primary action', async () => {
