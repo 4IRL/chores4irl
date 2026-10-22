@@ -87,6 +87,6 @@ export async function provisionUser(env: ProvisioningEnv, email: string): Promis
     status: 'ok',
     personHash: body.person_hash,
     subscriberToken: body.token,
-    ...(password !== undefined ? { password } : {}),
+    password,
   };
 }

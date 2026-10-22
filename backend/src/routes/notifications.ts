@@ -86,7 +86,7 @@ notifications.post('/enable', async (c) => {
   });
   const data: EnableNotificationsResult = {
     ...provisionedStatus(c.env, result.personHash, result.subscriberToken, true),
-    ...(result.password !== undefined ? { password: result.password } : {}),
+    password: result.password,
   };
   return c.json({ success: true, data } satisfies ApiResponse<EnableNotificationsResult>);
 });
