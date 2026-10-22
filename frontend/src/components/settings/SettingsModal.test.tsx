@@ -1188,6 +1188,40 @@ describe('SettingsModal — one-time password and generate new', () => {
     expect(screen.queryByRole('button', { name: 'Copied!' })).not.toBeInTheDocument();
   });
 
+  it("a failed copy after a successful one clears the first field's Copied! state and its revert timer", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    let attempt = 0;
+    stubClipboard(() => {
+      attempt += 1;
+      return attempt === 1 ? Promise.resolve() : Promise.reject(new Error('denied'));
+    });
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('button', { name: 'Copy username' }));
+    expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument();
+    // The 2s revert timer for the username is pending.
+    expect(vi.getTimerCount()).toBe(1);
+
+    // Well inside the 2s window, copy a different field with a rejecting clipboard.
+    await user.click(screen.getByRole('button', { name: 'Copy token' }));
+
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent('Couldn’t copy — select the token above.');
+    expect(screen.queryByRole('button', { name: 'Copied!' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy username' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy token' })).toBeInTheDocument();
+    // handleCopy's catch cleared the first copy's revert timer rather than leaving it to fire.
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('a denied clipboard on the password shows the password-specific alert', async () => {
     const user = userEvent.setup();
     stubClipboard(() => Promise.reject(new Error('denied')));
