@@ -6,7 +6,7 @@ import type {
   NotificationStatus,
 } from '../../../types/SharedTypes.js';
 import { getProvisioning, saveProvisioning, setEnabled } from '../notifications.js';
-import { NOTIFS_APP_ID, provisionUser } from '../notifs-provisioning.js';
+import { NOTIFS_APP_DISPLAY_NAME, NOTIFS_APP_ID, provisionUser } from '../notifs-provisioning.js';
 import { resetPassword } from '../notifs-reset-password.js';
 import { ntfyUsername, personTopic, publishTest } from '../ntfy-publish.js';
 import type { BaseEnv } from '../types.js';
@@ -36,7 +36,7 @@ function provisionedStatus(
   const setupUrl = new URL(env.NOTIFS_SETUP_BASE_URL);
   setupUrl.searchParams.set('app', NOTIFS_APP_ID);
   setupUrl.searchParams.set('user', username);
-  setupUrl.searchParams.set('name', 'Chores4irl');
+  setupUrl.searchParams.set('name', NOTIFS_APP_DISPLAY_NAME);
   return {
     provisioned: true,
     enabled,

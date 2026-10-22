@@ -13,6 +13,9 @@
 // `^[a-z0-9][a-z0-9_]{0,62}$`.
 export const NOTIFS_APP_ID = 'chores4irl';
 
+// The app's display name on the shared ntfy setup page (the `name` query param).
+export const NOTIFS_APP_DISPLAY_NAME = 'Chores4irl';
+
 export type ProvisioningEnv = {
   NOTIFS_API_BASE_URL: string;
   NOTIFS_CF_ACCESS_CLIENT_ID: string;
