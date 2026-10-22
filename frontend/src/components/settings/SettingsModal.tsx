@@ -31,8 +31,7 @@ const SWIPE_STYLE_OPTIONS: SwipeStyleOption[] = [
 
 const DEFAULT_STATUS: NotificationStatus = { provisioned: false, enabled: false };
 
-// Which copyable field a copy button / failure alert belongs to. `password` is
-// used by the password reveal (Step 5).
+// Which copyable field a copy button / failure alert belongs to.
 type CopyField = 'username' | 'topic' | 'token' | 'password';
 
 const RESET_FALLBACK_ERROR = 'Could not generate a new password. Try again.';
