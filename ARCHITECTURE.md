@@ -282,9 +282,10 @@ a request field):
 through on the **first** `POST /enable` (as an extra `password` field on the response; the re-enable
 path never carries one) and on `POST /reset-password`. It is never written to D1 (`saveProvisioning`
 receives only the hash and token), never logged (the log lines omit it), and lives in the browser only in
-React state in `SettingsModal.tsx` until the modal closes or notifications are disabled. Both routes
-respond with `Cache-Control: no-store`, applied by the `noStore` middleware (`middleware/no-store.ts`)
-registered in `app.ts` **ahead of** auth so 401s, 409s, 429s and 502s carry it too.
+React state in `SettingsModal.tsx` until the modal closes or notifications are disabled. Every
+`/api/notifications/*` route responds with `Cache-Control: no-store` (the status payload also carries the
+subscriber token), applied by the `noStore` middleware (`middleware/no-store.ts`) registered in `app.ts`
+**ahead of** auth so 401s, 409s, 429s and 502s carry it too.
 
 **Config** (`backend/wrangler.toml` `[vars]`, plain hostnames, not credentials):
 `NOTIFS_API_BASE_URL` (provisioning API), `NTFY_BASE_URL` (ntfy host), `NOTIFS_SETUP_BASE_URL` (shared

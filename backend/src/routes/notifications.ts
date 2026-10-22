@@ -17,9 +17,9 @@ import type { BaseEnv } from '../types.js';
 // built: from getProvisioning(...) (the DB-only row accessor) plus env (DD-17).
 const notifications = new Hono<BaseEnv>();
 
-// Cache-Control: no-store on /enable and /reset-password is applied in app.ts
-// (middleware/no-store.ts), ahead of auth, because those responses can carry a
-// generated ntfy password.
+// Cache-Control: no-store on every notifications route is applied in app.ts
+// (middleware/no-store.ts), ahead of auth, because these responses can carry a
+// generated ntfy password or the subscriber token.
 
 // Builds the provisioned/enabled wire status from a stored row's credentials.
 // server is the full origin (scheme + host) so the frontend never prepends a

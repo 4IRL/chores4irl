@@ -42,11 +42,10 @@ app.route('/api/admin', admin);
 
 // Per-user, deliberately NOT household-scoped — resolveUser resolves the
 // Access-verified email to a users row (notifications are per-user).
-// no-store goes first so every /enable and /reset-password response (401s from the
-// auth middleware included) carries it; those two can return a generated password.
-app.use('/api/notifications/enable', noStore);
-app.use('/api/notifications/reset-password', noStore);
-app.use('/api/notifications/*', accessAuth, resolveUser);
+// no-store goes first so every notifications response (401s from the auth middleware
+// included) carries it: /enable and /reset-password can return a generated password,
+// and the status payload from the other routes carries the subscriber token.
+app.use('/api/notifications/*', noStore, accessAuth, resolveUser);
 app.route('/api/notifications', notifications);
 
 export default app;
