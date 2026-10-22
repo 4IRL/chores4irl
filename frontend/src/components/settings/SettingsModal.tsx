@@ -270,18 +270,18 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
       if (body.success && body.data) {
         setRevealedPassword(body.data.password);
         setRevealFromReset(true);
-        setConfirmOpen(false);
       } else {
-        // Any failure closes the confirm back to the set-up state with the error there.
+        // Any failure lands back in the set-up state (the finally closes the confirm) with the error there.
         setResetError(body.error ?? RESET_FALLBACK_ERROR);
-        setConfirmOpen(false);
       }
     } catch {
       if (!isMountedRef.current) return;
       setResetError(RESET_FALLBACK_ERROR);
-      setConfirmOpen(false);
     } finally {
-      if (isMountedRef.current) setResetPending(false);
+      if (isMountedRef.current) {
+        setResetPending(false);
+        setConfirmOpen(false); // success, failure and rejection all leave the confirm
+      }
     }
   }
 
