@@ -87,6 +87,12 @@ test('Settings notifications: one-time password, set-up state and generate a new
   const setupLink = modal.getByRole('link', { name: 'Set up the ntfy app →' });
   await expect(setupLink).toHaveAttribute('href', setupUrl);
   await expect(setupLink).toHaveAttribute('target', '_blank');
+  await expect(
+    modal.getByTestId('ntfy-meta-card').getByText(/Server and topic are for manual setup/),
+  ).toBeVisible();
+  await expect(
+    modal.getByText('Step-by-step for iPhone and Android. It also shows your server and topic.'),
+  ).toBeVisible();
 
   // Reopen Settings: the set-up state shows and the password is gone.
   await modal.getByRole('button', { name: 'Close' }).click();

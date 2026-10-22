@@ -295,6 +295,23 @@ describe('SettingsModal — notifications', () => {
     expect(within(meta).queryByRole('button', { name: 'Copy username' })).not.toBeInTheDocument();
   });
 
+  it('explains the meta card fields with a short caption inside it', async () => {
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    const meta = await screen.findByTestId('ntfy-meta-card');
+    expect(
+      within(meta).getByText(
+        'Server and topic are for manual setup — the ntfy setup page shows them too. The access token is only for Android or other apps.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('groups Username above the password reveal inside one "Sign in to ntfy" block, before the setup CTA', async () => {
     vi.stubGlobal(
       'fetch',
@@ -365,8 +382,9 @@ describe('SettingsModal — notifications', () => {
     expect(link).toHaveAttribute('rel', 'noreferrer');
     expect(link.className).toContain('bg-indigo-600');
     expect(
-      screen.getByText('Step-by-step for iPhone and Android, with your details filled in.'),
+      screen.getByText('Step-by-step for iPhone and Android. It also shows your server and topic.'),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/with your details filled in/)).not.toBeInTheDocument();
     // Send test is now the neutral style so the setup link is the single primary action.
     expect(screen.getByRole('button', { name: 'Send test notification' }).className).not.toContain(
       'bg-indigo-600',

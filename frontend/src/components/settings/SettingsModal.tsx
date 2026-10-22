@@ -420,6 +420,10 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
                   <div className="text-xs text-gray-200 font-mono break-all mb-2.5">{status.server}</div>
                   {renderCopyField('Topic', status.topic ?? '', 'topic', 'Copy topic')}
                   {renderCopyField('Access token', status.subscriberToken ?? '', 'token', 'Copy token')}
+                  <p className="text-[11px] text-gray-400 leading-relaxed mt-1">
+                    Server and topic are for manual setup — the ntfy setup page shows them too. The access
+                    token is only for Android or other apps.
+                  </p>
                 </div>
               </div>
 
@@ -529,7 +533,7 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
                 Set up the ntfy app →
               </a>
               <p className="text-xs text-gray-400 mt-1.5">
-                Step-by-step for iPhone and Android, with your details filled in.
+                Step-by-step for iPhone and Android. It also shows your server and topic.
               </p>
 
               <div className="flex gap-2.5 mt-4">
