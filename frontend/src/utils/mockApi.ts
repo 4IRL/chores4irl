@@ -251,7 +251,10 @@ export async function mockFetch(path: string, init?: RequestInit): Promise<Respo
   }
   if (path === '/api/notifications/enable' && method === 'POST') {
     // First enable provisions; a re-enable after soft-off preserves the existing
-    // token/topic — either way the row ends up provisioned + enabled.
+    // token/topic — either way the row ends up provisioned + enabled. The generated
+    // password is handed back only on the first enable, as the real route does (the
+    // existing-row branch never includes it).
+    const isFirstEnable = !notifications.provisioned;
     notifications = { ...notifications, provisioned: true, enabled: true };
     return jsonResponse({
       success: true,
@@ -263,8 +266,15 @@ export async function mockFetch(path: string, init?: RequestInit): Promise<Respo
         subscriberToken: notifications.subscriberToken,
         username: notifications.username,
         setupUrl: notifications.setupUrl,
+        ...(isFirstEnable ? { password: 'mock-pass-word-demo' } : {}),
       },
     });
+  }
+  if (path === '/api/notifications/reset-password' && method === 'POST') {
+    if (!notifications.provisioned || !notifications.enabled) {
+      return jsonResponse({ success: false, error: 'Notifications are not enabled' }, 409);
+    }
+    return jsonResponse({ success: true, data: { password: 'mock-pass-word-new1' } });
   }
   if (path === '/api/notifications/test' && method === 'POST') {
     if (!notifications.provisioned || !notifications.enabled) {

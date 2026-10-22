@@ -67,6 +67,13 @@ export interface NotificationStatus {
   setupUrl?: string;
 }
 
+// POST /api/notifications/enable response: the status, plus the generated ntfy
+// password on a first-time enable only. Shown to the person once; never stored.
+export type EnableNotificationsResult = NotificationStatus & { password?: string };
+
+// POST /api/notifications/reset-password response: a freshly generated ntfy password.
+export type NewNotificationPassword = { password: string };
+
 export interface JoinRequest {
   id: number;
   householdId: number;

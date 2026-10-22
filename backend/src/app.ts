@@ -8,6 +8,7 @@ import admin from './routes/admin.js';
 import notifications from './routes/notifications.js';
 import { accessAuth } from './middleware/access-auth.js';
 import { householdScope } from './middleware/household-scope.js';
+import { noStore } from './middleware/no-store.js';
 import { requireGlobalAdmin } from './middleware/require-global-admin.js';
 import { resolveUser } from './middleware/resolve-user.js';
 import type { AppEnv } from './types.js';
@@ -41,6 +42,10 @@ app.route('/api/admin', admin);
 
 // Per-user, deliberately NOT household-scoped — resolveUser resolves the
 // Access-verified email to a users row (notifications are per-user).
+// no-store goes first so every /enable and /reset-password response (401s from the
+// auth middleware included) carries it; those two can return a generated password.
+app.use('/api/notifications/enable', noStore);
+app.use('/api/notifications/reset-password', noStore);
 app.use('/api/notifications/*', accessAuth, resolveUser);
 app.route('/api/notifications', notifications);
 
