@@ -1,7 +1,13 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import type { ApiResponse, NotificationStatus, SwipeStyle } from '@customTypes/SharedTypes';
+import type {
+  ApiResponse,
+  EnableNotificationsResult,
+  NewNotificationPassword,
+  NotificationStatus,
+  SwipeStyle,
+} from '@customTypes/SharedTypes';
 import { apiFetch } from '../../utils/api';
 
 type SwipeStyleOption = {
@@ -29,6 +35,8 @@ const DEFAULT_STATUS: NotificationStatus = { provisioned: false, enabled: false 
 // used by the password reveal (Step 5).
 type CopyField = 'username' | 'topic' | 'token' | 'password';
 
+const RESET_FALLBACK_ERROR = 'Could not generate a new password. Try again.';
+
 const COPY_BUTTON_CLASS = 'text-indigo-400 text-[13px] underline min-h-[44px] inline-flex items-center';
 
 type TestMessage = { kind: 'ok' | 'err'; text: string };
@@ -53,9 +61,22 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
   const [copiedField, setCopiedField] = useState<CopyField | null>(null);
   const [copyErrorField, setCopyErrorField] = useState<CopyField | null>(null);
 
+  // One-time password reveal + "generate a new password" flow. The password lives
+  // only in this React state (never persisted) and disappears with the modal.
+  const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
+  const [revealFromReset, setRevealFromReset] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [resetPending, setResetPending] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
   const toggleRef = useRef<HTMLInputElement>(null);
   const prevEnabled = useRef(status.enabled);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyPasswordRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const generateLinkRef = useRef<HTMLButtonElement>(null);
+  const prevConfirmOpen = useRef(false);
+  const isMountedRef = useRef(true);
 
   // Mount fetch of the current notification status (DD-8): a thrown/rejected call
   // sets the error and leaves status at its default off state.
@@ -98,6 +119,32 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
       if (copyTimer.current) clearTimeout(copyTimer.current);
     };
   }, []);
+
+  // Mount guard for the Generate/reset-password handler only: its confirm-then-POST
+  // flow leaves a long async window in which the modal can close.
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Focus moves to Copy password when the reveal box appears.
+  useEffect(() => {
+    if (revealedPassword) copyPasswordRef.current?.focus();
+  }, [revealedPassword]);
+
+  // Focus moves to Cancel when the confirm opens; when it closes back to the set-up
+  // state (Cancel or a failed reset) focus returns to "Generate a new password".
+  // After a successful reset or a Disable that link is unmounted, so this is a no-op.
+  useEffect(() => {
+    if (confirmOpen) {
+      cancelRef.current?.focus();
+    } else if (prevConfirmOpen.current) {
+      generateLinkRef.current?.focus();
+    }
+    prevConfirmOpen.current = confirmOpen;
+  }, [confirmOpen]);
 
   function handleBackdropClick(event: React.MouseEvent<HTMLDivElement>) {
     if (event.target === event.currentTarget) {
@@ -147,9 +194,14 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
     setNotifError(null);
     try {
       const res = await apiFetch('/api/notifications/enable', { method: 'POST' });
-      const body = (await res.json()) as ApiResponse<NotificationStatus>;
+      const body = (await res.json()) as ApiResponse<EnableNotificationsResult>;
       if (body.success && body.data) {
-        setStatus(body.data); // DD-C — render the enabled body straight off the response
+        // DD-C — render the enabled body straight off the response. The one-time
+        // password is split off so it is held only in revealedPassword, never in status.
+        const { password, ...nextStatus } = body.data;
+        setStatus(nextStatus);
+        setRevealedPassword(password ?? null);
+        setRevealFromReset(false);
       } else {
         setNotifError(body.error ?? 'Could not set up notifications');
       }
@@ -189,6 +241,16 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
       if (body.success && body.data) {
         setStatus(body.data); // DD-C — collapse back to the off state with no re-fetch
         setTestMsg(null);
+        // Reset all password-flow state so a later re-enable never reopens with a
+        // stale password, confirm box, stuck in-flight flag, error or "Copied!".
+        setRevealedPassword(null);
+        setRevealFromReset(false);
+        setConfirmOpen(false);
+        setResetPending(false);
+        setResetError(null);
+        setCopiedField(null);
+        setCopyErrorField(null);
+        if (copyTimer.current) clearTimeout(copyTimer.current);
       } else {
         setNotifError(body.error ?? 'Could not disable notifications');
       }
@@ -196,6 +258,31 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
       setNotifError('Could not disable notifications');
     } finally {
       setActionPending(false);
+    }
+  }
+
+  async function handleGenerate() {
+    setResetError(null); // clear the previous message synchronously before the request
+    setResetPending(true);
+    try {
+      const res = await apiFetch('/api/notifications/reset-password', { method: 'POST' });
+      const body = (await res.json()) as ApiResponse<NewNotificationPassword>;
+      if (!isMountedRef.current) return;
+      if (body.success && body.data) {
+        setRevealedPassword(body.data.password);
+        setRevealFromReset(true);
+        setConfirmOpen(false);
+      } else {
+        // Any failure closes the confirm back to the set-up state with the error there.
+        setResetError(body.error ?? RESET_FALLBACK_ERROR);
+        setConfirmOpen(false);
+      }
+    } catch {
+      if (!isMountedRef.current) return;
+      setResetError(RESET_FALLBACK_ERROR);
+      setConfirmOpen(false);
+    } finally {
+      if (isMountedRef.current) setResetPending(false);
     }
   }
 
@@ -219,12 +306,23 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
 
   // One labelled value row with its own copy button + failure alert, keyed by field
   // so only the clicked button shows "Copied!".
-  function renderCopyField(label: string, value: string, field: CopyField, buttonLabel: string) {
+  function renderCopyField(
+    label: string,
+    value: string,
+    field: CopyField,
+    buttonLabel: string,
+    buttonRef?: React.Ref<HTMLButtonElement>,
+  ) {
     return (
       <div className="mb-1.5">
         <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-0.5">{label}</div>
         <div className="text-xs text-gray-200 font-mono break-all">{value}</div>
-        <button type="button" onClick={() => handleCopy(value, field)} className={COPY_BUTTON_CLASS}>
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={() => handleCopy(value, field)}
+          className={COPY_BUTTON_CLASS}
+        >
           {copiedField === field ? 'Copied!' : buttonLabel}
         </button>
         {copyErrorField === field && (
@@ -323,6 +421,89 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
                 </div>
               </div>
 
+              {revealedPassword ? (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="mt-3.5 bg-gray-900 border border-gray-700 rounded-lg p-4"
+                >
+                  {renderCopyField(
+                    'Your ntfy password',
+                    revealedPassword,
+                    'password',
+                    'Copy password',
+                    copyPasswordRef,
+                  )}
+                  <p className="text-xs text-gray-300 leading-relaxed mt-2">
+                    The ntfy app needs a sign-in to deliver your notifications, so we created one for you.
+                    It&apos;s not a personal account, just the link between ntfy and your 4IRL apps.
+                  </p>
+                  <p className="text-xs text-gray-300 leading-relaxed mt-1.5">
+                    You only enter it once. Your phone stays signed in.
+                  </p>
+                  {revealFromReset && (
+                    <p className="text-xs text-gray-300 leading-relaxed mt-1.5">
+                      Sign in again on each phone with this new password.
+                    </p>
+                  )}
+                  <p className="text-xs text-amber-400 font-medium mt-1.5">Shown once. Copy it now.</p>
+                </div>
+              ) : confirmOpen ? (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="mt-3.5 bg-gray-900 border border-gray-700 rounded-lg p-4"
+                >
+                  <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">ntfy password</div>
+                  <p className="text-sm text-gray-200 leading-relaxed">
+                    Phones using the current password will stop getting notifications until they sign in with
+                    the new one.
+                  </p>
+                  <div className="flex gap-2.5 mt-3">
+                    <button
+                      type="button"
+                      onClick={handleGenerate}
+                      disabled={resetPending || actionPending}
+                      className="flex-1 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg"
+                    >
+                      {resetPending ? 'Generating…' : 'Generate new password'}
+                    </button>
+                    <button
+                      ref={cancelRef}
+                      type="button"
+                      onClick={() => setConfirmOpen(false)}
+                      disabled={resetPending}
+                      className="flex-1 min-h-[44px] bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3.5 bg-gray-900 border border-gray-700 rounded-lg p-4">
+                  <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">ntfy password</div>
+                  <p className="text-sm text-gray-200 leading-relaxed">
+                    Your ntfy sign-in is set up and works for every 4IRL app. Your phone stays signed in, so
+                    you won&apos;t need the password again.
+                  </p>
+                  <button
+                    ref={generateLinkRef}
+                    type="button"
+                    onClick={() => setConfirmOpen(true)}
+                    disabled={actionPending}
+                    className="text-indigo-400 text-[13px] underline min-h-[44px] inline-flex items-center disabled:opacity-50"
+                  >
+                    Generate a new password
+                  </button>
+                  <p className="text-xs text-gray-400">Only for a new phone or a lost password.</p>
+                  {resetError && (
+                    <p role="alert" className="text-red-400 text-sm mt-2">
+                      {resetError}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <a
                 href={status.setupUrl}
                 target="_blank"
@@ -339,7 +520,7 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
                 <button
                   type="button"
                   onClick={handleTest}
-                  disabled={actionPending}
+                  disabled={actionPending || resetPending}
                   className="flex-1 min-h-[44px] bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg"
                 >
                   Send test notification
@@ -347,7 +528,7 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
                 <button
                   type="button"
                   onClick={handleDisable}
-                  disabled={actionPending}
+                  disabled={actionPending || resetPending}
                   className="flex-1 min-h-[44px] bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg"
                 >
                   Disable

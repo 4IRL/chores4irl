@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, waitFor, cleanup, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -710,5 +711,439 @@ describe('SettingsModal — notifications', () => {
     await user.click(screen.getByRole('button', { name: 'Copy token' }));
     await screen.findByRole('button', { name: 'Copied!' });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
+const PASSWORD = 'k7mq-2xfp-9wnr-h3tc';
+const NEW_PASSWORD = 'm4tz-8kqe-v2pa-5hyw';
+const SETUP_TEXT =
+  "Your ntfy sign-in is set up and works for every 4IRL app. Your phone stays signed in, so you won't need the password again.";
+const CONFIRM_TEXT =
+  'Phones using the current password will stop getting notifications until they sign in with the new one.';
+const WHY_TEXT =
+  "The ntfy app needs a sign-in to deliver your notifications, so we created one for you. It's not a personal account, just the link between ntfy and your 4IRL apps.";
+
+describe('SettingsModal — one-time password and generate new', () => {
+  it('an enable response with a password shows the reveal box, the exact copy and focus on Copy password', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: NOT_PROVISIONED }),
+        'POST /api/notifications/enable': () =>
+          jsonResponse({ success: true, data: { ...PROVISIONED, password: PASSWORD } }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('checkbox'));
+
+    const reveal = await screen.findByRole('status');
+    expect(reveal).toHaveTextContent('Your ntfy password');
+    expect(reveal).toHaveTextContent(PASSWORD);
+    expect(reveal).toHaveTextContent(WHY_TEXT);
+    expect(reveal).toHaveTextContent('You only enter it once. Your phone stays signed in.');
+    expect(reveal).toHaveTextContent('Shown once. Copy it now.');
+    expect(reveal).not.toHaveTextContent('Sign in again on each phone');
+    expect(screen.getByText(PASSWORD).className).toContain('font-mono');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Copy password' })).toHaveFocus());
+    expect(screen.queryByText(SETUP_TEXT)).not.toBeInTheDocument();
+  });
+
+  it('an enable response without a password shows the set-up state, not the reveal', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: NOT_PROVISIONED }),
+        'POST /api/notifications/enable': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('checkbox'));
+
+    expect(await screen.findByText(SETUP_TEXT)).toBeInTheDocument();
+    expect(screen.getByText('Only for a new phone or a lost password.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Generate a new password' })).toBeInTheDocument();
+    expect(screen.queryByText('Your ntfy password')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy password' })).not.toBeInTheDocument();
+  });
+
+  it('Copy password writes the password to the clipboard', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(() => Promise.resolve());
+    stubClipboard(writeText);
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: NOT_PROVISIONED }),
+        'POST /api/notifications/enable': () =>
+          jsonResponse({ success: true, data: { ...PROVISIONED, password: PASSWORD } }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('checkbox'));
+    await user.click(await screen.findByRole('button', { name: 'Copy password' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(PASSWORD));
+    expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument();
+    // Only the password button flips; the other copy buttons keep their labels.
+    expect(screen.getByRole('button', { name: 'Copy username' })).toBeInTheDocument();
+  });
+
+  it('a fresh mount (reopening Settings) never shows a password', async () => {
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    expect(await screen.findByText(SETUP_TEXT)).toBeInTheDocument();
+    expect(screen.queryByText('Your ntfy password')).not.toBeInTheDocument();
+    expect(screen.queryByText(PASSWORD)).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('the confirm flow focuses Cancel, Cancel restores focus, and generating shows the new password', async () => {
+    const user = userEvent.setup();
+    let resolveReset!: (r: Response) => void;
+    const pending = new Promise<Response>((r) => (resolveReset = r));
+    let resetInit: RequestInit | undefined;
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+        'POST /api/notifications/reset-password': (init) => {
+          resetInit = init;
+          return pending;
+        },
+      }),
+    );
+    renderModal();
+
+    const link = await screen.findByRole('button', { name: 'Generate a new password' });
+    await user.click(link);
+
+    const confirm = screen.getByRole('status');
+    expect(confirm).toHaveTextContent(CONFIRM_TEXT);
+    expect(screen.queryByText(SETUP_TEXT)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus());
+
+    // Cancel returns to the set-up state with focus back on the link.
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByText(SETUP_TEXT)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Generate a new password' })).toHaveFocus(),
+    );
+
+    // Open again and confirm.
+    await user.click(screen.getByRole('button', { name: 'Generate a new password' }));
+    await user.click(screen.getByRole('button', { name: 'Generate new password' }));
+
+    // Pending: the confirm button reads Generating… and everything else is disabled.
+    expect(resetInit?.method).toBe('POST');
+    expect(resetInit?.body).toBeUndefined();
+    expect(screen.getByRole('button', { name: 'Generating…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Send test notification' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Disable' })).toBeDisabled();
+
+    await act(async () => {
+      resolveReset(new Response(JSON.stringify({ success: true, data: { password: NEW_PASSWORD } })));
+    });
+
+    const reveal = await screen.findByRole('status');
+    expect(reveal).toHaveTextContent(NEW_PASSWORD);
+    expect(reveal).toHaveTextContent('Sign in again on each phone with this new password.');
+    expect(reveal).toHaveTextContent(WHY_TEXT);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Copy password' })).toHaveFocus());
+    expect(screen.queryByText(CONFIRM_TEXT)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Send test notification' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Disable' })).not.toBeDisabled();
+  });
+
+  it('disables Generate while a Send test is in flight', async () => {
+    const user = userEvent.setup();
+    let resolveTest!: (r: Response) => void;
+    const pending = new Promise<Response>((r) => (resolveTest = r));
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+        'POST /api/notifications/test': () => pending,
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('button', { name: 'Send test notification' }));
+    expect(screen.getByRole('button', { name: 'Generate a new password' })).toBeDisabled();
+
+    await act(async () => {
+      resolveTest(new Response(JSON.stringify({ success: true, data: null })));
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Generate a new password' })).not.toBeDisabled(),
+    );
+  });
+
+  it.each([
+    ['429 rate limit', 'Too many new passwords. Try again in an hour.'],
+    ['502 service failure', 'Could not generate a new password'],
+  ])(
+    'a %s body closes the confirm back to the set-up state and renders the error there',
+    async (_label, error) => {
+      const user = userEvent.setup();
+      vi.stubGlobal(
+        'fetch',
+        makeFetchStub({
+          'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+          'POST /api/notifications/reset-password': () => jsonResponse({ success: false, error }),
+        }),
+      );
+      renderModal();
+
+      await user.click(await screen.findByRole('button', { name: 'Generate a new password' }));
+      await user.click(screen.getByRole('button', { name: 'Generate new password' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(error);
+      expect(screen.getByText(SETUP_TEXT)).toBeInTheDocument();
+      expect(screen.queryByText(CONFIRM_TEXT)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Generate a new password' })).toHaveFocus(),
+      );
+      expect(screen.getByRole('button', { name: 'Send test notification' })).not.toBeDisabled();
+    },
+  );
+
+  it('a rejected reset fetch closes the confirm and renders the fallback error', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+        'POST /api/notifications/reset-password': () => Promise.reject(new Error('network down')),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('button', { name: 'Generate a new password' }));
+    await user.click(screen.getByRole('button', { name: 'Generate new password' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not generate a new password. Try again.',
+    );
+    expect(screen.getByText(SETUP_TEXT)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Generate a new password' })).toHaveFocus(),
+    );
+  });
+
+  it('a new Generate attempt clears the previous error synchronously', async () => {
+    const user = userEvent.setup();
+    let attempt = 0;
+    let resolveSecond!: (r: Response) => void;
+    const secondPending = new Promise<Response>((r) => (resolveSecond = r));
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+        'POST /api/notifications/reset-password': () => {
+          attempt += 1;
+          if (attempt === 1)
+            return jsonResponse({ success: false, error: 'Too many new passwords. Try again in an hour.' });
+          return secondPending;
+        },
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('button', { name: 'Generate a new password' }));
+    await user.click(screen.getByRole('button', { name: 'Generate new password' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Generate a new password' }));
+    await user.click(screen.getByRole('button', { name: 'Generate new password' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveSecond(new Response(JSON.stringify({ success: true, data: { password: NEW_PASSWORD } })));
+    });
+    expect(await screen.findByText(NEW_PASSWORD)).toBeInTheDocument();
+  });
+
+  it('Disable clears a shown password, and a re-enable without one shows the set-up state', async () => {
+    const user = userEvent.setup();
+    let enableCall = 0;
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: NOT_PROVISIONED }),
+        'POST /api/notifications/enable': () => {
+          enableCall += 1;
+          return jsonResponse({
+            success: true,
+            data: enableCall === 1 ? { ...PROVISIONED, password: PASSWORD } : PROVISIONED,
+          });
+        },
+        'POST /api/notifications/disable': () =>
+          jsonResponse({ success: true, data: { provisioned: true, enabled: false } }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('checkbox'));
+    expect(await screen.findByText(PASSWORD)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Disable' }));
+    expect(await screen.findByText('Enable push notifications')).toBeInTheDocument();
+    expect(screen.queryByText(PASSWORD)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox'));
+    expect(await screen.findByText(SETUP_TEXT)).toBeInTheDocument();
+    expect(screen.queryByText(PASSWORD)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy password' })).not.toBeInTheDocument();
+  });
+
+  it('a Disable while the confirm is open leaves no stale confirm box or error on the next re-enable', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+        'POST /api/notifications/disable': () =>
+          jsonResponse({ success: true, data: { provisioned: true, enabled: false } }),
+        'POST /api/notifications/enable': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('button', { name: 'Generate a new password' }));
+    expect(screen.getByText(CONFIRM_TEXT)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Disable' }));
+    expect(await screen.findByText('Enable push notifications')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox'));
+    expect(await screen.findByText(SETUP_TEXT)).toBeInTheDocument();
+    expect(screen.queryByText(CONFIRM_TEXT)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('a Disable after a failed reset leaves no stale error on the next re-enable', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+        'POST /api/notifications/reset-password': () =>
+          jsonResponse({ success: false, error: 'Too many new passwords. Try again in an hour.' }),
+        'POST /api/notifications/disable': () =>
+          jsonResponse({ success: true, data: { provisioned: true, enabled: false } }),
+        'POST /api/notifications/enable': () => jsonResponse({ success: true, data: PROVISIONED }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('button', { name: 'Generate a new password' }));
+    await user.click(screen.getByRole('button', { name: 'Generate new password' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Disable' }));
+    expect(await screen.findByText('Enable push notifications')).toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox'));
+
+    expect(await screen.findByText(SETUP_TEXT)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('copying a field, then Disable, then re-enable shows the new password Copy button in its default state', async () => {
+    const user = userEvent.setup();
+    stubClipboard(() => Promise.resolve());
+    let enableCall = 0;
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: NOT_PROVISIONED }),
+        'POST /api/notifications/enable': () => {
+          enableCall += 1;
+          return jsonResponse({
+            success: true,
+            data: { ...PROVISIONED, password: enableCall === 1 ? PASSWORD : NEW_PASSWORD },
+          });
+        },
+        'POST /api/notifications/disable': () =>
+          jsonResponse({ success: true, data: { provisioned: true, enabled: false } }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('checkbox'));
+    await user.click(await screen.findByRole('button', { name: 'Copy password' }));
+    expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Disable' }));
+    expect(await screen.findByText('Enable push notifications')).toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox'));
+
+    expect(await screen.findByText(NEW_PASSWORD)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy password' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copied!' })).not.toBeInTheDocument();
+  });
+
+  it('a denied clipboard on the password shows the password-specific alert', async () => {
+    const user = userEvent.setup();
+    stubClipboard(() => Promise.reject(new Error('denied')));
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: NOT_PROVISIONED }),
+        'POST /api/notifications/enable': () =>
+          jsonResponse({ success: true, data: { ...PROVISIONED, password: PASSWORD } }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('checkbox'));
+    await user.click(await screen.findByRole('button', { name: 'Copy password' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t copy — select the password above.');
+    expect(screen.queryByRole('button', { name: 'Copied!' })).not.toBeInTheDocument();
+  });
+
+  // The isMountedRef guard's unmount branch (skip set* after the modal closed) is not
+  // observable: React 19 silently drops a setState on an unmounted component (no
+  // warning, no DOM), so an "unmount, then resolve" test would pass with or without
+  // the guard and has been deliberately omitted. What IS observable is the guard's
+  // other half: StrictMode runs mount -> cleanup -> mount, and the effect must flip
+  // the ref back to true, or every post-response set* would be suppressed on a
+  // still-mounted modal and the new password would never appear.
+  it('the mount guard does not suppress a reset response on a still-mounted modal under StrictMode', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+        'POST /api/notifications/reset-password': () =>
+          jsonResponse({ success: true, data: { password: NEW_PASSWORD } }),
+      }),
+    );
+    render(
+      <StrictMode>
+        <SettingsModal swipeStyle="ios" onSwipeStyleChange={vi.fn()} onCancel={vi.fn()} />
+      </StrictMode>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Generate a new password' }));
+    await user.click(screen.getByRole('button', { name: 'Generate new password' }));
+
+    expect(await screen.findByText(NEW_PASSWORD)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Generating…' })).not.toBeInTheDocument();
   });
 });
