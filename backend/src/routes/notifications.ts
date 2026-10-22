@@ -78,16 +78,18 @@ notifications.post('/enable', async (c) => {
     );
   }
 
+  // Built before saving so an invalid/missing NOTIFS_SETUP_BASE_URL or NTFY_BASE_URL
+  // throws before any persistence side effect.
+  const data: EnableNotificationsResult = {
+    ...provisionedStatus(c.env, result.personHash, result.subscriberToken, true),
+    password: result.password,
+  };
   // saveProvisioning deliberately receives only the hash and token: the generated
   // password is passed through to the browser once and never stored.
   await saveProvisioning(c.env.DB, c.var.userId, {
     personHash: result.personHash,
     subscriberToken: result.subscriberToken,
   });
-  const data: EnableNotificationsResult = {
-    ...provisionedStatus(c.env, result.personHash, result.subscriberToken, true),
-    password: result.password,
-  };
   return c.json({ success: true, data } satisfies ApiResponse<EnableNotificationsResult>);
 });
 
