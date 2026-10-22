@@ -981,6 +981,36 @@ describe('SettingsModal — one-time password and generate new', () => {
     );
   });
 
+  it('disables the open confirm\'s "Generate new password" button while a Send test is in flight', async () => {
+    const user = userEvent.setup();
+    let resolveTest!: (r: Response) => void;
+    const pending = new Promise<Response>((r) => (resolveTest = r));
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+        'POST /api/notifications/test': () => pending,
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('button', { name: 'Generate a new password' }));
+    const confirmButton = screen.getByRole('button', { name: 'Generate new password' });
+    expect(confirmButton).not.toBeDisabled();
+
+    // Send test stays clickable with the confirm open; its in-flight request sets actionPending.
+    await user.click(screen.getByRole('button', { name: 'Send test notification' }));
+    expect(screen.getByText(CONFIRM_TEXT)).toBeInTheDocument();
+    expect(confirmButton).toBeDisabled();
+    // Only actionPending is set here (no reset in flight), so Cancel is still usable.
+    expect(screen.getByRole('button', { name: 'Cancel' })).not.toBeDisabled();
+
+    await act(async () => {
+      resolveTest(new Response(JSON.stringify({ success: true, data: null })));
+    });
+    await waitFor(() => expect(confirmButton).not.toBeDisabled());
+  });
+
   it.each([
     ['429 rate limit', 'Too many new passwords. Try again in an hour.'],
     ['502 service failure', 'Could not generate a new password'],
