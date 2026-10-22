@@ -508,7 +508,7 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
                         type="button"
                         onClick={() => setConfirmOpen(true)}
                         disabled={actionPending}
-                        className="text-indigo-400 text-[13px] underline min-h-[44px] inline-flex items-center disabled:opacity-50"
+                        className={`${COPY_BUTTON_CLASS} disabled:opacity-50`}
                       >
                         Generate a new password
                       </button>
