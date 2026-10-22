@@ -221,6 +221,19 @@ describe('GET /api/notifications — auth chain (real mounted accessAuth + resol
     expect(body.success).toBe(false);
     expect(body.error).toBe('Unauthorized');
   });
+
+  it('returns 401 with Cache-Control: no-store on POST /enable without a JWT, and never provisions', async () => {
+    const fetchMock = stubFetch();
+
+    const res = await app.request('/api/notifications/enable', { method: 'POST' }, requestEnv());
+    expect(res.status).toBe(401);
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+    const body = (await res.json()) as { success: boolean; error?: string };
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('Unauthorized');
+    expect(callsTo(fetchMock, (url) => url === PROVISION_URL)).toHaveLength(0);
+    expect(await getProvisioning(env.DB, USER_ID)).toBeNull();
+  });
 });
 
 describe('POST /api/notifications/enable', () => {
