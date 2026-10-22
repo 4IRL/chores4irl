@@ -841,6 +841,35 @@ describe('SettingsModal — one-time password and generate new', () => {
     expect(screen.queryByText(SETUP_TEXT)).not.toBeInTheDocument();
   });
 
+  it('the one-time password is held only by the reveal box: exactly one occurrence in the whole DOM', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: NOT_PROVISIONED }),
+        'POST /api/notifications/enable': () =>
+          jsonResponse({ success: true, data: { ...PROVISIONED, password: PASSWORD } }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('checkbox'));
+
+    const reveal = await screen.findByRole('status');
+    expect(within(reveal).getAllByText(PASSWORD)).toHaveLength(1);
+    expect(screen.getAllByText(PASSWORD)).toHaveLength(1);
+    // Markup, not just text: no attribute (QR value, link href, title) may carry it either.
+    const occurrences = document.body.innerHTML.split(PASSWORD).length - 1;
+    expect(occurrences).toBe(1);
+    // The status-driven panels render the rest of the response but not the password.
+    const meta = screen.getByTestId('ntfy-meta-card');
+    expect(meta.innerHTML).not.toContain(PASSWORD);
+    expect(screen.getByTestId('qr-code').getAttribute('data-qr-value')).not.toContain(PASSWORD);
+    expect(screen.getByRole('link', { name: 'Set up the ntfy app →' }).getAttribute('href')).not.toContain(
+      PASSWORD,
+    );
+  });
+
   it('an enable response without a password shows the set-up state, not the reveal', async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
