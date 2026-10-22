@@ -55,12 +55,16 @@ export interface Household {
 // Wire shape returned by GET/POST /api/notifications/*. `server`/`topic`/
 // `subscriberToken` are present only when provisioned — the UI uses them to
 // build the ntfy subscribe link/QR and to display the token for manual entry.
+// `username` (the person's ntfy account) and `setupUrl` (the shared setup-page
+// link with app/user/name filled in) are likewise present only when provisioned.
 export interface NotificationStatus {
   provisioned: boolean;
   enabled: boolean;
   server?: string;
   topic?: string;
   subscriberToken?: string;
+  username?: string;
+  setupUrl?: string;
 }
 
 export interface JoinRequest {

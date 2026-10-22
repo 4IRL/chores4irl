@@ -60,6 +60,8 @@ describe('mockFetch: /api/notifications', () => {
     server?: string;
     topic?: string;
     subscriberToken?: string;
+    username?: string;
+    setupUrl?: string;
   };
 
   it('GET returns the not-provisioned state by default', async () => {
@@ -69,6 +71,8 @@ describe('mockFetch: /api/notifications', () => {
     expect(body.success).toBe(true);
     expect(body.data).toEqual({ provisioned: false, enabled: false });
     expect(body.data.subscriberToken).toBeUndefined();
+    expect(body.data.username).toBeUndefined();
+    expect(body.data.setupUrl).toBeUndefined();
   });
 
   it('POST enable provisions, and a subsequent GET reflects the provisioned+enabled state', async () => {
@@ -81,11 +85,17 @@ describe('mockFetch: /api/notifications', () => {
     expect(enableBody.data.server).toBeTruthy();
     expect(enableBody.data.topic).toBeTruthy();
     expect(enableBody.data.subscriberToken).toBeTruthy();
+    expect(enableBody.data.username).toMatch(/^u_/);
+    expect(enableBody.data.setupUrl).toBe(
+      `https://notifs-setup.4irl.app/?app=chores4irl&user=${enableBody.data.username}&name=Chores4irl`,
+    );
 
     const getBody = await json<{ data: Status }>(await mockFetch('/api/notifications'));
     expect(getBody.data.provisioned).toBe(true);
     expect(getBody.data.enabled).toBe(true);
     expect(getBody.data.topic).toBe(enableBody.data.topic);
+    expect(getBody.data.username).toBe(enableBody.data.username);
+    expect(getBody.data.setupUrl).toBe(enableBody.data.setupUrl);
   });
 
   it('POST test returns 409 before enabling and 200 once enabled', async () => {

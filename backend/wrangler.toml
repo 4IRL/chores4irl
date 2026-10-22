@@ -21,8 +21,10 @@ ACCESS_JWKS_URL = "https://urls4irl.cloudflareaccess.com/cdn-cgi/access/certs"
 # 4irl-notifs base URLs are plain hostnames, not credentials — same rationale as
 # ACCESS_JWKS_URL above. The auth that gates them (CF Access service token for
 # notifs-api, ntfy publisher bearer token) is set via `wrangler secret put`, never
-# here. NOTIFS_API_BASE_URL is the provisioning API; NTFY_BASE_URL is the ntfy host.
+# here. NOTIFS_API_BASE_URL is the provisioning API; NTFY_BASE_URL is the ntfy host;
+# NOTIFS_SETUP_BASE_URL is the shared ntfy-app setup page the status payload links to.
 NOTIFS_API_BASE_URL = "https://notifs-api.4irl.app"
+NOTIFS_SETUP_BASE_URL = "https://notifs-setup.4irl.app/"
 NTFY_BASE_URL = "https://notifs.4irl.app"
 
 # Everything else Cloudflare-account-specific is a secret, not a plain var —

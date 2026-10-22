@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import type { ApiResponse, NotificationStatus } from '../../../types/SharedTypes.js';
 import { getProvisioning, saveProvisioning, setEnabled } from '../notifications.js';
-import { provisionUser } from '../notifs-provisioning.js';
-import { personTopic, publishTest } from '../ntfy-publish.js';
+import { NOTIFS_APP_ID, provisionUser } from '../notifs-provisioning.js';
+import { ntfyUsername, personTopic, publishTest } from '../ntfy-publish.js';
 import type { BaseEnv } from '../types.js';
 
 // Per-user notification routes, mounted behind accessAuth + resolveUser (BaseEnv,
@@ -13,19 +13,28 @@ const notifications = new Hono<BaseEnv>();
 
 // Builds the provisioned/enabled wire status from a stored row's credentials.
 // server is the full origin (scheme + host) so the frontend never prepends a
-// scheme (DD-B); topic is derived locally from the person hash.
+// scheme (DD-B); topic and username are derived locally from the person hash,
+// and setupUrl is the shared setup-page link with the app, username and display
+// name filled in (server-authoritative so the app id has one source).
 function provisionedStatus(
   env: BaseEnv['Bindings'],
   personHash: string,
   subscriberToken: string,
   enabled: boolean,
 ): NotificationStatus {
+  const username = ntfyUsername(personHash);
+  const setupUrl = new URL(env.NOTIFS_SETUP_BASE_URL);
+  setupUrl.searchParams.set('app', NOTIFS_APP_ID);
+  setupUrl.searchParams.set('user', username);
+  setupUrl.searchParams.set('name', 'Chores4irl');
   return {
     provisioned: true,
     enabled,
     server: new URL(env.NTFY_BASE_URL).origin,
     topic: personTopic(personHash),
     subscriberToken,
+    username,
+    setupUrl: setupUrl.toString(),
   };
 }
 

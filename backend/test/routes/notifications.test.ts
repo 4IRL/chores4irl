@@ -13,9 +13,16 @@ const NOTIFS_TEST_ENV = {
   NOTIFS_API_BASE_URL: 'https://notifs-api.test.fixture',
   NOTIFS_CF_ACCESS_CLIENT_ID: 'test-client-id',
   NOTIFS_CF_ACCESS_CLIENT_SECRET: 'test-client-secret',
+  NOTIFS_SETUP_BASE_URL: 'https://notifs-setup.test.fixture/',
   NTFY_BASE_URL: 'https://notifs.test.fixture',
   NTFY_PUBLISHER_TOKEN: 'tk_publisher-fixture',
 };
+
+// The shared setup-page link the server builds for a provisioned person: base
+// URL from NOTIFS_SETUP_BASE_URL, then app / user / name query params.
+function setupUrlFor(personHash: string): string {
+  return `${NOTIFS_TEST_ENV.NOTIFS_SETUP_BASE_URL}?app=chores4irl&user=u_${personHash}&name=Chores4irl`;
+}
 
 const PROVISION_URL = `${NOTIFS_TEST_ENV.NOTIFS_API_BASE_URL}/v1/provision`;
 const DEPROVISION_URL = `${NOTIFS_TEST_ENV.NOTIFS_API_BASE_URL}/v1/deprovision`;
@@ -119,6 +126,8 @@ describe('GET /api/notifications', () => {
         server: 'https://notifs.test.fixture',
         topic: `chores4irl-${SEED_HASH}-all`,
         subscriberToken: SEED_TOKEN,
+        username: `u_${SEED_HASH}`,
+        setupUrl: setupUrlFor(SEED_HASH),
       },
     });
   });
@@ -190,6 +199,8 @@ describe('POST /api/notifications/enable', () => {
         server: 'https://notifs.test.fixture',
         topic: `chores4irl-${PROVISION_HASH}-all`,
         subscriberToken: PROVISION_TOKEN,
+        username: `u_${PROVISION_HASH}`,
+        setupUrl: setupUrlFor(PROVISION_HASH),
       },
     });
 
@@ -244,6 +255,8 @@ describe('POST /api/notifications/enable', () => {
     // Response carries the original token/topic, not the provisioning stub's.
     expect(body.data.subscriberToken).toBe(SEED_TOKEN);
     expect(body.data.topic).toBe(`chores4irl-${SEED_HASH}-all`);
+    expect(body.data.username).toBe(`u_${SEED_HASH}`);
+    expect(body.data.setupUrl).toBe(setupUrlFor(SEED_HASH));
   });
 });
 

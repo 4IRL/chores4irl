@@ -53,13 +53,16 @@ type MockJoinRequest = {
 // Mirrors the real backend's per-user notification state (see
 // backend/src/routes/notifications.ts). `provisioned` flips true on first
 // enable; `enabled` is the soft-off flag. server/topic/subscriberToken are the
-// fixed fake credentials a provisioned row would carry, used to render the QR.
+// fixed fake credentials a provisioned row would carry, used to render the QR;
+// username/setupUrl mirror the server-built push-app username and setup link.
 type MockNotifications = {
   provisioned: boolean;
   enabled: boolean;
   server: string;
   topic: string;
   subscriberToken: string;
+  username: string;
+  setupUrl: string;
 };
 
 function seedMe() {
@@ -146,6 +149,8 @@ function seedNotifications(): MockNotifications {
     server: 'https://notifs.4irl.app',
     topic: 'chores4irl-previewhash4e5tei-all',
     subscriberToken: 'tk_preview_9f2a7c1e4b6d8035',
+    username: 'u_previewhash4e5tei',
+    setupUrl: 'https://notifs-setup.4irl.app/?app=chores4irl&user=u_previewhash4e5tei&name=Chores4irl',
   };
 }
 
@@ -238,6 +243,8 @@ export async function mockFetch(path: string, init?: RequestInit): Promise<Respo
           server: notifications.server,
           topic: notifications.topic,
           subscriberToken: notifications.subscriberToken,
+          username: notifications.username,
+          setupUrl: notifications.setupUrl,
         }
       : { provisioned: false, enabled: false };
     return jsonResponse({ success: true, data });
@@ -254,6 +261,8 @@ export async function mockFetch(path: string, init?: RequestInit): Promise<Respo
         server: notifications.server,
         topic: notifications.topic,
         subscriberToken: notifications.subscriberToken,
+        username: notifications.username,
+        setupUrl: notifications.setupUrl,
       },
     });
   }
