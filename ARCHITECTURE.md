@@ -287,6 +287,11 @@ React state in `SettingsModal.tsx` until the modal closes or notifications are d
 subscriber token), applied by the `noStore` middleware (`middleware/no-store.ts`) registered in `app.ts`
 **ahead of** auth so 401s, 409s, 429s and 502s carry it too.
 
+**4irl-notifs version dependency:** `/enable`'s one-time password pass-through and
+`POST /api/notifications/reset-password` require a 4irl-notifs version that supports the optional
+`password` field on `/v1/provision` and `/v1/reset-password`; an older upstream degrades to a 502
+("Could not generate a new password") and a first enable with no password shown.
+
 **Config** (`backend/wrangler.toml` `[vars]`, plain hostnames, not credentials):
 `NOTIFS_API_BASE_URL` (provisioning API), `NTFY_BASE_URL` (ntfy host), `NOTIFS_SETUP_BASE_URL` (shared
 ntfy-app setup page); `backend/.dev.vars` overrides them locally (`.dev.vars.example`). **Secrets**

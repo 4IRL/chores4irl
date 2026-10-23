@@ -75,7 +75,6 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
   const cancelRef = useRef<HTMLButtonElement>(null);
   const generateLinkRef = useRef<HTMLButtonElement>(null);
   const prevConfirmOpen = useRef(false);
-  const isMountedRef = useRef(true);
 
   // Mount fetch of the current notification status (DD-8): a thrown/rejected call
   // sets the error and leaves status at its default off state.
@@ -116,15 +115,6 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
   useEffect(() => {
     return () => {
       if (copyTimer.current) clearTimeout(copyTimer.current);
-    };
-  }, []);
-
-  // Mount guard for the Generate/reset-password handler only: its confirm-then-POST
-  // flow leaves a long async window in which the modal can close.
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
     };
   }, []);
 
@@ -266,7 +256,6 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
     try {
       const res = await apiFetch('/api/notifications/reset-password', { method: 'POST' });
       const body = (await res.json()) as ApiResponse<NewNotificationPassword>;
-      if (!isMountedRef.current) return;
       if (body.success && body.data) {
         setRevealedPassword(body.data.password);
         setRevealFromReset(true);
@@ -275,13 +264,10 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
         setResetError(body.error ?? RESET_FALLBACK_ERROR);
       }
     } catch {
-      if (!isMountedRef.current) return;
       setResetError(RESET_FALLBACK_ERROR);
     } finally {
-      if (isMountedRef.current) {
-        setResetPending(false);
-        setConfirmOpen(false); // success, failure and rejection all leave the confirm
-      }
+      setResetPending(false);
+      setConfirmOpen(false); // success, failure and rejection all leave the confirm
     }
   }
 
@@ -500,8 +486,8 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
                         ntfy password
                       </div>
                       <p className="text-sm text-gray-200 leading-relaxed">
-                        Your ntfy sign-in is set up and works for every 4IRL app. Your phone stays signed in,
-                        so you won&apos;t need the password again.
+                        Your ntfy sign-in is set up and works for every 4IRL app. If you haven&apos;t signed
+                        in on your phone yet, generate a password below.
                       </p>
                       <button
                         ref={generateLinkRef}
@@ -512,7 +498,9 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
                       >
                         Generate a new password
                       </button>
-                      <p className="text-xs text-gray-400">Only for a new phone or a lost password.</p>
+                      <p className="text-xs text-gray-400">
+                        For a phone that isn&apos;t signed in yet, a new phone, or a lost password.
+                      </p>
                       {resetError && (
                         <p role="alert" className="text-red-400 text-sm mt-2">
                           {resetError}

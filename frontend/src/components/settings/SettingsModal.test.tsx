@@ -808,7 +808,7 @@ describe('SettingsModal — notifications', () => {
 const PASSWORD = 'k7mq-2xfp-9wnr-h3tc';
 const NEW_PASSWORD = 'm4tz-8kqe-v2pa-5hyw';
 const SETUP_TEXT =
-  "Your ntfy sign-in is set up and works for every 4IRL app. Your phone stays signed in, so you won't need the password again.";
+  "Your ntfy sign-in is set up and works for every 4IRL app. If you haven't signed in on your phone yet, generate a password below.";
 const CONFIRM_TEXT =
   'Phones using the current password will stop getting notifications until they sign in with the new one.';
 const WHY_TEXT =
@@ -884,7 +884,9 @@ describe('SettingsModal — one-time password and generate new', () => {
     await user.click(await screen.findByRole('checkbox'));
 
     expect(await screen.findByText(SETUP_TEXT)).toBeInTheDocument();
-    expect(screen.getByText('Only for a new phone or a lost password.')).toBeInTheDocument();
+    expect(
+      screen.getByText("For a phone that isn't signed in yet, a new phone, or a lost password."),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Generate a new password' })).toBeInTheDocument();
     expect(screen.queryByText('Your ntfy password')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Copy password' })).not.toBeInTheDocument();
@@ -1301,14 +1303,10 @@ describe('SettingsModal — one-time password and generate new', () => {
     expect(screen.queryByRole('button', { name: 'Copied!' })).not.toBeInTheDocument();
   });
 
-  // The isMountedRef guard's unmount branch (skip set* after the modal closed) is not
-  // observable: React 19 silently drops a setState on an unmounted component (no
-  // warning, no DOM), so an "unmount, then resolve" test would pass with or without
-  // the guard and has been deliberately omitted. What IS observable is the guard's
-  // other half: StrictMode runs mount -> cleanup -> mount, and the effect must flip
-  // the ref back to true, or every post-response set* would be suppressed on a
-  // still-mounted modal and the new password would never appear.
-  it('the mount guard does not suppress a reset response on a still-mounted modal under StrictMode', async () => {
+  // React 19 silently drops a setState on an unmounted component (no warning, no DOM),
+  // so handleGenerate needs no mount guard. Under StrictMode (mount -> cleanup -> mount)
+  // the reset response must still render on the still-mounted modal.
+  it('renders the reset response on a still-mounted modal under StrictMode', async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       'fetch',
