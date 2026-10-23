@@ -155,6 +155,45 @@ describe('provisionUser', () => {
     expect(result.status).toBe('failed');
   });
 
+  it('includes a non-empty string password in the ok result, and never logs it', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ ...provisionBody(), password: 'abcd-efgh-jkmn-pqrs' })),
+    );
+
+    const result = await provisionUser(TEST_ENV, 'user@example.com');
+
+    expect(result).toEqual({
+      status: 'ok',
+      personHash: 'abc123hash',
+      subscriberToken: 'tk_subscriber-token',
+      password: 'abcd-efgh-jkmn-pqrs',
+    });
+    expect(logSpy).toHaveBeenCalled();
+    for (const call of logSpy.mock.calls) {
+      expect(JSON.stringify(call)).not.toContain('abcd-efgh-jkmn-pqrs');
+    }
+    logSpy.mockRestore();
+  });
+
+  it.each([
+    ['an empty string', ''],
+    ['a number', 12345],
+    ['null', null],
+    ['an object', { value: 'abcd-efgh-jkmn-pqrs' }],
+  ])('drops a password that is %s without failing the call', async (_label, password) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ ...provisionBody(), password })),
+    );
+
+    const result = await provisionUser(TEST_ENV, 'user@example.com');
+
+    expect(result.status).toBe('ok');
+    if (result.status === 'ok') expect(result.password).toBeUndefined();
+  });
+
   it('fails closed when the response body is not JSON', async () => {
     vi.stubGlobal(
       'fetch',

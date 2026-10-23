@@ -10,6 +10,7 @@ ACCESS_POLICY_ID=fixture-policy
 # publisher token is minted by `make local-up`'s provision-app — the value below
 # is a clearly-fake fixture placeholder.
 NOTIFS_API_BASE_URL=http://127.0.0.1:8091
+NOTIFS_SETUP_BASE_URL=https://notifs-setup.4irl.app/
 NTFY_BASE_URL=http://127.0.0.1:8090
 NOTIFS_CF_ACCESS_CLIENT_ID=
 NOTIFS_CF_ACCESS_CLIENT_SECRET=

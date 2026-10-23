@@ -60,6 +60,8 @@ describe('mockFetch: /api/notifications', () => {
     server?: string;
     topic?: string;
     subscriberToken?: string;
+    username?: string;
+    setupUrl?: string;
   };
 
   it('GET returns the not-provisioned state by default', async () => {
@@ -69,6 +71,8 @@ describe('mockFetch: /api/notifications', () => {
     expect(body.success).toBe(true);
     expect(body.data).toEqual({ provisioned: false, enabled: false });
     expect(body.data.subscriberToken).toBeUndefined();
+    expect(body.data.username).toBeUndefined();
+    expect(body.data.setupUrl).toBeUndefined();
   });
 
   it('POST enable provisions, and a subsequent GET reflects the provisioned+enabled state', async () => {
@@ -81,11 +85,17 @@ describe('mockFetch: /api/notifications', () => {
     expect(enableBody.data.server).toBeTruthy();
     expect(enableBody.data.topic).toBeTruthy();
     expect(enableBody.data.subscriberToken).toBeTruthy();
+    expect(enableBody.data.username).toMatch(/^u_/);
+    expect(enableBody.data.setupUrl).toBe(
+      `https://notifs-setup.4irl.app/?app=chores4irl&user=${enableBody.data.username}&name=Chores4irl`,
+    );
 
     const getBody = await json<{ data: Status }>(await mockFetch('/api/notifications'));
     expect(getBody.data.provisioned).toBe(true);
     expect(getBody.data.enabled).toBe(true);
     expect(getBody.data.topic).toBe(enableBody.data.topic);
+    expect(getBody.data.username).toBe(enableBody.data.username);
+    expect(getBody.data.setupUrl).toBe(enableBody.data.setupUrl);
   });
 
   it('POST test returns 409 before enabling and 200 once enabled', async () => {
@@ -125,6 +135,44 @@ describe('mockFetch: /api/notifications', () => {
   it('POST disable returns 409 when notifications were never enabled', async () => {
     const res = await mockFetch('/api/notifications/disable', { method: 'POST' });
     expect(res.status).toBe(409);
+  });
+
+  it('POST enable includes the mock password on first enable only', async () => {
+    const first = await json<{ data: Status & { password?: string } }>(
+      await mockFetch('/api/notifications/enable', { method: 'POST' }),
+    );
+    expect(first.data.password).toBe('mock-pass-word-demo');
+
+    // A later GET never carries it.
+    const getBody = await json<{ data: Status & { password?: string } }>(
+      await mockFetch('/api/notifications'),
+    );
+    expect(getBody.data).not.toHaveProperty('password');
+
+    // A second enable (after an intervening disable) is the re-enable branch: no password.
+    await mockFetch('/api/notifications/disable', { method: 'POST' });
+    const second = await json<{ data: Status & { password?: string } }>(
+      await mockFetch('/api/notifications/enable', { method: 'POST' }),
+    );
+    expect(second.data).not.toHaveProperty('password');
+  });
+
+  it('POST reset-password returns 409 when not enabled and a new mock password once enabled', async () => {
+    const before = await mockFetch('/api/notifications/reset-password', { method: 'POST' });
+    expect(before.status).toBe(409);
+
+    await mockFetch('/api/notifications/enable', { method: 'POST' });
+    const enabled = await mockFetch('/api/notifications/reset-password', { method: 'POST' });
+    expect(enabled.status).toBe(200);
+    expect(await json<{ success: boolean; data: { password: string } }>(enabled)).toEqual({
+      success: true,
+      data: { password: 'mock-pass-word-new1' },
+    });
+
+    // Soft-off is not enabled: 409 again.
+    await mockFetch('/api/notifications/disable', { method: 'POST' });
+    const disabled = await mockFetch('/api/notifications/reset-password', { method: 'POST' });
+    expect(disabled.status).toBe(409);
   });
 });
 

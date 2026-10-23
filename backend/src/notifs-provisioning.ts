@@ -13,6 +13,9 @@
 // `^[a-z0-9][a-z0-9_]{0,62}$`.
 export const NOTIFS_APP_ID = 'chores4irl';
 
+// The app's display name on the shared ntfy setup page (the `name` query param).
+export const NOTIFS_APP_DISPLAY_NAME = 'Chores4irl';
+
 export type ProvisioningEnv = {
   NOTIFS_API_BASE_URL: string;
   NOTIFS_CF_ACCESS_CLIENT_ID: string;
@@ -20,7 +23,11 @@ export type ProvisioningEnv = {
 };
 
 export type ProvisionResult =
-  { status: 'ok'; personHash: string; subscriberToken: string } | { status: 'failed'; reason: string };
+  // `password` is the ntfy password 4irl-notifs generated for this person; present
+  // only when it was just generated (a person already set up through another 4IRL
+  // app gets none). It is passed through to the browser once and never stored/logged.
+  | { status: 'ok'; personHash: string; subscriberToken: string; password?: string }
+  | { status: 'failed'; reason: string };
 
 export async function provisionUser(env: ProvisioningEnv, email: string): Promise<ProvisionResult> {
   const clientId = env.NOTIFS_CF_ACCESS_CLIENT_ID;
@@ -51,7 +58,11 @@ export async function provisionUser(env: ProvisioningEnv, email: string): Promis
     return { status: 'failed', reason };
   }
 
-  const body = (await res.json().catch(() => null)) as { person_hash?: unknown; token?: unknown } | null;
+  const body = (await res.json().catch(() => null)) as {
+    person_hash?: unknown;
+    token?: unknown;
+    password?: unknown;
+  } | null;
   // Fail closed on any shape surprise — never return a partial result.
   if (!body || typeof body.person_hash !== 'string' || typeof body.token !== 'string') {
     const reason = 'unexpected provisioning response shape';
@@ -72,5 +83,13 @@ export async function provisionUser(env: ProvisioningEnv, email: string): Promis
   console.log(JSON.stringify({ event: 'notifs-provision', email }));
   // topic_pattern/broadcast_topic are intentionally not parsed — nothing
   // consumes them; the topic is built locally (see ntfy-publish.ts).
-  return { status: 'ok', personHash: body.person_hash, subscriberToken: body.token };
+  // The password is optional: anything other than a non-empty string is dropped
+  // (not a failure). The log line above deliberately omits it.
+  const password = typeof body.password === 'string' && body.password !== '' ? body.password : undefined;
+  return {
+    status: 'ok',
+    personHash: body.person_hash,
+    subscriberToken: body.token,
+    password,
+  };
 }
