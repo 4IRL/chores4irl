@@ -304,7 +304,9 @@ API) and `NTFY_PUBLISHER_TOKEN` (ntfy publish bearer).
 repository, the workflow file `.github/workflows/ci.yml`, `refs/heads/main` and no environment, so
 renaming that workflow file needs the operator to unbind and re-approve. The first run files a pending
 request that the operator approves in the admin UI. Nothing in the Worker uses the issued key yet (it is
-discarded, not stored).
+discarded, not stored). At most 20 requests may be pending at once, a pending request expires after 7 days
+without a refresh (the next push to main files it again), and each green run issues a new key that
+supersedes the previous one (the old key works for 24 hours).
 
 ## Environments in detail
 
@@ -386,7 +388,8 @@ lint + test-frontend ──→ deploy-preview  (PR only: pages deploy --branch=<
   full e2e suite) — it's not production, so it doesn't need production's bar, and this keeps the preview
   link showing up quickly for reviewers.
 - All jobs pin third-party Actions to a commit SHA (not a tag) — check `.github/dependabot.yml` for how
-  those get bumped.
+  those get bumped. The `notifs-app` pin follows a 4irl-notifs commit with no release tag, so Dependabot
+  cannot bump it and it is updated by hand when the action changes.
 - `notifs-identity` (`needs: [test-e2e]`, **push to `main` only**) asks 4irl-notifs for an app identity via
   the pinned `4IRL/4irl-notifs` `notifs-app` composite action: it trades a GitHub OIDC token for a
   delivery key. It is the only job with `id-token: write` (its job-level `permissions` block replaces the
