@@ -135,6 +135,27 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  notifs-identity:
+    name: Request 4irl-notifs app identity
+    # Exchange only (no manifest); the returned key is discarded. Nothing
+    # needs this job, so a pending approval never blocks the app deploys.
+    # Push to main only: a pull_request run would bind refs/pull/N/merge.
+    needs: [test-e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # A job-level block replaces the top-level one, so contents is restated.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Exchange app identity
+        uses: 4IRL/4irl-notifs/.github/actions/notifs-app@beb2358da85e90b3af674fdc57c137409de82a8e # 4irl-notifs main @ beb2358
+        with:
+          app_id: chores4irl
+          delivery_url: https://notifs-delivery.4irl.app
+          access_client_id: ${{ secrets.NOTIFS_DELIVERY_ACCESS_CLIENT_ID }}
+          access_client_secret: ${{ secrets.NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET }}
+
   deploy-backend:
     name: Deploy backend (Workers)
     needs: [test-e2e]
