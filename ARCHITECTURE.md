@@ -299,6 +299,15 @@ ntfy-app setup page); `backend/.dev.vars` overrides them locally (`.dev.vars.exa
 `NOTIFS_CF_ACCESS_CLIENT_ID`, `NOTIFS_CF_ACCESS_CLIENT_SECRET` (the service token for the provisioning
 API) and `NTFY_PUBLISHER_TOKEN` (ntfy publish bearer).
 
+**App identity:** 4irl-notifs identifies each app by its own delivery key. The production deploy's
+`notifs-identity` job (see CI/CD pipeline) requests it through GitHub OIDC. The identity is bound to the
+repository, the workflow file `.github/workflows/ci.yml`, `refs/heads/main` and no environment, so
+renaming that workflow file needs the operator to unbind and re-approve. The first run files a pending
+request that the operator approves in the admin UI. Nothing in the Worker uses the issued key yet (it is
+discarded, not stored). At most 20 requests may be pending at once, a pending request expires after 7 days
+without a refresh (the next push to main files it again), and each green run issues a new key that
+supersedes the previous one (the old key works for 24 hours).
+
 ## Environments in detail
 
 ### Local dev
@@ -367,7 +376,8 @@ lint (eslint + prettier --check)
   └─→ test-frontend (vitest, jsdom)
         └─→ test-e2e (playwright, needs both test jobs)
               ├─→ deploy-backend   (main push only: wrangler deploy)
-              └─→ deploy-frontend  (main push only: wrangler pages deploy)
+              ├─→ deploy-frontend  (main push only: wrangler pages deploy)
+              └─→ notifs-identity  (main push only: 4irl-notifs app identity exchange; nothing needs it)
 
 lint + test-frontend ──→ deploy-preview  (PR only: pages deploy --branch=<head>, comments URL on PR)
 ```
@@ -378,9 +388,20 @@ lint + test-frontend ──→ deploy-preview  (PR only: pages deploy --branch=<
   full e2e suite) — it's not production, so it doesn't need production's bar, and this keeps the preview
   link showing up quickly for reviewers.
 - All jobs pin third-party Actions to a commit SHA (not a tag) — check `.github/dependabot.yml` for how
-  those get bumped.
-- CI secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (GitHub Actions repo secrets, not visible
-  in any file here).
+  those get bumped. The `notifs-app` pin follows a 4irl-notifs commit with no release tag, so Dependabot
+  cannot bump it and it is updated by hand when the action changes.
+- `notifs-identity` (`needs: [test-e2e]`, **push to `main` only**) asks 4irl-notifs for an app identity via
+  the pinned `4IRL/4irl-notifs` `notifs-app` composite action: it trades a GitHub OIDC token for a
+  delivery key. It is the only job with `id-token: write` (its job-level `permissions` block replaces the
+  top-level one, so `contents: read` is restated). **Exchange only**: no manifest is passed and the
+  returned key is discarded. Nothing depends on it, so deploys never wait on it. Until the operator
+  approves the request in the 4irl-notifs admin UI the job is red (a pending request exits 1); after
+  approval, "re-run failed jobs" turns it green.
+- CI secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `NOTIFS_DELIVERY_ACCESS_CLIENT_ID`,
+  `NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET` (GitHub Actions repo secrets, not visible in any file here). The
+  `NOTIFS_DELIVERY_*` pair is the Cloudflare Access service token `chores4irl → notifs-delivery` used by
+  `notifs-identity`; it is separate from the Worker secrets `NOTIFS_CF_ACCESS_CLIENT_ID/SECRET`, which
+  cover `notifs-api` only.
 
 ## Testing
 
