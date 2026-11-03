@@ -29,7 +29,7 @@ export default function FormField({
 }: FormFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   // Fail closed: only an explicit `clearable` on a text input enables the clear button.
-  const showClearable = clearable === true && type === 'text';
+  const showClearable = clearable && type === 'text';
 
   function handleClear() {
     onChange(name, '');
