@@ -93,7 +93,7 @@ test('adding a chore while offline survives a reload while still offline', async
   await context.setOffline(true);
 
   await page.getByRole('button', { name: '+ Add Chore' }).click();
-  await page.getByLabel('Name').fill('Mop Floors');
+  await page.getByLabel('Name', { exact: true }).fill('Mop Floors');
   await page.getByLabel('Room').selectOption({ label: 'Kitchen' });
   await page.getByLabel('Last Completed').fill('2026-06-15');
   await page.getByLabel('Duration (minutes)').fill('15');
@@ -126,7 +126,7 @@ test('a create mutation whose ack is lost over the network is not duplicated onc
   await context.setOffline(true);
 
   await page.getByRole('button', { name: '+ Add Chore' }).click();
-  await page.getByLabel('Name').fill('Water Plants');
+  await page.getByLabel('Name', { exact: true }).fill('Water Plants');
   await page.getByLabel('Room').selectOption({ label: 'Living Room' });
   await page.getByLabel('Last Completed').fill('2026-06-10');
   await page.getByLabel('Duration (minutes)').fill('5');

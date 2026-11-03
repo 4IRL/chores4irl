@@ -4,6 +4,13 @@
   color-scheme: dark;
 }
 
+/* Hide the native WebKit clear button so search inputs never show two ✕s. */
+input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
 html,
 body {
   min-height: 100%;

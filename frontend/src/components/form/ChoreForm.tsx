@@ -93,8 +93,15 @@ export default function ChoreForm({
           onChange={handleFieldChange}
           required
           autoFocus
+          clearable
         />
-        <FormField name="details" label="Details" value={formData.details} onChange={handleFieldChange} />
+        <FormField
+          name="details"
+          label="Details"
+          value={formData.details}
+          onChange={handleFieldChange}
+          clearable
+        />
         <FormField
           name="dateLastCompleted"
           label="Last Completed"

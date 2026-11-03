@@ -58,7 +58,7 @@ frontend/         React SPA — Cloudflare Pages
       chore/                 Chore list/view/timer/completion UI
       form/                   Chore creation/edit forms
       nav/                    Nav bar, room tabs, date navigation
-      common/                 Shared UI (dialogs, banners)
+      common/                 Shared UI (dialogs, banners, clear button)
     utils/api.ts             Single fetch entrypoint (apiFetch) — attaches X-Household-Id, routes
                               preview deployments to mock data instead of the real API
     utils/mockApi.ts          Mock data served on *.pages.dev preview deployments
