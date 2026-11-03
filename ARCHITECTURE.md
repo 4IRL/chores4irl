@@ -357,8 +357,9 @@ same fixture key `jwks-server.mjs` serves). Creating a brand-new local household
 
 ### Preview deployments (and why they can't hit the real API)
 
-Every PR gets a Cloudflare Pages preview at a per-branch `*.pages.dev` URL (`deploy-preview` CI job,
-commented onto the PR). These deliberately serve **mock data** (`frontend/src/utils/mockApi.ts`), not
+Every PR except Dependabot's gets a Cloudflare Pages preview at a per-branch `*.pages.dev` URL
+(`deploy-preview` CI job, commented onto the PR; skipped for `dependabot[bot]` because Dependabot runs
+get no repo secrets, so no `CLOUDFLARE_API_TOKEN`). These deliberately serve **mock data** (`frontend/src/utils/mockApi.ts`), not
 the real backend: Cloudflare Access's cross-app SSO redirect flow only works for real browser
 navigation, not `fetch()`-initiated requests, so a preview origin can't be authenticated against the
 production Access app regardless of CORS config (verified live, not just theorized — see the comment in
@@ -379,14 +380,16 @@ lint (eslint + prettier --check)
               ├─→ deploy-frontend  (main push only: wrangler pages deploy)
               └─→ notifs-identity  (main push only: 4irl-notifs app identity exchange; nothing needs it)
 
-lint + test-frontend ──→ deploy-preview  (PR only: pages deploy --branch=<head>, comments URL on PR)
+lint + test-frontend ──→ deploy-preview  (PR only, not dependabot[bot]: pages deploy --branch=<head>, comments URL on PR)
 ```
 
 - `deploy-backend`/`deploy-frontend` only run on a **push to `main`** (i.e. after a PR merges), and only
   after `test-e2e` passes — that's the full gate for a production release.
-- `deploy-preview` runs on **every PR**, gated by the cheaper `lint` + `test-frontend` jobs only (not the
-  full e2e suite) — it's not production, so it doesn't need production's bar, and this keeps the preview
-  link showing up quickly for reviewers.
+- `deploy-preview` runs on **every PR except Dependabot's**, gated by the cheaper `lint` + `test-frontend`
+  jobs only (not the full e2e suite) — it's not production, so it doesn't need production's bar, and this
+  keeps the preview link showing up quickly for reviewers. It is skipped when `github.actor` is
+  `dependabot[bot]`: Dependabot-triggered runs get no repo secrets (no `CLOUDFLARE_API_TOKEN`), so the
+  deploy would only fail. Nothing `needs:` this job, so the skip cascades nowhere.
 - All jobs pin third-party Actions to a commit SHA (not a tag) — check `.github/dependabot.yml` for how
   those get bumped. The `notifs-app` pin follows a 4irl-notifs commit with no release tag, so Dependabot
   cannot bump it and it is updated by hand when the action changes.
