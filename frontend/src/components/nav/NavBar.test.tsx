@@ -70,6 +70,14 @@ describe('NavBar', () => {
     expect(screen.getByRole('button', { name: 'All' })).toHaveClass('text-indigo-400');
   });
 
+  it('applies the scrollbar-none and scroll-fade-x utilities to the room-tabs strip', () => {
+    renderNavBar(true);
+
+    const roomTabsRegion = screen.getByRole('button', { name: 'All' }).closest('.overflow-x-auto');
+    expect(roomTabsRegion).toHaveClass('scrollbar-none');
+    expect(roomTabsRegion).toHaveClass('scroll-fade-x');
+  });
+
   it('keeps the House link outside the scrollable room-tabs region, and never shrinks it', () => {
     renderNavBar(true);
 
