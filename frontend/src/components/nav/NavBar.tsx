@@ -23,7 +23,7 @@ export default function NavBar({ rooms, selectedRoom, onSelect, isAdmin = false 
             tabs push the whole bar (including House) wider instead of
             scrolling. House sits outside this container entirely so it's
             never part of the scrolling region. */}
-        <div className="flex items-center space-x-1 overflow-x-auto scrollbar-none min-w-0">
+        <div className="flex items-center space-x-1 overflow-x-auto scrollbar-none scroll-fade-x min-w-0">
           <RoomTab label="All" value="all" isActive={isHome && selectedRoom === 'all'} onClick={onSelect} />
           {rooms.map((room) => (
             <RoomTab

@@ -386,7 +386,7 @@ export default function ChoreTimerBar({
             much room as an equal 3-way split gave them. */}
           <div className="absolute inset-0 px-4 grid grid-cols-[2fr_0.8fr_1.4fr] items-center gap-2">
             <ChoreInfo name={chore.name} />
-            <div className="text-xs text-white text-opacity-80 text-center">Every {chore.frequency} days</div>
+            <div className="text-xs text-white/80 text-center">Every {chore.frequency} days</div>
             <CompletionInfo
               date={chore.dateLastCompleted}
               daysSince={daysSince}

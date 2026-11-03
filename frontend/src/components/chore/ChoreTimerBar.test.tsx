@@ -218,4 +218,27 @@ describe('ChoreTimerBar', () => {
       expect(screen.queryByTestId('confirm-dialog-backdrop')).not.toBeInTheDocument();
     });
   });
+
+  it('renders a translucent fill and a v4 fade on the frequency label', () => {
+    render(
+      <ChoreTimerBar
+        chore={chore}
+        day={new Date('2026-07-01T00:00:00.000Z')}
+        householdTimezone="UTC"
+        isSimulating={false}
+        swipeStyle="ios"
+        onComplete={vi.fn()}
+        onDelete={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    );
+
+    const fill = screen.getByTestId('progress-bar');
+    expect(fill).toHaveClass('opacity-50');
+    expect(Array.from(fill.classList).some((c) => /^bg-opacity-/.test(c))).toBe(false);
+
+    const label = screen.getByText('Every 7 days');
+    expect(label).toHaveClass('text-white/80');
+    expect(label).not.toHaveClass('text-opacity-80');
+  });
 });
