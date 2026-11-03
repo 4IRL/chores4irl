@@ -15,7 +15,7 @@ export default function globalSetup() {
     'DB',
     '--local',
     '--command',
-    'DELETE FROM chores; DELETE FROM rooms; DELETE FROM join_requests; DELETE FROM household_members; DELETE FROM users; DELETE FROM households;',
+    'DELETE FROM chores; DELETE FROM rooms; DELETE FROM join_requests; DELETE FROM household_members; DELETE FROM user_notifications; DELETE FROM users; DELETE FROM households;',
   ]);
   wrangler([
     'd1',

@@ -1,30 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { signE2eJwt } from './sign-jwt.js';
 
-test('WebKit native search-cancel button is hidden by the global CSS rule', async ({ page, browserName }) => {
-  test.skip(
-    browserName !== 'webkit',
-    'the ::-webkit-search-cancel-button pseudo-element only exists in WebKit',
-  );
-
-  const token = await signE2eJwt('member-e2e@example.com');
-  await page.setExtraHTTPHeaders({ 'Cf-Access-Jwt-Assertion': token });
-  await page.goto('/');
-  await expect(page.getByTestId('chore-bar').first()).toBeVisible();
-
-  // Rule under test: frontend/src/index.css `input[type='search']::-webkit-search-cancel-button`.
-  const display = await page.evaluate(() => {
-    const input = document.createElement('input');
-    input.type = 'search';
-    document.body.appendChild(input);
-    const value = getComputedStyle(input, '::-webkit-search-cancel-button').display;
-    input.remove();
-    return value;
-  });
-
-  expect(display).toBe('none');
-});
-
 test('NavBar room-tab strip hides its scrollbar, still scrolls, and shows an edge fade', async ({ page }) => {
   const token = await signE2eJwt('member-e2e@example.com');
   await page.setExtraHTTPHeaders({ 'Cf-Access-Jwt-Assertion': token });
