@@ -413,7 +413,9 @@ lint + test-frontend ──→ deploy-preview  (PR only: pages deploy --branch=<
 
 Run: `npm run test:backend`, `npm run test:frontend`, `npm run test:e2e` (root), or `npm test` inside
 either workspace. `backend`'s `test` script runs `wrangler types` first — regenerates `Env` from
-`wrangler.toml` before typechecking against it.
+`wrangler.toml` before typechecking against it. The `webkit` Playwright project needs the WebKit
+browser installed locally: run `npx playwright install webkit` (add `--with-deps` on Linux where sudo
+is available).
 
 ## Offline behavior (frontend)
 
