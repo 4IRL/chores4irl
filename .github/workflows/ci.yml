@@ -217,7 +217,9 @@ jobs:
     # shows up quickly — this deploys to a per-branch preview URL, never the
     # production domain, so it doesn't need the same bar as a real release.
     needs: [lint, test-frontend]
-    if: github.event_name == 'pull_request'
+    # Dependabot-triggered runs get no repo secrets (no CLOUDFLARE_API_TOKEN), so the
+    # deploy can only fail there; skip it rather than keep every bump PR red.
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
