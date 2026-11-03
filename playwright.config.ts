@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 import { loadPorts } from './scripts/ports.mjs';
 
 const { ports } = loadPorts();
@@ -25,6 +25,20 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${ports.TT_FRONTEND_PORT}`,
   },
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: /(^|\/)webkit-[^/]*\.spec\.ts$/,
+    },
+    {
+      // Only WebKit-specific checks (files named webkit-*.spec.ts) run here; the shared
+      // seeded household and workers: 1 make running every spec twice costly and racy.
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+      testMatch: /(^|\/)webkit-[^/]*\.spec\.ts$/,
+    },
+  ],
   webServer: [
     {
       command: 'node jwks-server.mjs',
