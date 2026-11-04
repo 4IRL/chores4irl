@@ -1,9 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { startOfDay, addDays } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 export function useMidnightClock(timezone: string): Date {
   const [now, setNow] = useState<Date>(() => new Date());
+  const [lastTimezone, setLastTimezone] = useState(timezone);
+
+  // Refresh during render on a timezone change so no stale-`now` render is committed.
+  if (lastTimezone !== timezone) {
+    setLastTimezone(timezone);
+    setNow(new Date());
+  }
 
   useEffect(() => {
     const nowMs = Date.now();
@@ -16,14 +23,6 @@ export function useMidnightClock(timezone: string): Date {
     }, msUntilMidnight);
     return () => clearTimeout(timer);
   }, [now, timezone]);
-
-  const lastTimezone = useRef(timezone);
-  useEffect(() => {
-    if (lastTimezone.current === timezone) return;
-    lastTimezone.current = timezone;
-    const id = setTimeout(() => setNow(new Date()), 0);
-    return () => clearTimeout(id);
-  }, [timezone]);
 
   return now;
 }
