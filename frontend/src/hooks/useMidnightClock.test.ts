@@ -55,4 +55,60 @@ describe('useMidnightClock', () => {
 
     expect(result.current.getTime()).toBeGreaterThan(initial.getTime());
   });
+
+  it('refreshes now shortly after the timezone changes post-mount', () => {
+    const fixedNow = new Date('2024-06-15T12:00:00.000Z');
+    vi.useFakeTimers();
+    vi.setSystemTime(fixedNow);
+
+    const { result, rerender } = renderHook(({ tz }) => useMidnightClock(tz), {
+      initialProps: { tz: 'America/Los_Angeles' },
+    });
+    const initial = result.current;
+
+    vi.setSystemTime(new Date(fixedNow.getTime() + 5 * 60 * 1000));
+    rerender({ tz: 'UTC' });
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(result.current.getTime()).toBe(fixedNow.getTime() + 5 * 60 * 1000);
+    expect(result.current.getTime()).toBeGreaterThan(initial.getTime());
+  });
+
+  it('does not refresh now on a same-timezone rerender', () => {
+    const fixedNow = new Date('2024-06-15T12:00:00.000Z');
+    vi.useFakeTimers();
+    vi.setSystemTime(fixedNow);
+
+    const { result, rerender } = renderHook(({ tz }) => useMidnightClock(tz), {
+      initialProps: { tz: 'UTC' },
+    });
+    const initial = result.current;
+
+    vi.setSystemTime(new Date(fixedNow.getTime() + 5 * 60 * 1000));
+    rerender({ tz: 'UTC' });
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(result.current).toBe(initial);
+  });
+
+  it('leaves no timers after unmount, including after a timezone change', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-06-15T12:00:00.000Z'));
+    const before = vi.getTimerCount();
+
+    const { rerender, unmount } = renderHook(({ tz }) => useMidnightClock(tz), {
+      initialProps: { tz: 'UTC' },
+    });
+    expect(vi.getTimerCount()).toBeGreaterThan(before);
+
+    rerender({ tz: 'Pacific/Niue' });
+    expect(vi.getTimerCount()).toBeGreaterThan(before);
+
+    unmount();
+    expect(vi.getTimerCount()).toBe(before);
+  });
 });

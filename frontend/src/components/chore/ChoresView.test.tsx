@@ -211,6 +211,7 @@ describe('ChoresView', () => {
     await user.click(screen.getByRole('button', { name: /add chore/i }));
     await user.type(screen.getByLabelText('Name'), 'Mop Floors');
     await user.selectOptions(screen.getByLabelText('Room'), 'Kitchen');
+    await user.clear(screen.getByLabelText('Last Completed'));
     await user.type(screen.getByLabelText('Last Completed'), '2026-06-15');
     await user.type(screen.getByLabelText('Duration (minutes)'), '15');
     await user.type(screen.getByLabelText('Frequency (days)'), '3');
