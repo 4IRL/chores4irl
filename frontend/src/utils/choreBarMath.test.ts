@@ -10,6 +10,10 @@ describe('computeBar', () => {
     expect(computeBar(6, 10).barColor).toBe('bg-green-500');
   });
 
+  it('returns bg-green-500 when remaining ratio is just above 0.375', () => {
+    expect(computeBar(624, 1000).barColor).toBe('bg-green-500');
+  });
+
   it('returns bg-orange-500 when remaining ratio is exactly 0.375', () => {
     expect(computeBar(5, 8).barColor).toBe('bg-orange-500');
   });
