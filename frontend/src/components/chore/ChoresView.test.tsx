@@ -220,6 +220,33 @@ describe('ChoresView', () => {
     await waitFor(() => expect(screen.getByText('Mop Floors')).toBeInTheDocument());
   });
 
+  it('uses the household timezone for the add default and the edit display date', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-01T12:00:00.000Z'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    stubChoresFetch();
+
+    // Kiritimati is UTC+14: 12:00Z on Jul 1 is already Jul 2 there.
+    render(
+      <ChoresView
+        householdTimezone="Pacific/Kiritimati"
+        rooms={mockRooms}
+        swipeStyle="ios"
+        onSwipeStyleChange={vi.fn()}
+      />,
+    );
+    await vi.waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: /add chore/i }));
+    expect(screen.getByLabelText('Last Completed')).toHaveValue('2026-07-02');
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+
+    // Vacuum completed 2026-06-01T00:00Z = 2026-06-01 14:00 in Kiritimati.
+    await user.click(screen.getAllByLabelText('Edit chore')[0]);
+    expect(await screen.findByLabelText('Name')).toHaveValue('Vacuum');
+    expect(screen.getByLabelText('Last Completed')).toHaveValue('2026-06-01');
+  });
+
   it('edits an existing chore via the edit-chore form, sending its current version', async () => {
     // Pin the clock so the duration-weighted urgency sort is deterministic:
     // at this date Vacuum (id 1) outscores Dishes, so getAllByLabelText('Edit
