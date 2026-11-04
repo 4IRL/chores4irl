@@ -172,6 +172,15 @@ describe('ChoreForm add-mode default Last Completed', () => {
     expect(screen.queryByText(announcement)).toBeNull();
   });
 
+  it('keeps the displayed edit-mode date unchanged when the timezone prop changes', () => {
+    const { rerender, props } = setupAdd(LA, 'edit');
+    expect(screen.getByLabelText('Last Completed')).toHaveValue('2025-12-20');
+    rerender(<ChoreForm {...props} householdTimezone="Australia/Brisbane" />);
+    advance(0);
+    expect(screen.getByLabelText('Last Completed')).toHaveValue('2025-12-20');
+    expect(screen.queryByText(announcement)).toBeNull();
+  });
+
   it('follows household midnight while untouched and announces it', () => {
     setupAdd(LA);
     expect(screen.queryByText(announcement)).toBeNull();

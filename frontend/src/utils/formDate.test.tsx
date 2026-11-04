@@ -26,6 +26,17 @@ afterEach(() => {
   cleanup();
 });
 
+describe.each([
+  { label: 'spring-forward', value: '2026-03-08' },
+  { label: 'fall-back', value: '2026-11-01' },
+  { label: 'day after spring-forward', value: '2026-03-09' },
+  { label: 'day after fall-back', value: '2026-11-02' },
+])('formDate round-trip on a DST $label day ($value)', ({ value }) => {
+  it('round-trips format(parse(v)) === v in America/Los_Angeles', () => {
+    expect(formatFormDate(parseFormDate(value, 'America/Los_Angeles'), 'America/Los_Angeles')).toBe(value);
+  });
+});
+
 describe.each(cases)('formDate in $tz', ({ tz, now, expected }) => {
   it('formats the household-local date', () => {
     expect(formatFormDate(now, tz)).toBe(expected);
