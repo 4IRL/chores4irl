@@ -7,6 +7,7 @@ type ChoreFormModalProps = {
   initialChore?: Chore;
   defaultRoomId?: string;
   rooms: Room[];
+  householdTimezone: string;
   onSubmit: (chore: Omit<Chore, 'id'>) => void;
   onCancel: () => void;
 };
@@ -16,6 +17,7 @@ export default function ChoreFormModal({
   initialChore,
   defaultRoomId,
   rooms,
+  householdTimezone,
   onSubmit,
   onCancel,
 }: ChoreFormModalProps) {
@@ -36,6 +38,7 @@ export default function ChoreFormModal({
         initialChore={initialChore}
         defaultRoomId={defaultRoomId}
         rooms={rooms}
+        householdTimezone={householdTimezone}
         onSubmit={onSubmit}
         onCancel={onCancel}
       />

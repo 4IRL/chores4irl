@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import type { Chore, Room } from '@customTypes/SharedTypes';
+import { formatFormDate, parseFormDate } from '@utils/formDate';
+import { useMidnightClock } from '../../hooks/useMidnightClock';
 import FormField from './FormField';
 
 type FormState = {
@@ -26,12 +28,12 @@ function buildInitialFormState(defaultRoomId?: string): FormState {
   };
 }
 
-function choreToFormState(chore: Chore): FormState {
+function choreToFormState(chore: Chore, householdTimezone: string): FormState {
   return {
     name: chore.name,
     details: chore.details ?? '',
     roomId: String(chore.roomId),
-    dateLastCompleted: chore.dateLastCompleted.toISOString().slice(0, 10),
+    dateLastCompleted: formatFormDate(chore.dateLastCompleted, householdTimezone),
     duration: String(chore.duration),
     frequency: String(chore.frequency),
     urgency: chore.urgency ?? '',
@@ -44,6 +46,7 @@ type ChoreFormProps = {
   initialChore?: Chore;
   defaultRoomId?: string;
   rooms: Room[];
+  householdTimezone: string;
   onSubmit: (chore: Omit<Chore, 'id'>) => void;
   onCancel: () => void;
 };
@@ -53,14 +56,34 @@ export default function ChoreForm({
   initialChore,
   defaultRoomId,
   rooms,
+  householdTimezone,
   onSubmit,
   onCancel,
 }: ChoreFormProps) {
   const [formData, setFormData] = useState<FormState>(() =>
-    initialChore ? choreToFormState(initialChore) : buildInitialFormState(defaultRoomId),
+    initialChore ? choreToFormState(initialChore, householdTimezone) : buildInitialFormState(defaultRoomId),
   );
 
+  // null = untouched; an untouched add-mode date follows the household's today.
+  const [userDate, setUserDate] = useState<string | null>(null);
+  const midnightNow = useMidnightClock(householdTimezone);
+  const todayStr = formatFormDate(midnightNow, householdTimezone);
+  const dateValue = mode === 'add' ? (userDate ?? todayStr) : formData.dateLastCompleted;
+
+  const [prevToday, setPrevToday] = useState(todayStr);
+  const [announcement, setAnnouncement] = useState('');
+  if (todayStr !== prevToday) {
+    setPrevToday(todayStr);
+    if (mode === 'add' && userDate === null) {
+      setAnnouncement(`Last completed date updated to ${todayStr}`);
+    }
+  }
+
   function handleFieldChange(name: string, value: string) {
+    if (mode === 'add' && name === 'dateLastCompleted') {
+      setUserDate(value);
+      return;
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
   }
 
@@ -71,13 +94,16 @@ export default function ChoreForm({
       name: formData.name,
       details: formData.details || null,
       roomId: Number(formData.roomId),
-      dateLastCompleted: new Date(formData.dateLastCompleted),
+      dateLastCompleted: parseFormDate(dateValue, householdTimezone),
       duration: Number(formData.duration),
       frequency: Number(formData.frequency),
       urgency: formData.urgency || undefined,
       longTermTask: formData.longTermTask || undefined,
     });
-    if (mode === 'add') setFormData(buildInitialFormState(defaultRoomId));
+    if (mode === 'add') {
+      setFormData(buildInitialFormState(defaultRoomId));
+      setUserDate(null);
+    }
   }
 
   return (
@@ -85,6 +111,9 @@ export default function ChoreForm({
       <h3 className="text-white font-semibold text-lg mb-4">
         {mode === 'edit' ? 'Edit Chore' : 'Add New Chore'}
       </h3>
+      <div className="sr-only" role="status" aria-live="polite">
+        {announcement}
+      </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <FormField
           name="name"
@@ -105,7 +134,7 @@ export default function ChoreForm({
         <FormField
           name="dateLastCompleted"
           label="Last Completed"
-          value={formData.dateLastCompleted}
+          value={dateValue}
           onChange={handleFieldChange}
           type="date"
           required

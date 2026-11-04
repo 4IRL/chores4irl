@@ -24,6 +24,7 @@ function setup() {
       mode="edit"
       initialChore={initialChore}
       rooms={rooms}
+      householdTimezone="UTC"
       onSubmit={onSubmit}
       onCancel={onCancel}
     />,

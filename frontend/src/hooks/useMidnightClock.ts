@@ -4,6 +4,13 @@ import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 export function useMidnightClock(timezone: string): Date {
   const [now, setNow] = useState<Date>(() => new Date());
+  const [lastTimezone, setLastTimezone] = useState(timezone);
+
+  // Refresh during render on a timezone change so no stale-`now` render is committed.
+  if (lastTimezone !== timezone) {
+    setLastTimezone(timezone);
+    setNow(new Date());
+  }
 
   useEffect(() => {
     const nowMs = Date.now();

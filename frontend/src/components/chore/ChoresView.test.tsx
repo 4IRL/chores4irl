@@ -211,12 +211,40 @@ describe('ChoresView', () => {
     await user.click(screen.getByRole('button', { name: /add chore/i }));
     await user.type(screen.getByLabelText('Name'), 'Mop Floors');
     await user.selectOptions(screen.getByLabelText('Room'), 'Kitchen');
+    await user.clear(screen.getByLabelText('Last Completed'));
     await user.type(screen.getByLabelText('Last Completed'), '2026-06-15');
     await user.type(screen.getByLabelText('Duration (minutes)'), '15');
     await user.type(screen.getByLabelText('Frequency (days)'), '3');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(screen.getByText('Mop Floors')).toBeInTheDocument());
+  });
+
+  it('uses the household timezone for the add default and the edit display date', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-01T12:00:00.000Z'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    stubChoresFetch();
+
+    // Kiritimati is UTC+14: 12:00Z on Jul 1 is already Jul 2 there.
+    render(
+      <ChoresView
+        householdTimezone="Pacific/Kiritimati"
+        rooms={mockRooms}
+        swipeStyle="ios"
+        onSwipeStyleChange={vi.fn()}
+      />,
+    );
+    await vi.waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: /add chore/i }));
+    expect(screen.getByLabelText('Last Completed')).toHaveValue('2026-07-02');
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+
+    // Vacuum completed 2026-06-01T00:00Z = 2026-06-01 14:00 in Kiritimati.
+    await user.click(screen.getAllByLabelText('Edit chore')[0]);
+    expect(await screen.findByLabelText('Name')).toHaveValue('Vacuum');
+    expect(screen.getByLabelText('Last Completed')).toHaveValue('2026-06-01');
   });
 
   it('edits an existing chore via the edit-chore form, sending its current version', async () => {
