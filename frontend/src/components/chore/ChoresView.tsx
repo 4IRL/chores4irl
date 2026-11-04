@@ -467,6 +467,7 @@ export default function ChoresView({
           mode="add"
           defaultRoomId={selectedRoom}
           rooms={rooms}
+          householdTimezone={householdTimezone}
           onSubmit={handleAddSubmit}
           onCancel={() => setIsAddOpen(false)}
         />
@@ -476,6 +477,7 @@ export default function ChoresView({
           mode="edit"
           rooms={rooms}
           initialChore={editingChore}
+          householdTimezone={householdTimezone}
           onSubmit={handleEditSubmit}
           onCancel={() => setEditingId(null)}
         />

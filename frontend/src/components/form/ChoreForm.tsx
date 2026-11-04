@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Chore, Room } from '@customTypes/SharedTypes';
+import { formatFormDate, parseFormDate } from '@utils/formDate';
 import FormField from './FormField';
 
 type FormState = {
@@ -26,12 +27,12 @@ function buildInitialFormState(defaultRoomId?: string): FormState {
   };
 }
 
-function choreToFormState(chore: Chore): FormState {
+function choreToFormState(chore: Chore, householdTimezone: string): FormState {
   return {
     name: chore.name,
     details: chore.details ?? '',
     roomId: String(chore.roomId),
-    dateLastCompleted: chore.dateLastCompleted.toISOString().slice(0, 10),
+    dateLastCompleted: formatFormDate(chore.dateLastCompleted, householdTimezone),
     duration: String(chore.duration),
     frequency: String(chore.frequency),
     urgency: chore.urgency ?? '',
@@ -44,6 +45,7 @@ type ChoreFormProps = {
   initialChore?: Chore;
   defaultRoomId?: string;
   rooms: Room[];
+  householdTimezone: string;
   onSubmit: (chore: Omit<Chore, 'id'>) => void;
   onCancel: () => void;
 };
@@ -53,11 +55,12 @@ export default function ChoreForm({
   initialChore,
   defaultRoomId,
   rooms,
+  householdTimezone,
   onSubmit,
   onCancel,
 }: ChoreFormProps) {
   const [formData, setFormData] = useState<FormState>(() =>
-    initialChore ? choreToFormState(initialChore) : buildInitialFormState(defaultRoomId),
+    initialChore ? choreToFormState(initialChore, householdTimezone) : buildInitialFormState(defaultRoomId),
   );
 
   function handleFieldChange(name: string, value: string) {
@@ -71,7 +74,7 @@ export default function ChoreForm({
       name: formData.name,
       details: formData.details || null,
       roomId: Number(formData.roomId),
-      dateLastCompleted: new Date(formData.dateLastCompleted),
+      dateLastCompleted: parseFormDate(formData.dateLastCompleted, householdTimezone),
       duration: Number(formData.duration),
       frequency: Number(formData.frequency),
       urgency: formData.urgency || undefined,
