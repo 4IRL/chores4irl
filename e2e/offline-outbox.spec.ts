@@ -66,6 +66,8 @@ test('completing a chore while offline updates the UI immediately and syncs once
   // Optimistic update happens immediately, with no network round trip completing.
   await expect(vacuumBar.getByText('0 days ago')).toBeVisible({ timeout: 2000 });
   await expect.poll(() => pendingOutboxCount(page)).toBe(1);
+  await expect(page.getByTestId('feedback-toast')).toBeVisible();
+  await expect(page.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'neutral');
 
   await context.setOffline(false);
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
