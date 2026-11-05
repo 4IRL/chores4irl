@@ -24,6 +24,22 @@
   mask-image: linear-gradient(to right, transparent, black 1rem, black calc(100% - 1rem), transparent);
 }
 
+/* Feedback toast enter: 150 ms fade + 8px rise. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-toast-in {
+  animation: toast-in 150ms ease-out;
+}
+
 /* Hide the native WebKit clear button so search inputs never show two ✕s. */
 input[type='search']::-webkit-search-cancel-button {
   -webkit-appearance: none;
