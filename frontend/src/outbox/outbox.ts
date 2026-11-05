@@ -44,7 +44,16 @@ export type FlushResult = {
   entry: OutboxEntry;
   outcome: FlushOutcome;
   data?: unknown;
+  /** HTTP status when the result came from a response; absent when the fetch threw. */
+  status?: number;
 };
+
+const RETRYABLE_4XX = new Set([401, 403, 408, 429]);
+
+// A 4xx other than the retryable ones is a permanent rejection: drop it so it cannot block the queue.
+export function isPermanentRejection(status: number): boolean {
+  return status >= 400 && status < 500 && !RETRYABLE_4XX.has(status);
+}
 
 export type Outbox = {
   append: (entry: NewOutboxEntry) => OutboxEntry;
@@ -138,23 +147,34 @@ export function createOutbox(fetchImpl: typeof fetch = fetch): Outbox {
         break;
       }
 
-      if (res.status === 409) {
-        results.push({ entry, outcome: 'conflict' });
+      const status = res.status;
+      if (status === 409) {
+        results.push({ entry, outcome: 'conflict', status });
         removeEntry(entry.id);
         continue;
       }
-      if (res.status === 404 && entry.type === 'delete') {
-        results.push({ entry, outcome: 'dropped-not-found' });
+      if (status === 404 && entry.type === 'delete') {
+        results.push({ entry, outcome: 'dropped-not-found', status });
         removeEntry(entry.id);
         continue;
       }
       if (!res.ok) {
-        results.push({ entry, outcome: 'error' });
+        results.push({ entry, outcome: 'error', status });
+        if (isPermanentRejection(status)) {
+          removeEntry(entry.id);
+          continue;
+        }
         break;
       }
 
-      const body = (await res.json()) as ApiResponse<unknown>;
-      results.push({ entry, outcome: 'success', data: body.data });
+      let body: ApiResponse<unknown>;
+      try {
+        body = (await res.json()) as ApiResponse<unknown>;
+      } catch {
+        results.push({ entry, outcome: 'error', status });
+        break;
+      }
+      results.push({ entry, outcome: 'success', data: body?.data, status });
       removeEntry(entry.id);
     }
     if (results.length > 0) {
