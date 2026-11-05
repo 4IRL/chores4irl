@@ -11,7 +11,14 @@ import SettingsModal from '../settings/SettingsModal';
 import StatusBanner from '../common/StatusBanner';
 import Toast, { type ToastState } from '../common/Toast';
 import { useOutbox } from '../../outbox/useOutbox';
-import type { ChorePayload, FlushResult, Outbox, OutboxEntry } from '../../outbox/outbox';
+import {
+  isPermanentRejection,
+  outbox as defaultOutbox,
+  type ChorePayload,
+  type FlushResult,
+  type Outbox,
+  type OutboxEntry,
+} from '../../outbox/outbox';
 import { readChoresCache, writeChoresCache, clearChoresCache } from '../../cache/choresCache';
 import { apiFetch } from '../../utils/api';
 import { getDeviceTimezone } from '@utils/deviceTimezone';
@@ -73,6 +80,22 @@ type ToastTone = ToastState['tone'];
 
 const NOT_FOUND_MESSAGE = 'That chore no longer exists.';
 const OFFLINE_MESSAGE = "Saved offline — will sync when you're back online";
+const FLUSH_SUCCESS_MESSAGE = 'Offline changes synced';
+const FLUSH_DROPPED_REFRESHED_MESSAGE = "Some offline changes couldn't be synced. The list was refreshed.";
+const FLUSH_DROPPED_MESSAGE = "Some offline changes couldn't be synced.";
+const FLUSH_KEPT_MESSAGE =
+  "Some offline changes haven't synced yet. They'll sync next time you're online or reopen the app.";
+
+// A flush result is a failure when it is a conflict, or an error that carries an HTTP status
+// (a status-less error is a network throw and is silent). "Dropped" means the outbox removed it.
+function isDroppedFailure(result: FlushResult): boolean {
+  if (result.outcome === 'conflict') return true;
+  return result.outcome === 'error' && result.status !== undefined && isPermanentRejection(result.status);
+}
+
+function isKeptFailure(result: FlushResult): boolean {
+  return result.outcome === 'error' && result.status !== undefined && !isPermanentRejection(result.status);
+}
 
 type MutateOptions<T> = {
   optimisticApply: () => void;
@@ -182,9 +205,23 @@ export default function ChoresView({
         setChores((prev) => prev.map((c) => (c.id === entry.choreId ? wireToChore(data) : c)));
       }
     }
+
+    const dropped = results.some(isDroppedFailure);
+    const kept = results.some(isKeptFailure);
+    if (dropped) {
+      // One refetch per pass, however many entries were dropped.
+      void refetchChores().then((refreshed) =>
+        showToast('error', refreshed ? FLUSH_DROPPED_REFRESHED_MESSAGE : FLUSH_DROPPED_MESSAGE),
+      );
+    } else if (kept) {
+      showToast('error', FLUSH_KEPT_MESSAGE);
+    } else if (results.some((r) => r.outcome === 'success')) {
+      showToast('success', FLUSH_SUCCESS_MESSAGE);
+    }
   }
 
-  const { append, entries } = useOutbox(outboxProp, handleFlushResults);
+  const { append } = useOutbox(outboxProp, handleFlushResults);
+  const activeOutbox = outboxProp ?? defaultOutbox;
 
   const [isStale, setIsStale] = useState(false);
   // Seeded from navigator.onLine at init so an offline page load renders the
@@ -230,11 +267,48 @@ export default function ChoresView({
     setConflictChoreId((cur) => (cur === id ? null : cur));
   }
 
+  // Merges still-queued creates using the outbox's live entries, read at call time: the hook's
+  // `entries` is stale inside the flush listener, the online handler and the mount-only effect.
+  function applyMergedList(list: ChoreWithVersion[]) {
+    const merged = mergePendingCreates(list, activeOutbox.getEntries());
+    setChores(merged);
+    return merged;
+  }
+
   async function renderFromCache(isCurrent: () => boolean = () => true) {
     const cached = await readChoresCache<ChoreWire[]>();
     if (!isCurrent()) return;
-    setChores(mergePendingCreates((cached ?? []).map(wireToChore), entries));
+    applyMergedList((cached ?? []).map(wireToChore));
     setIsStale(true);
+  }
+
+  // Re-fetches the list without touching the cache or isStale. Resolves true when a fresh network
+  // list was applied, false on a cache fallback or the 403 revocation path.
+  async function refetchChores(): Promise<boolean> {
+    try {
+      const res = await apiFetch('/api/chores');
+      if (res.status === 403) {
+        // Removed from the active household: same handling as load().
+        await clearChoresCache();
+        setChores([]);
+        setIsStale(false);
+        onHouseholdRevoked?.();
+        return false;
+      }
+      if (!res.ok) {
+        await renderFromCache();
+        return false;
+      }
+      const body = (await res.json()) as ApiResponse<ChoreWire[]>;
+      const merged = applyMergedList((body.data ?? []).map(wireToChore));
+      const present = new Set(merged.map((c) => c.id));
+      setEditingId((cur) => (cur != null && !present.has(cur) ? null : cur));
+      setConflictChoreId((cur) => (cur != null && !present.has(cur) ? null : cur));
+      return true;
+    } catch {
+      await renderFromCache();
+      return false;
+    }
   }
 
   useEffect(() => {
@@ -278,7 +352,7 @@ export default function ChoresView({
         const data = body.data ?? [];
         if (!isCurrent()) return false;
         onBeforeFresh?.();
-        setChores(mergePendingCreates(data.map(wireToChore), entries));
+        applyMergedList(data.map(wireToChore));
         setIsStale(false);
         await writeChoresCache(data);
         return false;
@@ -322,9 +396,8 @@ export default function ChoresView({
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-    // `entries` is intentionally read only at mount — it merges in whatever was left over from a
-    // prior session, not live updates from this one (those already flow through `chores` directly).
-    // Depending on it here would re-fetch from the network on every outbox append/removal.
+    // Mount-only on purpose: pending creates are merged from the outbox's live entries at call
+    // time (applyMergedList), so nothing here needs to re-run on an outbox change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -461,29 +534,7 @@ export default function ChoresView({
 
   async function handleDiscardConflict() {
     setConflictChoreId(null);
-    try {
-      const res = await apiFetch('/api/chores');
-      if (res.status === 403) {
-        // Removed from the active household mid-edit — same handling as load():
-        // drop the revoked household's cache and let App re-scope us instead of
-        // rendering its stale private data.
-        await clearChoresCache();
-        setChores([]);
-        setIsStale(false);
-        onHouseholdRevoked?.();
-        return;
-      }
-      if (!res.ok) {
-        // Same unification as load(): a resolved non-ok (evicted session → 401)
-        // must fall back to cache + stale flag, not silently blank the list.
-        await renderFromCache();
-        return;
-      }
-      const body = (await res.json()) as ApiResponse<ChoreWire[]>;
-      setChores((body.data ?? []).map(wireToChore));
-    } catch {
-      await renderFromCache();
-    }
+    await refetchChores();
   }
 
   function handleKeepEditing() {

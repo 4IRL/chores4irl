@@ -107,6 +107,7 @@ describe('flush', () => {
     const results = await outbox.flush();
 
     expect(results.map((r) => r.outcome)).toEqual(['conflict', 'success']);
+    expect(results[0].status).toBe(409);
     expect(outbox.getEntries()).toHaveLength(0);
   });
 
@@ -117,7 +118,7 @@ describe('flush', () => {
 
     const results = await outbox.flush();
 
-    expect(results).toEqual([expect.objectContaining({ outcome: 'dropped-not-found' })]);
+    expect(results).toEqual([expect.objectContaining({ outcome: 'dropped-not-found', status: 404 })]);
     expect(outbox.getEntries()).toHaveLength(0);
   });
 
@@ -133,7 +134,72 @@ describe('flush', () => {
     const results = await outbox.flush();
 
     expect(results).toEqual([expect.objectContaining({ outcome: 'error' })]);
+    expect(results[0]).not.toHaveProperty('status');
     expect(outbox.getEntries()).toHaveLength(2);
+  });
+
+  it('removes a 400-rejected entry, reports its status, and still flushes the next entry', async () => {
+    const fetchImpl = vi.fn((url: RequestInfo | URL) => {
+      if (url.toString() === '/api/chores/1') return jsonResponse({ success: false }, 400);
+      return jsonResponse({ success: true, data: null });
+    });
+    const outbox = createOutbox(fetchImpl);
+    outbox.append({ type: 'edit', choreId: 1, baseVersion: 1, payload: chorePayload });
+    outbox.append({ type: 'delete', choreId: 2 });
+
+    const results = await outbox.flush();
+
+    expect(results).toEqual([
+      expect.objectContaining({ outcome: 'error', status: 400 }),
+      expect.objectContaining({ outcome: 'success', status: 200 }),
+    ]);
+    expect(outbox.getEntries()).toHaveLength(0);
+    expect(JSON.parse(localStorage.getItem('outbox-v1') ?? '[]')).toHaveLength(0);
+  });
+
+  it.each([401, 403, 408, 429, 500])(
+    'keeps the entry, reports status %i, and stops the pass',
+    async (code) => {
+      const fetchImpl = vi.fn((url: RequestInfo | URL) => {
+        if (url.toString() === '/api/chores/1') return jsonResponse({ success: false }, code);
+        return jsonResponse({ success: true, data: null });
+      });
+      const outbox = createOutbox(fetchImpl);
+      outbox.append({ type: 'delete', choreId: 1 });
+      outbox.append({ type: 'delete', choreId: 2 });
+
+      const results = await outbox.flush();
+
+      expect(results).toEqual([expect.objectContaining({ outcome: 'error', status: code })]);
+      expect(outbox.getEntries()).toHaveLength(2);
+      expect(JSON.parse(localStorage.getItem('outbox-v1') ?? '[]')).toHaveLength(2);
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('keeps the entry and stops the pass on a 2xx with a non-JSON body without throwing', async () => {
+    const fetchImpl = vi.fn(() => Promise.resolve(new Response('<html>oops</html>', { status: 200 })));
+    const outbox = createOutbox(fetchImpl);
+    outbox.append({ type: 'delete', choreId: 1 });
+    outbox.append({ type: 'delete', choreId: 2 });
+
+    const results = await outbox.flush();
+
+    expect(results).toEqual([expect.objectContaining({ outcome: 'error', status: 200 })]);
+    expect(outbox.getEntries()).toHaveLength(2);
+    expect(JSON.parse(localStorage.getItem('outbox-v1') ?? '[]')).toHaveLength(2);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('removes a 404 on an edit entry and reports status 404', async () => {
+    const fetchImpl = vi.fn(() => jsonResponse({ success: false }, 404));
+    const outbox = createOutbox(fetchImpl);
+    outbox.append({ type: 'edit', choreId: 1, baseVersion: 1, payload: chorePayload });
+
+    const results = await outbox.flush();
+
+    expect(results).toEqual([expect.objectContaining({ outcome: 'error', status: 404 })]);
+    expect(outbox.getEntries()).toHaveLength(0);
   });
 
   it('flushes immediately at construction time when already online with a persisted queue', async () => {

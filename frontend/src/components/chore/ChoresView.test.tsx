@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, waitFor, cleanup, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChoresView from './ChoresView';
-import { createOutbox } from '../../outbox/outbox';
+import { createOutbox as createOutboxBase } from '../../outbox/outbox';
 import { writeChoresCache, readChoresCache, clearChoresCache } from '../../cache/choresCache';
 import { getDeviceTimezone } from '@utils/deviceTimezone';
 
@@ -95,7 +95,18 @@ function stubLocationAssign() {
   };
 }
 
+// Every outbox registers a window 'online' listener; dispose them after each test so a queued
+// entry from an earlier test is not re-flushed (with a stale fetch stub) by a later 'online' event.
+const createdOutboxes: ReturnType<typeof createOutboxBase>[] = [];
+
+function createOutbox(fetchImpl?: typeof fetch) {
+  const created = createOutboxBase(fetchImpl);
+  createdOutboxes.push(created);
+  return created;
+}
+
 afterEach(async () => {
+  createdOutboxes.splice(0).forEach((created) => created.dispose());
   vi.unstubAllGlobals();
   vi.useRealTimers();
   cleanup();
@@ -1369,5 +1380,455 @@ describe('ChoresView feedback toast', () => {
     await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
 
     expect(rowFor('Vacuum').closest('[aria-live="polite"]')).toHaveClass('pb-24');
+  });
+
+  it('shows the error toast and removes the chore when a create is answered 404', async () => {
+    const user = userEvent.setup();
+    stubMutationFetch((url, method) =>
+      url === '/api/chores' && method === 'POST' ? errorResponse(404, 'Not found') : undefined,
+    );
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: '+ Add Chore' }));
+    await user.type(screen.getByLabelText('Name'), 'Windows');
+    await user.selectOptions(screen.getByLabelText('Room'), '1');
+    await user.type(screen.getByLabelText('Duration (minutes)'), '10');
+    await user.type(screen.getByLabelText('Frequency (days)'), '7');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText("Couldn't add the chore. Please try again.")).toBeInTheDocument();
+    expect(screen.queryByText('Windows')).not.toBeInTheDocument();
+  });
+
+  it('keeps a single chore when a refetch already contains the server copy before the create resolves', async () => {
+    const user = userEvent.setup();
+    let resolvePost: (r: Response) => void = () => {};
+    const postPending = new Promise<Response>((resolve) => {
+      resolvePost = resolve;
+    });
+    const serverChore = { ...mockChores[0], id: 7, name: 'Windows', version: 1 };
+    const testOutbox = createOutbox(vi.fn(() => errorResponse(400, 'bad')));
+    testOutbox.append({ type: 'edit', choreId: 2, baseVersion: 1, payload: createPayload() });
+    stubListFetch(
+      (n) => jsonResponse({ success: true, data: n === 1 ? mockChores : [...mockChores, serverChore] }),
+      (url, method) => (url === '/api/chores' && method === 'POST' ? postPending : undefined),
+    );
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: '+ Add Chore' }));
+    await user.type(screen.getByLabelText('Name'), 'Windows');
+    await user.selectOptions(screen.getByLabelText('Room'), '1');
+    await user.type(screen.getByLabelText('Duration (minutes)'), '10');
+    await user.type(screen.getByLabelText('Frequency (days)'), '7');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await act(() => testOutbox.flush());
+    await waitFor(() => expect(screen.getByTestId('feedback-toast')).toHaveTextContent('list was refreshed'));
+    expect(screen.getAllByText('Windows')).toHaveLength(1);
+
+    await act(async () => {
+      resolvePost(
+        new Response(JSON.stringify({ success: true, data: serverChore }), {
+          status: 201,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    });
+
+    await waitFor(() => expect(screen.getByTestId('feedback-toast')).toHaveTextContent('Chore added'));
+    expect(screen.getAllByText('Windows')).toHaveLength(1);
+  });
+});
+
+function createPayload() {
+  return {
+    name: 'Windows',
+    roomId: 1,
+    dateLastCompleted: '2026-07-01T00:00:00.000Z',
+    duration: 10,
+    frequency: 7,
+  };
+}
+
+// View-side fetch stub: the nth GET /api/chores (1-based) is answered by `list`; anything else by `other`.
+function stubListFetch(list: (n: number) => Promise<Response>, other: MutationHandler = () => undefined) {
+  let gets = 0;
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input.toString();
+    const method = init?.method ?? 'GET';
+    if (url === '/api/chores' && method === 'GET') {
+      gets += 1;
+      return list(gets);
+    }
+    const res = other(url, method);
+    if (res) return res;
+    throw new Error(`Unhandled fetch: ${method} ${url}`);
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return { fetchMock, getCount: () => gets };
+}
+
+const okList = () => jsonResponse({ success: true, data: mockChores });
+
+describe('ChoresView offline flush results', () => {
+  it('shows the refresh error toast and drops a temp-id create seeded before mount when it is answered 400', async () => {
+    const testOutbox = createOutbox(vi.fn(() => errorResponse(400, 'bad')));
+    testOutbox.append({ type: 'create', tempId: -5, payload: createPayload() });
+    const { getCount } = stubListFetch(okList);
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Windows')).toBeInTheDocument());
+
+    await act(() => testOutbox.flush());
+
+    const toast = await screen.findByTestId('feedback-toast');
+    expect(toast).toHaveAttribute('data-tone', 'error');
+    expect(toast).toHaveTextContent("Some offline changes couldn't be synced. The list was refreshed.");
+    expect(screen.queryByText('Windows')).not.toBeInTheDocument();
+    expect(getCount()).toBe(2);
+  });
+
+  it('shows the retry toast, keeps the entry, does not refetch and keeps a queued create on a 500', async () => {
+    const testOutbox = createOutbox(vi.fn(() => errorResponse(500, 'boom')));
+    testOutbox.append({ type: 'create', tempId: -5, payload: createPayload() });
+    const { getCount } = stubListFetch(okList);
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Windows')).toBeInTheDocument());
+
+    await act(() => testOutbox.flush());
+
+    const toast = await screen.findByTestId('feedback-toast');
+    expect(toast).toHaveTextContent(
+      "Some offline changes haven't synced yet. They'll sync next time you're online or reopen the app.",
+    );
+    expect(toast).not.toHaveTextContent('refreshed');
+    expect(testOutbox.getEntries()).toHaveLength(1);
+    expect(getCount()).toBe(1);
+    expect(screen.getByText('Windows')).toBeInTheDocument();
+  });
+
+  it.each([401, 403, 408, 429])(
+    'treats a %i as kept: retry toast, no refetch, entry stays',
+    async (status) => {
+      const testOutbox = createOutbox(vi.fn(() => errorResponse(status, 'later')));
+      testOutbox.append({
+        type: 'complete',
+        choreId: 1,
+        payload: { dateLastCompleted: '2026-07-01T00:00:00.000Z' },
+      });
+      const { getCount } = stubListFetch(okList);
+      renderView(testOutbox);
+      await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+      await act(() => testOutbox.flush());
+
+      expect(await screen.findByTestId('feedback-toast')).toHaveTextContent("haven't synced yet");
+      expect(testOutbox.getEntries()).toHaveLength(1);
+      expect(getCount()).toBe(1);
+    },
+  );
+
+  it('refetches once and shows one toast for two dropped entries, keeping a still-queued create', async () => {
+    const outboxFetch = vi.fn((url: string) =>
+      url === '/api/chores' ? Promise.reject(new Error('offline')) : errorResponse(400, 'bad'),
+    );
+    const testOutbox = createOutbox(outboxFetch as unknown as typeof fetch);
+    stubListFetch(okList);
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+    act(() => {
+      testOutbox.append({ type: 'edit', choreId: 1, baseVersion: 1, payload: createPayload() });
+      testOutbox.append({ type: 'edit', choreId: 2, baseVersion: 1, payload: createPayload() });
+      testOutbox.append({ type: 'create', tempId: -9, payload: { ...createPayload(), name: 'Mopping' } });
+    });
+
+    await act(() => testOutbox.flush());
+
+    await waitFor(() => expect(screen.getAllByTestId('feedback-toast')).toHaveLength(1));
+    expect(screen.getByTestId('feedback-toast')).toHaveTextContent('The list was refreshed.');
+    expect(testOutbox.getEntries()).toHaveLength(1);
+    expect(screen.getByText('Mopping')).toBeInTheDocument();
+    expect(vi.mocked(fetch).mock.calls.filter(([u]) => u === '/api/chores')).toHaveLength(2);
+  });
+
+  it('says the list could not be synced without a refresh claim when the refetch falls back to the cache', async () => {
+    await writeChoresCache([]);
+    // Only PUT is answered (400, dropped); the create stays queued because its request throws.
+    const outboxFetch = vi.fn((_url: string, init?: RequestInit) =>
+      init?.method === 'PUT' ? errorResponse(400, 'bad') : Promise.reject(new Error('offline')),
+    );
+    const testOutbox = createOutbox(outboxFetch as unknown as typeof fetch);
+    stubListFetch((n) => (n === 1 ? okList() : errorResponse(500, 'down')));
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+    act(() => {
+      testOutbox.append({ type: 'edit', choreId: 1, baseVersion: 1, payload: createPayload() });
+      testOutbox.append({ type: 'create', tempId: -5, payload: createPayload() });
+    });
+
+    await act(() => testOutbox.flush());
+
+    const toast = await screen.findByTestId('feedback-toast');
+    expect(toast).toHaveTextContent("Some offline changes couldn't be synced.");
+    expect(toast).not.toHaveTextContent('refreshed');
+    expect(testOutbox.getEntries()).toHaveLength(1);
+    expect(screen.getByText('Windows')).toBeInTheDocument();
+  });
+
+  it('uses the no-refresh message when the refetch throws', async () => {
+    const testOutbox = createOutbox(vi.fn(() => errorResponse(400, 'bad')));
+    testOutbox.append({ type: 'edit', choreId: 1, baseVersion: 1, payload: createPayload() });
+    stubListFetch((n) => (n === 1 ? okList() : Promise.reject(new Error('offline'))));
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await act(() => testOutbox.flush());
+
+    const toast = await screen.findByTestId('feedback-toast');
+    expect(toast).toHaveTextContent("Some offline changes couldn't be synced.");
+    expect(toast).not.toHaveTextContent('refreshed');
+  });
+
+  it('keeps a queued create visible that was added after mount when a dropped edit triggers the refetch', async () => {
+    const outboxFetch = vi.fn((_url: string, init?: RequestInit) =>
+      init?.method === 'PUT' ? errorResponse(400, 'bad') : Promise.reject(new Error('offline')),
+    );
+    const testOutbox = createOutbox(outboxFetch as unknown as typeof fetch);
+    stubListFetch(okList);
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+    act(() => {
+      testOutbox.append({ type: 'edit', choreId: 1, baseVersion: 1, payload: createPayload() });
+      testOutbox.append({ type: 'create', tempId: -9, payload: { ...createPayload(), name: 'Mopping' } });
+    });
+
+    await act(() => testOutbox.flush());
+
+    await waitFor(() => expect(screen.getByTestId('feedback-toast')).toHaveTextContent('refreshed'));
+    expect(screen.getByText('Mopping')).toBeInTheDocument();
+  });
+
+  it('shows the refresh error toast for a 409', async () => {
+    const testOutbox = createOutbox(vi.fn(() => errorResponse(409, 'changed')));
+    testOutbox.append({ type: 'edit', choreId: 1, baseVersion: 1, payload: createPayload() });
+    const { getCount } = stubListFetch(okList);
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await act(() => testOutbox.flush());
+
+    expect(await screen.findByTestId('feedback-toast')).toHaveTextContent('The list was refreshed.');
+    expect(getCount()).toBe(2);
+  });
+
+  it('counts an edit answered 404 as dropped and refreshes', async () => {
+    const testOutbox = createOutbox(vi.fn(() => errorResponse(404, 'gone')));
+    testOutbox.append({ type: 'edit', choreId: 1, baseVersion: 1, payload: createPayload() });
+    const { getCount } = stubListFetch(okList);
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await act(() => testOutbox.flush());
+
+    expect(await screen.findByTestId('feedback-toast')).toHaveTextContent(
+      "Some offline changes couldn't be synced. The list was refreshed.",
+    );
+    expect(getCount()).toBe(2);
+  });
+
+  it('shows only the error toast for a mixed pass of success plus 400', async () => {
+    const outboxFetch = vi.fn((url: string) =>
+      url === '/api/chores/1/complete'
+        ? jsonResponse({ success: true, data: { ...mockChores[0], version: 2 } })
+        : errorResponse(400, 'bad'),
+    );
+    const testOutbox = createOutbox(outboxFetch as unknown as typeof fetch);
+    testOutbox.append({
+      type: 'complete',
+      choreId: 1,
+      payload: { dateLastCompleted: '2026-07-01T00:00:00.000Z' },
+    });
+    testOutbox.append({ type: 'edit', choreId: 2, baseVersion: 1, payload: createPayload() });
+    stubListFetch(okList);
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await act(() => testOutbox.flush());
+
+    await waitFor(() => expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error'));
+    expect(screen.getByTestId('feedback-toast')).toHaveTextContent('The list was refreshed.');
+    expect(screen.getAllByTestId('feedback-toast')).toHaveLength(1);
+  });
+
+  it('shows no toast for dropped-not-found or a network throw', async () => {
+    const notFound = createOutbox(vi.fn(() => errorResponse(404, 'gone')));
+    notFound.append({ type: 'delete', choreId: 1 });
+    stubListFetch(okList);
+    renderView(notFound);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+    await act(() => notFound.flush());
+    expect(screen.queryByTestId('feedback-toast')).not.toBeInTheDocument();
+    cleanup();
+    localStorage.clear();
+
+    const throwing = createOutbox(vi.fn(() => Promise.reject(new Error('offline'))));
+    throwing.append({ type: 'delete', choreId: 1 });
+    stubListFetch(okList);
+    renderView(throwing);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+    await act(() => throwing.flush());
+    expect(screen.queryByTestId('feedback-toast')).not.toBeInTheDocument();
+  });
+
+  it('shows one aggregate success toast for two successes', async () => {
+    const outboxFetch = vi.fn((url: string) =>
+      jsonResponse({ success: true, data: { ...mockChores[url.includes('/1/') ? 0 : 1], version: 2 } }),
+    );
+    const testOutbox = createOutbox(outboxFetch as unknown as typeof fetch);
+    testOutbox.append({
+      type: 'complete',
+      choreId: 1,
+      payload: { dateLastCompleted: '2026-07-01T00:00:00.000Z' },
+    });
+    testOutbox.append({
+      type: 'complete',
+      choreId: 2,
+      payload: { dateLastCompleted: '2026-07-01T00:00:00.000Z' },
+    });
+    stubListFetch(okList);
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await act(() => testOutbox.flush());
+
+    const toast = await screen.findByTestId('feedback-toast');
+    expect(toast).toHaveAttribute('data-tone', 'success');
+    expect(toast).toHaveTextContent('Offline changes synced');
+    expect(screen.getAllByTestId('feedback-toast')).toHaveLength(1);
+  });
+
+  it('replaces the toast on a repeated failed flush and lets a later success replace a standing error', async () => {
+    let status = 500;
+    const outboxFetch = vi.fn(() =>
+      status === 200
+        ? jsonResponse({ success: true, data: { ...mockChores[0], version: 2 } })
+        : errorResponse(status, 'later'),
+    );
+    const testOutbox = createOutbox(outboxFetch as unknown as typeof fetch);
+    testOutbox.append({
+      type: 'complete',
+      choreId: 1,
+      payload: { dateLastCompleted: '2026-07-01T00:00:00.000Z' },
+    });
+    stubListFetch(okList);
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await act(() => testOutbox.flush());
+    const first = await screen.findByTestId('feedback-toast');
+    await act(() => testOutbox.flush());
+    expect(screen.getAllByTestId('feedback-toast')).toHaveLength(1);
+    expect(screen.getByTestId('feedback-toast')).not.toBe(first);
+
+    status = 200;
+    await act(() => testOutbox.flush());
+    await waitFor(() => expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'success'));
+    expect(screen.getAllByTestId('feedback-toast')).toHaveLength(1);
+  });
+
+  it('does not resurrect a rejected temp-id create on a later online event', async () => {
+    const testOutbox = createOutbox(vi.fn(() => errorResponse(400, 'bad')));
+    testOutbox.append({ type: 'create', tempId: -5, payload: createPayload() });
+    const { getCount } = stubListFetch(okList);
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Windows')).toBeInTheDocument());
+    await act(() => testOutbox.flush());
+    await waitFor(() => expect(screen.queryByText('Windows')).not.toBeInTheDocument());
+    const before = getCount();
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+    });
+
+    await waitFor(() => expect(getCount()).toBeGreaterThan(before));
+    // Let load() finish applying its list (GET start precedes the apply) before asserting absence.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(screen.getByText('Vacuum')).toBeInTheDocument();
+    expect(screen.queryByText('Windows')).not.toBeInTheDocument();
+  });
+
+  it('keeps a queued create visible after discarding a conflict and leaves isStale unchanged', async () => {
+    const user = userEvent.setup();
+    const testOutbox = createOutbox(vi.fn());
+    testOutbox.append({ type: 'create', tempId: -5, payload: createPayload() });
+    stubListFetch(okList, (url, method) =>
+      url === '/api/chores/1' && method === 'PUT' ? errorResponse(409, 'changed') : undefined,
+    );
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Windows')).toBeInTheDocument());
+
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+    await user.click(await screen.findByRole('button', { name: 'Discard my changes' }));
+
+    await waitFor(() =>
+      expect(screen.queryByText('This chore was changed elsewhere.')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Windows')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-banner')).not.toBeInTheDocument();
+  });
+
+  it('closes the edit form and the conflict dialog when a refetch no longer contains the chore', async () => {
+    const user = userEvent.setup();
+    const testOutbox = createOutbox(vi.fn(() => errorResponse(400, 'bad')));
+    stubListFetch(
+      (n) => jsonResponse({ success: true, data: n === 1 ? mockChores : [mockChores[1]] }),
+      (url, method) =>
+        url === '/api/chores/1' && method === 'PUT' ? errorResponse(409, 'changed') : undefined,
+    );
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    // Conflict dialog open for chore 1.
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+    expect(await screen.findByText('This chore was changed elsewhere.')).toBeInTheDocument();
+    act(() => {
+      testOutbox.append({ type: 'edit', choreId: 2, baseVersion: 1, payload: createPayload() });
+    });
+    await act(() => testOutbox.flush());
+
+    await waitFor(() => expect(screen.queryByText('Vacuum')).not.toBeInTheDocument());
+    expect(screen.queryByText('This chore was changed elsewhere.')).not.toBeInTheDocument();
+  });
+
+  it('closes the edit form when a refetch drops the edited chore, but leaves it open when still present', async () => {
+    const user = userEvent.setup();
+    const testOutbox = createOutbox(vi.fn(() => errorResponse(400, 'bad')));
+    let listed = mockChores;
+    stubListFetch((n) => (n === 1 ? okList() : jsonResponse({ success: true, data: listed })));
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument();
+
+    act(() => {
+      testOutbox.append({ type: 'edit', choreId: 2, baseVersion: 1, payload: createPayload() });
+    });
+    await act(() => testOutbox.flush());
+    await screen.findByTestId('feedback-toast');
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument();
+
+    listed = [mockChores[1]];
+    act(() => {
+      testOutbox.append({ type: 'edit', choreId: 2, baseVersion: 1, payload: createPayload() });
+    });
+    await act(() => testOutbox.flush());
+
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Save Changes' })).not.toBeInTheDocument(),
+    );
   });
 });
