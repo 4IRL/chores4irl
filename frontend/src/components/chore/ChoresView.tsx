@@ -9,6 +9,7 @@ import ChoreFormModal from '../form/ChoreFormModal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import SettingsModal from '../settings/SettingsModal';
 import StatusBanner from '../common/StatusBanner';
+import Toast, { type ToastState } from '../common/Toast';
 import { useOutbox } from '../../outbox/useOutbox';
 import type { ChorePayload, FlushResult, Outbox, OutboxEntry } from '../../outbox/outbox';
 import { readChoresCache, writeChoresCache, clearChoresCache } from '../../cache/choresCache';
@@ -68,35 +69,79 @@ function isBannerFocused(): boolean {
   return testid === 'status-banner' || testid === 'status-banner-action';
 }
 
+type ToastTone = ToastState['tone'];
+
+const NOT_FOUND_MESSAGE = 'That chore no longer exists.';
+const OFFLINE_MESSAGE = "Saved offline — will sync when you're back online";
+
 type MutateOptions<T> = {
   optimisticApply: () => void;
   request: () => Promise<Response>;
   onSuccess: (data: T) => void;
+  onRollback: () => void;
   onConflict?: () => void;
   onNetworkFailure?: () => void;
+  // Only passed for a real (server) id: a 404 means the chore is already gone.
+  onNotFound?: () => void;
+  notFoundAsSuccess?: boolean;
+  successMessage: string;
+  errorMessage: string;
+  showToast: (tone: ToastTone, message: string) => void;
 };
 
 async function mutate<T>({
   optimisticApply,
   request,
   onSuccess,
+  onRollback,
   onConflict,
   onNetworkFailure,
+  onNotFound,
+  notFoundAsSuccess,
+  successMessage,
+  errorMessage,
+  showToast,
 }: MutateOptions<T>) {
   optimisticApply();
+  let res: Response;
   try {
-    const res = await request();
-    if (res.status === 409) {
-      onConflict?.();
-      return;
-    }
-    const body = (await res.json()) as ApiResponse<T>;
-    if (body.success && body.data !== undefined) {
-      onSuccess(body.data);
-    }
+    res = await request();
   } catch {
     onNetworkFailure?.();
+    return;
   }
+  if (res.status === 409) {
+    onConflict?.();
+    return;
+  }
+  if (res.status === 404 && notFoundAsSuccess) {
+    onSuccess(null as T);
+    showToast('success', successMessage);
+    return;
+  }
+  if (res.status === 404 && onNotFound) {
+    onNotFound();
+    showToast('error', NOT_FOUND_MESSAGE);
+    return;
+  }
+  let body: ApiResponse<T> | null;
+  try {
+    body = (await res.json()) as ApiResponse<T>;
+  } catch {
+    body = null;
+  }
+  if (res.ok && body?.success && body.data !== undefined) {
+    onSuccess(body.data);
+    showToast('success', successMessage);
+    return;
+  }
+  onRollback();
+  showToast('error', errorMessage);
+}
+
+function sameValue(a: unknown, b: unknown): boolean {
+  if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
+  return a === b;
 }
 
 export default function ChoresView({
@@ -120,6 +165,11 @@ export default function ChoresView({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [conflictChoreId, setConflictChoreId] = useState<number | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const toastIdRef = useRef(0);
+  // Mirrors the current toast synchronously: showToast runs from async
+  // callbacks that close over stale renders, so precedence reads this ref.
+  const toastRef = useRef<ToastState | null>(null);
 
   function handleFlushResults(results: FlushResult[]) {
     for (const result of results) {
@@ -152,6 +202,33 @@ export default function ChoresView({
   // let an in-flight online fetch win and leave the banner/online state
   // contradicting the most-recent real connectivity signal.
   const connectivityGenRef = useRef(0);
+
+  function releaseToastFocus() {
+    const testid = (document.activeElement as HTMLElement | null)?.getAttribute('data-testid');
+    if (testid === 'feedback-toast-dismiss') addChoreRef.current?.focus();
+  }
+
+  function showToast(tone: ToastTone, message: string) {
+    const current = toastRef.current;
+    if (tone === 'neutral' && current?.tone === 'error') return;
+    releaseToastFocus();
+    toastIdRef.current += 1;
+    const next: ToastState = { id: toastIdRef.current, tone, message };
+    toastRef.current = next;
+    setToast(next);
+  }
+
+  function dismissToast() {
+    releaseToastFocus();
+    toastRef.current = null;
+    setToast(null);
+  }
+
+  function removeChoreLocal(id: number) {
+    setChores((prev) => prev.filter((c) => c.id !== id));
+    setEditingId((cur) => (cur === id ? null : cur));
+    setConflictChoreId((cur) => (cur === id ? null : cur));
+  }
 
   async function renderFromCache(isCurrent: () => boolean = () => true) {
     const cached = await readChoresCache<ChoreWire[]>();
@@ -253,6 +330,7 @@ export default function ChoresView({
 
   function handleComplete(id: number, date: Date) {
     const payload = { dateLastCompleted: date.toISOString() };
+    const original = chores.find((c) => c.id === id)?.dateLastCompleted;
     mutate<ChoreWire>({
       optimisticApply: () =>
         setChores((prev) => prev.map((c) => (c.id === id ? { ...c, dateLastCompleted: date } : c))),
@@ -263,16 +341,43 @@ export default function ChoresView({
           body: JSON.stringify(payload),
         }),
       onSuccess: (data) => setChores((prev) => prev.map((c) => (c.id === id ? wireToChore(data) : c))),
-      onNetworkFailure: () => append({ type: 'complete', choreId: id, payload }),
+      onRollback: () => {
+        if (original === undefined) return;
+        setChores((prev) =>
+          prev.map((c) =>
+            c.id === id && sameValue(c.dateLastCompleted, date) ? { ...c, dateLastCompleted: original } : c,
+          ),
+        );
+      },
+      onNotFound: id > 0 ? () => removeChoreLocal(id) : undefined,
+      onNetworkFailure: () => {
+        append({ type: 'complete', choreId: id, payload });
+        showToast('neutral', OFFLINE_MESSAGE);
+      },
+      successMessage: 'Chore completed',
+      errorMessage: "Couldn't mark the chore complete. Please try again.",
+      showToast,
     });
   }
 
   function handleDelete(id: number) {
+    const removed = chores.find((c) => c.id === id);
     mutate<null>({
       optimisticApply: () => setChores((prev) => prev.filter((c) => c.id !== id)),
       request: () => apiFetch(`/api/chores/${id}`, { method: 'DELETE' }),
       onSuccess: () => {},
-      onNetworkFailure: () => append({ type: 'delete', choreId: id }),
+      onRollback: () => {
+        if (!removed) return;
+        setChores((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, removed]));
+      },
+      notFoundAsSuccess: id > 0,
+      onNetworkFailure: () => {
+        append({ type: 'delete', choreId: id });
+        showToast('neutral', OFFLINE_MESSAGE);
+      },
+      successMessage: 'Chore deleted',
+      errorMessage: "Couldn't delete the chore. Please try again.",
+      showToast,
     });
   }
 
@@ -288,16 +393,39 @@ export default function ChoresView({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         }),
-      onSuccess: (data) => setChores((prev) => prev.map((c) => (c.id === tempId ? wireToChore(data) : c))),
-      onNetworkFailure: () => append({ type: 'create', tempId, payload }),
+      onSuccess: (data) =>
+        setChores((prev) => {
+          const server = wireToChore(data);
+          if (prev.some((c) => c.id === tempId)) return prev.map((c) => (c.id === tempId ? server : c));
+          if (prev.some((c) => c.id === server.id)) return prev;
+          return [...prev, server];
+        }),
+      onRollback: () => removeChoreLocal(tempId),
+      onNetworkFailure: () => {
+        append({ type: 'create', tempId, payload });
+        showToast('neutral', OFFLINE_MESSAGE);
+      },
+      successMessage: 'Chore added',
+      errorMessage: "Couldn't add the chore. Please try again.",
+      showToast,
     });
   }
 
   function handleEditSubmit(input: Omit<Chore, 'id'>) {
     const id = editingId;
     if (id == null) return;
-    const baseVersion = chores.find((c) => c.id === id)?.version ?? 1;
+    const existing = chores.find((c) => c.id === id);
+    const baseVersion = existing?.version ?? 1;
     const payload = toChorePayload(input);
+    // Fields this edit actually changes, with their pre-edit values.
+    const changed: [string, unknown][] = [];
+    if (existing) {
+      for (const key of Object.keys(input)) {
+        const before = (existing as Record<string, unknown>)[key];
+        const after = (input as Record<string, unknown>)[key];
+        if (!sameValue(before, after)) changed.push([key, before]);
+      }
+    }
     setEditingId(null);
     mutate<ChoreWire>({
       optimisticApply: () => setChores((prev) => prev.map((c) => (c.id === id ? { ...c, ...input } : c))),
@@ -308,8 +436,26 @@ export default function ChoresView({
           body: JSON.stringify({ ...payload, version: baseVersion }),
         }),
       onSuccess: (data) => setChores((prev) => prev.map((c) => (c.id === id ? wireToChore(data) : c))),
+      onRollback: () =>
+        setChores((prev) =>
+          prev.map((c) => {
+            if (c.id !== id) return c;
+            const restored: Record<string, unknown> = { ...c };
+            for (const [key, before] of changed) {
+              if (sameValue(restored[key], (input as Record<string, unknown>)[key])) restored[key] = before;
+            }
+            return restored as ChoreWithVersion;
+          }),
+        ),
+      onNotFound: id > 0 ? () => removeChoreLocal(id) : undefined,
       onConflict: () => setConflictChoreId(id),
-      onNetworkFailure: () => append({ type: 'edit', choreId: id, baseVersion, payload }),
+      onNetworkFailure: () => {
+        append({ type: 'edit', choreId: id, baseVersion, payload });
+        showToast('neutral', OFFLINE_MESSAGE);
+      },
+      successMessage: 'Changes saved',
+      errorMessage: "Couldn't save your changes. Please try again.",
+      showToast,
     });
   }
 
@@ -428,7 +574,7 @@ export default function ChoresView({
           and only its children swap, so a transition between the can't-load
           block / benign-empty-room state / populated list is announced to
           screen readers independently of the StatusBanner's own role="status". */}
-      <div aria-live="polite">
+      <div aria-live="polite" className="pb-24">
         {isStale && chores.length === 0 ? (
           <div data-testid="chores-unavailable" className="text-center py-8">
             <h3 className="text-amber-300 text-base font-semibold mb-2">Can't load your chores right now.</h3>
@@ -491,6 +637,7 @@ export default function ChoresView({
           onCancel={handleKeepEditing}
         />
       )}
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }

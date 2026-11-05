@@ -1002,3 +1002,372 @@ describe('ChoresView', () => {
     expect(screen.queryByTestId('status-banner-action')).not.toBeInTheDocument();
   });
 });
+
+function errorResponse(status: number, error: string) {
+  return Promise.resolve(
+    new Response(JSON.stringify({ success: false, error }), {
+      status,
+      headers: { 'content-type': 'application/json' },
+    }),
+  );
+}
+
+type MutationHandler = (url: string, method: string) => Promise<Response> | undefined;
+
+function stubMutationFetch(handler: MutationHandler) {
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input.toString();
+    const method = init?.method ?? 'GET';
+    if (url === '/api/chores' && method === 'GET') {
+      return jsonResponse({ success: true, data: mockChores });
+    }
+    const res = handler(url, method);
+    if (res) return res;
+    throw new Error(`Unhandled fetch: ${method} ${url}`);
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
+
+function renderView(outbox?: ReturnType<typeof createOutbox>) {
+  return render(
+    <ChoresView
+      householdTimezone="UTC"
+      rooms={mockRooms}
+      swipeStyle="ios"
+      onSwipeStyleChange={vi.fn()}
+      outbox={outbox}
+    />,
+  );
+}
+
+function barFor(name: string) {
+  return screen.getByText(name).closest('[data-testid="chore-bar"]') as HTMLElement;
+}
+
+function rowFor(name: string) {
+  return screen.getByText(name).closest('[data-testid="chore-row"]') as HTMLElement;
+}
+
+describe('ChoresView feedback toast', () => {
+  it.each([400, 500, 401, 403])(
+    'rolls back a complete answered %i and shows a persistent error toast',
+    async (status) => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date('2026-07-01T12:00:00.000Z'));
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      stubMutationFetch((url) =>
+        url === '/api/chores/1/complete' ? errorResponse(status, 'nope') : undefined,
+      );
+      renderView();
+      await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+      expect(within(barFor('Vacuum')).getByText('30 days ago')).toBeInTheDocument();
+
+      await user.click(barFor('Vacuum'));
+
+      const toast = await screen.findByTestId('feedback-toast');
+      expect(toast).toHaveAttribute('data-tone', 'error');
+      expect(screen.getByRole('alert')).toContainElement(toast);
+      expect(
+        within(toast).getByText("Couldn't mark the chore complete. Please try again."),
+      ).toBeInTheDocument();
+      expect(within(barFor('Vacuum')).getByText('30 days ago')).toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20000);
+      });
+      expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+      await user.click(screen.getByTestId('feedback-toast-dismiss'));
+      expect(screen.queryByTestId('feedback-toast')).not.toBeInTheDocument();
+    },
+  );
+
+  it.each([400, 500])('re-inserts a chore when delete is answered %i', async (status) => {
+    const user = userEvent.setup();
+    stubMutationFetch((url, method) =>
+      url === '/api/chores/1' && method === 'DELETE' ? errorResponse(status, 'nope') : undefined,
+    );
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Delete chore'));
+
+    expect(await screen.findByText("Couldn't delete the chore. Please try again.")).toBeInTheDocument();
+    expect(screen.getByText('Vacuum')).toBeInTheDocument();
+  });
+
+  it('restores the edited name and shows the error toast when an edit fails', async () => {
+    const user = userEvent.setup();
+    stubMutationFetch((url, method) =>
+      url === '/api/chores/1' && method === 'PUT' ? errorResponse(500, 'boom') : undefined,
+    );
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
+    const name = screen.getByLabelText('Name');
+    await user.clear(name);
+    await user.type(name, 'Mop');
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    expect(await screen.findByText("Couldn't save your changes. Please try again.")).toBeInTheDocument();
+    expect(screen.getByText('Vacuum')).toBeInTheDocument();
+    expect(screen.queryByText('Mop')).not.toBeInTheDocument();
+  });
+
+  it('removes a created chore and shows the error toast when create fails', async () => {
+    const user = userEvent.setup();
+    stubMutationFetch((url, method) =>
+      url === '/api/chores' && method === 'POST' ? errorResponse(500, 'boom') : undefined,
+    );
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: '+ Add Chore' }));
+    await user.type(screen.getByLabelText('Name'), 'Windows');
+    await user.selectOptions(screen.getByLabelText('Room'), '1');
+    await user.type(screen.getByLabelText('Duration (minutes)'), '10');
+    await user.type(screen.getByLabelText('Frequency (days)'), '7');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText("Couldn't add the chore. Please try again.")).toBeInTheDocument();
+    expect(screen.queryByText('Windows')).not.toBeInTheDocument();
+  });
+
+  it('treats a non-JSON 502 as a failure and does not queue it in the outbox', async () => {
+    const user = userEvent.setup();
+    const outbox = createOutbox(vi.fn());
+    stubMutationFetch((url) =>
+      url === '/api/chores/1/complete'
+        ? Promise.resolve(new Response('<html>Bad Gateway</html>', { status: 502 }))
+        : undefined,
+    );
+    renderView(outbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(barFor('Vacuum'));
+
+    expect(await screen.findByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+    expect(outbox.getEntries()).toHaveLength(0);
+  });
+
+  it('treats a 2xx with an unparseable body as a failure', async () => {
+    const user = userEvent.setup();
+    const outbox = createOutbox(vi.fn());
+    stubMutationFetch((url) =>
+      url === '/api/chores/1/complete'
+        ? Promise.resolve(new Response('not json', { status: 200 }))
+        : undefined,
+    );
+    renderView(outbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(barFor('Vacuum'));
+
+    expect(await screen.findByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+    expect(outbox.getEntries()).toHaveLength(0);
+  });
+
+  it('shows the success toast and treats DELETE 404 on a real id as success', async () => {
+    const user = userEvent.setup();
+    stubMutationFetch((url, method) =>
+      url === '/api/chores/1' && method === 'DELETE' ? errorResponse(404, 'Not found') : undefined,
+    );
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Delete chore'));
+
+    const toast = await screen.findByTestId('feedback-toast');
+    expect(toast).toHaveAttribute('data-tone', 'success');
+    expect(toast).toHaveTextContent('Chore deleted');
+    expect(screen.queryByText('Vacuum')).not.toBeInTheDocument();
+  });
+
+  it('removes a chore locally and says it no longer exists when complete is answered 404', async () => {
+    const user = userEvent.setup();
+    stubMutationFetch((url) =>
+      url === '/api/chores/1/complete' ? errorResponse(404, 'Not found') : undefined,
+    );
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(barFor('Vacuum'));
+
+    expect(await screen.findByText('That chore no longer exists.')).toBeInTheDocument();
+    expect(screen.queryByText('Vacuum')).not.toBeInTheDocument();
+  });
+
+  it('removes a chore locally when edit is answered 404', async () => {
+    const user = userEvent.setup();
+    stubMutationFetch((url, method) =>
+      url === '/api/chores/1' && method === 'PUT' ? errorResponse(404, 'Not found') : undefined,
+    );
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    expect(await screen.findByText('That chore no longer exists.')).toBeInTheDocument();
+    expect(screen.queryByText('Vacuum')).not.toBeInTheDocument();
+  });
+
+  it('shows a green toast only after the response arrives, then auto-dismisses it', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-01T12:00:00.000Z'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    stubMutationFetch((url) =>
+      url === '/api/chores/1/complete'
+        ? jsonResponse({ success: true, data: { ...mockChores[0], version: 2 } })
+        : undefined,
+    );
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(barFor('Vacuum'));
+
+    const toast = await screen.findByTestId('feedback-toast');
+    expect(toast).toHaveAttribute('data-tone', 'success');
+    expect(toast).toHaveTextContent('Chore completed');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4500);
+    });
+    expect(screen.queryByTestId('feedback-toast')).not.toBeInTheDocument();
+  });
+
+  it('shows a neutral toast and queues exactly one outbox entry on a network failure', async () => {
+    const user = userEvent.setup();
+    const outbox = createOutbox(vi.fn());
+    stubMutationFetch((url) =>
+      url === '/api/chores/1/complete' ? Promise.reject(new Error('network unavailable')) : undefined,
+    );
+    renderView(outbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(barFor('Vacuum'));
+
+    const toast = await screen.findByTestId('feedback-toast');
+    expect(toast).toHaveAttribute('data-tone', 'neutral');
+    expect(toast).toHaveTextContent("Saved offline — will sync when you're back online");
+    expect(outbox.getEntries()).toHaveLength(1);
+  });
+
+  it('keeps a standing error toast when a later network failure would show a neutral one', async () => {
+    const user = userEvent.setup();
+    const outbox = createOutbox(vi.fn());
+    stubMutationFetch((url) => {
+      if (url === '/api/chores/1/complete') return errorResponse(500, 'boom');
+      if (url === '/api/chores/2/complete') return Promise.reject(new Error('network unavailable'));
+      return undefined;
+    });
+    renderView(outbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(barFor('Vacuum'));
+    expect(await screen.findByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+    await user.click(barFor('Dishes'));
+
+    await waitFor(() => expect(outbox.getEntries()).toHaveLength(1));
+    expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+    expect(screen.getByTestId('feedback-toast')).toHaveTextContent("Couldn't mark the chore complete");
+  });
+
+  it('lets a later success replace a standing error toast', async () => {
+    const user = userEvent.setup();
+    stubMutationFetch((url) => {
+      if (url === '/api/chores/1/complete') return errorResponse(500, 'boom');
+      if (url === '/api/chores/2/complete')
+        return jsonResponse({ success: true, data: { ...mockChores[1], version: 2 } });
+      return undefined;
+    });
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(barFor('Vacuum'));
+    expect(await screen.findByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+    await user.click(barFor('Dishes'));
+
+    await waitFor(() => expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'success'));
+    expect(screen.getByTestId('feedback-toast')).toHaveTextContent('Chore completed');
+    expect(screen.queryByTestId('feedback-toast-dismiss')).not.toBeInTheDocument();
+  });
+
+  it('does not undo a later successful complete when an earlier edit on the same chore fails', async () => {
+    const user = userEvent.setup();
+    let failEdit: (r: Response) => void = () => {};
+    const editPending = new Promise<Response>((resolve) => {
+      failEdit = resolve;
+    });
+    const completedAt = new Date().toISOString();
+    stubMutationFetch((url, method) => {
+      if (url === '/api/chores/1' && method === 'PUT') return editPending;
+      if (url === '/api/chores/1/complete')
+        return jsonResponse({
+          success: true,
+          data: { ...mockChores[0], name: 'Mop', dateLastCompleted: completedAt, version: 2 },
+        });
+      return undefined;
+    });
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
+    const name = screen.getByLabelText('Name');
+    await user.clear(name);
+    await user.type(name, 'Mop');
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+    await waitFor(() => expect(screen.getByText('Mop')).toBeInTheDocument());
+    await user.click(barFor('Mop'));
+    await waitFor(() => expect(within(barFor('Mop')).getByText('0 days ago')).toBeInTheDocument());
+
+    await act(async () => {
+      failEdit(
+        new Response(JSON.stringify({ success: false, error: 'boom' }), {
+          status: 500,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    });
+
+    expect(await screen.findByText("Couldn't save your changes. Please try again.")).toBeInTheDocument();
+    expect(screen.getByText('Vacuum')).toBeInTheDocument();
+    expect(within(barFor('Vacuum')).getByText('0 days ago')).toBeInTheDocument();
+  });
+
+  it('moves focus to + Add Chore when the focused dismiss button is dismissed', async () => {
+    const user = userEvent.setup();
+    stubMutationFetch((url) => (url === '/api/chores/1/complete' ? errorResponse(500, 'boom') : undefined));
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(barFor('Vacuum'));
+    const dismiss = await screen.findByTestId('feedback-toast-dismiss');
+    dismiss.focus();
+    await user.click(dismiss);
+
+    expect(screen.getByRole('button', { name: '+ Add Chore' })).toHaveFocus();
+  });
+
+  it('shows a conflict dialog with no toast on a 409 edit', async () => {
+    const user = userEvent.setup();
+    stubMutationFetch((url, method) =>
+      url === '/api/chores/1' && method === 'PUT' ? errorResponse(409, 'changed elsewhere') : undefined,
+    );
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    expect(await screen.findByText('This chore was changed elsewhere.')).toBeInTheDocument();
+    expect(screen.queryByTestId('feedback-toast')).not.toBeInTheDocument();
+  });
+
+  it('gives the list container bottom padding so the last row clears a sticky toast', async () => {
+    stubChoresFetch();
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    expect(rowFor('Vacuum').closest('[aria-live="polite"]')).toHaveClass('pb-24');
+  });
+});
