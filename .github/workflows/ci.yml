@@ -105,6 +105,8 @@ jobs:
     name: End-to-end tests
     needs: [test-backend, test-frontend]
     runs-on: ubuntu-latest
+    # A stalled Playwright browser/apt download otherwise hangs until the 6h default.
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
