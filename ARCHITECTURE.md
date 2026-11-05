@@ -427,7 +427,9 @@ mean this can never be offline-_capable_, only offline-_tolerant_). Two mechanis
 
 - **`outbox/`** — chore create/edit/complete/delete actions queue in `localStorage` (not IndexedDB) when a
   write fails, and replay when connectivity returns (`useOutbox.ts`). Conflict handling: completions
-  merge by latest timestamp rather than rejecting (see commit `8013e84`).
+  merge by latest timestamp rather than rejecting (see commit `8013e84`). Permanent 4xx rejections are
+  dropped from the queue, while 401/403/408/429/5xx and a non-JSON 2xx keep the entry and stop the flush
+  pass (`FlushResult.status` is additive/optional).
 - **Mutation feedback (`common/Toast.tsx`, state in `ChoresView`)** — a one-at-a-time bottom-centre toast
   reports every chore mutation outcome. Green (auto-dismiss, 4 s) after the server confirms; red and
   sticky on failure, with the optimistic change rolled back (an edit or complete that gets a 404 removes
@@ -435,7 +437,9 @@ mean this can never be offline-_capable_, only offline-_tolerant_). Two mechanis
   never replaces a standing error toast. A non-JSON or non-2xx response is a failure, not "offline", so it
   is no longer queued in the outbox. Failed add/edit input is not restored (the modal has already closed).
   A failed outbox flush shows an error toast, and the chore list is refetched only when a queued entry was
-  permanently dropped. Copy is the app's own text, never the backend `error` string.
+  permanently dropped. A pass with both a dropped and a kept entry shows one combined toast. A 409 on a
+  mutation with no conflict handler rolls back and shows the error toast. Copy is the app's own text,
+  never the backend `error` string.
 - **`cache/choresCache.ts`** — last-known chore list cached in IndexedDB so the view isn't blank while
   offline; paired with the PWA service worker (`vite-plugin-pwa`, `workbox` config in `vite.config.ts`)
   for asset caching.

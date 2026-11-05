@@ -83,6 +83,10 @@ const OFFLINE_MESSAGE = "Saved offline — will sync when you're back online";
 const FLUSH_SUCCESS_MESSAGE = 'Offline changes synced';
 const FLUSH_DROPPED_REFRESHED_MESSAGE = "Some offline changes couldn't be synced. The list was refreshed.";
 const FLUSH_DROPPED_MESSAGE = "Some offline changes couldn't be synced.";
+const FLUSH_MIXED_REFRESHED_MESSAGE =
+  "Some offline changes couldn't be synced and the list was refreshed. Others haven't synced yet and will retry.";
+const FLUSH_MIXED_MESSAGE =
+  "Some offline changes couldn't be synced. Others haven't synced yet and will retry.";
 const FLUSH_KEPT_MESSAGE =
   "Some offline changes haven't synced yet. They'll sync next time you're online or reopen the app.";
 
@@ -109,22 +113,23 @@ type MutateOptions<T> = {
   notFoundAsSuccess?: boolean;
   successMessage: string;
   errorMessage: string;
-  showToast: (tone: ToastTone, message: string) => void;
 };
 
-async function mutate<T>({
-  optimisticApply,
-  request,
-  onSuccess,
-  onRollback,
-  onConflict,
-  onNetworkFailure,
-  onNotFound,
-  notFoundAsSuccess,
-  successMessage,
-  errorMessage,
-  showToast,
-}: MutateOptions<T>) {
+async function runMutation<T>(
+  showToast: (tone: ToastTone, message: string) => void,
+  {
+    optimisticApply,
+    request,
+    onSuccess,
+    onRollback,
+    onConflict,
+    onNetworkFailure,
+    onNotFound,
+    notFoundAsSuccess,
+    successMessage,
+    errorMessage,
+  }: MutateOptions<T>,
+) {
   optimisticApply();
   let res: Response;
   try {
@@ -133,8 +138,9 @@ async function mutate<T>({
     onNetworkFailure?.();
     return;
   }
-  if (res.status === 409) {
-    onConflict?.();
+  // With no conflict handler a 409 is an ordinary failure: fall through to rollback + error toast.
+  if (res.status === 409 && onConflict) {
+    onConflict();
     return;
   }
   if (res.status === 404 && notFoundAsSuccess) {
@@ -209,10 +215,14 @@ export default function ChoresView({
     const dropped = results.some(isDroppedFailure);
     const kept = results.some(isKeptFailure);
     if (dropped) {
-      // One refetch per pass, however many entries were dropped.
-      void refetchChores().then((refreshed) =>
-        showToast('error', refreshed ? FLUSH_DROPPED_REFRESHED_MESSAGE : FLUSH_DROPPED_MESSAGE),
-      );
+      // One refetch per pass, however many entries were dropped. A mixed pass gets one combined toast.
+      void refetchChores().then((refreshed) => {
+        if (kept) {
+          showToast('error', refreshed ? FLUSH_MIXED_REFRESHED_MESSAGE : FLUSH_MIXED_MESSAGE);
+        } else {
+          showToast('error', refreshed ? FLUSH_DROPPED_REFRESHED_MESSAGE : FLUSH_DROPPED_MESSAGE);
+        }
+      });
     } else if (kept) {
       showToast('error', FLUSH_KEPT_MESSAGE);
     } else if (results.some((r) => r.outcome === 'success')) {
@@ -253,6 +263,10 @@ export default function ChoresView({
     const next: ToastState = { id: toastIdRef.current, tone, message };
     toastRef.current = next;
     setToast(next);
+  }
+
+  function mutate<T>(options: MutateOptions<T>) {
+    return runMutation(showToast, options);
   }
 
   function dismissToast() {
@@ -429,7 +443,6 @@ export default function ChoresView({
       },
       successMessage: 'Chore completed',
       errorMessage: "Couldn't mark the chore complete. Please try again.",
-      showToast,
     });
   }
 
@@ -450,7 +463,6 @@ export default function ChoresView({
       },
       successMessage: 'Chore deleted',
       errorMessage: "Couldn't delete the chore. Please try again.",
-      showToast,
     });
   }
 
@@ -480,7 +492,6 @@ export default function ChoresView({
       },
       successMessage: 'Chore added',
       errorMessage: "Couldn't add the chore. Please try again.",
-      showToast,
     });
   }
 
@@ -528,7 +539,6 @@ export default function ChoresView({
       },
       successMessage: 'Changes saved',
       errorMessage: "Couldn't save your changes. Please try again.",
-      showToast,
     });
   }
 
