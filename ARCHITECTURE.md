@@ -58,11 +58,11 @@ frontend/         React SPA — Cloudflare Pages
       chore/                 Chore list/view/timer/completion UI
       form/                   Chore creation/edit forms
       nav/                    Nav bar, room tabs, date navigation
-      common/                 Shared UI (dialogs, banners, clear button)
+      common/                 Shared UI (dialogs, banners, clear button, Toast)
     utils/api.ts             Single fetch entrypoint (apiFetch) — attaches X-Household-Id, routes
                               preview deployments to mock data instead of the real API
     utils/mockApi.ts          Mock data served on *.pages.dev preview deployments
-    outbox/                   Offline write queue (IndexedDB-backed) — queues chore mutations when offline
+    outbox/                   Offline write queue (localStorage-backed) — queues chore mutations when offline
     cache/choresCache.ts      IndexedDB read cache for offline chore viewing
     hooks/useMidnightClock.ts Recomputes chore urgency at local midnight
   vite.config.ts              Dev proxy to backend (:8787 default), PWA manifest/workbox config
@@ -411,7 +411,7 @@ lint + test-frontend ──→ deploy-preview  (PR only, not dependabot[bot]: pa
 | Layer                         | Tool                                                                              | What it actually exercises                                                                                                                                                                                                                                   |
 | ----------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Backend unit/route tests      | Vitest + `@cloudflare/vitest-pool-workers`                                        | Real Miniflare Workers runtime + real (in-memory) D1 per test — not mocked bindings                                                                                                                                                                          |
-| Frontend unit/component tests | Vitest + `@testing-library/react` + jsdom                                         | Component behavior; `fake-indexeddb` stands in for the outbox/cache's IndexedDB usage                                                                                                                                                                        |
+| Frontend unit/component tests | Vitest + `@testing-library/react` + jsdom                                         | Component behavior; `fake-indexeddb` stands in for the cache's IndexedDB usage                                                                                                                                                                               |
 | End-to-end                    | Playwright (`e2e/`; `chromium` runs every spec, `webkit` only `webkit-*.spec.ts`) | Full stack against `vite preview` (a built static server, not `vite dev` — avoids cold-start JIT flakiness) + a real local Worker + the fixture JWKS server. Own JWT signing helper (`e2e/sign-jwt.ts`), separate from the frontend dev-JWT convenience flow |
 
 Run: `npm run test:backend`, `npm run test:frontend`, `npm run test:e2e` (root), or `npm test` inside
@@ -425,9 +425,17 @@ is available).
 Not a full offline-first app — see [`TRADEOFFS.md`](TRADEOFFS.md) for the honest ceiling here (Workers/D1
 mean this can never be offline-_capable_, only offline-_tolerant_). Two mechanisms:
 
-- **`outbox/`** — chore create/edit/complete/delete actions queue in IndexedDB (`outbox-v1`) when a
+- **`outbox/`** — chore create/edit/complete/delete actions queue in `localStorage` (not IndexedDB) when a
   write fails, and replay when connectivity returns (`useOutbox.ts`). Conflict handling: completions
   merge by latest timestamp rather than rejecting (see commit `8013e84`).
+- **Mutation feedback (`common/Toast.tsx`, state in `ChoresView`)** — a one-at-a-time bottom-centre toast
+  reports every chore mutation outcome. Green (auto-dismiss, 4 s) after the server confirms; red and
+  sticky on failure, with the optimistic change rolled back (an edit or complete that gets a 404 removes
+  the chore rather than restoring a ghost); neutral (~6 s) "Saved offline" when a write is queued, which
+  never replaces a standing error toast. A non-JSON or non-2xx response is a failure, not "offline", so it
+  is no longer queued in the outbox. Failed add/edit input is not restored (the modal has already closed).
+  A failed outbox flush shows an error toast, and the chore list is refetched only when a queued entry was
+  permanently dropped. Copy is the app's own text, never the backend `error` string.
 - **`cache/choresCache.ts`** — last-known chore list cached in IndexedDB so the view isn't blank while
   offline; paired with the PWA service worker (`vite-plugin-pwa`, `workbox` config in `vite.config.ts`)
   for asset caching.
@@ -495,6 +503,7 @@ Retry → re-auth; (3) temporarily shorten the Access application's Session Dura
 | Change the single fetch entrypoint (headers, preview mocking)                      | `frontend/src/utils/api.ts`                                                                                                                                                                                                                                                         |
 | Change routing/top-level data loading                                              | `frontend/src/App.tsx`                                                                                                                                                                                                                                                              |
 | Change the offline write queue                                                     | `frontend/src/outbox/`                                                                                                                                                                                                                                                              |
+| Change mutation success/failure feedback (toast, rollback, flush errors)           | `frontend/src/components/common/Toast.tsx`, `frontend/src/components/chore/ChoresView.tsx`                                                                                                                                                                                          |
 | Run local dev                                                                      | `/run-dev` skill, or `npm run dev` at repo root                                                                                                                                                                                                                                     |
 | Push a branch / open a PR as the bot                                               | `/git-push` skill (`gpropersi-claude[bot]`, standing default per project instructions — don't ask first)                                                                                                                                                                            |
 | Understand the cloud-vs-local tradeoff rationale                                   | `TRADEOFFS.md`                                                                                                                                                                                                                                                                      |
