@@ -1263,6 +1263,39 @@ describe('ChoresView feedback toast', () => {
     expect(outbox.getEntries()).toHaveLength(1);
   });
 
+  it.each(['complete', 'create', 'edit', 'delete'] as const)(
+    'shows the neutral Saved offline toast and queues a %s entry on a network failure',
+    async (type) => {
+      const user = userEvent.setup();
+      const outbox = createOutbox(vi.fn());
+      stubMutationFetch(() => Promise.reject(new Error('network unavailable')));
+      renderView(outbox);
+      await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+      if (type === 'complete') {
+        await user.click(barFor('Vacuum'));
+      } else if (type === 'delete') {
+        await user.click(within(rowFor('Vacuum')).getByLabelText('Delete chore'));
+      } else if (type === 'edit') {
+        await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
+        await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+      } else {
+        await user.click(screen.getByRole('button', { name: '+ Add Chore' }));
+        await user.type(screen.getByLabelText('Name'), 'Windows');
+        await user.selectOptions(screen.getByLabelText('Room'), '1');
+        await user.type(screen.getByLabelText('Duration (minutes)'), '10');
+        await user.type(screen.getByLabelText('Frequency (days)'), '7');
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+      }
+
+      const toast = await screen.findByTestId('feedback-toast');
+      expect(toast).toHaveAttribute('data-tone', 'neutral');
+      expect(toast).toHaveTextContent("Saved offline — will sync when you're back online");
+      expect(outbox.getEntries()).toHaveLength(1);
+      expect(outbox.getEntries()[0].type).toBe(type);
+    },
+  );
+
   it('keeps a standing error toast when a later network failure would show a neutral one', async () => {
     const user = userEvent.setup();
     const outbox = createOutbox(vi.fn());
@@ -1658,6 +1691,85 @@ describe('ChoresView offline flush results', () => {
     await waitFor(() => expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error'));
     expect(screen.getByTestId('feedback-toast')).toHaveTextContent('The list was refreshed.');
     expect(screen.getAllByTestId('feedback-toast')).toHaveLength(1);
+  });
+
+  it('shows one combined toast when a pass has a dropped 400 and a kept 500', async () => {
+    const outboxFetch = vi.fn((url: string) =>
+      url === '/api/chores/1' ? errorResponse(400, 'bad') : errorResponse(500, 'boom'),
+    );
+    const testOutbox = createOutbox(outboxFetch as unknown as typeof fetch);
+    testOutbox.append({ type: 'edit', choreId: 1, baseVersion: 1, payload: createPayload() });
+    testOutbox.append({ type: 'edit', choreId: 2, baseVersion: 1, payload: createPayload() });
+    const { getCount } = stubListFetch(okList);
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await act(() => testOutbox.flush());
+
+    await waitFor(() => expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error'));
+    expect(screen.getByTestId('feedback-toast')).toHaveTextContent(
+      "Some offline changes couldn't be synced and the list was refreshed. Others haven't synced yet and will retry.",
+    );
+    expect(screen.getAllByTestId('feedback-toast')).toHaveLength(1);
+    expect(testOutbox.getEntries()).toHaveLength(1);
+    expect(getCount()).toBe(2);
+  });
+
+  it('drops the refresh claim from the combined toast when the refetch falls back to the cache', async () => {
+    await writeChoresCache([]);
+    const outboxFetch = vi.fn((url: string) =>
+      url === '/api/chores/1' ? errorResponse(400, 'bad') : errorResponse(500, 'boom'),
+    );
+    const testOutbox = createOutbox(outboxFetch as unknown as typeof fetch);
+    testOutbox.append({ type: 'edit', choreId: 1, baseVersion: 1, payload: createPayload() });
+    testOutbox.append({ type: 'edit', choreId: 2, baseVersion: 1, payload: createPayload() });
+    stubListFetch((n) => (n === 1 ? okList() : errorResponse(500, 'down')));
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await act(() => testOutbox.flush());
+
+    const toast = await screen.findByTestId('feedback-toast');
+    expect(toast).toHaveTextContent(
+      "Some offline changes couldn't be synced. Others haven't synced yet and will retry.",
+    );
+    expect(toast).not.toHaveTextContent('refreshed');
+  });
+
+  it('rolls back and shows the error toast on a 409 complete that has no conflict handler', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-01T12:00:00.000Z'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    stubMutationFetch((url) =>
+      url === '/api/chores/1/complete' ? errorResponse(409, 'conflict') : undefined,
+    );
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    await user.click(barFor('Vacuum'));
+
+    const toast = await screen.findByTestId('feedback-toast');
+    expect(toast).toHaveAttribute('data-tone', 'error');
+    expect(toast).toHaveTextContent("Couldn't mark the chore complete. Please try again.");
+    expect(within(barFor('Vacuum')).getByText('30 days ago')).toBeInTheDocument();
+  });
+
+  it('does not remove a queued temp-id chore locally when its complete is answered 404', async () => {
+    const testOutbox = createOutbox(vi.fn(() => new Promise<Response>(() => {})));
+    testOutbox.append({ type: 'create', tempId: -5, payload: createPayload() });
+    const user = userEvent.setup();
+    stubMutationFetch((url) =>
+      url === '/api/chores/-5/complete' ? errorResponse(404, 'Not found') : undefined,
+    );
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Windows')).toBeInTheDocument());
+
+    await user.click(barFor('Windows'));
+
+    const toast = await screen.findByTestId('feedback-toast');
+    expect(toast).toHaveAttribute('data-tone', 'error');
+    expect(toast).not.toHaveTextContent('That chore no longer exists.');
+    expect(screen.getByText('Windows')).toBeInTheDocument();
   });
 
   it('shows no toast for dropped-not-found or a network throw', async () => {
