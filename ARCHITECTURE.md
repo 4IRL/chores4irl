@@ -375,7 +375,7 @@ to `main`.
 lint (eslint + prettier --check)
   ├─→ test-backend (vitest, real Miniflare D1)
   └─→ test-frontend (vitest, jsdom)
-        └─→ test-e2e (playwright, needs both test jobs)
+        └─→ test-e2e (playwright, needs both test jobs; 20 min job timeout)
               ├─→ deploy-backend   (main push only: wrangler deploy)
               ├─→ deploy-frontend  (main push only: wrangler pages deploy)
               └─→ notifs-identity  (main push only: 4irl-notifs app identity exchange; nothing needs it)
