@@ -491,11 +491,11 @@ export default function ChoresView({
     const baseVersion = existing?.version ?? 1;
     const payload = toChorePayload(input);
     // Fields this edit actually changes, with their pre-edit values.
-    const changed: [string, unknown][] = [];
+    const changed: [keyof typeof input, unknown][] = [];
     if (existing) {
-      for (const key of Object.keys(input)) {
-        const before = (existing as Record<string, unknown>)[key];
-        const after = (input as Record<string, unknown>)[key];
+      for (const key of Object.keys(input) as (keyof typeof input)[]) {
+        const before = existing[key];
+        const after = input[key];
         if (!sameValue(before, after)) changed.push([key, before]);
       }
     }
@@ -513,11 +513,11 @@ export default function ChoresView({
         setChores((prev) =>
           prev.map((c) => {
             if (c.id !== id) return c;
-            const restored: Record<string, unknown> = { ...c };
+            const revert: Partial<Omit<Chore, 'id'>> = {};
             for (const [key, before] of changed) {
-              if (sameValue(restored[key], (input as Record<string, unknown>)[key])) restored[key] = before;
+              if (sameValue(c[key], input[key])) Object.assign(revert, { [key]: before });
             }
-            return restored as ChoreWithVersion;
+            return { ...c, ...revert };
           }),
         ),
       onNotFound: id > 0 ? () => removeChoreLocal(id) : undefined,
