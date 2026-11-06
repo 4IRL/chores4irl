@@ -1,5 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { computeBar } from './choreBarMath';
+import { classifyStatus, computeBar } from './choreBarMath';
+
+describe('classifyStatus', () => {
+  it('is orange at exactly 0.375 remaining', () => {
+    expect(classifyStatus(5, 8)).toBe('orange');
+  });
+
+  it('is green just above 0.375 remaining', () => {
+    expect(classifyStatus(624, 1000)).toBe('green');
+  });
+
+  it('is orange on the due day', () => {
+    expect(classifyStatus(10, 10)).toBe('orange');
+  });
+
+  it('is red one day over', () => {
+    expect(classifyStatus(11, 10)).toBe('red');
+  });
+
+  it('is green for frequency 0 at any daysSince', () => {
+    expect(classifyStatus(0, 0)).toBe('green');
+    expect(classifyStatus(100, 0)).toBe('green');
+  });
+});
 
 describe('computeBar', () => {
   it('returns bg-green-500 when plenty of time remains', () => {
