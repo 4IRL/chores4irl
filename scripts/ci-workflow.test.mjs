@@ -40,7 +40,6 @@ describe('ci.yml deploy-backend migrations', () => {
     assert.equal(job.if, "github.event_name == 'push' && github.ref == 'refs/heads/main'");
     for (const name of [RESTORE, APPLY]) {
       const step = stepNamed(name);
-      assert.ok(step, `missing step ${name}`);
       assert.equal(step['continue-on-error'], undefined, `${name} has continue-on-error`);
       assert.equal(step.if, undefined, `${name} has a step-level if`);
     }
@@ -62,6 +61,7 @@ describe('ci.yml deploy-backend migrations', () => {
   });
 
   it('targets remote D1', () => {
+    assert.match(backendPackage.scripts['migrate:remote'], /d1 migrations apply/);
     assert.match(backendPackage.scripts['migrate:remote'], /--remote/);
     assert.doesNotMatch(backendPackage.scripts['migrate:remote'], /--env|--local/);
   });
