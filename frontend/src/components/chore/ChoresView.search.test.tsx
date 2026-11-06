@@ -115,6 +115,7 @@ describe('ChoresView search', () => {
     const msg = screen.getByTestId('chores-no-match').querySelector('p') as HTMLElement;
     expect(msg).toHaveTextContent(/ in this room\.$/);
     expect(msg).toHaveClass('break-words');
+    expect(screen.getByRole('status').textContent).toBe(msg.textContent);
   });
 
   it('treats a whitespace-only query as empty', async () => {
