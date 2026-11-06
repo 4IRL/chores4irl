@@ -35,17 +35,6 @@ function stubFetch(data: unknown[]) {
   );
 }
 
-function stubCoarsePointer(coarse: boolean) {
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn(() => ({
-      matches: coarse,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    })),
-  );
-}
-
 function stubMedia({ coarse = false, reduce = false }: { coarse?: boolean; reduce?: boolean }) {
   vi.stubGlobal(
     'matchMedia',
@@ -109,7 +98,7 @@ describe('ChoresView Add Chore deck', () => {
   });
 
   it('hides the deck (invisible, still mounted) while the search is focused on touch, restoring on blur', async () => {
-    stubCoarsePointer(true);
+    stubMedia({ coarse: true });
     stubFetch(mockChores);
     renderView();
     await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
@@ -126,7 +115,7 @@ describe('ChoresView Add Chore deck', () => {
   });
 
   it('keeps the deck visible on search focus for non-touch devices', async () => {
-    stubCoarsePointer(false);
+    stubMedia({ coarse: false });
     stubFetch(mockChores);
     renderView();
     await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
@@ -135,7 +124,7 @@ describe('ChoresView Add Chore deck', () => {
   });
 
   it('restores the deck when the focused search input becomes disabled, and keeps it after re-enabling', async () => {
-    stubCoarsePointer(true);
+    stubMedia({ coarse: true });
     // Offline-style stale load with no cache: the input is disabled.
     vi.stubGlobal(
       'fetch',
