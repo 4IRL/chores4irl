@@ -4,11 +4,11 @@ import { prefersReducedMotion } from '@utils/prefersReducedMotion';
 
 const FADE_MS = 500;
 
-interface ScrollToTopButtonProps {
+type ScrollToTopButtonProps = {
   visible: boolean;
   onActivate: () => void;
   onRelinquishFocus?: () => void;
-}
+};
 
 export default function ScrollToTopButton({
   visible,
