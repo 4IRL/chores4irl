@@ -28,6 +28,8 @@ const ChoreSearchInput = forwardRef<HTMLInputElement, ChoreSearchInputProps>(fun
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    // Enter/Escape during IME composition belong to the IME, not to us.
+    if (event.nativeEvent.isComposing) return;
     if (event.key === 'Escape') {
       event.preventDefault();
       onChange('');

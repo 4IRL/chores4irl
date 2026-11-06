@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChoreSearchInput from './ChoreSearchInput';
 
@@ -31,6 +31,17 @@ describe('ChoreSearchInput', () => {
     expect(input).toHaveFocus();
     await userEvent.keyboard('{Enter}');
     expect(input).not.toHaveFocus();
+  });
+
+  it('ignores Enter and Escape while an IME composition is active', () => {
+    const onChange = vi.fn();
+    render(<ChoreSearchInput value="abc" onChange={onChange} />);
+    const input = screen.getByLabelText('Search chores');
+    input.focus();
+    fireEvent.keyDown(input, { key: 'Escape', isComposing: true });
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(input).toHaveFocus();
   });
 
   it('disables the input but keeps Clear search operable', async () => {
