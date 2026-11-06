@@ -64,7 +64,7 @@ frontend/         React SPA — Cloudflare Pages
     utils/mockApi.ts          Mock data served on *.pages.dev preview deployments
     outbox/                   Offline write queue (localStorage-backed) — queues chore mutations when offline
     cache/choresCache.ts      IndexedDB read cache for offline chore viewing
-    hooks/useMidnightClock.ts Recomputes chore urgency at local midnight
+    hooks/useMidnightClock.ts Recomputes chore status and sort order at household midnight
     hooks/useChoreSearch.ts   Case-insensitive name filter (after the room filter, before ordering)
     hooks/useScrollPastThreshold.ts  True once window.scrollY > 80 (re-renders only when it flips)
     components/chore/ScrollToTopButton.tsx  Floating fade-gated scroll-to-top button (right-4, z-30)
@@ -458,6 +458,23 @@ either workspace. `backend`'s `test` script runs `wrangler types` first — rege
 `wrangler.toml` before typechecking against it. The `webkit` Playwright project needs the WebKit
 browser installed locally: run `npx playwright install webkit` (add `--with-deps` on Linux where sudo
 is available).
+
+## Chore ordering
+
+`orderChores` (`frontend/src/utils/choreSort.ts`) sorts the visible chore list by status colour, not by a
+single score. `classifyStatus` (`utils/choreBarMath.ts`) puts each chore in a red, orange or green bucket,
+and the timer bar uses the same function and the same `daysSinceInZone` helper, so colour and order agree.
+
+- **Fold quotas.** The first `SORT_FOLD` (8) slots are filled by quota (red 4, orange 2, green 2). Badly
+  overdue reds take extra slots from orange first, and unused slots cascade to the other buckets.
+- **Urgency weights the sort only.** A chore's `urgency` scales its weighted overdue rank among reds; it
+  never changes the colour.
+- **Not monotone in colour.** The output is the fold followed by the tail, so the list can run red,
+  orange, green in the fold and then red again in the tail. The UI shows no divider.
+- **Filtered list.** The quota applies to the room- and search-filtered list, so a chore's rank can change
+  as the user filters.
+- **Tuning.** Constants live in `frontend/src/assets/constants.ts` (`SORT_FOLD`, `SORT_BASE_QUOTA`,
+  `SORT_PRESSURE_THRESHOLD`, `SORT_URGENCY_MULTIPLIER`). They are first guesses, to be tuned on real data.
 
 ## Offline behavior (frontend)
 

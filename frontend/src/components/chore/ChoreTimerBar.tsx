@@ -2,10 +2,9 @@ import { useRef, useState, useMemo } from 'react';
 import { useSwipeable } from 'react-swipeable';
 import type { SwipeEventData } from 'react-swipeable';
 import { Pencil, Trash2 } from 'lucide-react';
-import { differenceInDays, startOfDay } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
 import type { Chore, SwipeStyle } from '@customTypes/SharedTypes';
 import { computeBar } from '@utils/choreBarMath';
+import { daysSinceInZone } from '@utils/choreSort';
 import { useIsTouchDevice } from '../../hooks/useIsTouchDevice';
 import ConfirmDialog from '../common/ConfirmDialog';
 import ProgressBar from './ProgressBar';
@@ -52,11 +51,7 @@ export default function ChoreTimerBar({
   onEdit,
 }: ChoreTimerBarProps) {
   const daysSince = useMemo(
-    () =>
-      differenceInDays(
-        startOfDay(toZonedTime(day, householdTimezone)),
-        startOfDay(toZonedTime(chore.dateLastCompleted, householdTimezone)),
-      ),
+    () => daysSinceInZone(day, chore.dateLastCompleted, householdTimezone),
     [day, chore.dateLastCompleted, householdTimezone],
   );
 
