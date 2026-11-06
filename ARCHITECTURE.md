@@ -202,7 +202,13 @@ application-level (`household_id` columns), not per-tenant databases.
 
 - **Migrations**: `backend/migrations/*.sql`, applied in order via `wrangler d1 migrations apply`.
   `npm run migrate:local` (Miniflare-local) / `npm run migrate:remote` (real production D1) from
-  `backend/`. Migration files are numbered and immutable once merged to `main` — corrections are new
+  `backend/`. On a push to `main`, CI (`deploy-backend`) applies pending migrations with `--remote`
+  **before** `wrangler deploy`, so code can never go live ahead of its schema; `npm run migrate:remote`
+  is now only the manual path for a hotfix or a rollback follow-up (apply is idempotent). Because the
+  migration runs first, the **old Worker serves traffic on the new schema** between "Apply D1
+  migrations" and "Deploy Worker" (and longer if the deploy fails), so every migration must keep the
+  currently deployed release working; see [Destructive migrations](#destructive-migrations-two-phase).
+  Migration files are numbered and immutable once merged to `main` — corrections are new
   migrations, never edits to old ones (see the extensive rationale comments in
   `0004_rename_org_to_household.sql`, `0005_rename_member_role_to_user.sql`, and
   `0006_global_admin_users_cleanup.sql` for what that discipline looks like against live data, including
@@ -231,6 +237,34 @@ application-level (`household_id` columns), not per-tenant databases.
   time to reset/catch up.
 - **Tests** run against a real (in-memory, per-test) D1 via `@cloudflare/vitest-pool-workers` — not
   mocks. `backend/test/apply-migrations.ts` applies the same migration files tests run against.
+
+### Rollback (D1 Time Travel)
+
+D1 Time Travel restores the database to any point in the last 30 days. Commands (run from `backend/`,
+flags checked against `wrangler d1 time-travel --help` for the pinned wrangler 4.107.0):
+
+- `npx wrangler d1 time-travel info chores4irl` prints the current bookmark (add `--timestamp=` to look up
+  the bookmark for a past time).
+- `npx wrangler d1 time-travel restore chores4irl --bookmark=<id>` restores to a bookmark, or
+  `--timestamp=<unix-seconds|RFC3339>` to restore to a time.
+
+The pre-migration bookmark is printed by the **"Record D1 restore point"** step of the `deploy-backend`
+run's log; read it from there before restoring (`--timestamp=` just before the run is the fallback).
+Caveats:
+
+- Restoring rewinds **all data written since**, not just the schema.
+- `d1_migrations` rewinds with it, so the next deploy re-applies the migration unless the migration file
+  is fixed or reverted first.
+- If the migration succeeded but "Deploy Worker" failed, the schema is not rolled back automatically.
+  Re-run the job (apply is idempotent) rather than restoring, unless the migration itself is bad.
+
+### Destructive migrations (two-phase)
+
+Migrate-then-deploy means the old Worker runs on the new schema for a window, so migrations must be
+additive-compatible with the currently deployed code. To drop or rename a column or table, ship two
+releases: release 1 deploys code that no longer reads or writes it (it is still in the schema); release 2,
+a later PR, ships the `DROP` migration once release 1 is live. See `0006_global_admin_users_cleanup.sql`
+for the snapshot-then-rebuild precedent. F7 (#81) is the first planned user of this pattern.
 
 ## Notifications
 
@@ -341,7 +375,8 @@ same fixture key `jwks-server.mjs` serves). Creating a brand-new local household
 
 ### Production
 
-- **Backend**: deployed via `wrangler deploy` from `backend/` (GitHub Actions `deploy-backend` job).
+- **Backend**: pending D1 migrations are applied, then deployed via `wrangler deploy` from `backend/`
+  (GitHub Actions `deploy-backend` job; see [Database (D1)](#database-d1)).
   Routes `chores.4irl.app/api/*` to the Worker (`wrangler.toml`'s `routes` block) — there's no separate
   workers.dev URL in normal use.
 - **Frontend**: built (`vite build`) then deployed via `wrangler pages deploy dist
@@ -376,7 +411,7 @@ lint (eslint + prettier --check)
   ├─→ test-backend (vitest, real Miniflare D1)
   └─→ test-frontend (vitest, jsdom)
         └─→ test-e2e (playwright, needs both test jobs; 20 min job timeout)
-              ├─→ deploy-backend   (main push only: wrangler deploy)
+              ├─→ deploy-backend   (main push only: d1 migrations apply, then wrangler deploy)
               ├─→ deploy-frontend  (main push only: wrangler pages deploy)
               └─→ notifs-identity  (main push only: 4irl-notifs app identity exchange; nothing needs it)
 
@@ -404,7 +439,8 @@ lint + test-frontend ──→ deploy-preview  (PR only, not dependabot[bot]: pa
   `NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET` (GitHub Actions repo secrets, not visible in any file here). The
   `NOTIFS_DELIVERY_*` pair is the Cloudflare Access service token `chores4irl → notifs-delivery` used by
   `notifs-identity`; it is separate from the Worker secrets `NOTIFS_CF_ACCESS_CLIENT_ID/SECRET`, which
-  cover `notifs-api` only.
+  cover `notifs-api` only. `CLOUDFLARE_API_TOKEN` now also needs D1 edit scope for the migration and
+  Time Travel steps (an out-of-repo prerequisite: update the token in the Cloudflare dashboard).
 
 ## Testing
 
@@ -502,7 +538,7 @@ Retry → re-auth; (3) temporarily shorten the Access application's Session Dura
 | Change the household name/switcher shown in the admin panel                        | `frontend/src/components/admin/HouseholdSection.tsx` (uses the same `switchHousehold` plumbing as `NavBar.tsx`, threaded through `App.tsx`/`AdminPanel.tsx`)                                                                                                                        |
 | Change the chore swipe style setting (gear icon) or its iOS/Android swipe behavior | `frontend/src/components/settings/SettingsModal.tsx`, `frontend/src/components/chore/ChoreTimerBar.tsx` (branches on `swipeStyle`), `backend/src/routes/me.ts` (`PATCH /swipe-style`), `backend/migrations/0010_add_swipe_style_to_users.sql`                                       |
 | Change push notifications (enable, password, setup link, test push)                | `backend/src/routes/notifications.ts`, `backend/src/notifs-provisioning.ts`, `backend/src/notifs-reset-password.ts`, `backend/src/ntfy-publish.ts`, `backend/src/middleware/no-store.ts`, `frontend/src/components/settings/SettingsModal.tsx`; see [Notifications](#notifications) |
-| Add a DB column/table                                                              | New file in `backend/migrations/` — never edit a merged one                                                                                                                                                                                                                         |
+| Add a DB column/table                                                              | New file in `backend/migrations/` — never edit a merged one; CI applies it on main push (drops/renames: [two-phase](#destructive-migrations-two-phase))                                                                                                                             |
 | Change the shared API response/entity shapes                                       | `types/SharedTypes.d.ts`                                                                                                                                                                                                                                                            |
 | Change the single fetch entrypoint (headers, preview mocking)                      | `frontend/src/utils/api.ts`                                                                                                                                                                                                                                                         |
 | Change routing/top-level data loading                                              | `frontend/src/App.tsx`                                                                                                                                                                                                                                                              |
@@ -525,6 +561,7 @@ Retry → re-auth; (3) temporarily shorten the Access application's Session Dura
   that name is present (re-validate it against the session instead, as `households.ts` does).
 - **Migrations are append-only** — schema fixes are new numbered files, even for renaming something added
   in an unmerged migration earlier in the same branch (see 0004/0005's own comments for the reasoning
-  when a table is "new enough" to edit directly vs. not).
+  when a table is "new enough" to edit directly vs. not). Drops and renames follow the
+  [two-phase pattern](#destructive-migrations-two-phase).
 - **No secrets in `wrangler.toml`** — anything Cloudflare-account-specific goes through `wrangler secret
 put`, not `[vars]`.

@@ -73,7 +73,7 @@ format-check: ## Check formatting without writing (prettier --check)
 migrate-local: ## Apply pending migrations to the local (Miniflare) D1 — the everyday dev upgrade
 	$(NPM_BACKEND) migrate:local
 
-migrate-remote: ## Apply pending migrations to the REMOTE production D1 (chores4irl) — use on deploy
+migrate-remote: ## Apply pending migrations to the REMOTE production D1 (chores4irl) — CI does this on main push; manual for hotfix/rollback
 	$(NPM_BACKEND) migrate:remote
 
 migrate-list: ## Show applied/pending migration status for the local D1

@@ -9,13 +9,17 @@ on:
 permissions:
   contents: read
 
+# Main runs are never cancelled (a migration may be mid-flight). At most one
+# newer main run waits, and a newer push replaces it (the latest commit carries
+# all earlier migrations). Only PR runs cancel in-progress runs.
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  # Every job here runs fully locally (Miniflare-backed D1, no real Access) —
-  # no Cloudflare account is ever touched, so telemetry has nothing to report.
+  # The test jobs run fully locally (Miniflare-backed D1, no real Access); the
+  # main-branch deploy jobs and the D1 migration step use the real Cloudflare
+  # account. Telemetry stays off everywhere.
   WRANGLER_SEND_METRICS: false
 
 jobs:
@@ -175,6 +179,19 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Record D1 restore point
+        working-directory: backend
+        run: npx wrangler d1 time-travel info chores4irl
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Apply D1 migrations
+        run: npm run migrate:remote --workspace backend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3

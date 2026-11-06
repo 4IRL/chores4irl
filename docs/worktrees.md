@@ -136,5 +136,5 @@ detect the root Makefile's `worktree-new` / `worktree-rm` targets and delegate t
 
 ## Residual risk
 
-The worktree policy is `full`, so nothing blocks `make migrate-remote` or `make migrate-list-remote`.
+The worktree policy is `full`, so nothing blocks `make migrate-remote` or `make migrate-list-remote`. CI applies migrations on a push to `main`, so a manual remote apply is rarely needed (and is idempotent).
 They hit the production D1 from any worktree exactly as they do from the primary. Run them deliberately.
