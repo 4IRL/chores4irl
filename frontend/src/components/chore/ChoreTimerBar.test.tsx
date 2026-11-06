@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ChoreTimerBar from './ChoreTimerBar';
+import ChoreTimerBar, { androidSwipeThreshold } from './ChoreTimerBar';
 import type { Chore } from '@customTypes/SharedTypes';
 
 const chore: Chore = {
@@ -216,6 +216,108 @@ describe('ChoreTimerBar', () => {
       expect(onDelete).not.toHaveBeenCalled();
       expect(onEdit).not.toHaveBeenCalled();
       expect(screen.queryByTestId('confirm-dialog-backdrop')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('swipe threshold as a fraction of bar width', () => {
+    function stubBarWidth(width: number) {
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        return { width: this.dataset.testid === 'chore-bar' ? width : 0 } as DOMRect;
+      });
+    }
+
+    function renderBar(swipeStyle: 'android' | 'ios', onEdit = vi.fn()) {
+      stubPointer(true);
+      render(
+        <ChoreTimerBar
+          chore={chore}
+          day={new Date('2026-07-01T00:00:00.000Z')}
+          householdTimezone="UTC"
+          isSimulating={false}
+          swipeStyle={swipeStyle}
+          onComplete={vi.fn()}
+          onDelete={vi.fn()}
+          onEdit={onEdit}
+        />,
+      );
+      return screen.getByTestId('chore-bar');
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('width 320: a 90px right swipe opens the confirm dialog', async () => {
+      stubBarWidth(320);
+      dragBar(renderBar('android'), 0, 90);
+      expect(await screen.findByTestId('confirm-dialog-backdrop')).toBeInTheDocument();
+    });
+
+    it('width 320: a 70px right swipe does not', () => {
+      stubBarWidth(320);
+      dragBar(renderBar('android'), 0, 70);
+      expect(screen.queryByTestId('confirm-dialog-backdrop')).not.toBeInTheDocument();
+    });
+
+    it('width 1024: a 100px right swipe commits nothing, a 130px one commits', async () => {
+      stubBarWidth(1024);
+      dragBar(renderBar('android'), 0, 100);
+      expect(screen.queryByTestId('confirm-dialog-backdrop')).not.toBeInTheDocument();
+      dragBar(screen.getByTestId('chore-bar'), 0, 130);
+      expect(await screen.findByTestId('confirm-dialog-backdrop')).toBeInTheDocument();
+    });
+
+    it('width 320: a 90px left swipe calls onEdit, a 70px one does not', () => {
+      stubBarWidth(320);
+      const onEdit = vi.fn();
+      const bar = renderBar('android', onEdit);
+      dragBar(bar, 200, 130);
+      expect(onEdit).not.toHaveBeenCalled();
+      dragBar(bar, 200, 110);
+      expect(onEdit).toHaveBeenCalledWith(1);
+    });
+
+    it('width 320: zone opacity progress uses the measured threshold (40 / 80)', () => {
+      stubBarWidth(320);
+      const bar = renderBar('android');
+      const zones = screen.getByTestId('android-swipe-zones');
+      const deleteZone = zones.children[0] as HTMLElement;
+      const editZone = zones.children[1] as HTMLElement;
+
+      fireEvent.mouseDown(bar, { clientX: 0, clientY: 0 });
+      fireEvent.mouseMove(document, { clientX: 8, clientY: 0 });
+      fireEvent.mouseMove(document, { clientX: 40, clientY: 0 });
+      expect(deleteZone.style.opacity).toBe('0.5');
+      fireEvent.mouseUp(document, { clientX: 40, clientY: 0 });
+
+      fireEvent.mouseDown(bar, { clientX: 200, clientY: 0 });
+      fireEvent.mouseMove(document, { clientX: 192, clientY: 0 });
+      fireEvent.mouseMove(document, { clientX: 160, clientY: 0 });
+      expect(editZone.style.opacity).toBe('0.5');
+      fireEvent.mouseUp(document, { clientX: 160, clientY: 0 });
+    });
+
+    it('iOS at width 320: a 90px left swipe does not reveal the buttons', () => {
+      stubBarWidth(320);
+      const bar = renderBar('ios');
+      dragBar(bar, 200, 110);
+      expect(screen.getByTestId('delete-icon-preview')).toBeDisabled();
+    });
+  });
+
+  describe('androidSwipeThreshold', () => {
+    it.each([0, -5, NaN, Infinity])('falls back to 120 for %s', (w) => {
+      expect(androidSwipeThreshold(w)).toBe(120);
+    });
+
+    it.each([
+      [200, 50],
+      [480, 120],
+      [1024, 120],
+    ])('width %i gives %i', (w, expected) => {
+      expect(androidSwipeThreshold(w)).toBe(expected);
     });
   });
 
