@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
+import { prefersReducedMotion } from '@utils/prefersReducedMotion';
 
 const FADE_MS = 500;
 
@@ -7,11 +8,6 @@ interface ScrollToTopButtonProps {
   visible: boolean;
   onActivate: () => void;
   onRelinquishFocus?: () => void;
-}
-
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || !window.matchMedia) return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 export default function ScrollToTopButton({

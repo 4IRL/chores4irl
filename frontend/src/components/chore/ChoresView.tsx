@@ -27,6 +27,7 @@ import {
 import { readChoresCache, writeChoresCache, clearChoresCache } from '../../cache/choresCache';
 import { apiFetch } from '../../utils/api';
 import { getDeviceTimezone } from '@utils/deviceTimezone';
+import { prefersReducedMotion } from '@utils/prefersReducedMotion';
 import { cityLabel, utcOffsetLabel } from '@utils/timezones';
 
 type ChoreWire = Omit<Chore, 'dateLastCompleted'> & { dateLastCompleted: string; version: number };
@@ -626,10 +627,7 @@ export default function ChoresView({
 
   const focusSentinel = useCallback(() => focusTargetRef.current?.focus({ preventScroll: true }), []);
   const handleScrollToTop = () => {
-    const reduceMotion =
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
     focusSentinel();
   };
 
