@@ -57,7 +57,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
   );
 
   return createPortal(
-    <div className="pointer-events-none fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-sm">
+    <div className="pointer-events-none fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-sm">
       <div aria-live="polite">{toast && toast.tone !== 'error' ? card : null}</div>
       <div role="alert">{toast && toast.tone === 'error' ? card : null}</div>
     </div>,

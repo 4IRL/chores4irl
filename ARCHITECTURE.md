@@ -65,6 +65,9 @@ frontend/         React SPA — Cloudflare Pages
     outbox/                   Offline write queue (localStorage-backed) — queues chore mutations when offline
     cache/choresCache.ts      IndexedDB read cache for offline chore viewing
     hooks/useMidnightClock.ts Recomputes chore urgency at local midnight
+    hooks/useChoreSearch.ts   Case-insensitive name filter (after the room filter, before ordering)
+    hooks/useScrollPastThreshold.ts  True once window.scrollY > 80 (re-renders only when it flips)
+    components/chore/ScrollToTopButton.tsx  Floating fade-gated scroll-to-top button (right-4, z-30)
   vite.config.ts              Dev proxy to backend (:8787 default), PWA manifest/workbox config
 
 e2e/               Playwright end-to-end tests (own JWKS fixture server, own signed-JWT helper)
@@ -536,6 +539,8 @@ Retry → re-auth; (3) temporarily shorten the Access application's Session Dura
 | Change household creation (the Households directory)                               | `backend/src/routes/admin.ts` (`POST /households`), `backend/src/households.ts` (`createHousehold`), `frontend/src/components/admin/HouseholdsDirectory.tsx`, `frontend/src/components/admin/CreateHouseholdModal.tsx`                                                              |
 | Change the join-request (member-requests-new-user) workflow                        | `backend/src/join-requests.ts`, `backend/src/routes/members.ts` (`POST /requests`), `backend/src/routes/admin.ts` (`/join-requests/*`), `frontend/src/components/admin/AddMemberModal.tsx`, `frontend/src/components/admin/JoinRequestsSection.tsx`                                 |
 | Change the household name/switcher shown in the admin panel                        | `frontend/src/components/admin/HouseholdSection.tsx` (uses the same `switchHousehold` plumbing as `NavBar.tsx`, threaded through `App.tsx`/`AdminPanel.tsx`)                                                                                                                        |
+| Change the floating scroll-to-top button                                           | `frontend/src/hooks/useScrollPastThreshold.ts`, `frontend/src/components/chore/ScrollToTopButton.tsx`, `ChoresView.tsx` (focus-target sentinel, `deckHidden` gating)                                                                                                                |
+| Change the chore-name search box or its filtering                                  | `frontend/src/hooks/useChoreSearch.ts`, `frontend/src/components/chore/ChoreSearchInput.tsx`, `ChoresView.tsx` (empty-state precedence); the query state is lifted into `Layout` in `frontend/src/App.tsx` (survives `/admin`, never persisted)                                     |
 | Change the chore swipe style setting (gear icon) or its iOS/Android swipe behavior | `frontend/src/components/settings/SettingsModal.tsx`, `frontend/src/components/chore/ChoreTimerBar.tsx` (branches on `swipeStyle`), `backend/src/routes/me.ts` (`PATCH /swipe-style`), `backend/migrations/0010_add_swipe_style_to_users.sql`                                       |
 | Change push notifications (enable, password, setup link, test push)                | `backend/src/routes/notifications.ts`, `backend/src/notifs-provisioning.ts`, `backend/src/notifs-reset-password.ts`, `backend/src/ntfy-publish.ts`, `backend/src/middleware/no-store.ts`, `frontend/src/components/settings/SettingsModal.tsx`; see [Notifications](#notifications) |
 | Add a DB column/table                                                              | New file in `backend/migrations/` — never edit a merged one; CI applies it on main push (drops/renames: [two-phase](#destructive-migrations-two-phase))                                                                                                                             |
@@ -556,6 +561,16 @@ Retry → re-auth; (3) temporarily shorten the Access application's Session Dura
 - **No local imports** — always top-level/global imports (user-level convention, applies repo-wide).
 - **`ApiResponse<T>` everywhere** — every API handler returns `{ success, data?, error?, warning? }`;
   don't invent a different response shape for a new endpoint.
+- **Sticky Add Chore deck and z-order** — `+ Add Chore` lives in `data-testid="add-chore-deck"` at the
+  bottom of `ChoresView.tsx`: `position: sticky; bottom: 0` inside document scroll (no `100dvh` /
+  `overflow:hidden` shell). The chain is `Layout` root `flex flex-col min-h-dvh` (only the root carries
+  `min-h-dvh`) → `Home` `flex-1 flex flex-col px-4 pt-4 pb-0` → `ChoresView` root `flex-1 flex flex-col`
+  → list `flex-1`; the deck spans full width with `-mx-4`. The deck wrapper and its frosted backing
+  (`deck-fade` mask in `index.css`) are `pointer-events-none`; only the button takes pointer events. On
+  touch devices (`useIsTouchDevice`) the deck becomes `invisible` (still in flow, no layout shift) while the
+  search input is focused. `index.css` sets `html { scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom)) }`
+  so Tab and `scrollIntoView` never park a control under the deck. Z-order: deck 20, scroll-to-top 30,
+  toast 40, modals 50; the toast offset (`5.5rem` + safe-area) clears the deck. No `viewport-fit=cover`.
 - **Tenant id never trusted from the client** — any new route touching household-scoped data must
   source `householdId` from `c.var.householdId`, not from a path/body/query param, even if a param of
   that name is present (re-validate it against the session instead, as `households.ts` does).

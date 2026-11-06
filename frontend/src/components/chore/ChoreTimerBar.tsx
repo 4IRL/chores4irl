@@ -26,6 +26,15 @@ type ChoreTimerBarProps = {
 // How far the row must be dragged before a swipe "commits" to opening the
 // action buttons underneath, rather than springing back to closed.
 const SWIPE_TRIGGER_DISTANCE = 120;
+// Android commits after a quarter of the bar's width, capped at the iOS distance.
+const ANDROID_SWIPE_WIDTH_FRACTION = 0.25;
+
+// Fails closed to the old fixed distance for any unmeasurable width (jsdom,
+// detached or hidden bars), so a swipe can never commit at threshold 0.
+export function androidSwipeThreshold(barWidth: number): number {
+  if (!Number.isFinite(barWidth) || barWidth <= 0) return SWIPE_TRIGGER_DISTANCE;
+  return Math.min(barWidth * ANDROID_SWIPE_WIDTH_FRACTION, SWIPE_TRIGGER_DISTANCE);
+}
 // How far the row stays parked once opened — enough room for both circular
 // buttons (h-12/w-12) side by side with a gap, or just one if there's no
 // edit handler. Matches iOS Messages' floating circular swipe actions.
@@ -73,6 +82,8 @@ export default function ChoreTimerBar({
 
   const swipingRef = useRef(false);
   const justCommittedRef = useRef(false);
+  // Android commit distance, measured once per gesture in onSwipeStart.
+  const swipeThresholdRef = useRef(SWIPE_TRIGGER_DISTANCE);
   const barRef = useRef<HTMLDivElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -127,6 +138,9 @@ export default function ChoreTimerBar({
     onSwipeStart: () => {
       const el = barRef.current;
       if (el) el.style.transition = 'none';
+      if (swipeStyle === 'android') {
+        swipeThresholdRef.current = androidSwipeThreshold(el ? el.getBoundingClientRect().width : 0);
+      }
       for (const btn of [
         editButtonRef.current,
         deleteButtonRef.current,
@@ -144,16 +158,17 @@ export default function ChoreTimerBar({
         // reveal-then-tap step — so the preview only needs to track
         // finger position and fade in whichever zone is being dragged
         // toward, not hold a persisted open/closed state like iOS.
+        const threshold = swipeThresholdRef.current;
         if (dir === 'Right') {
-          const clamped = Math.max(0, Math.min(SWIPE_TRIGGER_DISTANCE, deltaX));
+          const clamped = Math.max(0, Math.min(threshold, deltaX));
           el.style.transform = `translateX(${clamped}px)`;
-          const progress = String(Math.min(1, clamped / SWIPE_TRIGGER_DISTANCE));
+          const progress = String(Math.min(1, clamped / threshold));
           if (androidDeleteZoneRef.current) androidDeleteZoneRef.current.style.opacity = progress;
           if (androidEditZoneRef.current) androidEditZoneRef.current.style.opacity = '0';
         } else if (dir === 'Left' && onEdit) {
-          const clamped = Math.max(-SWIPE_TRIGGER_DISTANCE, Math.min(0, deltaX));
+          const clamped = Math.max(-threshold, Math.min(0, deltaX));
           el.style.transform = `translateX(${clamped}px)`;
-          const progress = String(Math.min(1, Math.abs(clamped) / SWIPE_TRIGGER_DISTANCE));
+          const progress = String(Math.min(1, Math.abs(clamped) / threshold));
           if (androidEditZoneRef.current) androidEditZoneRef.current.style.opacity = progress;
           if (androidDeleteZoneRef.current) androidDeleteZoneRef.current.style.opacity = '0';
         }
@@ -190,7 +205,7 @@ export default function ChoreTimerBar({
         swipingRef.current = true;
         justCommittedRef.current = true;
         springBackAndroid();
-        if (data.absX >= SWIPE_TRIGGER_DISTANCE && onEdit && !isSimulating) {
+        if (data.absX >= swipeThresholdRef.current && onEdit && !isSimulating) {
           onEdit(chore.id);
         }
         return;
@@ -218,7 +233,7 @@ export default function ChoreTimerBar({
         // Never deletes directly — a fast full-speed swipe is otherwise
         // indistinguishable from an accidental one, so this only opens the
         // confirm dialog; the actual delete happens on its confirm tap.
-        if (data.absX >= SWIPE_TRIGGER_DISTANCE && !isSimulating) {
+        if (data.absX >= swipeThresholdRef.current && !isSimulating) {
           setPendingDelete(true);
         }
         return;

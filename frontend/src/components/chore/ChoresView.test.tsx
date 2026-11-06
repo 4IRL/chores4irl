@@ -1412,7 +1412,7 @@ describe('ChoresView feedback toast', () => {
     renderView();
     await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
 
-    expect(rowFor('Vacuum').closest('[aria-live="polite"]')).toHaveClass('pb-24');
+    expect(rowFor('Vacuum').closest('[aria-live="polite"]')).toHaveClass('pb-4');
   });
 
   it('shows the error toast and removes the chore when a create is answered 404', async () => {

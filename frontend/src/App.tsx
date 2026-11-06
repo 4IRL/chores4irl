@@ -256,6 +256,8 @@ type LayoutContext = {
   selectedRoom: string;
   rooms: Room[];
   onRoomsChange: (rooms: Room[]) => void;
+  searchQuery: string;
+  onSearchQueryChange: (query: string) => void;
 };
 
 type LayoutProps = {
@@ -266,6 +268,8 @@ type LayoutProps = {
 function Layout({ isAdmin, onHouseholdRevoked }: LayoutProps) {
   const { rooms, setRooms } = useRooms(onHouseholdRevoked);
   const [selectedRoom, setSelectedRoom] = useState('all');
+  // Lives here (not in ChoresView) so it survives /admin navigation; never persisted.
+  const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
   // Room tabs are also the only way back to Home from any other page (e.g.
@@ -277,9 +281,19 @@ function Layout({ isAdmin, onHouseholdRevoked }: LayoutProps) {
   }
 
   return (
-    <div>
+    <div className="flex flex-col min-h-dvh">
       <NavBar rooms={rooms} selectedRoom={selectedRoom} onSelect={handleSelectRoom} isAdmin={isAdmin} />
-      <Outlet context={{ selectedRoom, rooms, onRoomsChange: setRooms } satisfies LayoutContext} />
+      <Outlet
+        context={
+          {
+            selectedRoom,
+            rooms,
+            onRoomsChange: setRooms,
+            searchQuery,
+            onSearchQueryChange: setSearchQuery,
+          } satisfies LayoutContext
+        }
+      />
     </div>
   );
 }
@@ -295,11 +309,13 @@ function Home({
   onSwipeStyleChange: (swipeStyle: SwipeStyle) => void;
   onHouseholdRevoked: () => void;
 }) {
-  const { selectedRoom, rooms } = useOutletContext<LayoutContext>();
+  const { selectedRoom, rooms, searchQuery, onSearchQueryChange } = useOutletContext<LayoutContext>();
   if (!me || !currentMembership) return null;
   return (
-    <div className="p-4">
+    <div className="flex-1 flex flex-col px-4 pt-4 pb-0">
       <ChoresView
+        searchQuery={searchQuery}
+        onSearchQueryChange={onSearchQueryChange}
         householdTimezone={currentMembership.householdTimezone}
         selectedRoom={selectedRoom}
         rooms={rooms}
