@@ -225,6 +225,8 @@ describe('App', () => {
 
     await user.click(screen.getByTestId('admin-nav-link'));
     await screen.findByRole('heading', { name: 'Members' });
+    // The scroll-to-top button belongs to ChoresView only, never /admin.
+    expect(screen.queryByLabelText('Scroll to top')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'All' }));
 
     expect(await screen.findByLabelText('Search chores')).toHaveValue('vac');

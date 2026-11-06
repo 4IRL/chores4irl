@@ -46,6 +46,33 @@ function stubCoarsePointer(coarse: boolean) {
   );
 }
 
+function stubMedia({ coarse = false, reduce = false }: { coarse?: boolean; reduce?: boolean }) {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn((query: string) => ({
+      matches:
+        query === '(pointer: coarse)'
+          ? coarse
+          : query === '(prefers-reduced-motion: reduce)'
+            ? reduce
+            : false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
+function setScrollY(value: number) {
+  Object.defineProperty(window, 'scrollY', { value, configurable: true });
+}
+
+function scrollWindowTo(value: number) {
+  act(() => {
+    setScrollY(value);
+    window.dispatchEvent(new Event('scroll'));
+  });
+}
+
 function renderView() {
   return render(
     <ChoresView householdTimezone="UTC" rooms={mockRooms} swipeStyle="ios" onSwipeStyleChange={vi.fn()} />,
@@ -133,5 +160,107 @@ describe('ChoresView Add Chore deck', () => {
     await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
     expect(screen.getByLabelText('Search chores')).not.toBeDisabled();
     expect(screen.getByTestId('add-chore-deck')).not.toHaveClass('invisible');
+  });
+});
+
+describe('ChoresView scroll-to-top button', () => {
+  afterEach(() => {
+    setScrollY(0);
+    vi.restoreAllMocks();
+  });
+
+  const scrollButton = () => screen.getByLabelText('Scroll to top');
+
+  async function renderScrolledPast(opts: { coarse?: boolean; reduce?: boolean } = {}) {
+    stubMedia(opts);
+    stubFetch(mockChores);
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+    scrollWindowTo(200);
+  }
+
+  async function waitInteractive() {
+    await waitFor(() => expect(scrollButton()).not.toHaveAttribute('inert'), { timeout: 3000 });
+  }
+
+  it('is hidden until scrolled past 80px', async () => {
+    stubMedia({});
+    stubFetch(mockChores);
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+    expect(scrollButton()).toHaveClass('opacity-0', 'invisible');
+    scrollWindowTo(200);
+    expect(scrollButton()).toHaveClass('opacity-100');
+  });
+
+  it('scrolls smoothly to the top and moves focus to the sentinel', async () => {
+    const scrollSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    await renderScrolledPast();
+    await waitInteractive();
+    await userEvent.click(scrollButton());
+    expect(scrollSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    const sentinel = screen.getByTestId('focus-target');
+    expect(sentinel).toHaveFocus();
+    expect(sentinel.tabIndex).toBe(-1);
+    expect(sentinel.parentElement).not.toHaveAttribute('tabindex');
+  });
+
+  it('jumps instantly under reduced motion', async () => {
+    const scrollSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    await renderScrolledPast({ reduce: true });
+    await waitInteractive();
+    await userEvent.click(scrollButton());
+    expect(scrollSpy).toHaveBeenCalledWith({ top: 0, behavior: 'auto' });
+  });
+
+  it('moves focus to the sentinel when the focused button goes non-interactive on scroll back up', async () => {
+    await renderScrolledPast();
+    await waitInteractive();
+    act(() => scrollButton().focus());
+    expect(scrollButton()).toHaveFocus();
+    scrollWindowTo(0);
+    expect(screen.getByTestId('focus-target')).toHaveFocus();
+    expect(scrollButton()).toHaveAttribute('inert');
+  });
+
+  it('hides with the deck while the search is focused on touch', async () => {
+    await renderScrolledPast({ coarse: true });
+    expect(scrollButton()).toHaveClass('opacity-100');
+    act(() => screen.getByLabelText('Search chores').focus());
+    expect(scrollButton()).toHaveClass('opacity-0', 'invisible');
+    act(() => screen.getByLabelText('Search chores').blur());
+    expect(scrollButton()).toHaveClass('opacity-100');
+  });
+
+  it('makes the focused button inert when the deck hides on touch search focus', async () => {
+    await renderScrolledPast({ coarse: true });
+    await waitInteractive();
+    act(() => scrollButton().focus());
+    expect(scrollButton()).toHaveFocus();
+    // Focusing the search input itself moves focus off the button, so the sentinel
+    // hand-off cannot be observed here (the scroll-back test covers that path).
+    act(() => screen.getByLabelText('Search chores').focus());
+    expect(scrollButton()).toHaveAttribute('inert');
+    expect(screen.getByLabelText('Search chores')).toHaveFocus();
+  });
+
+  it('restores the button when the focused search input becomes disabled', async () => {
+    stubMedia({ coarse: true });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new Error('offline'))),
+    );
+    renderView();
+    scrollWindowTo(200);
+    act(() => screen.getByLabelText('Search chores').focus());
+    expect(scrollButton()).toHaveClass('opacity-0');
+    await waitFor(() => expect(screen.getByTestId('chores-unavailable')).toBeInTheDocument());
+    expect(scrollButton()).toHaveClass('opacity-100');
+  });
+
+  it('stays visible on non-touch while the search is focused', async () => {
+    await renderScrolledPast({ coarse: false });
+    act(() => screen.getByLabelText('Search chores').focus());
+    expect(scrollButton()).toHaveClass('opacity-100');
   });
 });

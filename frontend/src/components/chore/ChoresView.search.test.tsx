@@ -222,7 +222,7 @@ describe('ChoresView search', () => {
     expect(screen.getByText('Vacuum')).toBeInTheDocument();
   });
 
-  it('clears via Clear search while disabled (stale, no cache) and focuses Settings', async () => {
+  it('clears via Clear search while disabled (stale, no cache) and focuses the focus-target sentinel', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(() => Promise.reject(new TypeError('offline'))),
@@ -243,6 +243,6 @@ describe('ChoresView search', () => {
     expect(input).toHaveValue('leftover');
     await userEvent.click(screen.getByRole('button', { name: 'Clear search' }));
     expect(onSearchQueryChange).toHaveBeenCalledWith('');
-    expect(screen.getByRole('button', { name: 'Settings' })).toHaveFocus();
+    expect(screen.getByTestId('focus-target')).toHaveFocus();
   });
 });

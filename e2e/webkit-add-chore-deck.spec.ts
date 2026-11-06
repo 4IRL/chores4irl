@@ -83,6 +83,48 @@ test('Add Chore deck is pinned to the viewport bottom and clears the last bar at
   await page.keyboard.press('Escape');
 });
 
+async function scrollInstant(page: Page, top: number) {
+  await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), top);
+}
+
+async function showScrollToTop(page: Page) {
+  await lengthenList(page);
+  await scrollInstant(page, 400);
+  const button = page.getByLabel('Scroll to top');
+  // Wait out the 500ms fade: the button is inert/aria-hidden until fully shown.
+  await expect(button).not.toHaveAttribute('inert', /.*/);
+  await expect(button).not.toHaveAttribute('aria-hidden', /.*/);
+  await expect(button).toBeVisible();
+  return button;
+}
+
+test('Scroll to top appears past 80px, sits above the deck and returns scrollY to 0', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await signIn(page);
+  const button = await showScrollToTop(page);
+  const above = await page.evaluate(() => {
+    const btn = document.querySelector('[aria-label="Scroll to top"]') as HTMLElement;
+    const deck = document.querySelector('[data-testid="add-chore-deck"]') as HTMLElement;
+    return btn.getBoundingClientRect().bottom <= deck.getBoundingClientRect().top;
+  });
+  expect(above).toBe(true);
+  await button.click();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+});
+
+test('focus moves to the focus-target sentinel (not body) when the focused button goes non-interactive', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await signIn(page);
+  await showScrollToTop(page);
+  await page.evaluate(() => (document.querySelector('[aria-label="Scroll to top"]') as HTMLElement).focus());
+  await expect(page.getByLabel('Scroll to top')).toBeFocused();
+  await scrollInstant(page, 0);
+  await expect(page.getByLabel('Scroll to top')).toHaveAttribute('inert', '');
+  await expect(page.getByTestId('focus-target')).toBeFocused();
+});
+
 test('Add Chore deck is pinned to the viewport bottom and clears the last bar at 390x844', async ({
   page,
 }) => {

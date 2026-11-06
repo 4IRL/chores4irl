@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Settings } from 'lucide-react';
 import type { Chore, Room, SwipeStyle } from '@customTypes/SharedTypes';
 import { useMidnightClock } from '../../hooks/useMidnightClock';
 import { useRoomFilter } from '../../hooks/useRoomFilter';
 import { useChoreSearch } from '../../hooks/useChoreSearch';
 import { useIsTouchDevice } from '../../hooks/useIsTouchDevice';
+import { useScrollPastThreshold } from '../../hooks/useScrollPastThreshold';
 import ChoreSearchInput from './ChoreSearchInput';
+import ScrollToTopButton from './ScrollToTopButton';
 import { orderChores } from '@utils/choreSort';
 import ChoreList from './ChoreList';
 import ChoreFormModal from '../form/ChoreFormModal';
@@ -247,10 +249,11 @@ export default function ChoresView({
   const [online, setOnline] = useState(() => navigator.onLine);
   // Stable focus anchor that survives the banner's removal on reconnect.
   const addChoreRef = useRef<HTMLButtonElement>(null);
-  const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const focusTargetRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const isTouch = useIsTouchDevice();
+  const pastThreshold = useScrollPastThreshold(80);
   // Falls back to local state when App does not lift the query (e.g. tests).
   const [localQuery, setLocalQuery] = useState('');
   const query = searchQuery ?? localQuery;
@@ -621,8 +624,23 @@ export default function ChoresView({
         : noMatchMessage;
   }
 
+  const focusSentinel = useCallback(() => focusTargetRef.current?.focus({ preventScroll: true }), []);
+  const handleScrollToTop = () => {
+    const reduceMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    focusSentinel();
+  };
+
   return (
     <div ref={rootRef} className="flex-1 flex flex-col">
+      <div
+        ref={focusTargetRef}
+        data-testid="focus-target"
+        tabIndex={-1}
+        className="h-0 w-0 overflow-hidden outline-none"
+      />
       {isStale &&
         (online ? (
           <StatusBanner
@@ -652,10 +670,9 @@ export default function ChoresView({
             disabled={searchDisabled}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setIsSearchFocused(false)}
-            onClearWhileDisabled={() => settingsButtonRef.current?.focus()}
+            onClearWhileDisabled={focusSentinel}
           />
           <button
-            ref={settingsButtonRef}
             type="button"
             onClick={() => setIsSettingsOpen(true)}
             aria-label="Settings"
@@ -739,6 +756,11 @@ export default function ChoresView({
           </button>
         </div>
       </div>
+      <ScrollToTopButton
+        visible={pastThreshold && !deckHidden}
+        onActivate={handleScrollToTop}
+        onRelinquishFocus={focusSentinel}
+      />
       {isSettingsOpen && (
         <SettingsModal
           swipeStyle={swipeStyle}

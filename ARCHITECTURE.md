@@ -66,6 +66,8 @@ frontend/         React SPA — Cloudflare Pages
     cache/choresCache.ts      IndexedDB read cache for offline chore viewing
     hooks/useMidnightClock.ts Recomputes chore urgency at local midnight
     hooks/useChoreSearch.ts   Case-insensitive name filter (after the room filter, before ordering)
+    hooks/useScrollPastThreshold.ts  True once window.scrollY > 80 (re-renders only when it flips)
+    components/chore/ScrollToTopButton.tsx  Floating fade-gated scroll-to-top button (right-4, z-30)
   vite.config.ts              Dev proxy to backend (:8787 default), PWA manifest/workbox config
 
 e2e/               Playwright end-to-end tests (own JWKS fixture server, own signed-JWT helper)
@@ -537,6 +539,7 @@ Retry → re-auth; (3) temporarily shorten the Access application's Session Dura
 | Change household creation (the Households directory)                               | `backend/src/routes/admin.ts` (`POST /households`), `backend/src/households.ts` (`createHousehold`), `frontend/src/components/admin/HouseholdsDirectory.tsx`, `frontend/src/components/admin/CreateHouseholdModal.tsx`                                                              |
 | Change the join-request (member-requests-new-user) workflow                        | `backend/src/join-requests.ts`, `backend/src/routes/members.ts` (`POST /requests`), `backend/src/routes/admin.ts` (`/join-requests/*`), `frontend/src/components/admin/AddMemberModal.tsx`, `frontend/src/components/admin/JoinRequestsSection.tsx`                                 |
 | Change the household name/switcher shown in the admin panel                        | `frontend/src/components/admin/HouseholdSection.tsx` (uses the same `switchHousehold` plumbing as `NavBar.tsx`, threaded through `App.tsx`/`AdminPanel.tsx`)                                                                                                                        |
+| Change the floating scroll-to-top button                                           | `frontend/src/hooks/useScrollPastThreshold.ts`, `frontend/src/components/chore/ScrollToTopButton.tsx`, `ChoresView.tsx` (focus-target sentinel, `deckHidden` gating)                                                                                                                |
 | Change the chore-name search box or its filtering                                  | `frontend/src/hooks/useChoreSearch.ts`, `frontend/src/components/chore/ChoreSearchInput.tsx`, `ChoresView.tsx` (empty-state precedence); the query state is lifted into `Layout` in `frontend/src/App.tsx` (survives `/admin`, never persisted)                                     |
 | Change the chore swipe style setting (gear icon) or its iOS/Android swipe behavior | `frontend/src/components/settings/SettingsModal.tsx`, `frontend/src/components/chore/ChoreTimerBar.tsx` (branches on `swipeStyle`), `backend/src/routes/me.ts` (`PATCH /swipe-style`), `backend/migrations/0010_add_swipe_style_to_users.sql`                                       |
 | Change push notifications (enable, password, setup link, test push)                | `backend/src/routes/notifications.ts`, `backend/src/notifs-provisioning.ts`, `backend/src/notifs-reset-password.ts`, `backend/src/ntfy-publish.ts`, `backend/src/middleware/no-store.ts`, `frontend/src/components/settings/SettingsModal.tsx`; see [Notifications](#notifications) |
