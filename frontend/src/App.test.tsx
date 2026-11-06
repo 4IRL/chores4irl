@@ -172,6 +172,66 @@ describe('App', () => {
     expect(screen.queryByText('Vacuum')).not.toBeInTheDocument();
   });
 
+  it('keeps the chore search query across a room-tab switch and an /admin round trip', async () => {
+    const user = userEvent.setup();
+    const adminMeResponse = { ...meResponse, isAdmin: true };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        if (url === '/api/me') return jsonResponse(adminMeResponse);
+        if (url === '/api/chores') {
+          return jsonResponse({
+            success: true,
+            data: [
+              {
+                id: 1,
+                name: 'Vacuum',
+                roomId: 1,
+                dateLastCompleted: '2026-06-01T00:00:00.000Z',
+                duration: 20,
+                frequency: 7,
+                version: 1,
+              },
+              {
+                id: 2,
+                name: 'Dishes',
+                roomId: 2,
+                dateLastCompleted: '2026-06-20T00:00:00.000Z',
+                duration: 5,
+                frequency: 1,
+                version: 1,
+              },
+            ],
+          });
+        }
+        if (url === '/api/members') return jsonResponse({ success: true, data: [] });
+        if (url === '/api/admin/users') return jsonResponse({ success: true, data: [] });
+        if (url === '/api/admin/join-requests') return jsonResponse({ success: true, data: [] });
+        if (url === '/api/admin/households') return jsonResponse({ success: true, data: [] });
+        if (url === '/api/rooms') return jsonResponse(roomsResponse);
+        throw new Error(`Unhandled fetch: ${url}`);
+      }),
+    );
+
+    render(<App />);
+
+    await screen.findByText('Vacuum');
+    await user.type(screen.getByLabelText('Search chores'), 'vac');
+    expect(screen.queryByText('Dishes')).not.toBeInTheDocument();
+
+    await user.click(await screen.findByRole('button', { name: 'Living Room' }));
+    expect(screen.getByLabelText('Search chores')).toHaveValue('vac');
+
+    await user.click(screen.getByTestId('admin-nav-link'));
+    await screen.findByRole('heading', { name: 'Members' });
+    await user.click(screen.getByRole('button', { name: 'All' }));
+
+    expect(await screen.findByLabelText('Search chores')).toHaveValue('vac');
+    expect(await screen.findByText('Vacuum')).toBeInTheDocument();
+    expect(screen.queryByText('Dishes')).not.toBeInTheDocument();
+  });
+
   it('navigates back to Home when a room tab is clicked while on the Admin page', async () => {
     const user = userEvent.setup();
     const adminMeResponse = { ...meResponse, isAdmin: true };
@@ -361,6 +421,25 @@ describe('App', () => {
 
       expect(await screen.findByText('Household B Chore')).toBeInTheDocument();
       expect(screen.queryByText('Household A Chore')).not.toBeInTheDocument();
+    });
+
+    it('clears the chore search query on a household switch', async () => {
+      const user = userEvent.setup();
+      stubMultiHouseholdFetch();
+
+      render(<App />);
+
+      await screen.findByText('Household A Chore');
+      await user.type(screen.getByLabelText('Search chores'), 'Household');
+
+      await user.click(await screen.findByTestId('admin-nav-link'));
+      await user.click(await screen.findByRole('button', { name: 'Switch household' }));
+      const modal = screen.getByTestId('switch-household-modal-backdrop');
+      await user.click(within(modal).getByRole('button', { name: 'Household B' }));
+      await user.click(await screen.findByRole('button', { name: 'All' }));
+
+      expect(await screen.findByText('Household B Chore')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search chores')).toHaveValue('');
     });
 
     // FIX 4: a failed switch must surface an explicit error, never silently

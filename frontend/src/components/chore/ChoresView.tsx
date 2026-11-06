@@ -3,6 +3,8 @@ import { Settings } from 'lucide-react';
 import type { Chore, Room, SwipeStyle } from '@customTypes/SharedTypes';
 import { useMidnightClock } from '../../hooks/useMidnightClock';
 import { useRoomFilter } from '../../hooks/useRoomFilter';
+import { useChoreSearch } from '../../hooks/useChoreSearch';
+import ChoreSearchInput from './ChoreSearchInput';
 import { orderChores } from '@utils/choreSort';
 import ChoreList from './ChoreList';
 import ChoreFormModal from '../form/ChoreFormModal';
@@ -45,6 +47,9 @@ type ChoresViewProps = {
   // and re-scope to a household the user is actually in, rather than this view
   // continuing to render the revoked household's private data.
   onHouseholdRevoked?: () => void;
+  // Lifted into App's Layout so the query survives /admin navigation.
+  searchQuery?: string;
+  onSearchQueryChange?: (query: string) => void;
 };
 
 function toChorePayload(input: Omit<Chore, 'id'>): ChorePayload {
@@ -181,6 +186,8 @@ export default function ChoresView({
   swipeStyle,
   onSwipeStyleChange,
   onHouseholdRevoked,
+  searchQuery,
+  onSearchQueryChange,
 }: ChoresViewProps) {
   const today = useMidnightClock(householdTimezone);
   // Chore due dates/ordering run entirely on the household's clock (not the
@@ -239,6 +246,12 @@ export default function ChoresView({
   const [online, setOnline] = useState(() => navigator.onLine);
   // Stable focus anchor that survives the banner's removal on reconnect.
   const addChoreRef = useRef<HTMLButtonElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Falls back to local state when App does not lift the query (e.g. tests).
+  const [localQuery, setLocalQuery] = useState('');
+  const query = searchQuery ?? localQuery;
+  const setQuery = onSearchQueryChange ?? setLocalQuery;
   // ChoresView's own root — focus hand-off must target THIS view's StatusBanner,
   // not a global `[data-testid="status-banner"]` that could match the App-level
   // switch-error banner when both are mounted at once.
@@ -470,6 +483,7 @@ export default function ChoresView({
     const tempId = -Date.now();
     const payload = toChorePayload(input);
     setIsAddOpen(false);
+    setQuery('');
     mutate<ChoreWire>({
       optimisticApply: () => setChores((prev) => [...prev, { ...input, id: tempId, version: 0 }]),
       request: () =>
@@ -587,6 +601,17 @@ export default function ChoresView({
   const editingChore = chores.find((c) => c.id === editingId);
 
   const visibleChores = useRoomFilter(chores, selectedRoom);
+  const searchedChores = useChoreSearch(visibleChores, query);
+  const trimmedQuery = query.trim();
+  const searchDisabled = isStale && chores.length === 0;
+  const noMatchMessage = `No chores match “${trimmedQuery}”${selectedRoom !== 'all' ? ' in this room' : ''}.`;
+  let searchStatus = '';
+  if (trimmedQuery !== '' && chores.length > 0) {
+    searchStatus =
+      searchedChores.length > 0
+        ? `${searchedChores.length} of ${visibleChores.length} chores`
+        : noMatchMessage;
+  }
 
   return (
     <div ref={rootRef}>
@@ -611,16 +636,26 @@ export default function ChoresView({
             use the household's clock.
           </span>
         )}
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center gap-2 mb-3">
+          <ChoreSearchInput
+            ref={searchInputRef}
+            value={query}
+            onChange={setQuery}
+            disabled={searchDisabled}
+            onClearWhileDisabled={() => settingsButtonRef.current?.focus()}
+          />
           <button
+            ref={settingsButtonRef}
             type="button"
             onClick={() => setIsSettingsOpen(true)}
             aria-label="Settings"
             title="Settings"
-            className="h-9 w-9 flex items-center justify-center rounded-lg bg-gray-700 hover:bg-gray-600 text-white"
+            className="h-11 w-11 flex-none flex items-center justify-center rounded-lg bg-gray-700 hover:bg-gray-600 text-white"
           >
             <Settings size={18} />
           </button>
+        </div>
+        <div className="flex items-center justify-end gap-2">
           <button
             ref={addChoreRef}
             type="button"
@@ -630,6 +665,11 @@ export default function ChoresView({
             + Add Chore
           </button>
         </div>
+      </div>
+      {/* Search result announcer: always mounted, a sibling of (not inside) the list's
+          aria-live container below so list re-renders never double-announce. */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {searchStatus}
       </div>
       {/* Stable aria-live region (DD5): the container stays mounted at all times
           and only its children swap, so a transition between the can't-load
@@ -645,13 +685,28 @@ export default function ChoresView({
                 : "We couldn't reach the server and there's no saved copy on this device. Check your connection — we'll reconnect automatically once you're back online."}
             </p>
           </div>
+        ) : trimmedQuery !== '' && chores.length > 0 && searchedChores.length === 0 ? (
+          <div data-testid="chores-no-match" className="text-center">
+            <p className="text-gray-400 text-center py-8 break-words">{noMatchMessage}</p>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setQuery('');
+                searchInputRef.current?.focus();
+              }}
+              className="min-h-[44px] px-4 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm"
+            >
+              Show all chores
+            </button>
+          </div>
         ) : chores.length > 0 && visibleChores.length === 0 ? (
           <p data-testid="chores-empty-room" className="text-gray-400 text-center py-8">
             No chores in this room.
           </p>
         ) : (
           <ChoreList
-            chores={orderChores(visibleChores, today, householdTimezone)}
+            chores={orderChores(searchedChores, today, householdTimezone)}
             day={today}
             householdTimezone={householdTimezone}
             isSimulating={false}
