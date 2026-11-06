@@ -4,6 +4,7 @@ import type { Chore, Room, SwipeStyle } from '@customTypes/SharedTypes';
 import { useMidnightClock } from '../../hooks/useMidnightClock';
 import { useRoomFilter } from '../../hooks/useRoomFilter';
 import { useChoreSearch } from '../../hooks/useChoreSearch';
+import { useIsTouchDevice } from '../../hooks/useIsTouchDevice';
 import ChoreSearchInput from './ChoreSearchInput';
 import { orderChores } from '@utils/choreSort';
 import ChoreList from './ChoreList';
@@ -248,6 +249,8 @@ export default function ChoresView({
   const addChoreRef = useRef<HTMLButtonElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const isTouch = useIsTouchDevice();
   // Falls back to local state when App does not lift the query (e.g. tests).
   const [localQuery, setLocalQuery] = useState('');
   const query = searchQuery ?? localQuery;
@@ -604,6 +607,11 @@ export default function ChoresView({
   const searchedChores = useChoreSearch(visibleChores, query);
   const trimmedQuery = query.trim();
   const searchDisabled = isStale && chores.length === 0;
+  // A disabled focused input does not reliably fire blur, so drop the stale focus flag when it disables.
+  // Derive-during-render reset (React-supported) rather than an effect.
+  if (searchDisabled && isSearchFocused) setIsSearchFocused(false);
+  // Only a touch soft keyboard rides over the results, so only touch devices hide the deck.
+  const deckHidden = isTouch && isSearchFocused && !searchDisabled;
   const noMatchMessage = `No chores match “${trimmedQuery}”${selectedRoom !== 'all' ? ' in this room' : ''}.`;
   let searchStatus = '';
   if (trimmedQuery !== '' && chores.length > 0) {
@@ -614,7 +622,7 @@ export default function ChoresView({
   }
 
   return (
-    <div ref={rootRef}>
+    <div ref={rootRef} className="flex-1 flex flex-col">
       {isStale &&
         (online ? (
           <StatusBanner
@@ -642,6 +650,8 @@ export default function ChoresView({
             value={query}
             onChange={setQuery}
             disabled={searchDisabled}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             onClearWhileDisabled={() => settingsButtonRef.current?.focus()}
           />
           <button
@@ -655,16 +665,6 @@ export default function ChoresView({
             <Settings size={18} />
           </button>
         </div>
-        <div className="flex items-center justify-end gap-2">
-          <button
-            ref={addChoreRef}
-            type="button"
-            onClick={() => setIsAddOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 px-4 rounded-lg"
-          >
-            + Add Chore
-          </button>
-        </div>
       </div>
       {/* Search result announcer: always mounted, a sibling of (not inside) the list's
           aria-live container below so list re-renders never double-announce. */}
@@ -675,7 +675,8 @@ export default function ChoresView({
           and only its children swap, so a transition between the can't-load
           block / benign-empty-room state / populated list is announced to
           screen readers independently of the StatusBanner's own role="status". */}
-      <div aria-live="polite" className="pb-24">
+      {/* pb-4 only: the in-flow sticky Add Chore deck below keeps the last bar above it. */}
+      <div aria-live="polite" className="flex-1 pb-4">
         {isStale && chores.length === 0 ? (
           <div data-testid="chores-unavailable" className="text-center py-8">
             <h3 className="text-amber-300 text-base font-semibold mb-2">Can't load your chores right now.</h3>
@@ -716,6 +717,27 @@ export default function ChoresView({
             onEdit={setEditingId}
           />
         )}
+      </div>
+      {/* Sticky bottom deck: always mounted (addChoreRef must stay valid). On touch devices it is
+          invisible (not hidden) while the search box is focused so it stays in flow and nothing shifts. */}
+      <div
+        data-testid="add-chore-deck"
+        className={`sticky bottom-0 z-20 pointer-events-none -mx-4 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-6${deckHidden ? ' invisible' : ''}`}
+      >
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none backdrop-blur-md bg-gradient-to-t from-gray-900/90 via-gray-900/70 to-transparent deck-fade"
+        />
+        <div className="relative pointer-events-auto flex justify-center">
+          <button
+            ref={addChoreRef}
+            type="button"
+            onClick={() => setIsAddOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg min-h-[44px] w-full max-w-sm focus-visible:outline-2 focus-visible:outline-indigo-400"
+          >
+            + Add Chore
+          </button>
+        </div>
       </div>
       {isSettingsOpen && (
         <SettingsModal

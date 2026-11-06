@@ -90,6 +90,7 @@ describe('Toast', () => {
     const wrapper = screen.getByTestId('feedback-toast').parentElement!.parentElement!;
     expect(wrapper.className).toContain('z-40');
     expect(wrapper.className).toContain('env(safe-area-inset-bottom)');
+    expect(wrapper.className).toContain('5.5rem');
   });
 
   it('keeps a sticky error toast mounted while time passes (e.g. under a modal)', () => {

@@ -281,7 +281,7 @@ function Layout({ isAdmin, onHouseholdRevoked }: LayoutProps) {
   }
 
   return (
-    <div>
+    <div className="flex flex-col min-h-dvh">
       <NavBar rooms={rooms} selectedRoom={selectedRoom} onSelect={handleSelectRoom} isAdmin={isAdmin} />
       <Outlet
         context={
@@ -312,7 +312,7 @@ function Home({
   const { selectedRoom, rooms, searchQuery, onSearchQueryChange } = useOutletContext<LayoutContext>();
   if (!me || !currentMembership) return null;
   return (
-    <div className="p-4">
+    <div className="flex-1 flex flex-col px-4 pt-4 pb-0">
       <ChoresView
         searchQuery={searchQuery}
         onSearchQueryChange={onSearchQueryChange}

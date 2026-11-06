@@ -24,6 +24,17 @@
   mask-image: linear-gradient(to right, transparent, black 1rem, black calc(100% - 1rem), transparent);
 }
 
+/* Fades the Add Chore deck's backdrop blur out at its top edge. */
+@utility deck-fade {
+  -webkit-mask-image: linear-gradient(to top, black 60%, transparent);
+  mask-image: linear-gradient(to top, black 60%, transparent);
+}
+
+/* Keep Tab / scrollIntoView targets clear of the sticky Add Chore deck. */
+html {
+  scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+}
+
 /* Feedback toast enter: 150 ms fade + 8px rise. */
 @keyframes toast-in {
   from {
