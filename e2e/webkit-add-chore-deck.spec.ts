@@ -27,11 +27,10 @@ async function lengthenList(page: Page) {
       ?.closest('.space-y-3') as HTMLElement | null;
     if (!list) throw new Error('chore list not found');
     const first = list.firstElementChild as HTMLElement;
-    const parent = list;
     const scroller = document.scrollingElement ?? document.documentElement;
     // Bounded so a layout that never grows fails the assertions below instead of hanging.
     for (let i = 0; i < 200 && scroller.scrollHeight <= window.innerHeight * 2; i++) {
-      parent.appendChild(first.cloneNode(true));
+      list.appendChild(first.cloneNode(true));
     }
   });
 }
