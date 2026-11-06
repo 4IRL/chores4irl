@@ -149,13 +149,13 @@ describe('ChoresView search', () => {
     stubFetch(mockChores);
     renderView();
     await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
-    const order = () => screen.getAllByTestId('chore-bar').map((b) => b.textContent ?? '');
+    const order = () => screen.getAllByTestId('chore-bar').map((bar) => bar.textContent ?? '');
     const names = (all: string[]) =>
-      all.map((t) => ['Vacuum', 'Dishes', 'Dust shelves'].find((n) => t.includes(n)));
+      all.map((text) => ['Vacuum', 'Dishes', 'Dust shelves'].find((name) => text.includes(name)));
     const full = names(order());
     await userEvent.type(screen.getByLabelText('Search chores'), 'u');
     // 'u' matches Vacuum and Dust shelves, not Dishes.
-    expect(names(order())).toEqual(full.filter((n) => n !== 'Dishes'));
+    expect(names(order())).toEqual(full.filter((name) => name !== 'Dishes'));
   });
 
   it('opens the edit modal for the unfiltered chore while a query is active', async () => {
@@ -175,7 +175,7 @@ describe('ChoresView search', () => {
     await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
     await userEvent.type(screen.getByLabelText('Search chores'), 'dishes');
     // The re-pull returns a renamed chore, so we can tell the new data was applied.
-    stubFetch(mockChores.map((c) => (c.id === 2 ? { ...c, name: 'Dishes (fresh)' } : c)));
+    stubFetch(mockChores.map((chore) => (chore.id === 2 ? { ...chore, name: 'Dishes (fresh)' } : chore)));
     act(() => {
       window.dispatchEvent(new Event('online'));
     });

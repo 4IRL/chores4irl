@@ -315,16 +315,16 @@ describe('ChoreTimerBar', () => {
   });
 
   describe('androidSwipeThreshold', () => {
-    it.each([0, -5, NaN, Infinity])('falls back to 120 for %s', (w) => {
-      expect(androidSwipeThreshold(w)).toBe(120);
+    it.each([0, -5, NaN, Infinity])('falls back to 120 for %s', (width) => {
+      expect(androidSwipeThreshold(width)).toBe(120);
     });
 
     it.each([
       [200, 50],
       [480, 120],
       [1024, 120],
-    ])('width %i gives %i', (w, expected) => {
-      expect(androidSwipeThreshold(w)).toBe(expected);
+    ])('width %i gives %i', (width, expected) => {
+      expect(androidSwipeThreshold(width)).toBe(expected);
     });
   });
 

@@ -64,7 +64,7 @@ const ChoreSearchInput = forwardRef<HTMLInputElement, ChoreSearchInputProps>(fun
         spellCheck={false}
         value={value}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         onKeyDown={handleKeyDown}
         onFocus={onFocus}
         onBlur={onBlur}
