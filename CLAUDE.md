@@ -54,7 +54,7 @@ commits and PRs on this repo show **bot-only attribution** — no `Co-Authored-B
   | Lint / format      | `make lint` (eslint) / `make format` (prettier) — lint-staged also runs on commit |
   | Dev                | `make dev` (concurrently: jwks + backend + frontend)                              |
   | DB migrate (local) | `make migrate-local` (apply pending migrations to local Miniflare D1)             |
-  | DB migrate (prod)  | `make migrate-remote` (apply to remote production D1 — deploy-time)               |
+  | DB migrate (prod)  | `make migrate-remote` (CI applies on main push; manual for hotfix/rollback)       |
   | DB migrate status  | `make migrate-list` (local) / `make migrate-list-remote` (prod)                   |
   | New migration      | `make migrate-new name=<snake_case_desc>` (scaffold next numbered file)           |
   | Script tests       | `make test-scripts` (`scripts/*.test.mjs`, node:test)                             |
