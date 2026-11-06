@@ -305,6 +305,13 @@ describe('ChoreTimerBar', () => {
       dragBar(bar, 200, 110);
       expect(screen.getByTestId('delete-icon-preview')).toBeDisabled();
     });
+
+    it('iOS at width 320: a 130px left swipe still reveals the buttons (fixed threshold)', () => {
+      stubBarWidth(320);
+      const bar = renderBar('ios');
+      dragBar(bar, 200, 70);
+      expect(screen.getByTestId('delete-icon-preview')).toBeEnabled();
+    });
   });
 
   describe('androidSwipeThreshold', () => {
