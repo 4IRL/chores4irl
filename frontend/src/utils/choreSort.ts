@@ -9,9 +9,9 @@
 // follows the fold in red, orange, green order.
 //
 // `urgency` weights the red rank and the pressure count only; it never changes
-// a chore's bucket. The sort is pure and runs on every render of ChoresView
-// (there is no reconcile step), over whatever list it is given, so the fold
-// applies to the visible (room- and search-filtered) subset.
+// a chore's bucket. The sort is pure. ChoresView calls it over the full list
+// only when it takes an order snapshot (see utils/choreOrder.ts), not on every
+// render; the room and search filters then restrict that global order.
 import { differenceInDays, startOfDay } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import type { Chore } from '@customTypes/SharedTypes';

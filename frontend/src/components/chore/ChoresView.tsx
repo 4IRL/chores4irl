@@ -8,7 +8,7 @@ import { useIsTouchDevice } from '../../hooks/useIsTouchDevice';
 import { useScrollPastThreshold } from '../../hooks/useScrollPastThreshold';
 import ChoreSearchInput from './ChoreSearchInput';
 import ScrollToTopButton from './ScrollToTopButton';
-import { orderChores } from '@utils/choreSort';
+import { applyOrder, snapshotOrder } from '@utils/choreOrder';
 import ChoreList from './ChoreList';
 import ChoreFormModal from '../form/ChoreFormModal';
 import ConfirmDialog from '../common/ConfirmDialog';
@@ -245,6 +245,30 @@ export default function ChoresView({
   const activeOutbox = outboxProp ?? defaultOutbox;
 
   const [isStale, setIsStale] = useState(false);
+
+  // Stable order: the list is sorted once into `orderSnapshot` and only re-sorted on first load,
+  // a stale-to-fresh load (snapshot taken from the cache), midnight / timezone change (via `key`),
+  // or the first list after a 403 clear. Derived during render so the first paint is ordered.
+  const [orderSnapshot, setOrderSnapshot] = useState<{
+    key: string;
+    ids: number[];
+    stale: boolean;
+  } | null>(null);
+  const [prevIsStale, setPrevIsStale] = useState(false);
+  const snapshotKey = `${today.getTime()}|${householdTimezone}`;
+  const staleToFresh = prevIsStale && !isStale && orderSnapshot?.stale === true;
+  if (prevIsStale !== isStale) setPrevIsStale(isStale);
+  if (orderSnapshot === null || orderSnapshot.key !== snapshotKey || staleToFresh) {
+    // Temp-id (pending create) chores have negative ids and are never snapshotted.
+    const realChores = chores.filter((c) => c.id > 0);
+    if (realChores.length > 0) {
+      setOrderSnapshot({
+        key: snapshotKey,
+        ids: snapshotOrder(realChores, today, householdTimezone),
+        stale: isStale,
+      });
+    }
+  }
   // Seeded from navigator.onLine at init so an offline page load renders the
   // offline banner (Retry hidden) at mount, not only after a transition event.
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -325,6 +349,7 @@ export default function ChoresView({
         // Removed from the active household: same handling as load().
         await clearChoresCache();
         setChores([]);
+        setOrderSnapshot(null);
         setIsStale(false);
         onHouseholdRevoked?.();
         return false;
@@ -370,6 +395,7 @@ export default function ChoresView({
           if (isCurrent()) {
             await clearChoresCache();
             setChores([]);
+            setOrderSnapshot(null);
             setIsStale(false);
             onHouseholdRevoked?.();
           }
@@ -722,7 +748,7 @@ export default function ChoresView({
           </p>
         ) : (
           <ChoreList
-            chores={orderChores(searchedChores, today, householdTimezone)}
+            chores={applyOrder(searchedChores, orderSnapshot?.ids ?? [])}
             day={today}
             householdTimezone={householdTimezone}
             isSimulating={false}
