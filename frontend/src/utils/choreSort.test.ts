@@ -20,9 +20,8 @@ function orange(id: number, daysSince: number, overrides: Partial<Chore> = {}): 
   return makeChore({ id, frequency: 100, dateLastCompleted: daysAgo(daysSince), ...overrides });
 }
 
-function green(id: number, daysSince: number, overrides: Partial<Chore> = {}): Chore {
-  return makeChore({ id, frequency: 100, dateLastCompleted: daysAgo(daysSince), ...overrides });
-}
+// Same shape as orange(); the bucket comes from daysSince, so green is an alias.
+const green = orange;
 
 // n reds with weighted overdue below the pressure threshold, ranked id-ascending.
 function mildReds(startId: number, n: number): Chore[] {

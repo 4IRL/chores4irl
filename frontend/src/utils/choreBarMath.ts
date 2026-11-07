@@ -1,4 +1,4 @@
-import { STATUS_BAR_COLOR, statusColors, type ChoreStatus } from '@assets/constants';
+import { STATUS_BAR_COLOR, STATUS_THRESHOLDS, type ChoreStatus } from '@assets/constants';
 
 export type BarMathResult = {
   isOverdue: boolean;
@@ -14,8 +14,8 @@ export function remainingRatioOf(daysSince: number, frequency: number): number {
 export function classifyStatus(daysSince: number, frequency: number): ChoreStatus {
   if (frequency > 0 && daysSince > frequency) return 'red';
   const remainingRatio = remainingRatioOf(daysSince, frequency);
-  const match = statusColors.find((s) => remainingRatio > s.threshold);
-  return (match ?? statusColors[statusColors.length - 1]).status;
+  const match = STATUS_THRESHOLDS.find((s) => remainingRatio > s.threshold);
+  return (match ?? STATUS_THRESHOLDS[STATUS_THRESHOLDS.length - 1]).status;
 }
 
 export function computeBar(daysSince: number, frequency: number): BarMathResult {
