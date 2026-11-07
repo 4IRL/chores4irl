@@ -1180,6 +1180,56 @@ describe('ChoresView feedback toast', () => {
     expect(screen.queryByText('Other room red x')).not.toBeInTheDocument();
   });
 
+  it('applies the bucket quota to the search-filtered subset, not the full list', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const now = new Date('2026-07-01T12:00:00.000Z');
+    vi.setSystemTime(now);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const wire = (id: number, name: string, daysSince: number) => ({
+      id,
+      name,
+      roomId: 1,
+      dateLastCompleted: new Date(now.getTime() - daysSince * 86_400_000).toISOString(),
+      duration: 10,
+      frequency: 10,
+      version: 1,
+    });
+    // Matching chores (names contain "x"): six reds below the pressure threshold plus four greens.
+    // Non-matching: one red at 0.9 that ranks first globally but adds no pressure.
+    const wireChores = [
+      ...[11, 12, 13, 14, 15, 16].map((d, i) => wire(i + 1, `Red ${i + 1} x`, d)),
+      ...[1, 2, 3, 4].map((d, i) => wire(i + 7, `Green ${i + 1} x`, d)),
+      wire(11, 'Other red', 19),
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        const method = init?.method ?? 'GET';
+        if (url === '/api/chores' && method === 'GET') {
+          return jsonResponse({ success: true, data: wireChores });
+        }
+        throw new Error(`Unhandled fetch: ${method} ${url}`);
+      }),
+    );
+    const all = wireChores.map((c) => ({ ...c, dateLastCompleted: new Date(c.dateLastCompleted) }));
+    const searched = all.filter((c) => c.name.includes('x'));
+    const filteredAfterSort = orderChores(all, now, 'UTC')
+      .filter((c) => c.name.includes('x'))
+      .map((c) => c.name);
+    const sortedAfterFilter = orderChores(searched, now, 'UTC').map((c) => c.name);
+    // Precondition: sorting before searching would give a different list.
+    expect(filteredAfterSort).not.toEqual(sortedAfterFilter);
+
+    renderView();
+    await waitFor(() => expect(screen.getByText('Red 1 x')).toBeInTheDocument());
+
+    await user.type(screen.getByRole('searchbox', { name: 'Search chores' }), 'x');
+
+    await waitFor(() => expect(screen.queryByText('Other red')).not.toBeInTheDocument());
+    expect(rowNames(all.map((c) => c.name))).toEqual(sortedAfterFilter);
+  });
+
   it.each([400, 500])('re-inserts a chore when delete is answered %i', async (status) => {
     const user = userEvent.setup();
     stubMutationFetch((url, method) =>
