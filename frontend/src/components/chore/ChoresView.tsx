@@ -8,7 +8,9 @@ import { useIsTouchDevice } from '../../hooks/useIsTouchDevice';
 import { useScrollPastThreshold } from '../../hooks/useScrollPastThreshold';
 import ChoreSearchInput from './ChoreSearchInput';
 import ScrollToTopButton from './ScrollToTopButton';
+import StatusCountStrip from '../nav/StatusCountStrip';
 import { applyOrder, snapshotOrder } from '@utils/choreOrder';
+import { choreStatusCounts } from '@utils/choreStatusCounts';
 import ChoreList from './ChoreList';
 import ChoreFormModal from '../form/ChoreFormModal';
 import ConfirmDialog from '../common/ConfirmDialog';
@@ -201,6 +203,9 @@ export default function ChoresView({
   const deviceTimezone = getDeviceTimezone();
   const timezoneMismatch = deviceTimezone !== householdTimezone;
   const [chores, setChores] = useState<ChoreWithVersion[]>([]);
+  // False until a list has been applied (and again after a 403 clear): the count strip stays
+  // hidden so it never shows a false "0" while loading.
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -330,6 +335,7 @@ export default function ChoresView({
   function applyMergedList(list: ChoreWithVersion[]) {
     const merged = mergePendingCreates(list, activeOutbox.getEntries());
     setChores(merged);
+    setHasLoaded(true);
     return merged;
   }
 
@@ -349,6 +355,7 @@ export default function ChoresView({
         // Removed from the active household: same handling as load().
         await clearChoresCache();
         setChores([]);
+        setHasLoaded(false);
         setOrderSnapshot(null);
         setIsStale(false);
         onHouseholdRevoked?.();
@@ -395,6 +402,7 @@ export default function ChoresView({
           if (isCurrent()) {
             await clearChoresCache();
             setChores([]);
+            setHasLoaded(false);
             setOrderSnapshot(null);
             setIsStale(false);
             onHouseholdRevoked?.();
@@ -635,6 +643,8 @@ export default function ChoresView({
 
   const visibleChores = useRoomFilter(chores, selectedRoom);
   const searchedChores = useChoreSearch(visibleChores, query);
+  const statusCounts = choreStatusCounts(searchedChores, today, householdTimezone);
+  const showStrip = hasLoaded && !(isStale && chores.length === 0);
   const trimmedQuery = query.trim();
   const searchDisabled = isStale && chores.length === 0;
   // A disabled focused input does not reliably fire blur, so drop the stale focus flag when it disables.
@@ -665,6 +675,7 @@ export default function ChoresView({
         tabIndex={-1}
         className="h-0 w-0 overflow-hidden outline-none"
       />
+      {showStrip && <StatusCountStrip counts={statusCounts} />}
       {isStale &&
         (online ? (
           <StatusBanner

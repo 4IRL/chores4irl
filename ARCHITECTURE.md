@@ -63,6 +63,8 @@ frontend/         React SPA — Cloudflare Pages
                               preview deployments to mock data instead of the real API
     utils/mockApi.ts          Mock data served on *.pages.dev preview deployments
     utils/choreOrder.ts       Stable list order: snapshotOrder / applyOrder (see "Chore ordering")
+    utils/choreStatusCounts.ts  Done-today / due-soon / overdue counts for the status strip
+    components/nav/StatusCountStrip.tsx  Sticky-on-phones count strip under the room tabs (shown once a list loads)
     outbox/                   Offline write queue (localStorage-backed) — queues chore mutations when offline
     cache/choresCache.ts      IndexedDB read cache for offline chore viewing
     hooks/useMidnightClock.ts Recomputes chore status and sort order at household midnight
