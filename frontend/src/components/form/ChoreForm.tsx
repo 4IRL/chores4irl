@@ -6,38 +6,32 @@ import FormField from './FormField';
 
 type FormState = {
   name: string;
-  details: string;
   roomId: string;
   dateLastCompleted: string;
   duration: string;
   frequency: string;
   urgency: '' | 'low' | 'medium' | 'high';
-  longTermTask: boolean;
 };
 
 function buildInitialFormState(defaultRoomId?: string): FormState {
   return {
     name: '',
-    details: '',
     roomId: defaultRoomId && defaultRoomId !== 'all' ? defaultRoomId : '',
     dateLastCompleted: '',
     duration: '',
     frequency: '',
     urgency: '',
-    longTermTask: false,
   };
 }
 
 function choreToFormState(chore: Chore, householdTimezone: string): FormState {
   return {
     name: chore.name,
-    details: chore.details ?? '',
     roomId: String(chore.roomId),
     dateLastCompleted: formatFormDate(chore.dateLastCompleted, householdTimezone),
     duration: String(chore.duration),
     frequency: String(chore.frequency),
     urgency: chore.urgency ?? '',
-    longTermTask: chore.longTermTask ?? false,
   };
 }
 
@@ -92,13 +86,11 @@ export default function ChoreForm({
     if (!formData.roomId) return;
     onSubmit({
       name: formData.name,
-      details: formData.details || null,
       roomId: Number(formData.roomId),
       dateLastCompleted: parseFormDate(dateValue, householdTimezone),
       duration: Number(formData.duration),
       frequency: Number(formData.frequency),
       urgency: formData.urgency || undefined,
-      longTermTask: formData.longTermTask || undefined,
     });
     if (mode === 'add') {
       setFormData(buildInitialFormState(defaultRoomId));
@@ -122,13 +114,6 @@ export default function ChoreForm({
           onChange={handleFieldChange}
           required
           autoFocus
-          clearable
-        />
-        <FormField
-          name="details"
-          label="Details"
-          value={formData.details}
-          onChange={handleFieldChange}
           clearable
         />
         <FormField
@@ -196,19 +181,6 @@ export default function ChoreForm({
             type="number"
             required
           />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="longTermTask"
-            checked={formData.longTermTask}
-            onChange={(e) => setFormData((prev) => ({ ...prev, longTermTask: e.target.checked }))}
-            className="accent-indigo-500"
-          />
-          <label htmlFor="longTermTask" className="text-sm text-gray-400">
-            Long-term task
-          </label>
         </div>
 
         <div className="flex gap-3 mt-2">

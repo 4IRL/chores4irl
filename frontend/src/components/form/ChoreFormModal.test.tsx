@@ -9,7 +9,6 @@ const rooms: Room[] = [{ id: 1, householdId: 1, name: 'Kitchen' }];
 const initialChore: Chore = {
   id: 7,
   name: 'Mop Floors',
-  details: 'Use the blue bucket',
   roomId: 1,
   dateLastCompleted: new Date('2026-10-01T00:00:00Z'),
   duration: 20,
@@ -33,11 +32,10 @@ function setup() {
 }
 
 describe('ChoreFormModal clear buttons', () => {
-  it('shows Clear Name and Clear Details on mount in edit mode', () => {
+  it('shows Clear Name on mount in edit mode', () => {
     setup();
 
     expect(screen.getByRole('button', { name: 'Clear Name' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Clear Details' })).toBeInTheDocument();
   });
 
   it('Clear Name empties only Name, focuses it, and neither submits nor cancels', async () => {
@@ -48,20 +46,6 @@ describe('ChoreFormModal clear buttons', () => {
     const name = screen.getByLabelText('Name', { exact: true });
     expect(name).toHaveValue('');
     expect(name).toHaveFocus();
-    expect(screen.getByLabelText('Details')).toHaveValue('Use the blue bucket');
-    expect(onSubmit).not.toHaveBeenCalled();
-    expect(onCancel).not.toHaveBeenCalled();
-  });
-
-  it('Clear Details empties only Details, focuses it, and neither submits nor cancels', async () => {
-    const { user, onSubmit, onCancel } = setup();
-
-    await user.click(screen.getByRole('button', { name: 'Clear Details' }));
-
-    const details = screen.getByLabelText('Details');
-    expect(details).toHaveValue('');
-    expect(details).toHaveFocus();
-    expect(screen.getByLabelText('Name', { exact: true })).toHaveValue('Mop Floors');
     expect(onSubmit).not.toHaveBeenCalled();
     expect(onCancel).not.toHaveBeenCalled();
   });
@@ -78,6 +62,6 @@ describe('ChoreFormModal clear buttons', () => {
     setup();
 
     expect(screen.queryByRole('button', { name: /^Clear (Last Completed|Duration|Frequency)/ })).toBeNull();
-    expect(screen.getAllByRole('button', { name: /^Clear / })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: /^Clear / })).toHaveLength(1);
   });
 });

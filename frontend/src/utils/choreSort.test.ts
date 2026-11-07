@@ -261,12 +261,6 @@ describe('orderChores', () => {
     expect(sortedBothWays(board)).toEqual([100, 200, 300]);
   });
 
-  it('ignores longTermTask', () => {
-    const board = [...mildReds(100, 3), ...greens(300, 3)];
-    const flagged = board.map((c, i) => (i % 2 === 0 ? { ...c, longTermTask: true } : c));
-    expect(sorted(flagged)).toEqual(sorted(board));
-  });
-
   it('has base quotas that sum to the fold size', () => {
     expect(SORT_BASE_QUOTA.red + SORT_BASE_QUOTA.orange + SORT_BASE_QUOTA.green).toBe(SORT_FOLD);
   });

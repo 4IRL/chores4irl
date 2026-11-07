@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import type { ComponentProps } from 'react';
 import { render, screen, waitFor, cleanup, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChoresView from './ChoresView';
@@ -1098,7 +1099,7 @@ describe('ChoresView feedback toast', () => {
     },
   );
 
-  it('re-sorts on an optimistic complete and restores the original order when it rolls back', async () => {
+  it('keeps the row order through an optimistic complete and its rollback', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-07-01T12:00:00.000Z'));
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
@@ -1114,18 +1115,21 @@ describe('ChoresView feedback toast', () => {
 
     await user.click(barFor('Dishes'));
 
-    // Optimistic completion turns Dishes green, so it drops below the red Vacuum.
-    await waitFor(() => expect(rowNames(['Vacuum', 'Dishes'])).toEqual(['Vacuum', 'Dishes']));
+    // Optimistic completion turns Dishes green, but the stable order keeps it in place.
+    await waitFor(() => expect(within(barFor('Dishes')).getByText(/^0\s+days\s+ago$/)).toBeInTheDocument());
+    expect(rowNames(['Vacuum', 'Dishes'])).toEqual(['Dishes', 'Vacuum']);
     expect(screen.getAllByTestId('chore-row')).toHaveLength(2);
 
     resolveComplete(await errorResponse(500, 'nope'));
 
     expect(await screen.findByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
-    await waitFor(() => expect(rowNames(['Vacuum', 'Dishes'])).toEqual(['Dishes', 'Vacuum']));
+    // Wait for the rollback itself (Dishes back to 11 days ago) so the order check is not vacuous.
+    await waitFor(() => expect(within(barFor('Dishes')).getByText('11 days ago')).toBeInTheDocument());
+    expect(rowNames(['Vacuum', 'Dishes'])).toEqual(['Dishes', 'Vacuum']);
     expect(screen.getAllByTestId('chore-row')).toHaveLength(2);
   });
 
-  it('applies the bucket quota to the room-filtered subset, not the full list', async () => {
+  it('shows the room-filtered list as the global order restricted to that room', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const now = new Date('2026-07-01T12:00:00.000Z');
     vi.setSystemTime(now);
@@ -1162,7 +1166,7 @@ describe('ChoresView feedback toast', () => {
       .filter((c) => c.roomId === 1)
       .map((c) => c.name);
     const sortedAfterFilter = orderChores(roomOne, now, 'UTC').map((c) => c.name);
-    // Precondition: sorting before filtering would give a different list (R5 G2 R1 G2 vs R6 G4).
+    // Precondition: the global order restricted to the room differs from sorting the room alone.
     expect(filteredAfterSort).not.toEqual(sortedAfterFilter);
 
     render(
@@ -1176,11 +1180,11 @@ describe('ChoresView feedback toast', () => {
     );
     await waitFor(() => expect(screen.getByText('Red 1 x')).toBeInTheDocument());
 
-    expect(rowNames(all.map((c) => c.name))).toEqual(sortedAfterFilter);
+    expect(rowNames(all.map((c) => c.name))).toEqual(filteredAfterSort);
     expect(screen.queryByText('Other room red x')).not.toBeInTheDocument();
   });
 
-  it('applies the bucket quota to the search-filtered subset, not the full list', async () => {
+  it('shows the search-filtered list as the global order restricted to the matches', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const now = new Date('2026-07-01T12:00:00.000Z');
     vi.setSystemTime(now);
@@ -1218,7 +1222,7 @@ describe('ChoresView feedback toast', () => {
       .filter((c) => c.name.includes('x'))
       .map((c) => c.name);
     const sortedAfterFilter = orderChores(searched, now, 'UTC').map((c) => c.name);
-    // Precondition: sorting before searching would give a different list.
+    // Precondition: the global order restricted to the matches differs from sorting the matches alone.
     expect(filteredAfterSort).not.toEqual(sortedAfterFilter);
 
     renderView();
@@ -1227,7 +1231,39 @@ describe('ChoresView feedback toast', () => {
     await user.type(screen.getByRole('searchbox', { name: 'Search chores' }), 'x');
 
     await waitFor(() => expect(screen.queryByText('Other red')).not.toBeInTheDocument());
-    expect(rowNames(all.map((c) => c.name))).toEqual(sortedAfterFilter);
+    expect(rowNames(all.map((c) => c.name))).toEqual(filteredAfterSort);
+  });
+
+  it('appends a new chore after an offline blip and reconnect without reordering existing rows', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const now = new Date('2026-07-01T12:00:00.000Z');
+    vi.setSystemTime(now);
+    const wire = (id: number, name: string, daysSince: number) => ({
+      id,
+      name,
+      roomId: 1,
+      dateLastCompleted: new Date(now.getTime() - daysSince * 86_400_000).toISOString(),
+      duration: 10,
+      frequency: 10,
+      version: 1,
+    });
+    let list = [wire(1, 'Alpha', 15), wire(2, 'Beta', 19)];
+    stubListFetch(() => jsonResponse({ success: true, data: list }));
+    renderView();
+    await waitFor(() => expect(screen.getByText('Alpha')).toBeInTheDocument());
+    const initial = rowNames(['Alpha', 'Beta', 'Gamma']);
+    expect(initial).toEqual(['Beta', 'Alpha']);
+
+    // A reconnect reload returning a new, most-overdue chore appends it; existing rows keep order.
+    list = [wire(3, 'Gamma', 40), ...list];
+    act(() => {
+      window.dispatchEvent(new Event('offline'));
+    });
+    act(() => {
+      window.dispatchEvent(new Event('online'));
+    });
+    await waitFor(() => expect(screen.getByText('Gamma')).toBeInTheDocument());
+    expect(rowNames(['Alpha', 'Beta', 'Gamma'])).toEqual(['Beta', 'Alpha', 'Gamma']);
   });
 
   it.each([400, 500])('re-inserts a chore when delete is answered %i', async (status) => {
@@ -2080,5 +2116,324 @@ describe('ChoresView offline flush results', () => {
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: 'Save Changes' })).not.toBeInTheDocument(),
     );
+  });
+});
+
+// ---- Stable row order (snapshot) ----
+// Fixture at 2026-07-01T12:00Z (UTC), weighted overdue = (days since - frequency) / frequency:
+// Alpha 1.8, Gamma 1.7, Beta 1.5 -> [Alpha, Gamma, Beta]. One household day later Beta (+0.5/day)
+// reaches 2.0, Alpha 1.9, Gamma 1.8 -> [Beta, Alpha, Gamma], so a midnight or timezone-day shift flips it.
+describe('ChoresView stable row order', () => {
+  const NAMES = ['Alpha', 'Beta', 'Gamma', 'Mop'];
+  const BEFORE = ['Alpha', 'Gamma', 'Beta'];
+  const AFTER = ['Beta', 'Alpha', 'Gamma'];
+
+  function orderChore(id: number, name: string, since: number, frequency: number, roomId = 1) {
+    return {
+      id,
+      name,
+      roomId,
+      dateLastCompleted: new Date(Date.UTC(2026, 6, 1) - since * 86_400_000).toISOString(),
+      duration: 10,
+      frequency,
+      version: 1,
+    };
+  }
+
+  function baseList() {
+    return [orderChore(1, 'Alpha', 28, 10), orderChore(2, 'Beta', 5, 2), orderChore(3, 'Gamma', 27, 10, 2)];
+  }
+
+  // Beta far more overdue: a fresh sort gives [Beta, Alpha, Gamma].
+  function reorderedList() {
+    return [orderChore(1, 'Alpha', 28, 10), orderChore(2, 'Beta', 20, 2), orderChore(3, 'Gamma', 27, 10, 2)];
+  }
+
+  function names() {
+    return rowNames(NAMES);
+  }
+
+  function pinClock() {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-01T12:00:00.000Z'));
+  }
+
+  function viewElement(props: Partial<ComponentProps<typeof ChoresView>> = {}, key?: string) {
+    return (
+      <ChoresView
+        key={key}
+        householdTimezone="UTC"
+        rooms={mockRooms}
+        swipeStyle="ios"
+        onSwipeStyleChange={vi.fn()}
+        {...props}
+      />
+    );
+  }
+
+  const listJson = (data: unknown) => jsonResponse({ success: true, data });
+
+  async function fireOnline() {
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+    });
+  }
+
+  beforeEach(() => {
+    pinClock();
+  });
+
+  it('re-sorts from the fresh list when it replaces a cache-rendered snapshot (stale to fresh)', async () => {
+    await writeChoresCache(baseList());
+    stubListFetch((n) => (n === 1 ? errorResponse(500, 'down') : listJson(reorderedList())));
+    render(viewElement());
+    await waitFor(() => expect(screen.getByTestId('status-banner')).toBeInTheDocument());
+    expect(names()).toEqual(BEFORE);
+
+    await fireOnline();
+
+    await waitFor(() => expect(screen.queryByTestId('status-banner')).not.toBeInTheDocument());
+    expect(names()).toEqual(AFTER);
+  });
+
+  it('keeps the order of a fresh snapshot through an offline blip whose reload would reorder', async () => {
+    let list = baseList();
+    const { getCount } = stubListFetch(() => listJson(list));
+    render(viewElement());
+    await waitFor(() => expect(names()).toEqual(BEFORE));
+
+    list = [...reorderedList(), orderChore(4, 'Mop', 40, 10)];
+    await act(async () => {
+      window.dispatchEvent(new Event('offline'));
+    });
+    await fireOnline();
+
+    await waitFor(() => expect(getCount()).toBe(2));
+    // The reload was applied (Beta is now 20 days ago, Mop appeared) but nothing re-sorted.
+    await waitFor(() => expect(screen.getByText('Mop')).toBeInTheDocument());
+    expect(within(barFor('Beta')).getByText('20 days ago')).toBeInTheDocument();
+    expect(names()).toEqual([...BEFORE, 'Mop']);
+  });
+
+  it('sorts the whole real list on reconnect after an offline start with an empty cache and a queued create', async () => {
+    let outboxUp = false;
+    const outboxFetch = vi.fn((_url: string, init?: RequestInit) =>
+      outboxUp && init?.method === 'POST'
+        ? listJson({ ...orderChore(99, 'Mop', 30, 3), version: 1 })
+        : Promise.reject(new Error('offline')),
+    );
+    const testOutbox = createOutbox(outboxFetch as unknown as typeof fetch);
+    testOutbox.append({
+      type: 'create',
+      tempId: -123,
+      payload: {
+        name: 'Mop',
+        roomId: 1,
+        dateLastCompleted: orderChore(0, '', 30, 3).dateLastCompleted,
+        duration: 10,
+        frequency: 3,
+      },
+    });
+    stubListFetch((n) => (n === 1 ? Promise.reject(new Error('down')) : listJson(baseList())));
+    render(viewElement({ outbox: testOutbox }));
+    // Pending-only list: shown, but never snapshotted.
+    await waitFor(() => expect(screen.getByText('Mop')).toBeInTheDocument());
+    expect(screen.getAllByTestId('chore-row')).toHaveLength(1);
+
+    await fireOnline();
+
+    // Mop (very overdue) would sort first if the temp-id chore had leaked into the order.
+    await waitFor(() => expect(names()).toEqual([...BEFORE, 'Mop']));
+
+    // A flush replaces the temp-id row in place: it keeps its appended position.
+    outboxUp = true;
+    await act(() => testOutbox.flush());
+    await waitFor(() => expect(testOutbox.getEntries()).toHaveLength(0));
+    expect(names()).toEqual([...BEFORE, 'Mop']);
+  });
+
+  it('keeps a created chore appended through handleAddSubmit success', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    stubListFetch(
+      () => listJson(baseList()),
+      (url, method) =>
+        url === '/api/chores' && method === 'POST' ? listJson(orderChore(7, 'Mop', 40, 3)) : undefined,
+    );
+    render(viewElement());
+    await waitFor(() => expect(names()).toEqual(BEFORE));
+
+    await user.click(screen.getByRole('button', { name: /add chore/i }));
+    await user.type(screen.getByLabelText('Name'), 'Mop');
+    await user.selectOptions(screen.getByLabelText('Room'), 'Living Room');
+    await user.type(screen.getByLabelText('Duration (minutes)'), '10');
+    await user.type(screen.getByLabelText('Frequency (days)'), '3');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(screen.getByText('Mop')).toBeInTheDocument());
+    expect(names()).toEqual([...BEFORE, 'Mop']);
+  });
+
+  it('re-snapshots fresh after a 403 clear in load() instead of inheriting the stale-flagged snapshot', async () => {
+    await writeChoresCache(baseList());
+    const onHouseholdRevoked = vi.fn();
+    stubListFetch((n) =>
+      n === 1 ? errorResponse(500, 'down') : n === 2 ? forbiddenResponse() : listJson(reorderedList()),
+    );
+    render(viewElement({ onHouseholdRevoked }));
+    await waitFor(() => expect(names()).toEqual(BEFORE));
+
+    await fireOnline();
+    await waitFor(() => expect(onHouseholdRevoked).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText('Alpha')).not.toBeInTheDocument());
+
+    await fireOnline();
+
+    await waitFor(() => expect(names()).toEqual(AFTER));
+  });
+
+  it('re-snapshots fresh after a 403 clear in refetchChores instead of inheriting the stale-flagged snapshot', async () => {
+    await writeChoresCache(baseList());
+    const testOutbox = createOutbox(vi.fn(() => errorResponse(400, 'bad')));
+    const onHouseholdRevoked = vi.fn();
+    stubListFetch((n) =>
+      n === 1 ? errorResponse(500, 'down') : n === 2 ? forbiddenResponse() : listJson(reorderedList()),
+    );
+    render(viewElement({ outbox: testOutbox, onHouseholdRevoked }));
+    await waitFor(() => expect(names()).toEqual(BEFORE));
+
+    act(() => {
+      testOutbox.append({ type: 'edit', choreId: 1, baseVersion: 1, payload: createPayload() });
+    });
+    await act(() => testOutbox.flush());
+    await waitFor(() => expect(onHouseholdRevoked).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText('Alpha')).not.toBeInTheDocument());
+
+    act(() => {
+      testOutbox.append({ type: 'edit', choreId: 1, baseVersion: 1, payload: createPayload() });
+    });
+    await act(() => testOutbox.flush());
+
+    await waitFor(() => expect(names()).toEqual(AFTER));
+  });
+
+  it('re-sorts the whole list when the clock passes household midnight', async () => {
+    stubListFetch(() => listJson(baseList()));
+    render(viewElement());
+    await waitFor(() => expect(names()).toEqual(BEFORE));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(12 * 3_600_000 + 1_000);
+    });
+
+    await waitFor(() => expect(names()).toEqual(AFTER));
+  });
+
+  it('re-sorts when the household timezone changes', async () => {
+    stubListFetch(() => listJson(baseList()));
+    const { rerender } = render(viewElement());
+    await waitFor(() => expect(names()).toEqual(BEFORE));
+
+    // Kiritimati (UTC+14) is already a day ahead of UTC.
+    rerender(viewElement({ householdTimezone: 'Pacific/Kiritimati' }));
+
+    await waitFor(() => expect(names()).toEqual(AFTER));
+  });
+
+  it('keeps an open edit modal on the same chore through a midnight re-sort', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const puts: string[] = [];
+    stubListFetch(
+      () => listJson(baseList()),
+      (url, method) => {
+        if (method !== 'PUT') return undefined;
+        puts.push(url);
+        return listJson({ ...orderChore(2, 'Beta Two', 5, 2), version: 2 });
+      },
+    );
+    render(viewElement());
+    await waitFor(() => expect(names()).toEqual(BEFORE));
+    await user.click(within(rowFor('Beta')).getByLabelText('Edit chore'));
+    expect(await screen.findByLabelText('Name')).toHaveValue('Beta');
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(12 * 3_600_000 + 1_000);
+    });
+
+    await waitFor(() => expect(names()).toEqual(AFTER));
+    const nameInput = screen.getByLabelText('Name');
+    expect(nameInput).toHaveValue('Beta');
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Beta Two');
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => expect(puts).toEqual(['/api/chores/2']));
+    await waitFor(() => expect(screen.getByText('Beta Two')).toBeInTheDocument());
+  });
+
+  it('yields a freshly sorted list when the view is remounted for a household switch', async () => {
+    let list = baseList();
+    stubListFetch(() => listJson(list));
+    const { rerender } = render(viewElement({}, 'household-1'));
+    await waitFor(() => expect(names()).toEqual(BEFORE));
+
+    list = reorderedList();
+    rerender(viewElement({}, 'household-2'));
+
+    await waitFor(() => expect(names()).toEqual(AFTER));
+  });
+
+  it('does not move rows when an edit would change status or move the chore to another room', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    stubListFetch(
+      () => listJson(baseList()),
+      (url, method) =>
+        url === '/api/chores/2' && method === 'PUT'
+          ? // Beta moves to Kitchen and becomes the most overdue chore (frequency 1).
+            listJson({ ...orderChore(2, 'Beta', 5, 1, 2), version: 2 })
+          : undefined,
+    );
+    const { rerender } = render(viewElement());
+    await waitFor(() => expect(names()).toEqual(BEFORE));
+
+    await user.click(within(rowFor('Beta')).getByLabelText('Edit chore'));
+    await user.selectOptions(await screen.findByLabelText('Room'), 'Kitchen');
+    const frequency = screen.getByLabelText('Frequency (days)');
+    await user.clear(frequency);
+    await user.type(frequency, '1');
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Save Changes' })).not.toBeInTheDocument(),
+    );
+    expect(names()).toEqual(BEFORE);
+
+    // In its new room's tab Beta sits at its global-order position (after Gamma), not first.
+    rerender(viewElement({ selectedRoom: '2' }));
+    await waitFor(() => expect(screen.queryByText('Alpha')).not.toBeInTheDocument());
+    expect(names()).toEqual(['Gamma', 'Beta']);
+  });
+
+  it('leaves other rows in place on delete and restores a rolled-back delete at its snapshot position', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    let resolveDelete: (response: Response) => void = () => {};
+    const pendingDelete = new Promise<Response>((resolve) => {
+      resolveDelete = resolve;
+    });
+    stubListFetch(
+      () => listJson(baseList()),
+      (url, method) => (url === '/api/chores/3' && method === 'DELETE' ? pendingDelete : undefined),
+    );
+    render(viewElement());
+    await waitFor(() => expect(names()).toEqual(BEFORE));
+
+    await user.click(within(rowFor('Gamma')).getByLabelText('Delete chore'));
+
+    await waitFor(() => expect(screen.queryByText('Gamma')).not.toBeInTheDocument());
+    expect(names()).toEqual(['Alpha', 'Beta']);
+
+    resolveDelete(await errorResponse(500, 'nope'));
+
+    await waitFor(() => expect(screen.getByText('Gamma')).toBeInTheDocument());
+    expect(names()).toEqual(BEFORE);
   });
 });

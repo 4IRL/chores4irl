@@ -212,6 +212,38 @@ describe('flush', () => {
     await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
   });
 
+  it('replays legacy persisted entries carrying details/longTermTask verbatim and clears them', async () => {
+    const legacy = { ...chorePayload, details: 'old note', longTermTask: true };
+    localStorage.setItem(
+      'outbox-v1',
+      JSON.stringify([
+        { id: 'c1', type: 'create', payload: legacy, tempId: -1, createdAt: '2026-06-01T00:00:00.000Z' },
+        {
+          id: 'e1',
+          type: 'edit',
+          payload: legacy,
+          choreId: 5,
+          baseVersion: 2,
+          createdAt: '2026-06-01T00:00:01.000Z',
+        },
+      ]),
+    );
+    const bodies: Record<string, unknown>[] = [];
+    const fetchImpl = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(JSON.parse(init?.body as string));
+      return jsonResponse({ success: true, data: { id: 5 } });
+    });
+    const outbox = createOutbox(fetchImpl);
+
+    await vi.waitFor(() => expect(outbox.getEntries()).toHaveLength(0));
+
+    expect(bodies).toHaveLength(2);
+    for (const body of bodies) {
+      expect(body).toMatchObject({ details: 'old note', longTermTask: true });
+    }
+    expect(JSON.parse(localStorage.getItem('outbox-v1') ?? '[]')).toHaveLength(0);
+  });
+
   it('sends the same clientId on every replay of a create entry (idempotency key stability)', async () => {
     const bodies: string[] = [];
     const fetchImpl = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {

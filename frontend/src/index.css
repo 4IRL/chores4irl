@@ -35,6 +35,14 @@ html {
   scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom));
 }
 
+/* Phones only: the status count strip is sticky top-0 below 640px (sm:static), so keep Tab /
+   scrollIntoView targets clear of it. Keep this breakpoint in sync with the strip's sm:static. */
+@media (max-width: 639.98px) {
+  html {
+    scroll-padding-top: 3.5rem;
+  }
+}
+
 /* Feedback toast enter: 150 ms fade + 8px rise. */
 @keyframes toast-in {
   from {

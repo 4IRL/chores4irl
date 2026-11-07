@@ -5,13 +5,11 @@ type ChoreRow = {
   id: number;
   household_id: number;
   name: string;
-  details: string | null;
   room_id: number;
   date_last_completed: string;
   duration: number;
   frequency: number;
   urgency: 'low' | 'medium' | 'high' | null;
-  long_term_task: number;
   version: number;
 };
 
@@ -34,13 +32,11 @@ function rowToChore(row: ChoreRow): ChoreWire {
   return {
     id: row.id,
     name: row.name,
-    details: row.details ?? null,
     roomId: row.room_id,
     dateLastCompleted: row.date_last_completed,
     duration: row.duration,
     frequency: row.frequency,
     urgency: row.urgency ?? undefined,
-    longTermTask: row.long_term_task === 1 ? true : undefined,
     version: row.version,
   };
 }
@@ -74,19 +70,17 @@ export async function createChore(
     const result = await db
       .prepare(
         `INSERT INTO chores
-          (household_id, name, details, room_id, date_last_completed, duration, frequency, urgency, long_term_task, version, client_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+          (household_id, name, room_id, date_last_completed, duration, frequency, urgency, version, client_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
       )
       .bind(
         householdId,
         input.name,
-        input.details ?? null,
         input.roomId,
         dateLastCompletedString(input.dateLastCompleted),
         input.duration,
         input.frequency,
         input.urgency ?? null,
-        input.longTermTask ? 1 : 0,
         clientId ?? null,
       )
       .run();
@@ -150,20 +144,18 @@ export async function updateChore(
     db
       .prepare(
         `UPDATE chores
-         SET name = ?, details = ?, room_id = ?, date_last_completed = ?,
-             duration = ?, frequency = ?, urgency = ?, long_term_task = ?,
+         SET name = ?, room_id = ?, date_last_completed = ?,
+             duration = ?, frequency = ?, urgency = ?,
              version = version + 1
          WHERE id = ? AND household_id = ? AND version = ?`,
       )
       .bind(
         input.name,
-        input.details ?? null,
         input.roomId,
         dateLastCompletedString(input.dateLastCompleted),
         input.duration,
         input.frequency,
         input.urgency ?? null,
-        input.longTermTask ? 1 : 0,
         id,
         householdId,
         expectedVersion,

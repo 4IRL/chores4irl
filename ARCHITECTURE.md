@@ -62,6 +62,9 @@ frontend/         React SPA — Cloudflare Pages
     utils/api.ts             Single fetch entrypoint (apiFetch) — attaches X-Household-Id, routes
                               preview deployments to mock data instead of the real API
     utils/mockApi.ts          Mock data served on *.pages.dev preview deployments
+    utils/choreOrder.ts       Stable list order: snapshotOrder / applyOrder (see "Chore ordering")
+    utils/choreStatusCounts.ts  Done-today / due-soon / overdue counts for the status strip
+    components/nav/StatusCountStrip.tsx  Sticky-on-phones count strip under the room tabs (shown once a list loads)
     outbox/                   Offline write queue (localStorage-backed) — queues chore mutations when offline
     cache/choresCache.ts      IndexedDB read cache for offline chore viewing
     hooks/useMidnightClock.ts Recomputes chore status and sort order at household midnight
@@ -267,7 +270,10 @@ Migrate-then-deploy means the old Worker runs on the new schema for a window, so
 additive-compatible with the currently deployed code. To drop or rename a column or table, ship two
 releases: release 1 deploys code that no longer reads or writes it (it is still in the schema); release 2,
 a later PR, ships the `DROP` migration once release 1 is live. See `0006_global_admin_users_cleanup.sql`
-for the snapshot-then-rebuild precedent. F7 (#81) is the first planned user of this pattern.
+for the snapshot-then-rebuild precedent. F7 (#81) is the first user of this pattern: phase 1 shipped with the list-polish bundle (the Details
+and Long-term task fields left the form, the shared type and every backend read/write; legacy request
+keys are accepted and ignored), and phase 2 (migration `0012`, dropping `details` and `long_term_task`)
+follows once phase 1 is live.
 
 ## Notifications
 
@@ -461,7 +467,7 @@ is available).
 
 ## Chore ordering
 
-`orderChores` (`frontend/src/utils/choreSort.ts`) sorts the visible chore list by status colour, not by a
+`orderChores` (`frontend/src/utils/choreSort.ts`) sorts the chore list by status colour, not by a
 single score. `classifyStatus` (`utils/choreBarMath.ts`) puts each chore in a red, orange or green bucket,
 and the timer bar uses the same function and the same `daysSinceInZone` helper, so colour and order agree.
 
@@ -471,8 +477,13 @@ and the timer bar uses the same function and the same `daysSinceInZone` helper, 
   never changes the colour.
 - **Not monotone in colour.** The output is the fold followed by the tail, so the list can run red,
   orange, green in the fold and then red again in the tail. The UI shows no divider.
-- **Filtered list.** The quota applies to the room- and search-filtered list, so a chore's rank can change
-  as the user filters.
+- **Stable snapshot, filtered after.** `ChoresView` sorts ALL chores once into an id snapshot
+  (`snapshotOrder` / `applyOrder` in `frontend/src/utils/choreOrder.ts`); the room and search filters only
+  restrict that global order, so rows never jump on complete, edit, delete or filtering. It re-snapshots on
+  first load (or the first applied list after a 403 clear, which resets the snapshot to null), on a
+  stale-to-fresh load when the snapshot came from the cache, at household midnight, and on a timezone
+  change; a household switch remounts the view. Chores created since (including pending temp-id creates)
+  are appended in array order until the next re-snapshot.
 - **Tuning.** Constants live in `frontend/src/assets/constants.ts` (`SORT_FOLD`, `SORT_BASE_QUOTA`,
   `SORT_PRESSURE_THRESHOLD`, `SORT_URGENCY_MULTIPLIER`). They are first guesses, to be tuned on real data.
 
