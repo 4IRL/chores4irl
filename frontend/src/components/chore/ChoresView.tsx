@@ -16,7 +16,7 @@ import ChoreFormModal from '../form/ChoreFormModal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import SettingsModal from '../settings/SettingsModal';
 import StatusBanner from '../common/StatusBanner';
-import Toast, { type ToastState } from '../common/Toast';
+import Toast, { type ToastAction, type ToastState } from '../common/Toast';
 import { useOutbox } from '../../outbox/useOutbox';
 import {
   isPermanentRejection,
@@ -211,6 +211,7 @@ export default function ChoresView({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [conflictChoreId, setConflictChoreId] = useState<number | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const modalOpen = isAddOpen || editingId != null || isSettingsOpen || conflictChoreId != null;
   const toastIdRef = useRef(0);
   // Mirrors the current toast synchronously: showToast runs from async
   // callbacks that close over stale renders, so precedence reads this ref.
@@ -301,17 +302,25 @@ export default function ChoresView({
 
   function releaseToastFocus() {
     const testid = (document.activeElement as HTMLElement | null)?.getAttribute('data-testid');
-    if (testid === 'feedback-toast-dismiss') addChoreRef.current?.focus();
+    if (
+      testid === 'feedback-toast-dismiss' ||
+      testid === 'feedback-toast-undo' ||
+      testid === 'feedback-toast-redo'
+    ) {
+      addChoreRef.current?.focus();
+    }
   }
 
-  function showToast(tone: ToastTone, message: string) {
+  // Returns true when the toast was shown, false when a standing error toast suppressed it.
+  function showToast(tone: ToastTone, message: string, action?: ToastAction): boolean {
     const current = toastRef.current;
-    if (tone === 'neutral' && current?.tone === 'error') return;
+    if (tone === 'neutral' && current?.tone === 'error') return false;
     releaseToastFocus();
     toastIdRef.current += 1;
-    const next: ToastState = { id: toastIdRef.current, tone, message };
+    const next: ToastState = { id: toastIdRef.current, tone, message, ...(action && { action }) };
     toastRef.current = next;
     setToast(next);
+    return true;
   }
 
   function mutate<T>(options: MutateOptions<T>) {
@@ -832,7 +841,7 @@ export default function ChoresView({
           onCancel={handleKeepEditing}
         />
       )}
-      <Toast toast={toast} onDismiss={dismissToast} />
+      <Toast toast={toast} onDismiss={dismissToast} paused={modalOpen} holding={false} />
     </div>
   );
 }

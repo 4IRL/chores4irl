@@ -136,10 +136,12 @@ describe('AdminPanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add Member' }));
     const modal = screen.getByTestId('add-member-modal-backdrop');
-    await user.type(within(modal).getByLabelText('Email'), 'new@example.com');
+    // paste instead of per-keystroke typing: typing 15 chars exceeded the 5 s timeout under full-suite load
+    await user.click(within(modal).getByLabelText('Email'));
+    await user.paste('new@example.com');
     await user.click(within(modal).getByRole('button', { name: 'Save' }));
 
-    await screen.findByText('new@example.com');
+    await screen.findByText('new@example.com', undefined, { timeout: 4000 });
     expect(screen.queryByTestId('status-banner')).not.toBeInTheDocument();
   });
 

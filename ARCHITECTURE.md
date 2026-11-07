@@ -522,7 +522,9 @@ mean this can never be offline-_capable_, only offline-_tolerant_). Two mechanis
   write fails, and replay when connectivity returns (`useOutbox.ts`). Conflict handling: completions
   merge by latest timestamp rather than rejecting (see commit `8013e84`). Permanent 4xx rejections are
   dropped from the queue, while 401/403/408/429/5xx and a non-JSON 2xx keep the entry and stop the flush
-  pass (`FlushResult.status` is additive/optional).
+  pass (`FlushResult.status` is additive/optional). `Outbox.remove(id)` cancels a queued entry (returns
+  false for an unknown id or an entry mid-send, tracked by a counted in-flight set; a removed entry is
+  never sent by a flush already underway).
 - **Mutation feedback (`common/Toast.tsx`, state in `ChoresView`)** — a one-at-a-time bottom-centre toast
   reports every chore mutation outcome. Green (auto-dismiss, 4 s) after the server confirms; red and
   sticky on failure, with the optimistic change rolled back (an edit or complete that gets a 404 removes
@@ -532,7 +534,15 @@ mean this can never be offline-_capable_, only offline-_tolerant_). Two mechanis
   A failed outbox flush shows an error toast, and the chore list is refetched only when a queued entry was
   permanently dropped. A pass with both a dropped and a kept entry shows one combined toast. A 409 on a
   mutation with no conflict handler rolls back and shows the error toast. Copy is the app's own text,
-  never the backend `error` string.
+  never the backend `error` string. `showToast(tone, message, action?)` returns whether the toast was
+  shown. **Toast action:** a success/neutral toast may carry an `Undo`/`Redo` button (plus the Dismiss
+  button and an `sr-only` shortcut hint: "Press Ctrl+Z to undo" / "Press Ctrl+Shift+Z to redo") and then
+  stays 8 s instead of 4/6 s. The countdown pauses while the pointer or focus is on the card (including a
+  card that mounts under a resting pointer, checked via `:hover`), while a modal is open (`paused`; both
+  buttons `disabled`), while the tab is hidden, and while an Undo/Redo request is in flight (`holding`;
+  action button `aria-disabled`). Hover/focus/`holding` pauses are bounded by a 30 s total cap; a
+  restart after a pause is a full interval. If the action is removed from the standing toast (same id),
+  all pause state resets and the plain 4/6 s interval restarts. Error toasts never carry an action.
 - **`cache/choresCache.ts`** — last-known chore list cached in IndexedDB so the view isn't blank while
   offline; paired with the PWA service worker (`vite-plugin-pwa`, `workbox` config in `vite.config.ts`)
   for asset caching.
