@@ -273,7 +273,7 @@ a later PR, ships the `DROP` migration once release 1 is live. See `0006_global_
 for the snapshot-then-rebuild precedent. F7 (#81) is the first user of this pattern: phase 1 shipped with the list-polish bundle (the Details
 and Long-term task fields left the form, the shared type and every backend read/write; legacy request
 keys are accepted and ignored), and phase 2 (migration `0012`, dropping `details` and `long_term_task`)
-follows once phase 1 is live.
+shipped once phase 1 was live (#119).
 
 ## Notifications
 

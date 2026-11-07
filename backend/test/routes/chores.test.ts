@@ -155,12 +155,6 @@ describe('legacy details / longTermTask keys', () => {
 
   type ChoreResponse = { data: Record<string, unknown> & { id: number; version: number } };
 
-  async function legacyColumns(id: number) {
-    return env.DB.prepare('SELECT details, long_term_task FROM chores WHERE id = ?')
-      .bind(id)
-      .first<{ details: string | null; long_term_task: number }>();
-  }
-
   async function createPlain(app: ReturnType<typeof testApp>): Promise<ChoreResponse> {
     const res = await app.request('/api/chores', {
       method: 'POST',
@@ -170,13 +164,7 @@ describe('legacy details / longTermTask keys', () => {
     return (await res.json()) as ChoreResponse;
   }
 
-  async function setLegacyInSql(id: number) {
-    await env.DB.prepare('UPDATE chores SET details = ?, long_term_task = 1 WHERE id = ?')
-      .bind('set in sql', id)
-      .run();
-  }
-
-  it('POST accepts legacy keys, returns neither, and writes nothing', async () => {
+  it('POST accepts legacy keys and returns neither', async () => {
     const res = await testApp(HOUSEHOLD_A).request('/api/chores', {
       method: 'POST',
       headers: jsonHeaders,
@@ -186,7 +174,6 @@ describe('legacy details / longTermTask keys', () => {
     const { data } = (await res.json()) as ChoreResponse;
     expect(data).not.toHaveProperty('details');
     expect(data).not.toHaveProperty('longTermTask');
-    expect(await legacyColumns(data.id)).toEqual({ details: null, long_term_task: 0 });
   });
 
   it('POST replaying the same clientId with legacy keys returns the same chore', async () => {
@@ -209,10 +196,9 @@ describe('legacy details / longTermTask keys', () => {
     expect(res.status).toBe(400);
   });
 
-  it('PUT accepts legacy keys, returns neither, and leaves SQL-set columns unchanged', async () => {
+  it('PUT accepts legacy keys and returns neither', async () => {
     const app = testApp(HOUSEHOLD_A);
     const created = await createPlain(app);
-    await setLegacyInSql(created.data.id);
 
     const res = await app.request(`/api/chores/${created.data.id}`, {
       method: 'PUT',
@@ -229,7 +215,6 @@ describe('legacy details / longTermTask keys', () => {
     expect(data.name).toBe('Renamed');
     expect(data).not.toHaveProperty('details');
     expect(data).not.toHaveProperty('longTermTask');
-    expect(await legacyColumns(created.data.id)).toEqual({ details: 'set in sql', long_term_task: 1 });
   });
 
   it('PUT with legacy keys and a stale version still returns 409', async () => {
@@ -245,8 +230,7 @@ describe('legacy details / longTermTask keys', () => {
 
   it('GET rows contain neither key', async () => {
     const app = testApp(HOUSEHOLD_A);
-    const created = await createPlain(app);
-    await setLegacyInSql(created.data.id);
+    await createPlain(app);
     const list = (await (await app.request('/api/chores')).json()) as { data: Record<string, unknown>[] };
     expect(list.data).toHaveLength(1);
     expect(list.data[0]).not.toHaveProperty('details');
