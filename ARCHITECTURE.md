@@ -270,7 +270,10 @@ Migrate-then-deploy means the old Worker runs on the new schema for a window, so
 additive-compatible with the currently deployed code. To drop or rename a column or table, ship two
 releases: release 1 deploys code that no longer reads or writes it (it is still in the schema); release 2,
 a later PR, ships the `DROP` migration once release 1 is live. See `0006_global_admin_users_cleanup.sql`
-for the snapshot-then-rebuild precedent. F7 (#81) is the first planned user of this pattern.
+for the snapshot-then-rebuild precedent. F7 (#81) is the first user of this pattern: phase 1 shipped with the list-polish bundle (the Details
+and Long-term task fields left the form, the shared type and every backend read/write; legacy request
+keys are accepted and ignored), and phase 2 (migration `0012`, dropping `details` and `long_term_task`)
+follows once phase 1 is live.
 
 ## Notifications
 

@@ -4,13 +4,11 @@
 export interface Chore {
   id: number;
   name: string;
-  details?: string | null;
   roomId: number;
   dateLastCompleted: Date;
   duration: number;
   frequency: number;
   urgency?: 'low' | 'medium' | 'high';
-  longTermTask?: boolean;
 }
 
 export type SwipeStyle = 'ios' | 'android';

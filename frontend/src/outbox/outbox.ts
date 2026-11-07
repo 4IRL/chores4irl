@@ -4,13 +4,11 @@ const STORAGE_KEY = 'outbox-v1';
 
 export type ChorePayload = {
   name: string;
-  details?: string | null;
   roomId: number;
   dateLastCompleted: string;
   duration: number;
   frequency: number;
   urgency?: 'low' | 'medium' | 'high';
-  longTermTask?: boolean;
 };
 
 export type OutboxEntry =

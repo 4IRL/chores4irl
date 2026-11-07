@@ -7,7 +7,6 @@ import type { Chore } from '@customTypes/SharedTypes';
 const chore: Chore = {
   id: 1,
   name: 'Vacuum',
-  details: null,
   roomId: 1,
   dateLastCompleted: new Date('2026-06-01T00:00:00.000Z'),
   duration: 20,

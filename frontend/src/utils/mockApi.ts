@@ -13,7 +13,6 @@
 type ChoreWire = {
   id: number;
   name: string;
-  details?: string | null;
   roomId: number;
   dateLastCompleted: string;
   duration: number;

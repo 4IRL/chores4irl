@@ -12,7 +12,6 @@ function makeChore(dateLastCompleted: Date): Chore {
   return {
     id: 7,
     name: 'Mop Floors',
-    details: null,
     roomId: 1,
     dateLastCompleted,
     duration: 20,
@@ -75,6 +74,34 @@ describe('ChoreForm household-timezone dates', () => {
     await user.type(input, '2026-10-05');
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
     expect(submittedDate(onSubmit).getTime()).toBe(parseFormDate('2026-10-05', tz).getTime());
+  });
+});
+
+describe('ChoreForm dropped fields', () => {
+  it('renders no Details or Long-term task field and edit submits neither key', async () => {
+    const { user, onSubmit } = setup(new Date('2026-10-01T00:00:00Z'), 'UTC');
+    expect(screen.queryByLabelText('Details')).toBeNull();
+    expect(screen.queryByLabelText('Long-term task')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+    const submitted = onSubmit.mock.calls[0][0] as Record<string, unknown>;
+    expect(submitted).not.toHaveProperty('details');
+    expect(submitted).not.toHaveProperty('longTermTask');
+  });
+
+  it('add submits neither key', async () => {
+    const onSubmit = vi.fn();
+    const user = userEvent.setup();
+    render(<ChoreForm rooms={rooms} householdTimezone="UTC" onSubmit={onSubmit} onCancel={vi.fn()} />);
+    expect(screen.queryByLabelText('Details')).toBeNull();
+    expect(screen.queryByLabelText('Long-term task')).toBeNull();
+    await user.type(screen.getByLabelText('Name'), 'Dust');
+    await user.selectOptions(screen.getByLabelText('Room'), '1');
+    await user.type(screen.getByLabelText('Duration (minutes)'), '10');
+    await user.type(screen.getByLabelText('Frequency (days)'), '3');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    const submitted = onSubmit.mock.calls[0][0] as Record<string, unknown>;
+    expect(submitted).not.toHaveProperty('details');
+    expect(submitted).not.toHaveProperty('longTermTask');
   });
 });
 

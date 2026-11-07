@@ -41,13 +41,11 @@ async function createChoreOk(householdId: number, input: ChoreInput, clientId?: 
 
 const baseChoreInput = {
   name: 'Vacuum',
-  details: null,
   roomId: ROOM_A,
   dateLastCompleted: '2026-06-01T00:00:00.000Z',
   duration: 20,
   frequency: 7,
   urgency: undefined,
-  longTermTask: undefined,
 };
 
 beforeEach(async () => {
