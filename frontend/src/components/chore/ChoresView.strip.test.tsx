@@ -129,6 +129,37 @@ describe('ChoresView status count strip', () => {
     expect(label()).toBe('0 done today · 0 due soon · 2 overdue');
   });
 
+  it('moves a due-soon chore to overdue when the clock passes household midnight', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-01T23:59:30.000Z'));
+    stubFetch((url) =>
+      url === '/api/chores'
+        ? jsonResponse({
+            success: true,
+            data: [
+              {
+                id: 3,
+                name: 'Mop',
+                roomId: 1,
+                dateLastCompleted: '2026-06-29T00:00:00.000Z',
+                duration: 15,
+                frequency: 2,
+                version: 1,
+              },
+            ],
+          })
+        : undefined,
+    );
+    renderView();
+    await waitFor(() => expect(screen.getByText('Mop')).toBeInTheDocument());
+    expect(label()).toBe('0 done today · 1 due soon · 0 overdue');
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    await waitFor(() => expect(label()).toBe('0 done today · 0 due soon · 1 overdue'));
+  });
+
   it('shows the green 0 strip with no search match', async () => {
     stubFetch();
     renderView();
@@ -192,15 +223,24 @@ describe('ChoresView status count strip', () => {
     expect(label()).toBe('0 done today · 0 due soon · 2 overdue');
   });
 
-  it('is absent after a 403 clear', async () => {
+  it('is absent after a 403 clear, and returns after a later successful load', async () => {
     await writeChoresCache(mockChores);
     const onHouseholdRevoked = vi.fn();
+    let revoked = true;
     stubFetch((url) =>
-      url === '/api/chores' ? jsonResponse({ success: false, error: 'Not a member' }, 403) : undefined,
+      url === '/api/chores' && revoked
+        ? jsonResponse({ success: false, error: 'Not a member' }, 403)
+        : undefined,
     );
-    renderView({ onHouseholdRevoked });
+    const view = renderView({ onHouseholdRevoked });
     await waitFor(() => expect(onHouseholdRevoked).toHaveBeenCalled());
     expect(screen.queryByTestId('status-count-strip')).not.toBeInTheDocument();
+
+    revoked = false;
+    view.unmount();
+    renderView({ onHouseholdRevoked });
+    await waitFor(() => expect(screen.getByTestId('status-count-strip')).toBeInTheDocument());
+    expect(screen.getByText('Vacuum')).toBeInTheDocument();
   });
 
   it('stays rendered while the search is focused on a touch device (the deck hides)', async () => {
