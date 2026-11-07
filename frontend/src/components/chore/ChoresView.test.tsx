@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import type { ComponentProps } from 'react';
-import { render, screen, waitFor, cleanup, within, act } from '@testing-library/react';
+import { render, screen, waitFor, cleanup, within, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChoresView from './ChoresView';
 import { createOutbox as createOutboxBase } from '../../outbox/outbox';
@@ -2537,7 +2537,7 @@ describe('ChoresView undo of complete and edit', () => {
     });
     expect(within(barFor('Vacuum')).getByText('30 days ago')).toBeInTheDocument();
     expect(undoButton()).not.toBeInTheDocument();
-    expect(redoButton()).not.toBeInTheDocument();
+    expect(redoButton()).toBeInTheDocument();
     expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'neutral');
   });
 
@@ -2578,7 +2578,7 @@ describe('ChoresView undo of complete and edit', () => {
     await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
   });
 
-  it('cancels an offline-queued complete without any request and shows Undone with no action', async () => {
+  it('cancels an offline-queued complete without any request and shows Undone with a Redo action', async () => {
     const user = setupUndo();
     const testOutbox = await completeVacuumOffline(user);
     expect(testOutbox.getEntries()).toHaveLength(1);
@@ -2591,7 +2591,7 @@ describe('ChoresView undo of complete and edit', () => {
     expect(vi.mocked(fetch).mock.calls.length).toBe(before);
     expect(toastText()).toContain('Undone');
     expect(undoButton()).not.toBeInTheDocument();
-    expect(redoButton()).not.toBeInTheDocument();
+    expect(redoButton()).toBeInTheDocument();
     expect(within(barFor('Vacuum')).getByText('30 days ago')).toBeInTheDocument();
   });
 
@@ -3181,7 +3181,7 @@ describe('ChoresView undo of delete', () => {
     expect(screen.getByText('Dishes')).toBeInTheDocument();
     expect(vacuumBeforeDishes()).toBe(false);
     expect(undoButton()).not.toBeInTheDocument();
-    expect(redoButton()).not.toBeInTheDocument();
+    expect(redoButton()).toBeInTheDocument();
     expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'neutral');
 
     // The row ends at the restore response's version, not the placeholder: a later edit sends it.
@@ -3191,7 +3191,7 @@ describe('ChoresView undo of delete', () => {
     expect(bodyOf(callsTo('PUT', '/api/chores/2')[0]).version).toBe(7);
   });
 
-  it('cancels an offline-queued delete without any request and shows Undone with no action', async () => {
+  it('cancels an offline-queued delete without any request and shows Undone with a Redo action', async () => {
     const user = setupUndo();
     const testOutbox = createOutbox(vi.fn());
     stubListFetch(urgentList, (url, method) =>
@@ -3303,5 +3303,390 @@ describe('ChoresView undo of delete', () => {
     expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
     expect(screen.queryByText('Vacuum')).not.toBeInTheDocument();
     expect(testOutbox.getEntries()).toHaveLength(0);
+  });
+});
+
+type RedoUser = ReturnType<typeof userEvent.setup>;
+
+async function editVacuumToHoover(user: RedoUser) {
+  await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+  await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
+  await user.clear(screen.getByLabelText('Name'));
+  await user.type(screen.getByLabelText('Name'), 'Hoover');
+  await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+  return screen.findByTestId('feedback-toast-undo');
+}
+
+const HOOVER = { ...mockChores[0], urgency: 'high', name: 'Hoover' };
+const putVersions = (id: number) => callsTo('PUT', `/api/chores/${id}`).map((c) => bodyOf(c).version);
+
+describe('ChoresView redo of complete, edit and delete', () => {
+  it('round-trips a complete: undo PUT, redo PUT of the stored row, undo PUT again, on the version chain', async () => {
+    const user = setupUndo();
+    let putNo = 0;
+    undoStub((url, method) => {
+      if (url !== '/api/chores/1' || method !== 'PUT') return undefined;
+      putNo += 1;
+      return okRow({
+        ...(putNo === 2 ? VACUUM_COMPLETED : mockChores[0]),
+        urgency: 'high',
+        version: 2 + putNo,
+      });
+    });
+    renderView();
+
+    await user.click(await completeVacuum(user));
+    await waitFor(() => expect(toastText()).toContain('Undone'));
+    expect(undoButton()).not.toBeInTheDocument();
+    await user.click(await screen.findByTestId('feedback-toast-redo'));
+    await waitFor(() => expect(toastText()).toContain('Redone'));
+    expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'neutral');
+    expect(redoButton()).not.toBeInTheDocument();
+    expect(within(barFor('Vacuum')).getByText(/^0\s+days\s+ago$/)).toBeInTheDocument();
+    await user.click(await screen.findByTestId('feedback-toast-undo'));
+    await waitFor(() => expect(toastText()).toContain('Undone'));
+
+    expect(putVersions(1)).toEqual([2, 3, 4]);
+    const puts = callsTo('PUT', '/api/chores/1');
+    // Redo re-applies the server row (stored 07-01T00:00), not the tap time.
+    expect(bodyOf(puts[1]).dateLastCompleted).toBe('2026-07-01T00:00:00.000Z');
+    expect(bodyOf(puts[2]).dateLastCompleted).toBe('2026-06-01T00:00:00.000Z');
+    expect(redoButton()).toBeInTheDocument();
+  });
+
+  it('round-trips an edit: undo, redo and undo again each send the next version', async () => {
+    const user = setupUndo();
+    let putNo = 0;
+    undoStub((url, method) => {
+      if (url !== '/api/chores/1' || method !== 'PUT') return undefined;
+      putNo += 1;
+      // PUT 1 = the edit, 2 = undo, 3 = redo, 4 = undo again.
+      return okRow({
+        ...(putNo === 1 || putNo === 3 ? HOOVER : { ...mockChores[0], urgency: 'high' }),
+        version: 1 + putNo,
+      });
+    });
+    renderView();
+
+    await user.click(await editVacuumToHoover(user));
+    await user.click(await screen.findByTestId('feedback-toast-redo'));
+    await waitFor(() => expect(screen.getByText('Hoover')).toBeInTheDocument());
+    expect(toastText()).toContain('Redone');
+    await user.click(await screen.findByTestId('feedback-toast-undo'));
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+    expect(putVersions(1)).toEqual([mockChores[0].version, 2, 3, 4]);
+    const puts = callsTo('PUT', '/api/chores/1');
+    expect(bodyOf(puts[2]).name).toBe('Hoover');
+    expect(bodyOf(puts[3]).name).toBe('Vacuum');
+  });
+
+  it('round-trips a delete: restore, DELETE again with "Redone", restore again', async () => {
+    const user = setupUndo();
+    undoStub((url, method) => {
+      if (url === '/api/chores/2' && method === 'DELETE') return jsonResponse({ success: true, data: null });
+      if (url === '/api/chores/2/restore' && method === 'PATCH')
+        return okRow({ ...mockChores[1], version: 7 });
+      return undefined;
+    });
+    renderView();
+
+    await user.click(await deleteChore(user, 'Dishes'));
+    await waitFor(() => expect(toastText()).toContain('Undone'));
+    await user.click(await screen.findByTestId('feedback-toast-redo'));
+    await waitFor(() => expect(toastText()).toMatch(/^Redone/));
+    // An online-undone delete (cancelled false) takes the DELETE request, never the handler ("Chore deleted").
+    expect(callsTo('DELETE', '/api/chores/2')).toHaveLength(2);
+    expect(screen.queryByText('Dishes')).not.toBeInTheDocument();
+    await user.click(await screen.findByTestId('feedback-toast-undo'));
+    await waitFor(() => expect(screen.getByText('Dishes')).toBeInTheDocument());
+
+    expect(callsTo('PATCH', '/api/chores/2/restore')).toHaveLength(2);
+    expect(toastText()).toContain('Undone');
+  });
+
+  it('shows the sticky "Can\'t redo" error on a 409 and refetches', async () => {
+    const user = setupUndo();
+    let putNo = 0;
+    const { getCount } = undoStub((url, method) => {
+      if (url !== '/api/chores/1' || method !== 'PUT') return undefined;
+      putNo += 1;
+      return putNo === 1
+        ? okRow({ ...mockChores[0], urgency: 'high', version: 3 })
+        : errorResponse(409, 'conflict');
+    });
+    renderView();
+
+    await user.click(await completeVacuum(user));
+    await user.click(await screen.findByTestId('feedback-toast-redo'));
+
+    await waitFor(() => expect(toastText()).toBe("Can't redo — someone changed it"));
+    expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+    expect(redoButton()).not.toBeInTheDocument();
+    await waitFor(() => expect(getCount()).toBeGreaterThan(1));
+  });
+
+  it('rolls back and shows the sticky error when the redo fetch throws', async () => {
+    const user = setupUndo();
+    let putNo = 0;
+    undoStub((url, method) => {
+      if (url !== '/api/chores/1' || method !== 'PUT') return undefined;
+      putNo += 1;
+      return putNo === 1
+        ? okRow({ ...mockChores[0], urgency: 'high', version: 3 })
+        : Promise.reject(new Error('offline'));
+    });
+    renderView();
+
+    await user.click(await completeVacuum(user));
+    await user.click(await screen.findByTestId('feedback-toast-redo'));
+
+    await waitFor(() => expect(toastText()).toBe("Couldn't redo. Please try again."));
+    expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+    expect(within(barFor('Vacuum')).getByText('30 days ago')).toBeInTheDocument();
+  });
+
+  it.each(['complete', 'edit'] as const)(
+    'removes the chore when a %s redo is answered with 404',
+    async (kind) => {
+      const user = setupUndo();
+      let putNo = 0;
+      undoStub((url, method) => {
+        if (url !== '/api/chores/1' || method !== 'PUT') return undefined;
+        putNo += 1;
+        if (kind === 'edit' && putNo === 1) return okRow({ ...HOOVER, version: 2 });
+        return putNo === (kind === 'edit' ? 2 : 1)
+          ? okRow({ ...mockChores[0], urgency: 'high', version: 3 })
+          : errorResponse(404, 'gone');
+      });
+      renderView();
+
+      await user.click(kind === 'edit' ? await editVacuumToHoover(user) : await completeVacuum(user));
+      await user.click(await screen.findByTestId('feedback-toast-redo'));
+
+      await waitFor(() => expect(toastText()).toBe('That chore no longer exists.'));
+      expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+      expect(screen.queryByText(/Vacuum|Hoover/)).not.toBeInTheDocument();
+    },
+  );
+
+  it('treats a delete redo answered with 404 as a neutral "Redone" with no Undo', async () => {
+    const user = setupUndo();
+    let deleteNo = 0;
+    undoStub((url, method) => {
+      if (url === '/api/chores/2' && method === 'DELETE') {
+        deleteNo += 1;
+        return deleteNo === 1 ? jsonResponse({ success: true, data: null }) : errorResponse(404, 'gone');
+      }
+      if (url === '/api/chores/2/restore') return okRow({ ...mockChores[1], version: 7 });
+      return undefined;
+    });
+    renderView();
+
+    await user.click(await deleteChore(user, 'Dishes'));
+    await user.click(await screen.findByTestId('feedback-toast-redo'));
+
+    await waitFor(() => expect(toastText()).toBe('Redone'));
+    expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'neutral');
+    expect(undoButton()).not.toBeInTheDocument();
+    expect(redoButton()).not.toBeInTheDocument();
+    expect(screen.queryByText('Dishes')).not.toBeInTheDocument();
+  });
+
+  it('rolls back a delete redo whose fetch throws and shows the sticky error', async () => {
+    const user = setupUndo();
+    let deleteNo = 0;
+    undoStub((url, method) => {
+      if (url === '/api/chores/2' && method === 'DELETE') {
+        deleteNo += 1;
+        return deleteNo === 1
+          ? jsonResponse({ success: true, data: null })
+          : Promise.reject(new Error('offline'));
+      }
+      if (url === '/api/chores/2/restore') return okRow({ ...mockChores[1], version: 7 });
+      return undefined;
+    });
+    renderView();
+
+    await user.click(await deleteChore(user, 'Dishes'));
+    await user.click(await screen.findByTestId('feedback-toast-redo'));
+
+    await waitFor(() => expect(toastText()).toBe("Couldn't redo. Please try again."));
+    expect(screen.getByText('Dishes')).toBeInTheDocument();
+  });
+
+  it('sends one request for two synchronous Redo activations', async () => {
+    const user = setupUndo();
+    let putNo = 0;
+    undoStub((url, method) => {
+      if (url !== '/api/chores/1' || method !== 'PUT') return undefined;
+      putNo += 1;
+      return okRow({ ...mockChores[0], urgency: 'high', version: 2 + putNo });
+    });
+    renderView();
+
+    await user.click(await completeVacuum(user));
+    const redo = await screen.findByTestId('feedback-toast-redo');
+    fireEvent.click(redo);
+    fireEvent.click(redo);
+
+    await waitFor(() => expect(toastText()).toContain('Redone'));
+    expect(callsTo('PUT', '/api/chores/1')).toHaveLength(2);
+  });
+
+  it('applies data effects only when a redo lands after another mutation, leaving no Redo button', async () => {
+    const user = setupUndo();
+    let putNo = 0;
+    let resolveRedo: (r: Response) => void = () => {};
+    undoStub((url, method) => {
+      if (url === '/api/chores/2' && method === 'DELETE') return errorResponse(500, 'boom');
+      if (url !== '/api/chores/1' || method !== 'PUT') return undefined;
+      putNo += 1;
+      if (putNo === 1) return okRow({ ...mockChores[0], urgency: 'high', version: 3 });
+      return new Promise<Response>((resolve) => {
+        resolveRedo = resolve;
+      });
+    });
+    renderView();
+
+    await user.click(await completeVacuum(user));
+    await user.click(await screen.findByTestId('feedback-toast-redo'));
+    await user.click(within(rowFor('Dishes')).getByLabelText('Delete chore'));
+    await waitFor(() => expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error'));
+    const errorText = toastText();
+    resolveRedo(await okRow({ ...VACUUM_COMPLETED, version: 4 }));
+
+    await waitFor(() => expect(within(barFor('Vacuum')).getByText(/^0\s+days\s+ago$/)).toBeInTheDocument());
+    expect(toastText()).toBe(errorText);
+    expect(redoButton()).not.toBeInTheDocument();
+    expect(undoButton()).not.toBeInTheDocument();
+  });
+
+  it('keeps the newer action toast when a redo lands after a successful mutation', async () => {
+    const user = setupUndo();
+    let putNo = 0;
+    let resolveRedo: (r: Response) => void = () => {};
+    undoStub((url, method) => {
+      if (url !== '/api/chores/1' || method !== 'PUT') return undefined;
+      putNo += 1;
+      if (putNo === 1) return okRow({ ...mockChores[0], urgency: 'high', version: 3 });
+      return new Promise<Response>((resolve) => {
+        resolveRedo = resolve;
+      });
+    });
+    renderView();
+
+    await user.click(await completeVacuum(user));
+    await user.click(await screen.findByTestId('feedback-toast-redo'));
+    await user.click(barFor('Dishes'));
+    await waitFor(() => expect(toastText()).toContain('Chore completed'));
+    resolveRedo(await okRow({ ...VACUUM_COMPLETED, version: 4 }));
+
+    await waitFor(() => expect(within(barFor('Vacuum')).getByText(/^0\s+days\s+ago$/)).toBeInTheDocument());
+    expect(toastText()).toContain('Chore completed');
+    expect(toastText()).not.toContain('Redone');
+    expect(redoButton()).not.toBeInTheDocument();
+    expect(undoButton()).toBeInTheDocument();
+  });
+
+  it('drops the toast and record once the 8 s window ends', async () => {
+    const user = setupUndo();
+    undoStub((url, method) =>
+      url === '/api/chores/1' && method === 'PUT'
+        ? okRow({ ...mockChores[0], urgency: 'high', version: 3 })
+        : undefined,
+    );
+    renderView();
+
+    await user.click(await completeVacuum(user));
+    await screen.findByTestId('feedback-toast-redo');
+    act(() => {
+      vi.advanceTimersByTime(9000);
+    });
+
+    await waitFor(() => expect(screen.queryByTestId('feedback-toast')).not.toBeInTheDocument());
+    expect(redoButton()).not.toBeInTheDocument();
+  });
+
+  describe('redo after an offline cancel', () => {
+    type Mode = 'offline' | 'online' | 'conflict';
+
+    // Performs `kind` while offline, then Undoes it (cancelling the queued entry); returns controls.
+    async function cancelOffline(kind: 'complete' | 'edit' | 'delete', user: RedoUser) {
+      let mode: Mode = 'offline';
+      const testOutbox = createOutbox(vi.fn());
+      stubListFetch(urgentList, (url, method) => {
+        const isAction =
+          (kind === 'complete' && url === '/api/chores/1/complete') ||
+          (kind === 'edit' && url === '/api/chores/1' && method === 'PUT') ||
+          (kind === 'delete' && url === '/api/chores/1' && method === 'DELETE');
+        if (!isAction) return undefined;
+        if (mode === 'offline') return Promise.reject(new Error('offline'));
+        if (mode === 'conflict') return errorResponse(409, 'conflict');
+        if (kind === 'delete') return jsonResponse({ success: true, data: null });
+        return okRow(kind === 'edit' ? { ...HOOVER, version: 2 } : VACUUM_COMPLETED);
+      });
+      renderView(testOutbox);
+      const first =
+        kind === 'edit'
+          ? await editVacuumToHoover(user)
+          : kind === 'delete'
+            ? await deleteVacuum(user)
+            : await completeVacuum(user);
+      const queued = testOutbox.getEntries()[0] as unknown as { payload?: { dateLastCompleted: string } };
+      if (kind !== 'delete') expect(queued.payload?.dateLastCompleted).toBeDefined();
+      await user.click(first);
+      expect(testOutbox.getEntries()).toHaveLength(0);
+      expect(toastText()).toContain('Undone');
+      return { testOutbox, queued, setMode: (m: Mode) => (mode = m) };
+    }
+
+    it.each(['complete', 'edit', 'delete'] as const)('re-queues a %s while still offline', async (kind) => {
+      const user = setupUndo();
+      const { testOutbox, queued } = await cancelOffline(kind, user);
+      // Later tap time must not leak into a re-run of complete.
+      vi.setSystemTime(new Date('2026-07-01T15:00:00.000Z'));
+
+      await user.click(await screen.findByTestId('feedback-toast-redo'));
+
+      await waitFor(() => expect(testOutbox.getEntries()).toHaveLength(1));
+      const entry = testOutbox.getEntries()[0] as unknown as {
+        type: string;
+        payload?: { dateLastCompleted: string };
+      };
+      expect(entry.type).toBe(kind);
+      if (kind !== 'delete') expect(entry.payload?.dateLastCompleted).toBe(queued.payload?.dateLastCompleted);
+      expect(undoButton()).toBeInTheDocument();
+      expect(redoButton()).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['complete', 'Chore completed'],
+      ['edit', 'Changes saved'],
+      ['delete', 'Chore deleted'],
+    ] as const)(
+      'a %s re-run online shows the handler copy with a fresh Undo, not "Redone"',
+      async (kind, copy) => {
+        const user = setupUndo();
+        const { setMode } = await cancelOffline(kind, user);
+        setMode('online');
+
+        await user.click(await screen.findByTestId('feedback-toast-redo'));
+
+        await waitFor(() => expect(toastText()).toMatch(new RegExp(`^${copy}`)));
+        expect(undoButton()).toBeInTheDocument();
+      },
+    );
+
+    it('opens the existing edit conflict dialog on a 409 instead of the sticky redo error', async () => {
+      const user = setupUndo();
+      const { setMode } = await cancelOffline('edit', user);
+      setMode('conflict');
+
+      await user.click(await screen.findByTestId('feedback-toast-redo'));
+
+      await waitFor(() => expect(screen.getByText('This chore was changed elsewhere.')).toBeInTheDocument());
+      expect(toastText()).not.toContain("Can't redo");
+    });
   });
 });

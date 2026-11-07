@@ -94,6 +94,9 @@ const UNDONE_MESSAGE = 'Undone';
 const UNDO_CONFLICT_MESSAGE = "Can't undo — someone changed it";
 const RESTORE_NOT_FOUND_MESSAGE = "Couldn't restore — that chore no longer exists";
 const UNDO_FAILED_MESSAGE = "Couldn't undo. Please try again.";
+const REDONE_MESSAGE = 'Redone';
+const REDO_CONFLICT_MESSAGE = "Can't redo — someone changed it";
+const REDO_FAILED_MESSAGE = "Couldn't redo. Please try again.";
 const UNDO_STILL_SYNCING_MESSAGE = "Can't undo yet — still syncing";
 const OFFLINE_MESSAGE = "Saved offline — will sync when you're back online";
 const FLUSH_SUCCESS_MESSAGE = 'Offline changes synced';
@@ -289,7 +292,7 @@ export default function ChoresView({
   // Mirrors undoRef.current?.inFlight (a ref change alone does not re-render) so the toast can hold.
   const [undoInFlight, setUndoInFlight] = useState(false);
   // Assigned after every render so the toast button never calls a closure captured at arming time.
-  const undoStepRef = useRef<(step: 'undo') => void>(() => {});
+  const undoStepRef = useRef<(step: 'undo' | 'redo') => void>(() => {});
   // Pre-delete version per deleted chore id, so an offline-cancelled delete re-inserts a usable version.
   const deletedVersionsRef = useRef(new Map<number, number>());
   const versionBeforeDelete = (id: number) => deletedVersionsRef.current.get(id) ?? 0;
@@ -300,6 +303,11 @@ export default function ChoresView({
     label: 'Undo',
     testId: 'feedback-toast-undo',
     onClick: () => undoStepRef.current('undo'),
+  };
+  const redoAction: ToastAction = {
+    label: 'Redo',
+    testId: 'feedback-toast-redo',
+    onClick: () => undoStepRef.current('redo'),
   };
 
   function handleFlushResults(results: FlushResult[]) {
@@ -623,16 +631,33 @@ export default function ChoresView({
     };
   }
 
-  // Undo (Step 5 generalises this to Redo). Single-flight and identity-guarded: a completion whose record
+  // Undo and Redo share this path. Single-flight and identity-guarded: a completion whose record
   // was cleared or replaced meanwhile applies data effects only and shows no toast.
-  function applyUndoStep(step: 'undo') {
+  function applyUndoStep(step: 'undo' | 'redo') {
     const record = undoRef.current;
     if (!record || record.phase !== step || record.inFlight) return;
+    const isUndo = step === 'undo';
     const id = record.choreId;
+    // The payload this step writes: Undo restores the pre-action state, Redo re-applies the post-action one.
+    const target = isUndo ? record.beforePayload : record.afterPayload;
     const before = record.beforePayload;
     const toastId = record.toastId;
+    const doneMessage = isUndo ? UNDONE_MESSAGE : REDONE_MESSAGE;
+    const conflictMessage = isUndo ? UNDO_CONFLICT_MESSAGE : REDO_CONFLICT_MESSAGE;
+    const failedMessage = isUndo ? UNDO_FAILED_MESSAGE : REDO_FAILED_MESSAGE;
+    const nextAction = isUndo ? redoAction : undoAction;
 
-    if (record.outboxEntryId !== null) {
+    if (!isUndo && record.cancelled) {
+      // The original action never reached the server (cancelled while queued): re-run it through the
+      // normal handler, which clears this record synchronously (single-flight) and arms a fresh one.
+      const after = record.afterPayload;
+      if (record.kind === 'complete') handleComplete(id, new Date(after.dateLastCompleted));
+      else if (record.kind === 'delete') handleDelete(id);
+      else applyEdit(id, { ...after, dateLastCompleted: new Date(after.dateLastCompleted) });
+      return;
+    }
+
+    if (isUndo && record.outboxEntryId !== null) {
       // Still queued offline: cancel the entry instead of sending anything.
       if (!activeOutbox.remove(record.outboxEntryId)) {
         showToast('error', UNDO_STILL_SYNCING_MESSAGE);
@@ -646,7 +671,7 @@ export default function ChoresView({
       } else {
         setChores((prev) => prev.map((c) => (c.id === id ? rowFromPayload(c, before) : c)));
       }
-      if (showToast('neutral', UNDONE_MESSAGE)) {
+      if (showToast('neutral', UNDONE_MESSAGE, redoAction)) {
         undoRef.current = {
           ...record,
           phase: 'redo',
@@ -663,7 +688,8 @@ export default function ChoresView({
     }
 
     if (record.kind === 'delete') {
-      undoDelete(record);
+      if (isUndo) undoDelete(record);
+      else redoDelete(record);
       return;
     }
     if (record.currentVersion === null) return;
@@ -679,12 +705,12 @@ export default function ChoresView({
 
     void mutate<ChoreWire>({
       optimisticApply: () =>
-        setChores((prev) => prev.map((c) => (c.id === id ? rowFromPayload(c, before) : c))),
+        setChores((prev) => prev.map((c) => (c.id === id ? rowFromPayload(c, target) : c))),
       request: () =>
         apiFetch(`/api/chores/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...before, version }),
+          body: JSON.stringify({ ...target, version }),
         }),
       onSuccess: (data) => {
         newVersion = data.version;
@@ -695,7 +721,7 @@ export default function ChoresView({
         if (newVersion === null) return;
         undoRef.current = {
           ...record,
-          phase: 'redo',
+          phase: isUndo ? 'redo' : 'undo',
           currentVersion: newVersion,
           cancelled: false,
           inFlight: false,
@@ -711,7 +737,7 @@ export default function ChoresView({
       },
       onNotFound: () => removeChoreLocal(id),
       onConflict: () => {
-        if (isCurrent()) showToast('error', UNDO_CONFLICT_MESSAGE);
+        if (isCurrent()) showToast('error', conflictMessage);
         staleRefetch();
       },
       onNetworkFailure: () => {
@@ -720,13 +746,14 @@ export default function ChoresView({
           return;
         }
         if (previousRow) setChores((prev) => prev.map((c) => (c.id === id ? previousRow : c)));
-        showToast('error', UNDO_FAILED_MESSAGE);
+        showToast('error', failedMessage);
       },
       isToastAllowed: isCurrent,
       successTone: 'neutral',
-      successMessage: UNDONE_MESSAGE,
+      successMessage: doneMessage,
+      successAction: nextAction,
       notFoundMessage: NOT_FOUND_MESSAGE,
-      errorMessage: UNDO_FAILED_MESSAGE,
+      errorMessage: failedMessage,
     }).then(() => {
       // Success whose "Undone" toast was suppressed: the record must not outlive it.
       if (!shown) clearUndoIfCurrent(toastId);
@@ -783,8 +810,61 @@ export default function ChoresView({
       isToastAllowed: isCurrent,
       successTone: 'neutral',
       successMessage: UNDONE_MESSAGE,
+      successAction: redoAction,
       notFoundMessage: RESTORE_NOT_FOUND_MESSAGE,
       errorMessage: UNDO_FAILED_MESSAGE,
+    }).then(() => {
+      if (!shown) clearUndoIfCurrent(toastId);
+    });
+  }
+
+  // Online Redo of a delete: DELETE again (version-less). A 404 means it is already gone: success, no Undo.
+  function redoDelete(record: UndoRecord) {
+    const id = record.choreId;
+    const toastId = record.toastId;
+    undoRef.current = { ...record, inFlight: true };
+    setUndoInFlight(true);
+    const isCurrent = () => undoRef.current?.toastId === toastId;
+    const previousRow = chores.find((c) => c.id === id);
+    let shown = false;
+
+    void mutate<null>({
+      optimisticApply: () => setChores((prev) => prev.filter((c) => c.id !== id)),
+      request: () => apiFetch(`/api/chores/${id}`, { method: 'DELETE' }),
+      onSuccess: () => {},
+      onToastShown: () => {
+        shown = true;
+        undoRef.current = {
+          ...record,
+          phase: 'undo',
+          currentVersion: null,
+          cancelled: false,
+          inFlight: false,
+          toastId: toastIdRef.current,
+        };
+      },
+      // A stale failure (the user acted again meanwhile) must not resurrect an old row: refetch instead.
+      onRollback: () => {
+        if (!isCurrent()) {
+          void refetchChores(toastId);
+          return;
+        }
+        if (previousRow) setChores((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, previousRow]));
+      },
+      onNetworkFailure: () => {
+        if (!isCurrent()) {
+          void refetchChores(toastId);
+          return;
+        }
+        if (previousRow) setChores((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, previousRow]));
+        showToast('error', REDO_FAILED_MESSAGE);
+      },
+      notFoundAsSuccess: true,
+      isToastAllowed: isCurrent,
+      successTone: 'neutral',
+      successMessage: REDONE_MESSAGE,
+      successAction: undoAction,
+      errorMessage: REDO_FAILED_MESSAGE,
     }).then(() => {
       if (!shown) clearUndoIfCurrent(toastId);
     });
@@ -932,6 +1012,11 @@ export default function ChoresView({
   function handleEditSubmit(input: Omit<Chore, 'id'>) {
     const id = editingId;
     if (id == null) return;
+    applyEdit(id, input);
+  }
+
+  // The edit itself, independent of the modal: also used by Redo after an offline cancel (no editingId).
+  function applyEdit(id: number, input: Omit<Chore, 'id'>) {
     clearUndo();
     const existing = chores.find((c) => c.id === id);
     const beforePayload = existing && id > 0 ? toEditablePayload(existing) : null;
