@@ -168,6 +168,8 @@ function seedJoinRequests(): MockJoinRequest[] {
 }
 
 let chores: ChoreWire[] = seedChores();
+// Soft-deleted chores (mirrors the backend's deleted_at rows): hidden from every handler except restore.
+let deletedChores: ChoreWire[] = [];
 let members: MockMember[] = seedMembers();
 let rooms: MockRoom[] = seedRooms();
 let households: MockHousehold[] = seedHouseholds();
@@ -182,6 +184,7 @@ let nextHouseholdId = 3;
 
 export function resetMockData(): void {
   chores = seedChores();
+  deletedChores = [];
   members = seedMembers();
   rooms = seedRooms();
   households = seedHouseholds();
@@ -206,6 +209,7 @@ function parseBody(init?: RequestInit): Record<string, unknown> {
 
 const CHORE_ID_RE = /^\/api\/chores\/(\d+)$/;
 const CHORE_COMPLETE_RE = /^\/api\/chores\/(\d+)\/complete$/;
+const CHORE_RESTORE_RE = /^\/api\/chores\/(\d+)\/restore$/;
 const MEMBER_ID_RE = /^\/api\/members\/(\d+)$/;
 const ROOM_ID_RE = /^\/api\/rooms\/(\d+)$/;
 const HOUSEHOLD_ID_RE = /^\/api\/households\/(\d+)$/;
@@ -326,9 +330,21 @@ export async function mockFetch(path: string, init?: RequestInit): Promise<Respo
   }
   if (choreIdMatch && method === 'DELETE') {
     const id = Number(choreIdMatch[1]);
-    if (!chores.some((c) => c.id === id)) return jsonResponse({ success: false, error: 'not found' }, 404);
+    const existing = chores.find((c) => c.id === id);
+    if (!existing) return jsonResponse({ success: false, error: 'not found' }, 404);
     chores = chores.filter((c) => c.id !== id);
+    deletedChores = [...deletedChores, { ...existing, version: existing.version + 1 }];
     return jsonResponse({ success: true, data: null });
+  }
+  const restoreMatch = path.match(CHORE_RESTORE_RE);
+  if (restoreMatch && method === 'PATCH') {
+    const id = Number(restoreMatch[1]);
+    const deleted = deletedChores.find((c) => c.id === id);
+    if (!deleted) return jsonResponse({ success: false, error: 'not found' }, 404);
+    const restored = { ...deleted, version: deleted.version + 1 };
+    deletedChores = deletedChores.filter((c) => c.id !== id);
+    chores = [...chores, restored];
+    return jsonResponse({ success: true, data: restored });
   }
 
   if (path === '/api/members' && method === 'GET') {
@@ -511,6 +527,8 @@ export async function mockFetch(path: string, init?: RequestInit): Promise<Respo
       );
     }
     rooms = rooms.filter((r) => r.id !== id);
+    // Only soft-deleted chores can remain here (live ones refused above): drop them with the room.
+    deletedChores = deletedChores.filter((c) => c.roomId !== id);
     return jsonResponse({ success: true, data: null });
   }
 

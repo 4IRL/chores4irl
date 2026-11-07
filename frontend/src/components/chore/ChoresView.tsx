@@ -92,6 +92,7 @@ type ToastTone = ToastState['tone'];
 const NOT_FOUND_MESSAGE = 'That chore no longer exists.';
 const UNDONE_MESSAGE = 'Undone';
 const UNDO_CONFLICT_MESSAGE = "Can't undo — someone changed it";
+const RESTORE_NOT_FOUND_MESSAGE = "Couldn't restore — that chore no longer exists";
 const UNDO_FAILED_MESSAGE = "Couldn't undo. Please try again.";
 const UNDO_STILL_SYNCING_MESSAGE = "Can't undo yet — still syncing";
 const OFFLINE_MESSAGE = "Saved offline — will sync when you're back online";
@@ -156,6 +157,12 @@ function rowFromPayload(row: ChoreWithVersion, p: ChorePayload): ChoreWithVersio
     frequency: p.frequency,
     urgency: p.urgency,
   };
+}
+
+// Row to re-insert for Undo of a delete. `version` is the pre-delete version (valid for an offline
+// cancel, where the server never saw the delete); an online restore response replaces it.
+function deletedRow(id: number, p: ChorePayload, version: number): ChoreWithVersion {
+  return rowFromPayload({ id, version } as ChoreWithVersion, p);
 }
 
 type MutateOptions<T> = {
@@ -283,6 +290,9 @@ export default function ChoresView({
   const [undoInFlight, setUndoInFlight] = useState(false);
   // Assigned after every render so the toast button never calls a closure captured at arming time.
   const undoStepRef = useRef<(step: 'undo') => void>(() => {});
+  // Pre-delete version per deleted chore id, so an offline-cancelled delete re-inserts a usable version.
+  const deletedVersionsRef = useRef(new Map<number, number>());
+  const versionBeforeDelete = (id: number) => deletedVersionsRef.current.get(id) ?? 0;
   useEffect(() => {
     undoStepRef.current = applyUndoStep;
   });
@@ -628,7 +638,14 @@ export default function ChoresView({
         showToast('error', UNDO_STILL_SYNCING_MESSAGE);
         return;
       }
-      setChores((prev) => prev.map((c) => (c.id === id ? rowFromPayload(c, before) : c)));
+      if (record.kind === 'delete') {
+        // Re-insert the removed row locally (its id is still in the order snapshot).
+        setChores((prev) =>
+          prev.some((c) => c.id === id) ? prev : [...prev, deletedRow(id, before, versionBeforeDelete(id))],
+        );
+      } else {
+        setChores((prev) => prev.map((c) => (c.id === id ? rowFromPayload(c, before) : c)));
+      }
       if (showToast('neutral', UNDONE_MESSAGE)) {
         undoRef.current = {
           ...record,
@@ -645,6 +662,10 @@ export default function ChoresView({
       return;
     }
 
+    if (record.kind === 'delete') {
+      undoDelete(record);
+      return;
+    }
     if (record.currentVersion === null) return;
     const version = record.currentVersion;
     undoRef.current = { ...record, inFlight: true };
@@ -708,6 +729,63 @@ export default function ChoresView({
       errorMessage: UNDO_FAILED_MESSAGE,
     }).then(() => {
       // Success whose "Undone" toast was suppressed: the record must not outlive it.
+      if (!shown) clearUndoIfCurrent(toastId);
+    });
+  }
+
+  // Online Undo of a delete: restore the soft-deleted chore (same id), then swap the placeholder row.
+  function undoDelete(record: UndoRecord) {
+    const id = record.choreId;
+    const toastId = record.toastId;
+    undoRef.current = { ...record, inFlight: true };
+    setUndoInFlight(true);
+    const isCurrent = () => undoRef.current?.toastId === toastId;
+    let shown = false;
+    const dropOptimisticRow = () => setChores((prev) => prev.filter((c) => c.id !== id));
+
+    void mutate<ChoreWire>({
+      optimisticApply: () =>
+        setChores((prev) =>
+          prev.some((c) => c.id === id)
+            ? prev
+            : [...prev, deletedRow(id, record.beforePayload, versionBeforeDelete(id))],
+        ),
+      request: () => apiFetch(`/api/chores/${id}/restore`, { method: 'PATCH' }),
+      onSuccess: (data) => {
+        const server = wireToChore(data);
+        // A stale completion (the user acted again meanwhile) may only replace a row that is still there.
+        setChores((prev) =>
+          prev.some((c) => c.id === id)
+            ? prev.map((c) => (c.id === id ? server : c))
+            : isCurrent()
+              ? [...prev, server]
+              : prev,
+        );
+      },
+      onToastShown: () => {
+        shown = true;
+        // Redo of a delete is a version-less DELETE, so no version is stored.
+        undoRef.current = {
+          ...record,
+          phase: 'redo',
+          currentVersion: null,
+          cancelled: false,
+          inFlight: false,
+          toastId: toastIdRef.current,
+        };
+      },
+      onRollback: dropOptimisticRow,
+      onNotFound: () => removeChoreLocal(id),
+      onNetworkFailure: () => {
+        dropOptimisticRow();
+        if (isCurrent()) showToast('error', UNDO_FAILED_MESSAGE);
+      },
+      isToastAllowed: isCurrent,
+      successTone: 'neutral',
+      successMessage: UNDONE_MESSAGE,
+      notFoundMessage: RESTORE_NOT_FOUND_MESSAGE,
+      errorMessage: UNDO_FAILED_MESSAGE,
+    }).then(() => {
       if (!shown) clearUndoIfCurrent(toastId);
     });
   }
@@ -776,19 +854,44 @@ export default function ChoresView({
 
   function handleDelete(id: number) {
     const removed = chores.find((c) => c.id === id);
+    // Never offer Undo for an unsaved (temp-id) chore.
+    const beforePayload = removed && id > 0 ? toEditablePayload(removed) : null;
+    if (removed && beforePayload) deletedVersionsRef.current.set(id, removed.version);
     clearUndo();
     mutate<null>({
       optimisticApply: () => setChores((prev) => prev.filter((c) => c.id !== id)),
       request: () => apiFetch(`/api/chores/${id}`, { method: 'DELETE' }),
       onSuccess: () => {},
+      successAction: beforePayload ? undoAction : undefined,
+      onToastShown: () => {
+        if (!beforePayload) return;
+        armUndo({
+          kind: 'delete',
+          choreId: id,
+          beforePayload,
+          afterPayload: beforePayload,
+          currentVersion: null,
+          outboxEntryId: null,
+        });
+      },
       onRollback: () => {
         if (!removed) return;
         setChores((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, removed]));
       },
       notFoundAsSuccess: id > 0,
       onNetworkFailure: () => {
-        append({ type: 'delete', choreId: id });
-        showToast('neutral', OFFLINE_MESSAGE);
+        const entry = append({ type: 'delete', choreId: id });
+        const shown = showToast('neutral', OFFLINE_MESSAGE, beforePayload ? undoAction : undefined);
+        if (shown && beforePayload) {
+          armUndo({
+            kind: 'delete',
+            choreId: id,
+            beforePayload,
+            afterPayload: beforePayload,
+            currentVersion: null,
+            outboxEntryId: entry.id,
+          });
+        }
       },
       successMessage: 'Chore deleted',
       errorMessage: "Couldn't delete the chore. Please try again.",

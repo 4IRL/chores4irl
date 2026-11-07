@@ -61,7 +61,7 @@ frontend/         React SPA — Cloudflare Pages
       common/                 Shared UI (dialogs, banners, clear button, Toast)
     utils/api.ts             Single fetch entrypoint (apiFetch) — attaches X-Household-Id, routes
                               preview deployments to mock data instead of the real API
-    utils/mockApi.ts          Mock data served on *.pages.dev preview deployments
+    utils/mockApi.ts          Mock data served on *.pages.dev preview deployments (mirrors chore soft delete/restore)
     utils/choreOrder.ts       Stable list order: snapshotOrder / applyOrder (see "Chore ordering")
     utils/choreStatusCounts.ts  Done-today / due-soon / overdue counts for the status strip
     components/nav/StatusCountStrip.tsx  Sticky-on-phones count strip under the room tabs (shown once a list loads)
@@ -558,7 +558,12 @@ mean this can never be offline-_capable_, only offline-_tolerant_). Two mechanis
   (`runMutation`'s `isToastAllowed`, checked at response time), and the toast holds its interval while the
   request is pending (`holding`, bounded by the 30 s cap). The 403 revocation branches of
   `refetchChores`/`load` clear the record too. `cancelled` is true only after Undo cancelled an
-  offline-queued entry (Redo, Step 5, branches on it).
+  offline-queued entry (Redo, Step 5, branches on it). **Delete** also arms it (`kind: 'delete'`, no
+  version stored): Undo online is `PATCH /api/chores/:id/restore` (the row is rebuilt from `choreId` +
+  `beforePayload`, re-inserted optimistically at its snapshot position, then replaced by the response;
+  a 404 shows "Couldn't restore — that chore no longer exists"); a queued delete is cancelled via
+  `outbox.remove` and the row comes back with its pre-delete version (`deletedVersionsRef`). A delete
+  answered with 404 arms nothing.
 - **`cache/choresCache.ts`** — last-known chore list cached in IndexedDB so the view isn't blank while
   offline; paired with the PWA service worker (`vite-plugin-pwa`, `workbox` config in `vite.config.ts`)
   for asset caching.

@@ -3088,12 +3088,11 @@ describe('ChoresView undo of complete and edit', () => {
       expect(testOutbox.getEntries()).toHaveLength(1);
     });
 
-    it.each([
-      ['a 200', () => jsonResponse({ success: true, data: null })],
-      ['a 404', () => errorResponse(404, 'gone')],
-    ] as const)('never arms Undo for a delete answered with %s', async (_label, respond) => {
+    it('never arms Undo for a delete answered with a 404', async () => {
       const user = setupUndo();
-      undoStub((url, method) => (url === '/api/chores/1' && method === 'DELETE' ? respond() : undefined));
+      undoStub((url, method) =>
+        url === '/api/chores/1' && method === 'DELETE' ? errorResponse(404, 'gone') : undefined,
+      );
       renderView();
       await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
 
@@ -3142,5 +3141,167 @@ describe('ChoresView undo of complete and edit', () => {
 
       await waitFor(() => expect(undoButton()).not.toBeInTheDocument());
     });
+  });
+});
+
+function vacuumBeforeDishes() {
+  const vacuum = screen.getByText('Vacuum');
+  const dishes = screen.getByText('Dishes');
+  return Boolean(vacuum.compareDocumentPosition(dishes) & Node.DOCUMENT_POSITION_FOLLOWING);
+}
+
+async function deleteChore(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await waitFor(() => expect(screen.getByText(name)).toBeInTheDocument());
+  await user.click(within(rowFor(name)).getByLabelText('Delete chore'));
+  return screen.findByTestId('feedback-toast-undo');
+}
+
+const deleteVacuum = (user: ReturnType<typeof userEvent.setup>) => deleteChore(user, 'Vacuum');
+
+describe('ChoresView undo of delete', () => {
+  it('restores the row at its original position via PATCH restore, ending at the response version', async () => {
+    const user = setupUndo();
+    undoStub((url, method) => {
+      if (url === '/api/chores/2' && method === 'DELETE') return jsonResponse({ success: true, data: null });
+      if (url === '/api/chores/2/restore' && method === 'PATCH') {
+        return okRow({ ...mockChores[1], version: 7 });
+      }
+      if (url === '/api/chores/2' && method === 'PUT') return okRow({ ...mockChores[1], version: 8 });
+      return undefined;
+    });
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+    // Dishes is not last, so a restore that appended at the end would flip this.
+    expect(vacuumBeforeDishes()).toBe(false);
+
+    await user.click(await deleteChore(user, 'Dishes'));
+
+    await waitFor(() => expect(toastText()).toContain('Undone'));
+    expect(callsTo('PATCH', '/api/chores/2/restore')).toHaveLength(1);
+    expect(screen.getByText('Dishes')).toBeInTheDocument();
+    expect(vacuumBeforeDishes()).toBe(false);
+    expect(undoButton()).not.toBeInTheDocument();
+    expect(redoButton()).not.toBeInTheDocument();
+    expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'neutral');
+
+    // The row ends at the restore response's version, not the placeholder: a later edit sends it.
+    await user.click(within(rowFor('Dishes')).getByLabelText('Edit chore'));
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+    await waitFor(() => expect(callsTo('PUT', '/api/chores/2')).toHaveLength(1));
+    expect(bodyOf(callsTo('PUT', '/api/chores/2')[0]).version).toBe(7);
+  });
+
+  it('cancels an offline-queued delete without any request and shows Undone with no action', async () => {
+    const user = setupUndo();
+    const testOutbox = createOutbox(vi.fn());
+    stubListFetch(urgentList, (url, method) =>
+      url === '/api/chores/2' && method === 'DELETE' ? Promise.reject(new Error('offline')) : undefined,
+    );
+    renderView(testOutbox);
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+    expect(vacuumBeforeDishes()).toBe(false);
+    await deleteChore(user, 'Dishes');
+    expect(testOutbox.getEntries()).toHaveLength(1);
+    expect(screen.queryByText('Dishes')).not.toBeInTheDocument();
+    const before = vi.mocked(fetch).mock.calls.length;
+
+    await user.click(screen.getByTestId('feedback-toast-undo'));
+
+    expect(testOutbox.getEntries()).toHaveLength(0);
+    expect(vi.mocked(fetch).mock.calls.length).toBe(before);
+    expect(toastText()).toContain('Undone');
+    expect(undoButton()).not.toBeInTheDocument();
+    expect(screen.getByText('Dishes')).toBeInTheDocument();
+    expect(vacuumBeforeDishes()).toBe(false);
+  });
+
+  it('says it is still syncing when the queued delete is already mid-send', async () => {
+    const user = setupUndo();
+    const testOutbox = createOutbox(vi.fn());
+    stubListFetch(urgentList, (url, method) =>
+      url === '/api/chores/1' && method === 'DELETE' ? Promise.reject(new Error('offline')) : undefined,
+    );
+    renderView(testOutbox);
+    await deleteVacuum(user);
+    const entryId = testOutbox.getEntries()[0].id;
+    const removeSpy = vi.spyOn(testOutbox, 'remove').mockReturnValue(false);
+
+    await user.click(screen.getByTestId('feedback-toast-undo'));
+
+    expect(removeSpy).toHaveBeenCalledWith(entryId);
+    expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+    expect(toastText()).toContain("Can't undo yet — still syncing");
+    expect(screen.queryByText('Vacuum')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['syncs', () => jsonResponse({ success: true, data: null })],
+    ['is dropped as not-found for', () => errorResponse(404, 'gone')],
+  ] as const)('clears the Undo button when the flush %s the armed queued delete', async (_label, respond) => {
+    const user = setupUndo();
+    const testOutbox = createOutbox(vi.fn(respond));
+    stubListFetch(urgentList, (url, method) =>
+      url === '/api/chores/1' && method === 'DELETE' ? Promise.reject(new Error('offline')) : undefined,
+    );
+    renderView(testOutbox);
+    await deleteVacuum(user);
+
+    await act(() => testOutbox.flush());
+
+    expect(testOutbox.getEntries()).toHaveLength(0);
+    expect(undoButton()).not.toBeInTheDocument();
+  });
+
+  it('keeps the original version on a cancelled offline delete so a later edit does not conflict', async () => {
+    const user = setupUndo();
+    const testOutbox = createOutbox(vi.fn());
+    stubListFetch(urgentList, (url, method) => {
+      if (url === '/api/chores/1' && method === 'DELETE') return Promise.reject(new Error('offline'));
+      if (url === '/api/chores/1' && method === 'PUT') return okRow({ ...mockChores[0], version: 9 });
+      return undefined;
+    });
+    renderView(testOutbox);
+    await deleteVacuum(user);
+    await user.click(screen.getByTestId('feedback-toast-undo'));
+
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => expect(callsTo('PUT', '/api/chores/1')).toHaveLength(1));
+    expect(bodyOf(callsTo('PUT', '/api/chores/1')[0]).version).toBe(mockChores[0].version);
+  });
+
+  it('shows the exact copy and removes the row when the restore is answered with 404', async () => {
+    const user = setupUndo();
+    undoStub((url, method) => {
+      if (url === '/api/chores/1' && method === 'DELETE') return jsonResponse({ success: true, data: null });
+      if (url === '/api/chores/1/restore') return errorResponse(404, 'gone');
+      return undefined;
+    });
+    renderView();
+
+    await user.click(await deleteVacuum(user));
+
+    await waitFor(() => expect(toastText()).toBe("Couldn't restore — that chore no longer exists"));
+    expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+    expect(screen.queryByText('Vacuum')).not.toBeInTheDocument();
+  });
+
+  it('rolls back, shows the sticky error and queues nothing when the restore fetch throws', async () => {
+    const user = setupUndo();
+    const testOutbox = createOutbox(vi.fn());
+    stubListFetch(urgentList, (url, method) => {
+      if (url === '/api/chores/1' && method === 'DELETE') return jsonResponse({ success: true, data: null });
+      if (url === '/api/chores/1/restore') return Promise.reject(new Error('offline'));
+      return undefined;
+    });
+    renderView(testOutbox);
+
+    await user.click(await deleteVacuum(user));
+
+    await waitFor(() => expect(toastText()).toBe("Couldn't undo. Please try again."));
+    expect(screen.getByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+    expect(screen.queryByText('Vacuum')).not.toBeInTheDocument();
+    expect(testOutbox.getEntries()).toHaveLength(0);
   });
 });
