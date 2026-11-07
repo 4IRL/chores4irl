@@ -543,6 +543,22 @@ mean this can never be offline-_capable_, only offline-_tolerant_). Two mechanis
   action button `aria-disabled`). Hover/focus/`holding` pauses are bounded by a 30 s total cap; a
   restart after a pause is a full interval. If the action is removed from the standing toast (same id),
   all pause state resets and the plain 4/6 s interval restarts. Error toasts never carry an action.
+  **Undo record (`undoRef` in `ChoresView`):** one remembered action (`kind`, `choreId`, before/after
+  payloads, `currentVersion`, `outboxEntryId`, `cancelled`, `phase`, `toastId`, `inFlight`), armed only
+  when the toast carrying the action was actually shown and only for a real (positive) id. A successful
+  online complete/edit arms it (Undo = versioned `PUT` of the pre-action snapshot at the version the
+  previous response returned; a 409 shows "Can't undo — someone changed it", never the edit dialog); an
+  offline-queued one arms it with the outbox entry id (Undo cancels the entry via `outbox.remove` and
+  sends nothing; if the entry is mid-send it shows "Can't undo yet — still syncing"). Undo/Redo never
+  append to the outbox. `clearUndo()` (also strips the action from the standing toast) runs at the start
+  of every mutating handler, whenever any other toast replaces the toast, on dismiss/expiry, on every
+  error toast, when a flush removes the armed entry, and when `refetchChores`/`load` apply a list while
+  the record is still the one they captured (`forToastId`; a newer record survives). An Undo request is
+  single-flight; if its record was invalidated meanwhile it applies data only and shows no toast
+  (`runMutation`'s `isToastAllowed`, checked at response time), and the toast holds its interval while the
+  request is pending (`holding`, bounded by the 30 s cap). The 403 revocation branches of
+  `refetchChores`/`load` clear the record too. `cancelled` is true only after Undo cancelled an
+  offline-queued entry (Redo, Step 5, branches on it).
 - **`cache/choresCache.ts`** — last-known chore list cached in IndexedDB so the view isn't blank while
   offline; paired with the PWA service worker (`vite-plugin-pwa`, `workbox` config in `vite.config.ts`)
   for asset caching.
