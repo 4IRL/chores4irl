@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ChoreTimerBar, { androidSwipeThreshold } from './ChoreTimerBar';
+import ChoreTimerBar from './ChoreTimerBar';
 import type { Chore } from '@customTypes/SharedTypes';
 
 const chore: Chore = {
@@ -311,20 +311,6 @@ describe('ChoreTimerBar', () => {
       const bar = renderBar('ios');
       dragBar(bar, 200, 70);
       expect(screen.getByTestId('delete-icon-preview')).toBeEnabled();
-    });
-  });
-
-  describe('androidSwipeThreshold', () => {
-    it.each([0, -5, NaN, Infinity])('falls back to 120 for %s', (width) => {
-      expect(androidSwipeThreshold(width)).toBe(120);
-    });
-
-    it.each([
-      [200, 50],
-      [480, 120],
-      [1024, 120],
-    ])('width %i gives %i', (width, expected) => {
-      expect(androidSwipeThreshold(width)).toBe(expected);
     });
   });
 

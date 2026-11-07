@@ -2,10 +2,10 @@ import { useRef, useState, useMemo } from 'react';
 import { useSwipeable } from 'react-swipeable';
 import type { SwipeEventData } from 'react-swipeable';
 import { Pencil, Trash2 } from 'lucide-react';
-import { differenceInDays, startOfDay } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
 import type { Chore, SwipeStyle } from '@customTypes/SharedTypes';
 import { computeBar } from '@utils/choreBarMath';
+import { daysSinceInZone } from '@utils/choreSort';
+import { SWIPE_TRIGGER_DISTANCE, androidSwipeThreshold } from '@utils/swipeThreshold';
 import { useIsTouchDevice } from '../../hooks/useIsTouchDevice';
 import ConfirmDialog from '../common/ConfirmDialog';
 import ProgressBar from './ProgressBar';
@@ -23,18 +23,6 @@ type ChoreTimerBarProps = {
   onEdit?: (id: number) => void;
 };
 
-// How far the row must be dragged before a swipe "commits" to opening the
-// action buttons underneath, rather than springing back to closed.
-const SWIPE_TRIGGER_DISTANCE = 120;
-// Android commits after a quarter of the bar's width, capped at the iOS distance.
-const ANDROID_SWIPE_WIDTH_FRACTION = 0.25;
-
-// Fails closed to the old fixed distance for any unmeasurable width (jsdom,
-// detached or hidden bars), so a swipe can never commit at threshold 0.
-export function androidSwipeThreshold(barWidth: number): number {
-  if (!Number.isFinite(barWidth) || barWidth <= 0) return SWIPE_TRIGGER_DISTANCE;
-  return Math.min(barWidth * ANDROID_SWIPE_WIDTH_FRACTION, SWIPE_TRIGGER_DISTANCE);
-}
 // How far the row stays parked once opened — enough room for both circular
 // buttons (h-12/w-12) side by side with a gap, or just one if there's no
 // edit handler. Matches iOS Messages' floating circular swipe actions.
@@ -52,11 +40,7 @@ export default function ChoreTimerBar({
   onEdit,
 }: ChoreTimerBarProps) {
   const daysSince = useMemo(
-    () =>
-      differenceInDays(
-        startOfDay(toZonedTime(day, householdTimezone)),
-        startOfDay(toZonedTime(chore.dateLastCompleted, householdTimezone)),
-      ),
+    () => daysSinceInZone(day, chore.dateLastCompleted, householdTimezone),
     [day, chore.dateLastCompleted, householdTimezone],
   );
 

@@ -5,6 +5,7 @@ import ChoresView from './ChoresView';
 import { createOutbox as createOutboxBase } from '../../outbox/outbox';
 import { writeChoresCache, readChoresCache, clearChoresCache } from '../../cache/choresCache';
 import { getDeviceTimezone } from '@utils/deviceTimezone';
+import { orderChores } from '@utils/choreSort';
 
 vi.mock('@utils/deviceTimezone', () => ({
   getDeviceTimezone: vi.fn(() => 'America/New_York'),
@@ -253,15 +254,14 @@ describe('ChoresView', () => {
     await user.click(screen.getByRole('button', { name: /cancel/i }));
 
     // Vacuum completed 2026-06-01T00:00Z = 2026-06-01 14:00 in Kiritimati.
-    await user.click(screen.getAllByLabelText('Edit chore')[0]);
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
     expect(await screen.findByLabelText('Name')).toHaveValue('Vacuum');
     expect(screen.getByLabelText('Last Completed')).toHaveValue('2026-06-01');
   });
 
   it('edits an existing chore via the edit-chore form, sending its current version', async () => {
-    // Pin the clock so the duration-weighted urgency sort is deterministic:
-    // at this date Vacuum (id 1) outscores Dishes, so getAllByLabelText('Edit
-    // chore')[0] resolves to Vacuum and the PUT hits the stubbed /api/chores/1.
+    // Pin the clock for deterministic day counts. The target row is selected
+    // by name (Vacuum), so the PUT hits the stubbed /api/chores/1 whatever the list order.
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-07-01T12:00:00.000Z'));
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
@@ -296,7 +296,7 @@ describe('ChoresView', () => {
     );
     await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
 
-    await user.click(screen.getAllByLabelText('Edit chore')[0]);
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
     const nameInput = await screen.findByLabelText('Name');
     expect(nameInput).toHaveValue('Vacuum');
     await user.clear(nameInput);
@@ -308,9 +308,8 @@ describe('ChoresView', () => {
   });
 
   it('shows a distinguishable conflict dialog, not a generic error, when an edit hits a stale version', async () => {
-    // Pin the clock so the duration-weighted urgency sort is deterministic:
-    // at this date Vacuum (id 1) outscores Dishes, so getAllByLabelText('Edit
-    // chore')[0] resolves to Vacuum and the PUT hits the stubbed /api/chores/1.
+    // Pin the clock for deterministic day counts. The target row is selected
+    // by name (Vacuum), so the PUT hits the stubbed /api/chores/1 whatever the list order.
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-07-01T12:00:00.000Z'));
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
@@ -339,7 +338,7 @@ describe('ChoresView', () => {
     );
     await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
 
-    await user.click(screen.getAllByLabelText('Edit chore')[0]);
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
 
     await waitFor(() => expect(screen.getByText('This chore was changed elsewhere.')).toBeInTheDocument());
@@ -710,7 +709,7 @@ describe('ChoresView', () => {
     // Simulate Safari ITP evicting the IndexedDB chores cache between load and discard.
     await clearChoresCache();
 
-    await user.click(screen.getAllByLabelText('Edit chore')[0]);
+    await user.click(within(rowFor('Vacuum')).getByLabelText('Edit chore'));
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
     await waitFor(() => expect(screen.getByText('This chore was changed elsewhere.')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'Discard my changes' }));
@@ -1060,6 +1059,13 @@ function rowFor(name: string) {
   return screen.getByText(name).closest('[data-testid="chore-row"]') as HTMLElement;
 }
 
+// The rendered rows in DOM order, each identified by whichever of `names` it contains.
+function rowNames(names: string[]) {
+  return screen
+    .getAllByTestId('chore-row')
+    .map((row) => names.find((name) => within(row).queryByText(name)) ?? '?');
+}
+
 describe('ChoresView feedback toast', () => {
   it.each([400, 500, 401, 403])(
     'rolls back a complete answered %i and shows a persistent error toast',
@@ -1091,6 +1097,138 @@ describe('ChoresView feedback toast', () => {
       expect(screen.queryByTestId('feedback-toast')).not.toBeInTheDocument();
     },
   );
+
+  it('re-sorts on an optimistic complete and restores the original order when it rolls back', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-01T12:00:00.000Z'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    let resolveComplete: (response: Response) => void = () => {};
+    const pendingComplete = new Promise<Response>((resolve) => {
+      resolveComplete = resolve;
+    });
+    stubMutationFetch((url) => (url === '/api/chores/2/complete' ? pendingComplete : undefined));
+    renderView();
+    await waitFor(() => expect(screen.getByText('Dishes')).toBeInTheDocument());
+    // Both mock chores are red; Dishes (weighted overdue 10) outranks Vacuum (3.29).
+    expect(rowNames(['Vacuum', 'Dishes'])).toEqual(['Dishes', 'Vacuum']);
+
+    await user.click(barFor('Dishes'));
+
+    // Optimistic completion turns Dishes green, so it drops below the red Vacuum.
+    await waitFor(() => expect(rowNames(['Vacuum', 'Dishes'])).toEqual(['Vacuum', 'Dishes']));
+    expect(screen.getAllByTestId('chore-row')).toHaveLength(2);
+
+    resolveComplete(await errorResponse(500, 'nope'));
+
+    expect(await screen.findByTestId('feedback-toast')).toHaveAttribute('data-tone', 'error');
+    await waitFor(() => expect(rowNames(['Vacuum', 'Dishes'])).toEqual(['Dishes', 'Vacuum']));
+    expect(screen.getAllByTestId('chore-row')).toHaveLength(2);
+  });
+
+  it('applies the bucket quota to the room-filtered subset, not the full list', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const now = new Date('2026-07-01T12:00:00.000Z');
+    vi.setSystemTime(now);
+    const wire = (id: number, name: string, roomId: number, daysSince: number, frequency: number) => ({
+      id,
+      name,
+      roomId,
+      dateLastCompleted: new Date(now.getTime() - daysSince * 86_400_000).toISOString(),
+      duration: 10,
+      frequency,
+      version: 1,
+    });
+    // Room 1: six reds below the pressure threshold (weighted overdue 0.1 to 0.6) and four greens.
+    // Room 2: one red at 0.9 that ranks first globally but adds no pressure.
+    const wireChores = [
+      ...[11, 12, 13, 14, 15, 16].map((d, i) => wire(i + 1, `Red ${i + 1} x`, 1, d, 10)),
+      ...[1, 2, 3, 4].map((d, i) => wire(i + 7, `Green ${i + 1} x`, 1, d, 10)),
+      wire(11, 'Other room red x', 2, 19, 10),
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        const method = init?.method ?? 'GET';
+        if (url === '/api/chores' && method === 'GET') {
+          return jsonResponse({ success: true, data: wireChores });
+        }
+        throw new Error(`Unhandled fetch: ${method} ${url}`);
+      }),
+    );
+    const all = wireChores.map((c) => ({ ...c, dateLastCompleted: new Date(c.dateLastCompleted) }));
+    const roomOne = all.filter((c) => c.roomId === 1);
+    const filteredAfterSort = orderChores(all, now, 'UTC')
+      .filter((c) => c.roomId === 1)
+      .map((c) => c.name);
+    const sortedAfterFilter = orderChores(roomOne, now, 'UTC').map((c) => c.name);
+    // Precondition: sorting before filtering would give a different list (R5 G2 R1 G2 vs R6 G4).
+    expect(filteredAfterSort).not.toEqual(sortedAfterFilter);
+
+    render(
+      <ChoresView
+        householdTimezone="UTC"
+        selectedRoom="1"
+        rooms={mockRooms}
+        swipeStyle="ios"
+        onSwipeStyleChange={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(screen.getByText('Red 1 x')).toBeInTheDocument());
+
+    expect(rowNames(all.map((c) => c.name))).toEqual(sortedAfterFilter);
+    expect(screen.queryByText('Other room red x')).not.toBeInTheDocument();
+  });
+
+  it('applies the bucket quota to the search-filtered subset, not the full list', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const now = new Date('2026-07-01T12:00:00.000Z');
+    vi.setSystemTime(now);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const wire = (id: number, name: string, daysSince: number) => ({
+      id,
+      name,
+      roomId: 1,
+      dateLastCompleted: new Date(now.getTime() - daysSince * 86_400_000).toISOString(),
+      duration: 10,
+      frequency: 10,
+      version: 1,
+    });
+    // Matching chores (names contain "x"): six reds below the pressure threshold plus four greens.
+    // Non-matching: one red at 0.9 that ranks first globally but adds no pressure.
+    const wireChores = [
+      ...[11, 12, 13, 14, 15, 16].map((d, i) => wire(i + 1, `Red ${i + 1} x`, d)),
+      ...[1, 2, 3, 4].map((d, i) => wire(i + 7, `Green ${i + 1} x`, d)),
+      wire(11, 'Other red', 19),
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        const method = init?.method ?? 'GET';
+        if (url === '/api/chores' && method === 'GET') {
+          return jsonResponse({ success: true, data: wireChores });
+        }
+        throw new Error(`Unhandled fetch: ${method} ${url}`);
+      }),
+    );
+    const all = wireChores.map((c) => ({ ...c, dateLastCompleted: new Date(c.dateLastCompleted) }));
+    const searched = all.filter((c) => c.name.includes('x'));
+    const filteredAfterSort = orderChores(all, now, 'UTC')
+      .filter((c) => c.name.includes('x'))
+      .map((c) => c.name);
+    const sortedAfterFilter = orderChores(searched, now, 'UTC').map((c) => c.name);
+    // Precondition: sorting before searching would give a different list.
+    expect(filteredAfterSort).not.toEqual(sortedAfterFilter);
+
+    renderView();
+    await waitFor(() => expect(screen.getByText('Red 1 x')).toBeInTheDocument());
+
+    await user.type(screen.getByRole('searchbox', { name: 'Search chores' }), 'x');
+
+    await waitFor(() => expect(screen.queryByText('Other red')).not.toBeInTheDocument());
+    expect(rowNames(all.map((c) => c.name))).toEqual(sortedAfterFilter);
+  });
 
   it.each([400, 500])('re-inserts a chore when delete is answered %i', async (status) => {
     const user = userEvent.setup();

@@ -1,4 +1,4 @@
-import { statusColors } from '@assets/constants';
+import { STATUS_BAR_COLOR, STATUS_THRESHOLDS, type ChoreStatus } from '@assets/constants';
 
 export type BarMathResult = {
   isOverdue: boolean;
@@ -7,9 +7,21 @@ export type BarMathResult = {
   barColor: string;
 };
 
+export function remainingRatioOf(daysSince: number, frequency: number): number {
+  return frequency > 0 ? (frequency - daysSince) / frequency : 1;
+}
+
+export function classifyStatus(daysSince: number, frequency: number): ChoreStatus {
+  if (frequency > 0 && daysSince > frequency) return 'red';
+  const remainingRatio = remainingRatioOf(daysSince, frequency);
+  const match = STATUS_THRESHOLDS.find((s) => remainingRatio > s.threshold);
+  return (match ?? STATUS_THRESHOLDS[STATUS_THRESHOLDS.length - 1]).status;
+}
+
 export function computeBar(daysSince: number, frequency: number): BarMathResult {
-  const isOverdue = frequency > 0 && daysSince > frequency;
-  const remainingRatio = frequency > 0 ? (frequency - daysSince) / frequency : 1;
+  const status = classifyStatus(daysSince, frequency);
+  const isOverdue = status === 'red';
+  const remainingRatio = remainingRatioOf(daysSince, frequency);
 
   let barWidth: number;
   if (frequency === 0) {
@@ -22,13 +34,5 @@ export function computeBar(daysSince: number, frequency: number): BarMathResult 
     barWidth = Math.min(growthRatio, 1) * 100;
   }
 
-  let barColor: string;
-  if (isOverdue) {
-    barColor = 'bg-red-500';
-  } else {
-    const match = statusColors.find((s) => remainingRatio > s.threshold);
-    barColor = (match ?? statusColors[statusColors.length - 1]).color;
-  }
-
-  return { isOverdue, remainingRatio, barWidth, barColor };
+  return { isOverdue, remainingRatio, barWidth, barColor: STATUS_BAR_COLOR[status] };
 }
