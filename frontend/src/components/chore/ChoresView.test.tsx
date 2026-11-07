@@ -1248,17 +1248,7 @@ describe('ChoresView feedback toast', () => {
       version: 1,
     });
     let list = [wire(1, 'Alpha', 15), wire(2, 'Beta', 19)];
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-        const url = typeof input === 'string' ? input : input.toString();
-        const method = init?.method ?? 'GET';
-        if (url === '/api/chores' && method === 'GET') {
-          return jsonResponse({ success: true, data: list });
-        }
-        throw new Error(`Unhandled fetch: ${method} ${url}`);
-      }),
-    );
+    stubListFetch(() => jsonResponse({ success: true, data: list }));
     renderView();
     await waitFor(() => expect(screen.getByText('Alpha')).toBeInTheDocument());
     const initial = rowNames(['Alpha', 'Beta', 'Gamma']);

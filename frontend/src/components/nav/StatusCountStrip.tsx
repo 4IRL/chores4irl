@@ -16,7 +16,7 @@ export default function StatusCountStrip({ counts }: StatusCountStripProps) {
     ? [{ key: 'empty', count: 0, fill: 'bg-green-500/50' }]
     : [
         { key: 'done', count: done, fill: 'bg-green-500/50' },
-        { key: 'dueSoon', count: dueSoon, fill: 'bg-orange-500/50' },
+        { key: 'due-soon', count: dueSoon, fill: 'bg-orange-500/50' },
         { key: 'overdue', count: overdue, fill: 'bg-red-500/50' },
       ];
 

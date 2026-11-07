@@ -48,11 +48,8 @@ describe('applyOrder', () => {
     expect(result.map((c) => c.id)).toEqual([3, 1, 2, 4]);
   });
 
-  it('returns a new array', () => {
+  it('returns a new array for empty and non-empty sortedIds', () => {
     expect(applyOrder(chores, [])).not.toBe(chores);
-  });
-
-  it('returns a new array when sortedIds is non-empty', () => {
     expect(applyOrder(chores, [4, 3])).not.toBe(chores);
   });
 

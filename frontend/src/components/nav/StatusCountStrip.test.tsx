@@ -23,7 +23,7 @@ describe('StatusCountStrip', () => {
     expect(screen.getByTestId('status-count-segment-done').style.flex).toBe('3 1 0%');
     expect(screen.getByTestId('status-count-segment-done')).toHaveClass('min-w-6', 'bg-green-500/50');
     expect(screen.getByTestId('status-count-segment-overdue').style.flex).toBe('2 1 0%');
-    const zero = screen.getByTestId('status-count-segment-dueSoon');
+    const zero = screen.getByTestId('status-count-segment-due-soon');
     expect(zero.style.flex).toBe('0 1 0%');
     expect(zero).not.toHaveClass('min-w-6');
     expect(zero).toBeEmptyDOMElement();

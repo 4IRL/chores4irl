@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, waitFor, cleanup, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -68,7 +69,7 @@ function stubCoarsePointer() {
   );
 }
 
-function renderView(props: Partial<React.ComponentProps<typeof ChoresView>> = {}) {
+function renderView(props: Partial<ComponentProps<typeof ChoresView>> = {}) {
   return render(
     <ChoresView
       householdTimezone="UTC"
