@@ -3690,3 +3690,242 @@ describe('ChoresView redo of complete, edit and delete', () => {
     });
   });
 });
+
+describe('ChoresView undo/redo keyboard shortcut', () => {
+  // fireEvent returns false when preventDefault was called.
+  const press = (init: KeyboardEventInit, target: Element = document.body) =>
+    fireEvent.keyDown(target, { bubbles: true, cancelable: true, ...init });
+  const putCalls = () => callsTo('PUT', '/api/chores/1');
+  const putUndoStub = () =>
+    undoStub((url, method) =>
+      url === '/api/chores/1' && method === 'PUT'
+        ? okRow({ ...mockChores[0], urgency: 'high', version: 3 })
+        : undefined,
+    );
+
+  async function armed() {
+    const user = setupUndo();
+    putUndoStub();
+    renderView();
+    await completeVacuum(user);
+    return user;
+  }
+
+  async function toRedoPhase() {
+    const user = await armed();
+    await user.click(screen.getByTestId('feedback-toast-undo'));
+    await screen.findByTestId('feedback-toast-redo');
+    return user;
+  }
+
+  it.each([
+    ['ctrl', { ctrlKey: true }],
+    ['meta', { metaKey: true }],
+  ])('%s+Z undoes in undo phase and prevents default', async (_n, mods) => {
+    await armed();
+    expect(press({ key: 'z', ...mods })).toBe(false);
+    await waitFor(() => expect(toastText()).toContain('Undone'));
+    expect(putCalls()).toHaveLength(1);
+  });
+
+  it.each([
+    ['ctrl+shift+z', { key: 'z', ctrlKey: true, shiftKey: true }],
+    ['ctrl+shift+Z (uppercase key)', { key: 'Z', ctrlKey: true, shiftKey: true }],
+    ['meta+shift+z', { key: 'z', metaKey: true, shiftKey: true }],
+    ['ctrl+y', { key: 'y', ctrlKey: true }],
+  ])('%s redoes in redo phase', async (_n, init) => {
+    await toRedoPhase();
+    const before = putCalls().length;
+    expect(press(init)).toBe(false);
+    await waitFor(() => expect(putCalls()).toHaveLength(before + 1));
+    await waitFor(() => expect(undoButton()).toBeInTheDocument());
+    expect(redoButton()).not.toBeInTheDocument();
+  });
+
+  it('matches Ctrl+Z when Caps Lock makes event.key uppercase', async () => {
+    await armed();
+    expect(press({ key: 'Z', ctrlKey: true })).toBe(false);
+    await waitFor(() => expect(toastText()).toContain('Undone'));
+  });
+
+  it('ignores the wrong phase without preventDefault or a request', async () => {
+    const user = await armed();
+    expect(press({ key: 'z', ctrlKey: true, shiftKey: true })).toBe(true);
+    expect(press({ key: 'y', ctrlKey: true })).toBe(true);
+    expect(putCalls()).toHaveLength(0);
+
+    await user.click(screen.getByTestId('feedback-toast-undo'));
+    await screen.findByTestId('feedback-toast-redo');
+    const puts = putCalls().length;
+    expect(press({ key: 'z', ctrlKey: true })).toBe(true);
+    expect(putCalls()).toHaveLength(puts);
+  });
+
+  it('ignores everything when no record is armed', async () => {
+    setupUndo();
+    putUndoStub();
+    renderView();
+    await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+    expect(press({ key: 'z', ctrlKey: true })).toBe(true);
+    expect(putCalls()).toHaveLength(0);
+  });
+
+  it.each([
+    ['repeat', { key: 'z', ctrlKey: true, repeat: true }],
+    ['composing', { key: 'z', ctrlKey: true, isComposing: true }],
+    ['ctrl+shift+z as undo', { key: 'z', ctrlKey: true, shiftKey: true }],
+    ['ctrl+alt+z', { key: 'z', ctrlKey: true, altKey: true }],
+    ['ctrl+shift+alt+z', { key: 'z', ctrlKey: true, shiftKey: true, altKey: true }],
+    ['ctrl+meta+z', { key: 'z', ctrlKey: true, metaKey: true }],
+    ['bare z', { key: 'z' }],
+  ])('does nothing for %s in undo phase', async (_n, init) => {
+    await armed();
+    expect(press(init)).toBe(true);
+    expect(putCalls()).toHaveLength(0);
+  });
+
+  it.each([
+    ['ctrl+y with shift', { key: 'y', ctrlKey: true, shiftKey: true }],
+    ['ctrl+y with alt', { key: 'y', ctrlKey: true, altKey: true }],
+    ['ctrl+y with meta', { key: 'y', ctrlKey: true, metaKey: true }],
+    ['meta+y', { key: 'y', metaKey: true }],
+    ['ctrl+shift+alt+z', { key: 'z', ctrlKey: true, shiftKey: true, altKey: true }],
+    ['ctrl+shift+z repeat', { key: 'z', ctrlKey: true, shiftKey: true, repeat: true }],
+  ])('does nothing for %s in redo phase', async (_n, init) => {
+    await toRedoPhase();
+    const puts = putCalls().length;
+    expect(press(init)).toBe(true);
+    expect(putCalls()).toHaveLength(puts);
+  });
+
+  it('is ignored in the search input', async () => {
+    await armed();
+    const search = screen.getByRole('searchbox', { name: 'Search chores' });
+    expect(press({ key: 'z', ctrlKey: true }, search)).toBe(true);
+    expect(putCalls()).toHaveLength(0);
+  });
+
+  it('ChoreFormModal renders a labelled aria-modal dialog per mode', async () => {
+    const user = await armed();
+    await user.click(screen.getByRole('button', { name: '+ Add Chore' }));
+    expect(screen.getByRole('dialog', { name: 'Add chore form' })).toHaveAttribute('aria-modal', 'true');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await user.click(within(rowFor('Dishes')).getByLabelText('Edit chore'));
+    expect(screen.getByRole('dialog', { name: 'Edit chore form' })).toHaveAttribute('aria-modal', 'true');
+  });
+
+  it.each([
+    ['add', 'Add chore form'],
+    ['edit', 'Edit chore form'],
+  ])('is ignored with focus on non-text elements in the %s modal', async (which, label) => {
+    const user = await armed();
+    if (which === 'add') await user.click(screen.getByRole('button', { name: '+ Add Chore' }));
+    else await user.click(within(rowFor('Dishes')).getByLabelText('Edit chore'));
+    const backdrop = screen.getByRole('dialog', { name: label });
+    const cancel = within(backdrop).getByRole('button', { name: 'Cancel' });
+    const save = within(backdrop)
+      .getAllByRole('button')
+      .find((b) => /save/i.test(b.textContent ?? ''));
+    expect(save).toBeDefined();
+    for (const target of [cancel, save as Element, backdrop]) {
+      expect(press({ key: 'z', ctrlKey: true }, target)).toBe(true);
+    }
+    expect(putCalls()).toHaveLength(0);
+    expect(undoButton()).toBeDisabled();
+  });
+
+  it('is ignored while the settings modal is open', async () => {
+    const user = await armed();
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    expect(press({ key: 'z', ctrlKey: true })).toBe(true);
+    expect(putCalls()).toHaveLength(0);
+  });
+
+  it('is ignored when only the DOM check applies (bare aria-modal dialog)', async () => {
+    await armed();
+    const div = document.createElement('div');
+    div.setAttribute('role', 'dialog');
+    div.setAttribute('aria-modal', 'true');
+    document.body.appendChild(div);
+    try {
+      expect(press({ key: 'z', ctrlKey: true })).toBe(true);
+      expect(putCalls()).toHaveLength(0);
+    } finally {
+      div.remove();
+    }
+  });
+
+  it('is ignored when only the modalOpen state applies (no aria-modal dialog found in the DOM)', async () => {
+    const user = await armed();
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    const realQuery = document.querySelector.bind(document);
+    const spy = vi
+      .spyOn(document, 'querySelector')
+      .mockImplementation((sel: string) => (sel.includes('aria-modal') ? null : realQuery(sel)));
+    try {
+      expect(press({ key: 'z', ctrlKey: true })).toBe(true);
+      expect(putCalls()).toHaveLength(0);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('is ignored for textarea, select and contenteditable targets', async () => {
+    await armed();
+    const textarea = document.createElement('textarea');
+    const select = document.createElement('select');
+    const editable = document.createElement('div');
+    editable.setAttribute('contenteditable', 'true');
+    const inner = document.createElement('span');
+    editable.appendChild(inner);
+    document.body.append(textarea, select, editable);
+    try {
+      for (const target of [textarea, select, editable, inner]) {
+        expect(press({ key: 'z', ctrlKey: true }, target)).toBe(true);
+      }
+      expect(putCalls()).toHaveLength(0);
+      // contenteditable="false" is not an editing host, so the shortcut still applies there.
+      const notEditable = document.createElement('div');
+      notEditable.setAttribute('contenteditable', 'false');
+      document.body.appendChild(notEditable);
+      try {
+        expect(press({ key: 'z', ctrlKey: true }, notEditable)).toBe(false);
+      } finally {
+        notEditable.remove();
+      }
+    } finally {
+      textarea.remove();
+      select.remove();
+      editable.remove();
+    }
+  });
+
+  it('does not throw on a keydown event with an undefined key', async () => {
+    await armed();
+    const event = new KeyboardEvent('keydown', { ctrlKey: true, bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'key', { value: undefined });
+    expect(() => document.body.dispatchEvent(event)).not.toThrow();
+    expect(event.defaultPrevented).toBe(false);
+    expect(putCalls()).toHaveLength(0);
+  });
+
+  it('a click or Enter on the action button and Dismiss send nothing while a modal is open', async () => {
+    const user = await armed();
+    await user.click(screen.getByRole('button', { name: '+ Add Chore' }));
+    expect(undoButton()).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Dismiss' })).toBeDisabled();
+    fireEvent.click(undoButton() as Element);
+    fireEvent.keyDown(undoButton() as Element, { key: 'Enter', bubbles: true });
+    fireEvent.keyUp(undoButton() as Element, { key: 'Enter', bubbles: true });
+    await user.keyboard('{Enter}');
+    expect(putCalls()).toHaveLength(0);
+  });
+
+  it('Ctrl+Z racing the button click sends one request', async () => {
+    await armed();
+    fireEvent.click(screen.getByTestId('feedback-toast-undo'));
+    press({ key: 'z', ctrlKey: true });
+    await waitFor(() => expect(toastText()).toContain('Undone'));
+    expect(putCalls()).toHaveLength(1);
+  });
+});

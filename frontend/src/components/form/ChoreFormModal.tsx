@@ -32,6 +32,9 @@ export default function ChoreFormModal({
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 px-4 pt-4"
       onClick={handleBackdropClick}
       data-testid="chore-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label={mode === 'edit' ? 'Edit chore form' : 'Add chore form'}
     >
       <ChoreForm
         mode={mode}

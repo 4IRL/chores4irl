@@ -299,6 +299,44 @@ export default function ChoresView({
   useEffect(() => {
     undoStepRef.current = applyUndoStep;
   });
+  // Keyboard shortcut for the toast's Undo/Redo. Reads refs/latest flags at event time so the listener is
+  // registered once; the same applyUndoStep path (single-flight) as the button runs.
+  const modalOpenRef = useRef(modalOpen);
+  useEffect(() => {
+    modalOpenRef.current = modalOpen;
+  });
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (typeof event.key !== 'string') return; // autofill / IME-synthesized events can lack a key
+      if (event.repeat || event.isComposing) return;
+      if (event.altKey) return;
+      if (event.ctrlKey === event.metaKey) return; // exactly one of Ctrl / Cmd
+      const key = event.key.toLowerCase();
+      let step: 'undo' | 'redo' | null = null;
+      if (key === 'z') step = event.shiftKey ? 'redo' : 'undo';
+      else if (key === 'y' && event.ctrlKey && !event.metaKey && !event.shiftKey) step = 'redo';
+      if (step === null) return;
+      const record = undoRef.current;
+      if (!record || record.phase !== step) return;
+      if (modalOpenRef.current) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      const target = event.target;
+      if (target instanceof Element) {
+        const tag = target.tagName;
+        if (
+          tag === 'INPUT' ||
+          tag === 'TEXTAREA' ||
+          tag === 'SELECT' ||
+          target.closest('[contenteditable]:not([contenteditable="false"])')
+        )
+          return;
+      }
+      event.preventDefault();
+      undoStepRef.current(step);
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
   const undoAction: ToastAction = {
     label: 'Undo',
     testId: 'feedback-toast-undo',
