@@ -275,6 +275,32 @@ and Long-term task fields left the form, the shared type and every backend read/
 keys are accepted and ignored), and phase 2 (migration `0012`, dropping `details` and `long_term_task`)
 shipped once phase 1 was live (#119).
 
+### Chore soft delete
+
+`DELETE /api/chores/:id` is a soft delete: migration `0013` adds a nullable `chores.deleted_at` (ISO
+timestamp) and the delete sets it and bumps `version`. `deleted_at` never appears on the wire
+(`ChoreWire` is unchanged).
+
+- **Filter rule:** every chore read and write in `backend/src/chores.ts` (`getAllChores`,
+  `fetchByHousehold`, the `UPDATE`s in `updateChore` and `completeChore`), except the `client_id` replay
+  lookup (below) and restore, adds `deleted_at IS NULL`, so a
+  hidden chore is absent from the list and `PUT`, `PATCH /complete` and a second `DELETE` return 404.
+  A chore soft-deleted between the existence check and the `UPDATE` resolves to 404, not 409
+  (`applyVersionedMutation` re-checks when the `UPDATE` matches nothing).
+- **Restore:** `PATCH /api/chores/:id/restore` clears `deleted_at`, bumps `version` and returns the same
+  id. No version in the request; 404 when the chore is absent, in another household, or not deleted.
+- **Create replay:** the `(household_id, client_id)` unique index spans deleted rows, so a replayed
+  `POST /api/chores` of a soft-deleted chore returns 410 `Chore was deleted` rather than a hidden row.
+- **Rooms:** the room in-use count ignores soft-deleted chores. Deleting a room hard-deletes that room's
+  soft-deleted chores in the same `db.batch()` (scoped by `household_id` and `deleted_at IS NOT NULL`), both
+  statements guarded by `NOT EXISTS` (live chore in the room), so a restore racing the delete yields
+  `in_use` (409) instead of a foreign-key failure and purges nothing. The mock-chore seeder counts only
+  live rows.
+- **Never purged:** soft-deleted rows are kept forever (no purge job); only deleting their room removes
+  them.
+- **Rollback caveat:** rolling the Worker back to a build that predates `0013` shows soft-deleted chores
+  again. Purge or restore them first.
+
 ## Notifications
 
 Push notifications go through two self-hosted services (the `4irl-notifs` repo): a provisioning API

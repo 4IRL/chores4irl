@@ -89,14 +89,41 @@ export async function deleteRoom(db: D1Database, householdId: number, id: number
   if (!existing) return { status: 'not_found' };
 
   const inUse = await db
-    .prepare('SELECT COUNT(*) as count FROM chores WHERE room_id = ? AND household_id = ?')
+    .prepare(
+      'SELECT COUNT(*) as count FROM chores WHERE room_id = ? AND household_id = ? AND deleted_at IS NULL',
+    )
     .bind(id, householdId)
     .first<{ count: number }>();
   if (inUse && inUse.count > 0) {
     return { status: 'in_use', choreCount: inUse.count };
   }
 
-  await db.prepare('DELETE FROM rooms WHERE id = ? AND household_id = ?').bind(id, householdId).run();
+  // Both statements carry the same NOT EXISTS guard and run in one D1 batch (one transaction), so a
+  // restore landing after the count above makes both no-ops instead of tripping the chores.room_id FK.
+  const liveGuard =
+    'NOT EXISTS (SELECT 1 FROM chores WHERE room_id = ? AND household_id = ? AND deleted_at IS NULL)';
+  const results = await db.batch([
+    db
+      .prepare(
+        `DELETE FROM chores WHERE room_id = ? AND household_id = ? AND deleted_at IS NOT NULL AND ${liveGuard}`,
+      )
+      .bind(id, householdId, id, householdId),
+    db
+      .prepare(`DELETE FROM rooms WHERE id = ? AND household_id = ? AND ${liveGuard}`)
+      .bind(id, householdId, id, householdId),
+  ]);
+  if (results[1].meta.changes === 0) {
+    const recount = await db
+      .prepare(
+        'SELECT COUNT(*) as count FROM chores WHERE room_id = ? AND household_id = ? AND deleted_at IS NULL',
+      )
+      .bind(id, householdId)
+      .first<{ count: number }>();
+    const liveCount = recount?.count ?? 0;
+    // Zero live chores and no room row deleted: the room was deleted concurrently.
+    if (liveCount === 0) return { status: 'not_found' };
+    return { status: 'in_use', choreCount: liveCount };
+  }
   return { status: 'ok' };
 }
 

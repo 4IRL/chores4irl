@@ -1,6 +1,13 @@
 import { Hono } from 'hono';
 import type { ApiResponse } from '../../../types/SharedTypes.js';
-import { getAllChores, createChore, updateChore, completeChore, deleteChore } from '../chores.js';
+import {
+  getAllChores,
+  createChore,
+  updateChore,
+  completeChore,
+  deleteChore,
+  restoreChore,
+} from '../chores.js';
 import type { AppEnv } from '../types.js';
 
 const chores = new Hono<AppEnv>();
@@ -29,6 +36,9 @@ chores.post('/', async (c) => {
   const result = await createChore(c.env.DB, c.var.householdId, body as never, clientId);
   if (result.status === 'invalid_room') {
     return c.json({ success: false, error: 'Invalid room' } satisfies ApiResponse<never>, 400);
+  }
+  if (result.status === 'deleted') {
+    return c.json({ success: false, error: 'Chore was deleted' } satisfies ApiResponse<never>, 410);
   }
   return c.json({ success: true, data: result.chore } satisfies ApiResponse<typeof result.chore>, 201);
 });
@@ -84,6 +94,18 @@ chores.delete('/:id', async (c) => {
     return c.json({ success: false, error: 'Chore not found' } satisfies ApiResponse<never>, 404);
   }
   return c.json({ success: true, data: null } satisfies ApiResponse<null>);
+});
+
+chores.patch('/:id/restore', async (c) => {
+  const id = Number(c.req.param('id'));
+  if (Number.isNaN(id)) {
+    return c.json({ success: false, error: 'Invalid id' } satisfies ApiResponse<never>, 400);
+  }
+  const result = await restoreChore(c.env.DB, c.var.householdId, id);
+  if (result.status === 'not_found') {
+    return c.json({ success: false, error: 'Chore not found' } satisfies ApiResponse<never>, 404);
+  }
+  return c.json({ success: true, data: result.chore } satisfies ApiResponse<typeof result.chore>);
 });
 
 export default chores;
