@@ -239,6 +239,35 @@ describe('DELETE /api/rooms/:id', () => {
     expect(room!.count).toBe(1);
   });
 
+  it('returns 404 (not a foreign-key 500) when the room is deleted concurrently before the batch', async () => {
+    await insertChore('Hidden', ROOM_A, HOUSEHOLD_A, '2026-06-02T00:00:00.000Z');
+    let fired = false;
+    const realDb = env.DB;
+    const racingDb = new Proxy(realDb, {
+      get(target, prop) {
+        if (prop === 'batch') {
+          return async (statements: D1PreparedStatement[]) => {
+            fired = true;
+            await realDb.prepare('DELETE FROM chores WHERE room_id = ?').bind(ROOM_A).run();
+            await realDb.prepare('DELETE FROM rooms WHERE id = ?').bind(ROOM_A).run();
+            return realDb.batch(statements);
+          };
+        }
+        const value = Reflect.get(target, prop, target);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+
+    const res = await app.request(
+      `/api/rooms/${ROOM_A}`,
+      { method: 'DELETE', headers: await authHeader('admin-a@example.com') },
+      { ...testEnv(), DB: racingDb },
+    );
+
+    expect(fired).toBe(true);
+    expect(res.status).toBe(404);
+  });
+
   it('deletes an empty same-household room', async () => {
     const res = await app.request(
       `/api/rooms/${ROOM_A}`,

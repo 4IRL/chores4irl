@@ -131,7 +131,7 @@ type UndoRecord = {
   // Version for the next versioned PUT; null for delete and for a cancelled offline entry.
   currentVersion: number | null;
   outboxEntryId: string | null;
-  // True only after an offline-queued entry was cancelled by Undo (Step 5's Redo branches on it).
+  // True only after an offline-queued entry was cancelled by Undo (Redo then re-runs the original action).
   cancelled: boolean;
   phase: 'undo' | 'redo';
   toastId: number;
