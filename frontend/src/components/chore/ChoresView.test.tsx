@@ -3928,4 +3928,21 @@ describe('ChoresView undo/redo keyboard shortcut', () => {
     await waitFor(() => expect(toastText()).toContain('Undone'));
     expect(putCalls()).toHaveLength(1);
   });
+
+  it('does not preventDefault Ctrl+Z while an Undo request is in flight', async () => {
+    const user = setupUndo();
+    let resolve: (r: Response) => void = () => {};
+    const pending = new Promise<Response>((r) => {
+      resolve = r;
+    });
+    undoStub((url, method) => (url === '/api/chores/1' && method === 'PUT' ? pending : undefined));
+    renderView();
+    await completeVacuum(user);
+    fireEvent.click(screen.getByTestId('feedback-toast-undo'));
+    await waitFor(() => expect(putCalls()).toHaveLength(1));
+    expect(press({ key: 'z', ctrlKey: true })).toBe(true);
+    expect(putCalls()).toHaveLength(1);
+    resolve(await okRow({ ...mockChores[0], urgency: 'high', version: 3 }));
+    await waitFor(() => expect(toastText()).toContain('Undone'));
+  });
 });
