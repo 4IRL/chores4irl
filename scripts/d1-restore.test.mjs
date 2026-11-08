@@ -6,7 +6,7 @@ import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 import { REPO_ROOT } from './ports.mjs';
-import { compareTables, missingTriggers, parseDump } from './d1-restore.mjs';
+import { compareTables, missingTriggers, parseDump, wranglerFailureMessage } from './d1-restore.mjs';
 
 const BACKEND = path.join(REPO_ROOT, 'backend');
 const SCRIPT = path.join(REPO_ROOT, 'scripts', 'd1-restore.mjs');
@@ -460,6 +460,38 @@ describe('d1-restore.mjs', { timeout: 600000 }, () => {
       assert.equal(res.status, 2, `${args.join(' ')}: ${res.stderr}`);
       assert.match(res.stderr, /d1-restore:/);
     }
+  });
+
+  it('18: child processes never see the passphrase env vars', () => {
+    const gpgPath = path.join(work, 'envstrip.sql.gpg');
+    encrypt(dumpPath, gpgPath);
+    const stubDir = mkroot('envstub');
+    const envDump = path.join(stubDir, 'env.txt');
+    fs.writeFileSync(path.join(stubDir, 'npx'), '#!/bin/sh\nenv > "$STUB_ENV_DUMP"\nexit 1\n');
+    fs.chmodSync(path.join(stubDir, 'npx'), 0o755);
+    const res = restore([gpgPath, '--passphrase-env', 'MY_PASS'], {
+      env: {
+        MY_PASS: PASSPHRASE,
+        D1_BACKUP_PASSPHRASE: PASSPHRASE,
+        STUB_ENV_DUMP: envDump,
+        PATH: `${stubDir}${path.delimiter}${process.env.PATH}`,
+      },
+    });
+    assert.notEqual(res.status, 0);
+    assert.ok(fs.existsSync(envDump), 'stub npx never ran');
+    const dumped = fs.readFileSync(envDump, 'utf8');
+    assert.ok(!/^D1_BACKUP_PASSPHRASE=/m.test(dumped), 'default passphrase var leaked to child');
+    assert.ok(!/^MY_PASS=/m.test(dumped), 'custom passphrase var leaked to child');
+    assert.ok(!dumped.includes(PASSPHRASE), 'passphrase value leaked to child');
+  });
+
+  it('19: CI-mode wrangler failure message omits the stderr tail', () => {
+    const stderr = 'INSERT INTO users VALUES(1,"a@example.com","secret-token")';
+    const ci = wranglerFailureMessage('import', 1, stderr, 'true');
+    assert.equal(ci, 'wrangler import failed (rc=1)');
+    assert.ok(!ci.includes('example.com'));
+    const local = wranglerFailureMessage('import', 1, stderr, undefined);
+    assert.match(local, /rc=1\):\n.*example\.com/);
   });
 
   it('leaves backend/.wrangler/state untouched', () => {

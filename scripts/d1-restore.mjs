@@ -272,6 +272,12 @@ const tail = (s) => {
   return t.length > TAIL_CHARS ? `...${t.slice(-TAIL_CHARS)}` : t;
 };
 
+// In CI (public-ish Actions logs) never include the stderr tail: it can echo user rows.
+export function wranglerFailureMessage(phase, rc, stderr, ci) {
+  const base = `wrangler ${phase} failed (rc=${rc})`;
+  return ci ? base : `${base}:\n${tail(stderr)}`;
+}
+
 async function wrangler(phase, timeoutMs, dir, extra) {
   const res = await run(phase, timeoutMs, 'npx', [
     'wrangler',
@@ -285,7 +291,7 @@ async function wrangler(phase, timeoutMs, dir, extra) {
     ...extra,
   ]);
   if (res.code !== 0) {
-    throw new Error(`wrangler ${phase} failed (rc=${res.code}):\n${tail(res.stderr)}`);
+    throw new Error(wranglerFailureMessage(phase, res.code, res.stderr, process.env.CI));
   }
   return res.stdout;
 }
