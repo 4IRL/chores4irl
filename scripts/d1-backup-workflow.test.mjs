@@ -42,6 +42,7 @@ const ALL_NAMES = [
   GENKEY,
   UPLOAD,
   VERIFY,
+  SMOKE,
   DELETE_FAILED,
   PRUNE,
   NOTIFY,
@@ -54,12 +55,13 @@ const anyKey = (node, key) =>
   Object.entries(node).some(([k, v]) => k === key || anyKey(v, key));
 
 describe('d1-backup.yml shape', () => {
-  it('has the exact steps in order (smoke is optional until Step 3)', () => {
-    const names = job.steps.map((s) => s.name).filter((n) => n !== SMOKE);
-    assert.deepEqual(names, ALL_NAMES);
-    if (stepIndex(SMOKE) >= 0) {
-      assert.ok(stepIndex(VERIFY) < stepIndex(SMOKE) && stepIndex(SMOKE) < stepIndex(DELETE_FAILED));
-    }
+  it('has the exact steps in order, smoke between verify and delete failed object', () => {
+    assert.deepEqual(
+      job.steps.map((s) => s.name),
+      ALL_NAMES,
+    );
+    assert.ok(stepIndex(VERIFY) < stepIndex(SMOKE) && stepIndex(SMOKE) < stepIndex(DELETE_FAILED));
+    assert.ok(stepIndex(SMOKE) < stepIndex(PRUNE));
   });
 
   it('has the name, triggers, permissions, concurrency and job settings', () => {
@@ -152,14 +154,18 @@ describe('d1-backup.yml dump gates and traps', () => {
       assert.match(run, /trap '[^']*rm -f "\$RUNNER_TEMP\/backup\.sql"[^']*' TERM/, `${name} TERM trap`);
       assert.doesNotMatch(run, /' EXIT/, `${name} has EXIT trap`);
     }
-    if (stepIndex(SMOKE) >= 0) {
-      assert.match(stepNamed(SMOKE).run, /' EXIT/);
-      assert.match(stepNamed(SMOKE).run, /' TERM/);
-    }
+    const smoke = stepNamed(SMOKE).run;
+    assert.ok(smoke.includes(`trap 'rm -rf "$RUNNER_TEMP/smoke-db"' EXIT`));
+    assert.ok(smoke.includes(`trap 'exit 143' TERM`));
     for (const step of runs()) {
       if ([EXPORT, CHECK, ENCRYPT, SMOKE].includes(step.name)) continue;
       assert.ok(!step.run.includes('trap'), `${step.name} contains trap`);
     }
+    const withExit = runs().filter((s) => /' EXIT/.test(s.run));
+    assert.deepEqual(
+      withExit.map((s) => s.name),
+      [SMOKE],
+    );
   });
 
   it('removes backup.sql explicitly after gpg in the encrypt step', () => {
@@ -231,6 +237,34 @@ describe('d1-backup.yml failed-backup cleanup', () => {
     const t = text(stepNamed(DELETE_FAILED));
     for (const bad of ['D1_BACKUP_PASSPHRASE', 'D1_BACKUP_ALERT_WEBHOOK', 'CLOUDFLARE_API_TOKEN']) {
       assert.ok(!t.includes(bad), `references ${bad}`);
+    }
+  });
+});
+
+describe('d1-backup.yml restore smoke check', () => {
+  it('restores the retained local .gpg through the CLI with the require flags', () => {
+    const step = stepNamed(SMOKE);
+    const run = step.run;
+    assert.ok(run.includes('node scripts/d1-restore.mjs "$RUNNER_TEMP/backup.sql.gpg"'));
+    assert.ok(run.includes('--persist-to "$RUNNER_TEMP/smoke-db"'));
+    assert.ok(run.includes('--require-rows users,d1_migrations'));
+    assert.ok(run.includes('--require-triggers prevent_owner_account_deletion'));
+    assert.ok(!run.includes('awk'), 'no inline awk check');
+    assert.equal(step.if, undefined);
+    assert.match(run, /d1-restore\.mjs[^\n]*\|\| rc=\$\?/);
+    assert.match(run.trimEnd(), /test "\$rc" -eq 0$/);
+    const nodeAt = run.indexOf('node scripts/d1-restore.mjs');
+    assert.ok(run.indexOf("' EXIT") >= 0 && run.indexOf("' EXIT") < nodeAt, 'EXIT trap before node');
+    assert.ok(run.indexOf("' TERM") >= 0 && run.indexOf("' TERM") < nodeAt, 'TERM trap before node');
+  });
+
+  it('has only the passphrase secret and no R2 access', () => {
+    const step = stepNamed(SMOKE);
+    assert.deepEqual(Object.keys(step.env), ['D1_BACKUP_PASSPHRASE']);
+    assert.equal(step.env.D1_BACKUP_PASSPHRASE, '${{ secrets.D1_BACKUP_PASSPHRASE }}');
+    const t = text(step);
+    for (const bad of ['R2_', 'AWS_', 'aws ', 'CLOUDFLARE_']) {
+      assert.ok(!t.includes(bad), `smoke references ${bad}`);
     }
   });
 });

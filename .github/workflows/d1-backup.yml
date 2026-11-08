@@ -166,6 +166,20 @@ jobs:
           esac
           echo "end: $(date -u) rc=0 duration=$(( $(date +%s) - start ))s size=$LOCAL_SIZE"
 
+      - name: Restore smoke check
+        timeout-minutes: 2
+        env:
+          D1_BACKUP_PASSPHRASE: ${{ secrets.D1_BACKUP_PASSPHRASE }}
+        run: |
+          start=$(date +%s)
+          echo "start: $(date -u)"
+          trap 'rm -rf "$RUNNER_TEMP/smoke-db"' EXIT
+          trap 'exit 143' TERM
+          rc=0
+          node scripts/d1-restore.mjs "$RUNNER_TEMP/backup.sql.gpg" --persist-to "$RUNNER_TEMP/smoke-db" --require-rows users,d1_migrations --require-triggers prevent_owner_account_deletion || rc=$?
+          echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s"
+          test "$rc" -eq 0
+
       - name: Delete failed backup object
         if: failure()
         timeout-minutes: 1
