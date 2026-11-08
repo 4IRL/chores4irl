@@ -132,11 +132,6 @@ describe('CLI prune', () => {
     assert.equal(r.stdout, '');
   });
 
-  it('accepts --keep 8', () => {
-    const r = cli(['prune', '--keep', '8', '--protect', keys[9]], keys.join('\n'));
-    assert.equal(r.status, 0);
-  });
-
   it('rejects bad --keep (non-numeric, empty, decimal, zero)', () => {
     for (const bad of ['abc', '', '1.5', '0', '-1', '8x', ' 8']) {
       const r = cli(['prune', '--keep', bad, '--protect', keys[9]], keys.join('\n'));

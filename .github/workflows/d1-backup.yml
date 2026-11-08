@@ -248,6 +248,7 @@ jobs:
           echo "start: $(date -u)"
           if [ -z "$D1_BACKUP_ALERT_WEBHOOK" ]; then
             echo "D1_BACKUP_ALERT_WEBHOOK secret unset" >&2
+            echo "end: $(date -u) rc=1 duration=$(( $(date +%s) - start ))s"
             exit 1
           fi
           RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

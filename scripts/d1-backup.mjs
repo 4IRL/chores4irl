@@ -7,10 +7,10 @@ import { fileURLToPath } from 'node:url';
 const KEY_RE = /^d1\/chores4irl-\d{8}T\d{6}Z\.sql\.gpg$/;
 
 export function backupKey(date) {
-  const p = (n, w = 2) => String(n).padStart(w, '0');
+  const padZero = (n, w = 2) => String(n).padStart(w, '0');
   const stamp =
-    `${p(date.getUTCFullYear(), 4)}${p(date.getUTCMonth() + 1)}${p(date.getUTCDate())}` +
-    `T${p(date.getUTCHours())}${p(date.getUTCMinutes())}${p(date.getUTCSeconds())}Z`;
+    `${padZero(date.getUTCFullYear(), 4)}${padZero(date.getUTCMonth() + 1)}${padZero(date.getUTCDate())}` +
+    `T${padZero(date.getUTCHours())}${padZero(date.getUTCMinutes())}${padZero(date.getUTCSeconds())}Z`;
   return `d1/chores4irl-${stamp}.sql.gpg`;
 }
 

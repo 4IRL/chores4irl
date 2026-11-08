@@ -5,7 +5,7 @@
 //
 // stdout: `persist-to<TAB>DIR` first (always, even when the restore later fails),
 // then on success one `table<TAB>count` line per user table. See the plan
-// "Weekly D1 backup export" (Contracts -> Restore) for the full contract.
+// ARCHITECTURE.md "Weekly backup export" for the full contract.
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -80,8 +80,7 @@ function stripLiteralsAndComments(sql) {
 
 function unquoteName(raw) {
   if (raw.startsWith('"')) return raw.slice(1, -1).replaceAll('""', '"');
-  if (raw.startsWith('`')) return raw.slice(1, -1);
-  if (raw.startsWith('[')) return raw.slice(1, -1);
+  if (raw.startsWith('`') || raw.startsWith('[')) return raw.slice(1, -1);
   return raw;
 }
 
@@ -219,6 +218,7 @@ function childEnv(extra) {
 function run(phase, timeoutMs, cmd, args, { input } = {}) {
   return new Promise((resolve, reject) => {
     const started = Date.now();
+    process.stderr.write(`${new Date().toISOString()} d1-restore: ${phase} start\n`);
     const child = spawn(cmd, args, {
       cwd: BACKEND_DIR,
       env: childEnv(),
@@ -232,7 +232,7 @@ function run(phase, timeoutMs, cmd, args, { input } = {}) {
     children.set(child, new Promise((r) => (onClosed = r)));
     const finish = (rc) => {
       process.stderr.write(
-        `d1-restore: ${phase} rc=${rc} dur=${((Date.now() - started) / 1000).toFixed(1)}s\n`,
+        `${new Date().toISOString()} d1-restore: ${phase} end rc=${rc} duration=${((Date.now() - started) / 1000).toFixed(1)}s\n`,
       );
     };
     const timer = setTimeout(() => {

@@ -91,4 +91,4 @@ PASSPHRASE_ENV ?= D1_BACKUP_PASSPHRASE
 
 backup-restore-local: ## Restore a D1 backup into a throwaway local D1: make backup-restore-local FILE=<.sql|.sql.gpg> [PASSPHRASE_ENV=NAME]
 	@test -n "$(FILE)" || { echo 'Usage: make backup-restore-local FILE=<path to .sql or .sql.gpg> [PASSPHRASE_ENV=D1_BACKUP_PASSPHRASE]' >&2; exit 1; }
-	node scripts/d1-restore.mjs "$(FILE)" --passphrase-env $(PASSPHRASE_ENV)
+	node scripts/d1-restore.mjs "$(FILE)" --passphrase-env "$(PASSPHRASE_ENV)"
