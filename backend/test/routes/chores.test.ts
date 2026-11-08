@@ -53,6 +53,25 @@ const validChoreBody = {
   frequency: 7,
 };
 
+type ChoreBody = { id: number; version: number; dateLastCompleted: string };
+
+async function postChore(householdId: number, extra: Record<string, unknown> = {}): Promise<ChoreBody> {
+  const res = await testApp(householdId).request('/api/chores', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...validChoreBody, ...extra }),
+  });
+  return ((await res.json()) as { data: ChoreBody }).data;
+}
+
+function jsonRequest(householdId: number, path: string, method: string, body?: unknown) {
+  return testApp(householdId).request(path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
 describe('GET /api/chores', () => {
   it('returns 200 and the household-scoped list for an authenticated request', async () => {
     await testApp(HOUSEHOLD_A).request('/api/chores', {
@@ -324,5 +343,101 @@ describe('DELETE /api/chores/:id', () => {
 
     const res = await testApp(HOUSEHOLD_A).request(`/api/chores/${created.id}`, { method: 'DELETE' });
     expect(res.status).toBe(200);
+  });
+});
+
+describe('soft delete and PATCH /api/chores/:id/restore', () => {
+  it('hides a deleted chore from the list and 404s every later write', async () => {
+    const created = await postChore(HOUSEHOLD_A);
+    await jsonRequest(HOUSEHOLD_A, `/api/chores/${created.id}`, 'DELETE');
+
+    const list = (await (await jsonRequest(HOUSEHOLD_A, '/api/chores', 'GET')).json()) as { data: unknown[] };
+    expect(list.data).toHaveLength(0);
+    const put = await jsonRequest(HOUSEHOLD_A, `/api/chores/${created.id}`, 'PUT', {
+      ...validChoreBody,
+      version: created.version + 1,
+    });
+    const complete = await jsonRequest(HOUSEHOLD_A, `/api/chores/${created.id}/complete`, 'PATCH', {
+      dateLastCompleted: '2026-07-01T00:00:00.000Z',
+    });
+    const second = await jsonRequest(HOUSEHOLD_A, `/api/chores/${created.id}`, 'DELETE');
+    expect([put.status, complete.status, second.status]).toEqual([404, 404, 404]);
+  });
+
+  it('restores the same id with a bumped version, and it reappears in the list without deleted_at', async () => {
+    const created = await postChore(HOUSEHOLD_A);
+    await jsonRequest(HOUSEHOLD_A, `/api/chores/${created.id}`, 'DELETE');
+
+    const res = await jsonRequest(HOUSEHOLD_A, `/api/chores/${created.id}/restore`, 'PATCH');
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: ChoreBody & Record<string, unknown> };
+    expect(body.data.id).toBe(created.id);
+    expect(body.data.version).toBe(created.version + 2);
+    expect(body.data).not.toHaveProperty('deleted_at');
+    expect(body.data).not.toHaveProperty('deletedAt');
+    const list = (await (await jsonRequest(HOUSEHOLD_A, '/api/chores', 'GET')).json()) as {
+      data: { id: number }[];
+    };
+    expect(list.data.map((chore) => chore.id)).toEqual([created.id]);
+  });
+
+  it('restore is 404 for a live chore, an absent id, another household, and a second restore', async () => {
+    const live = await postChore(HOUSEHOLD_A);
+    const gone = await postChore(HOUSEHOLD_A);
+    await jsonRequest(HOUSEHOLD_A, `/api/chores/${gone.id}`, 'DELETE');
+
+    expect((await jsonRequest(HOUSEHOLD_A, `/api/chores/${live.id}/restore`, 'PATCH')).status).toBe(404);
+    expect((await jsonRequest(HOUSEHOLD_A, '/api/chores/999999/restore', 'PATCH')).status).toBe(404);
+    expect((await jsonRequest(HOUSEHOLD_B, `/api/chores/${gone.id}/restore`, 'PATCH')).status).toBe(404);
+    expect((await jsonRequest(HOUSEHOLD_A, `/api/chores/${gone.id}/restore`, 'PATCH')).status).toBe(200);
+    expect((await jsonRequest(HOUSEHOLD_A, `/api/chores/${gone.id}/restore`, 'PATCH')).status).toBe(404);
+  });
+
+  it('restore with a non-numeric id is 400', async () => {
+    const res = await jsonRequest(HOUSEHOLD_A, '/api/chores/abc/restore', 'PATCH');
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe('Invalid id');
+  });
+
+  it('complete then PUT of the pre-complete snapshot restores the date (version + 2); the stale version is 409', async () => {
+    const created = await postChore(HOUSEHOLD_A);
+    const completeRes = await jsonRequest(HOUSEHOLD_A, `/api/chores/${created.id}/complete`, 'PATCH', {
+      dateLastCompleted: '2026-07-01T00:00:00.000Z',
+    });
+    const completed = ((await completeRes.json()) as { data: ChoreBody }).data;
+
+    const stale = await jsonRequest(HOUSEHOLD_A, `/api/chores/${created.id}`, 'PUT', {
+      ...validChoreBody,
+      version: created.version,
+    });
+    const undo = await jsonRequest(HOUSEHOLD_A, `/api/chores/${created.id}`, 'PUT', {
+      ...validChoreBody,
+      version: completed.version,
+    });
+
+    expect(stale.status).toBe(409);
+    expect(undo.status).toBe(200);
+    const undone = ((await undo.json()) as { data: ChoreBody }).data;
+    expect(undone.dateLastCompleted).toBe(validChoreBody.dateLastCompleted);
+    expect(undone.version).toBe(created.version + 2);
+  });
+
+  it('a replayed clientId create of a live chore is 201 with the row; of a deleted chore it is 410', async () => {
+    const created = await postChore(HOUSEHOLD_A, { clientId: 'cid-route' });
+    const replayLive = await jsonRequest(HOUSEHOLD_A, '/api/chores', 'POST', {
+      ...validChoreBody,
+      clientId: 'cid-route',
+    });
+    expect(replayLive.status).toBe(201);
+    expect(((await replayLive.json()) as { data: ChoreBody }).data.id).toBe(created.id);
+
+    await jsonRequest(HOUSEHOLD_A, `/api/chores/${created.id}`, 'DELETE');
+    const replayDeleted = await jsonRequest(HOUSEHOLD_A, '/api/chores', 'POST', {
+      ...validChoreBody,
+      clientId: 'cid-route',
+    });
+    expect(replayDeleted.status).toBe(410);
+    expect(await replayDeleted.json()).toEqual({ success: false, error: 'Chore was deleted' });
   });
 });

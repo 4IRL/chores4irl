@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:workers';
-import { getAllChores, createChore, updateChore, completeChore, deleteChore } from '../src/chores.js';
+import {
+  getAllChores,
+  createChore,
+  updateChore,
+  completeChore,
+  deleteChore,
+  restoreChore,
+  applyVersionedMutation,
+} from '../src/chores.js';
 import type { ChoreInput, ChoreWire } from '../src/chores.js';
 
 const HOUSEHOLD_A = 1;
@@ -245,5 +253,145 @@ describe('deleteChore', () => {
 
     expect(deleted).toBe(false);
     expect(await getAllChores(env.DB, HOUSEHOLD_B)).toHaveLength(1);
+  });
+
+  it('soft-deletes: excluded from the list, bumps version, second delete is false', async () => {
+    const created = await createChoreOk(HOUSEHOLD_A, baseChoreInput);
+
+    expect(await deleteChore(env.DB, HOUSEHOLD_A, created.id)).toBe(true);
+
+    expect(await getAllChores(env.DB, HOUSEHOLD_A)).toHaveLength(0);
+    const raw = await env.DB.prepare('SELECT version, deleted_at FROM chores WHERE id = ?')
+      .bind(created.id)
+      .first<{ version: number; deleted_at: string | null }>();
+    expect(raw!.version).toBe(created.version + 1);
+    expect(raw!.deleted_at).not.toBeNull();
+    expect(await deleteChore(env.DB, HOUSEHOLD_A, created.id)).toBe(false);
+  });
+
+  it('makes update and complete return not_found for a deleted chore', async () => {
+    const created = await createChoreOk(HOUSEHOLD_A, baseChoreInput);
+    await deleteChore(env.DB, HOUSEHOLD_A, created.id);
+
+    const updated = await updateChore(env.DB, HOUSEHOLD_A, created.id, baseChoreInput, created.version + 1);
+    const completed = await completeChore(env.DB, HOUSEHOLD_A, created.id, '2026-07-01T00:00:00.000Z');
+
+    expect(updated.status).toBe('not_found');
+    expect(completed.status).toBe('not_found');
+
+    const raw = await env.DB.prepare('SELECT date_last_completed, version FROM chores WHERE id = ?')
+      .bind(created.id)
+      .first<{ date_last_completed: string; version: number }>();
+    expect(raw!.date_last_completed).toBe(created.dateLastCompleted);
+    expect(raw!.version).toBe(created.version + 1);
+  });
+});
+
+describe('restoreChore', () => {
+  it('restores the same id with version = deleted version + 1 and the chore is unchanged', async () => {
+    const created = await createChoreOk(HOUSEHOLD_A, baseChoreInput);
+    await deleteChore(env.DB, HOUSEHOLD_A, created.id);
+
+    const result = await restoreChore(env.DB, HOUSEHOLD_A, created.id);
+
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    expect(result.chore).toEqual({ ...created, version: created.version + 2 });
+    expect(await getAllChores(env.DB, HOUSEHOLD_A)).toEqual([result.chore]);
+  });
+
+  it('is not_found for a live chore, an absent id, another household, and a second restore', async () => {
+    const live = await createChoreOk(HOUSEHOLD_A, baseChoreInput);
+    const other = await createChoreOk(HOUSEHOLD_B, { ...baseChoreInput, roomId: ROOM_B });
+    await deleteChore(env.DB, HOUSEHOLD_B, other.id);
+    const gone = await createChoreOk(HOUSEHOLD_A, baseChoreInput);
+    await deleteChore(env.DB, HOUSEHOLD_A, gone.id);
+
+    expect((await restoreChore(env.DB, HOUSEHOLD_A, live.id)).status).toBe('not_found');
+    expect((await restoreChore(env.DB, HOUSEHOLD_A, 999999)).status).toBe('not_found');
+    expect((await restoreChore(env.DB, HOUSEHOLD_A, other.id)).status).toBe('not_found');
+    expect((await restoreChore(env.DB, HOUSEHOLD_A, gone.id)).status).toBe('ok');
+    expect((await restoreChore(env.DB, HOUSEHOLD_A, gone.id)).status).toBe('not_found');
+  });
+});
+
+describe('undo of complete via versioned update', () => {
+  it('PUT of the pre-complete snapshot with the returned version restores the date (version + 2)', async () => {
+    const created = await createChoreOk(HOUSEHOLD_A, baseChoreInput);
+    const completed = await completeChore(env.DB, HOUSEHOLD_A, created.id, '2026-07-01T00:00:00.000Z');
+    if (completed.status !== 'ok') throw new Error('complete failed');
+
+    const undone = await updateChore(
+      env.DB,
+      HOUSEHOLD_A,
+      created.id,
+      { ...baseChoreInput, dateLastCompleted: created.dateLastCompleted },
+      completed.chore.version,
+    );
+
+    expect(undone.status).toBe('ok');
+    if (undone.status !== 'ok') return;
+    expect(undone.chore.dateLastCompleted).toBe(created.dateLastCompleted);
+    expect(undone.chore.version).toBe(created.version + 2);
+  });
+
+  it('the same PUT with the pre-complete (stale) version is a conflict', async () => {
+    const created = await createChoreOk(HOUSEHOLD_A, baseChoreInput);
+    await completeChore(env.DB, HOUSEHOLD_A, created.id, '2026-07-01T00:00:00.000Z');
+
+    const stale = await updateChore(env.DB, HOUSEHOLD_A, created.id, baseChoreInput, created.version);
+
+    expect(stale.status).toBe('conflict');
+  });
+});
+
+describe('createChore client_id replay with soft delete', () => {
+  it('returns the live row for a replayed clientId', async () => {
+    const first = await createChoreOk(HOUSEHOLD_A, baseChoreInput, 'cid-live');
+    const replay = await createChore(env.DB, HOUSEHOLD_A, baseChoreInput, 'cid-live');
+
+    expect(replay).toEqual({ status: 'ok', chore: first });
+  });
+
+  it('returns {status: "deleted"} for a replayed clientId of a soft-deleted chore, without throwing', async () => {
+    const first = await createChoreOk(HOUSEHOLD_A, baseChoreInput, 'cid-deleted');
+    await deleteChore(env.DB, HOUSEHOLD_A, first.id);
+
+    const replay = await createChore(env.DB, HOUSEHOLD_A, baseChoreInput, 'cid-deleted');
+
+    expect(replay).toEqual({ status: 'deleted' });
+  });
+});
+
+describe('applyVersionedMutation delete-vs-write race', () => {
+  it('returns not_found when the chore is soft-deleted between the check and the UPDATE', async () => {
+    const created = await createChoreOk(HOUSEHOLD_A, baseChoreInput);
+
+    const result = await applyVersionedMutation(
+      env.DB,
+      HOUSEHOLD_A,
+      created.id,
+      created.version,
+      async () => {
+        await deleteChore(env.DB, HOUSEHOLD_A, created.id);
+        return { meta: { changes: 0 } } as D1Result;
+      },
+    );
+
+    expect(result.status).toBe('not_found');
+  });
+
+  it('returns conflict when the UPDATE matched nothing on a still-live row', async () => {
+    const created = await createChoreOk(HOUSEHOLD_A, baseChoreInput);
+
+    const result = await applyVersionedMutation(
+      env.DB,
+      HOUSEHOLD_A,
+      created.id,
+      created.version,
+      async () => ({ meta: { changes: 0 } }) as D1Result,
+    );
+
+    expect(result.status).toBe('conflict');
   });
 });

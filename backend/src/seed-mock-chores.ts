@@ -25,7 +25,7 @@ export async function seedMockChores(
   now: Date = new Date(),
 ): Promise<SeedMockChoresResult> {
   const existing = await db
-    .prepare('SELECT COUNT(*) as count FROM chores WHERE household_id = ?')
+    .prepare('SELECT COUNT(*) as count FROM chores WHERE household_id = ? AND deleted_at IS NULL')
     .bind(householdId)
     .first<{ count: number }>();
   if (existing && existing.count > 0) {

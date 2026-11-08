@@ -15,6 +15,23 @@ async function authHeader(email: string) {
   return { 'Cf-Access-Jwt-Assertion': token };
 }
 
+async function insertChore(name: string, roomId: number, householdId: number, deletedAt: string | null) {
+  const result = await env.DB.prepare(
+    `INSERT INTO chores (household_id, name, room_id, date_last_completed, duration, frequency, version, deleted_at)
+     VALUES (?, ?, ?, '2026-06-01T00:00:00.000Z', 10, 1, 1, ?)`,
+  )
+    .bind(householdId, name, roomId, deletedAt)
+    .run();
+  return Number(result.meta.last_row_id);
+}
+
+async function rawChoreCount(roomId: number): Promise<number> {
+  const row = await env.DB.prepare('SELECT COUNT(*) as count FROM chores WHERE room_id = ?')
+    .bind(roomId)
+    .first<{ count: number }>();
+  return row!.count;
+}
+
 beforeEach(async () => {
   stubAccessJwks();
   await env.DB.exec('DELETE FROM chores');
@@ -138,6 +155,117 @@ describe('DELETE /api/rooms/:id', () => {
       testEnv(),
     );
     expect(res.status).toBe(409);
+  });
+
+  it('deletes a room whose only chores are soft-deleted and removes the rows', async () => {
+    await insertChore('Hidden 1', ROOM_A, HOUSEHOLD_A, '2026-06-02T00:00:00.000Z');
+    await insertChore('Hidden 2', ROOM_A, HOUSEHOLD_A, '2026-06-02T00:00:00.000Z');
+
+    const res = await app.request(
+      `/api/rooms/${ROOM_A}`,
+      { method: 'DELETE', headers: await authHeader('admin-a@example.com') },
+      testEnv(),
+    );
+
+    expect(res.status).toBe(200);
+    expect(await rawChoreCount(ROOM_A)).toBe(0);
+  });
+
+  it('refuses a room with one live and one soft-deleted chore, keeping both rows', async () => {
+    await insertChore('Live', ROOM_A, HOUSEHOLD_A, null);
+    await insertChore('Hidden', ROOM_A, HOUSEHOLD_A, '2026-06-02T00:00:00.000Z');
+
+    const res = await app.request(
+      `/api/rooms/${ROOM_A}`,
+      { method: 'DELETE', headers: await authHeader('admin-a@example.com') },
+      testEnv(),
+    );
+
+    expect(res.status).toBe(409);
+    expect(await rawChoreCount(ROOM_A)).toBe(2);
+  });
+
+  it('leaves another household soft-deleted chores untouched when deleting a room', async () => {
+    await insertChore('Hidden A', ROOM_A, HOUSEHOLD_A, '2026-06-02T00:00:00.000Z');
+    await insertChore('Hidden B', ROOM_B, HOUSEHOLD_B, '2026-06-02T00:00:00.000Z');
+
+    const res = await app.request(
+      `/api/rooms/${ROOM_A}`,
+      { method: 'DELETE', headers: await authHeader('admin-a@example.com') },
+      testEnv(),
+    );
+
+    expect(res.status).toBe(200);
+    expect(await rawChoreCount(ROOM_B)).toBe(1);
+  });
+
+  it('returns 409 (not a foreign-key 500) when a restore lands between the count and the batch', async () => {
+    const restoredId = await insertChore('Restored', ROOM_A, HOUSEHOLD_A, '2026-06-02T00:00:00.000Z');
+    const stillHiddenId = await insertChore('Still hidden', ROOM_A, HOUSEHOLD_A, '2026-06-02T00:00:00.000Z');
+    let fired = false;
+    const realDb = env.DB;
+    const racingDb = new Proxy(realDb, {
+      get(target, prop) {
+        if (prop === 'batch') {
+          return async (statements: D1PreparedStatement[]) => {
+            fired = true;
+            await realDb.prepare('UPDATE chores SET deleted_at = NULL WHERE id = ?').bind(restoredId).run();
+            return realDb.batch(statements);
+          };
+        }
+        const value = Reflect.get(target, prop, target);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+
+    const res = await app.request(
+      `/api/rooms/${ROOM_A}`,
+      { method: 'DELETE', headers: await authHeader('admin-a@example.com') },
+      { ...testEnv(), DB: racingDb },
+    );
+
+    expect(fired).toBe(true);
+    expect(res.status).toBe(409);
+    expect(await rawChoreCount(ROOM_A)).toBe(2);
+    const rows = await env.DB.prepare('SELECT id, deleted_at FROM chores WHERE room_id = ?')
+      .bind(ROOM_A)
+      .all<{ id: number; deleted_at: string | null }>();
+    const byId = new Map(rows.results.map((r) => [r.id, r.deleted_at]));
+    expect(byId.get(restoredId)).toBeNull();
+    expect(byId.get(stillHiddenId)).not.toBeNull();
+    const room = await env.DB.prepare('SELECT COUNT(*) as count FROM rooms WHERE id = ?')
+      .bind(ROOM_A)
+      .first<{ count: number }>();
+    expect(room!.count).toBe(1);
+  });
+
+  it('returns 404 (not a foreign-key 500) when the room is deleted concurrently before the batch', async () => {
+    await insertChore('Hidden', ROOM_A, HOUSEHOLD_A, '2026-06-02T00:00:00.000Z');
+    let fired = false;
+    const realDb = env.DB;
+    const racingDb = new Proxy(realDb, {
+      get(target, prop) {
+        if (prop === 'batch') {
+          return async (statements: D1PreparedStatement[]) => {
+            fired = true;
+            await realDb.prepare('DELETE FROM chores WHERE room_id = ?').bind(ROOM_A).run();
+            await realDb.prepare('DELETE FROM rooms WHERE id = ?').bind(ROOM_A).run();
+            return realDb.batch(statements);
+          };
+        }
+        const value = Reflect.get(target, prop, target);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+
+    const res = await app.request(
+      `/api/rooms/${ROOM_A}`,
+      { method: 'DELETE', headers: await authHeader('admin-a@example.com') },
+      { ...testEnv(), DB: racingDb },
+    );
+
+    expect(fired).toBe(true);
+    expect(res.status).toBe(404);
   });
 
   it('deletes an empty same-household room', async () => {

@@ -256,6 +256,93 @@ describe('mockFetch: /api/chores', () => {
     const res = await mockFetch('/api/chores/999999', { method: 'DELETE' });
     expect(res.status).toBe(404);
   });
+
+  describe('soft delete and restore', () => {
+    async function deleteFirstChore(): Promise<ChoreWire> {
+      const before = await json<{ data: ChoreWire[] }>(await mockFetch('/api/chores'));
+      const target = before.data[0];
+      const res = await mockFetch(`/api/chores/${target.id}`, { method: 'DELETE' });
+      expect(res.status).toBe(200);
+      return target;
+    }
+
+    it('a deleted chore is excluded from the list', async () => {
+      const target = await deleteFirstChore();
+      const after = await json<{ data: ChoreWire[] }>(await mockFetch('/api/chores'));
+      expect(after.data.map((c) => c.id)).not.toContain(target.id);
+    });
+
+    it('a second DELETE of a deleted chore is 404', async () => {
+      const target = await deleteFirstChore();
+      const res = await mockFetch(`/api/chores/${target.id}`, { method: 'DELETE' });
+      expect(res.status).toBe(404);
+    });
+
+    it('PUT and PATCH complete on a deleted id are 404', async () => {
+      const target = await deleteFirstChore();
+      const put = await mockFetch(`/api/chores/${target.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name: 'x', version: target.version + 1 }),
+      });
+      expect(put.status).toBe(404);
+      const complete = await mockFetch(`/api/chores/${target.id}/complete`, {
+        method: 'PATCH',
+        body: JSON.stringify({ dateLastCompleted: '2026-07-07T00:00:00.000Z' }),
+      });
+      expect(complete.status).toBe(404);
+    });
+
+    it('restore returns the same id with version = deleted version + 1 and the chore reappears', async () => {
+      const target = await deleteFirstChore();
+      const res = await mockFetch(`/api/chores/${target.id}/restore`, { method: 'PATCH' });
+      expect(res.status).toBe(200);
+      const restored = await json<{ data: ChoreWire }>(res);
+      expect(restored.data.id).toBe(target.id);
+      // delete bumps to version + 1, restore bumps again
+      expect(restored.data.version).toBe(target.version + 2);
+
+      const after = await json<{ data: ChoreWire[] }>(await mockFetch('/api/chores'));
+      expect(after.data.map((c) => c.id)).toContain(target.id);
+    });
+
+    it('restore of a live or absent id is 404', async () => {
+      const before = await json<{ data: ChoreWire[] }>(await mockFetch('/api/chores'));
+      const live = await mockFetch(`/api/chores/${before.data[0].id}/restore`, { method: 'PATCH' });
+      expect(live.status).toBe(404);
+      const absent = await mockFetch('/api/chores/999999/restore', { method: 'PATCH' });
+      expect(absent.status).toBe(404);
+    });
+
+    it('a room holding only soft-deleted chores can be deleted and drops those rows', async () => {
+      const roomRes = await mockFetch('/api/rooms', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Garage' }),
+      });
+      const room = (await json<{ data: { id: number } }>(roomRes)).data;
+      const choreRes = await mockFetch('/api/chores', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Sweep',
+          roomId: room.id,
+          dateLastCompleted: '2026-07-01T00:00:00.000Z',
+          duration: 5,
+          frequency: 7,
+        }),
+      });
+      const chore = (await json<{ data: ChoreWire }>(choreRes)).data;
+
+      // A live chore blocks the room delete.
+      const blocked = await mockFetch(`/api/rooms/${room.id}`, { method: 'DELETE' });
+      expect(blocked.status).toBe(409);
+
+      await mockFetch(`/api/chores/${chore.id}`, { method: 'DELETE' });
+      const removed = await mockFetch(`/api/rooms/${room.id}`, { method: 'DELETE' });
+      expect(removed.status).toBe(200);
+
+      const restore = await mockFetch(`/api/chores/${chore.id}/restore`, { method: 'PATCH' });
+      expect(restore.status).toBe(404);
+    });
+  });
 });
 
 describe('mockFetch: /api/members', () => {

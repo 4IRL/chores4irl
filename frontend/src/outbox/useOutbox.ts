@@ -12,5 +12,5 @@ export function useOutbox(
     return instance.subscribeResults(onFlushResults);
   }, [instance, onFlushResults]);
 
-  return { entries, append: instance.append, flush: instance.flush };
+  return { entries, append: instance.append, remove: instance.remove, flush: instance.flush };
 }

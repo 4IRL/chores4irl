@@ -16,7 +16,7 @@ import ChoreFormModal from '../form/ChoreFormModal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import SettingsModal from '../settings/SettingsModal';
 import StatusBanner from '../common/StatusBanner';
-import Toast, { type ToastState } from '../common/Toast';
+import Toast, { type ToastAction, type ToastState } from '../common/Toast';
 import { useOutbox } from '../../outbox/useOutbox';
 import {
   isPermanentRejection,
@@ -90,6 +90,14 @@ function isBannerFocused(): boolean {
 type ToastTone = ToastState['tone'];
 
 const NOT_FOUND_MESSAGE = 'That chore no longer exists.';
+const UNDONE_MESSAGE = 'Undone';
+const UNDO_CONFLICT_MESSAGE = "Can't undo — someone changed it";
+const RESTORE_NOT_FOUND_MESSAGE = "Couldn't restore — that chore no longer exists";
+const UNDO_FAILED_MESSAGE = "Couldn't undo. Please try again.";
+const REDONE_MESSAGE = 'Redone';
+const REDO_CONFLICT_MESSAGE = "Can't redo — someone changed it";
+const REDO_FAILED_MESSAGE = "Couldn't redo. Please try again.";
+const UNDO_STILL_SYNCING_MESSAGE = "Can't undo yet — still syncing";
 const OFFLINE_MESSAGE = "Saved offline — will sync when you're back online";
 const FLUSH_SUCCESS_MESSAGE = 'Offline changes synced';
 const FLUSH_DROPPED_REFRESHED_MESSAGE = "Some offline changes couldn't be synced. The list was refreshed.";
@@ -112,6 +120,54 @@ function isKeptFailure(result: FlushResult): boolean {
   return result.outcome === 'error' && result.status !== undefined && !isPermanentRejection(result.status);
 }
 
+type UndoKind = 'complete' | 'edit' | 'delete';
+
+// The single remembered action. A ref (like toastRef) so async callbacks never read a stale closure.
+type UndoRecord = {
+  kind: UndoKind;
+  choreId: number;
+  beforePayload: ChorePayload;
+  afterPayload: ChorePayload;
+  // Version for the next versioned PUT; null for delete and for a cancelled offline entry.
+  currentVersion: number | null;
+  outboxEntryId: string | null;
+  // True only after an offline-queued entry was cancelled by Undo (Redo then re-runs the original action).
+  cancelled: boolean;
+  phase: 'undo' | 'redo';
+  toastId: number;
+  inFlight: boolean;
+};
+
+// Only the editable fields: toChorePayload spreads its input, so a full row would leak id/version.
+function toEditablePayload(c: Omit<Chore, 'id'>): ChorePayload {
+  return toChorePayload({
+    name: c.name,
+    roomId: c.roomId,
+    dateLastCompleted: c.dateLastCompleted,
+    duration: c.duration,
+    frequency: c.frequency,
+    urgency: c.urgency,
+  });
+}
+
+function rowFromPayload(row: ChoreWithVersion, p: ChorePayload): ChoreWithVersion {
+  return {
+    ...row,
+    name: p.name,
+    roomId: p.roomId,
+    dateLastCompleted: new Date(p.dateLastCompleted),
+    duration: p.duration,
+    frequency: p.frequency,
+    urgency: p.urgency,
+  };
+}
+
+// Row to re-insert for Undo of a delete. `version` is the pre-delete version (valid for an offline
+// cancel, where the server never saw the delete); an online restore response replaces it.
+function deletedRow(id: number, p: ChorePayload, version: number): ChoreWithVersion {
+  return rowFromPayload({ id, version } as ChoreWithVersion, p);
+}
+
 type MutateOptions<T> = {
   optimisticApply: () => void;
   request: () => Promise<Response>;
@@ -124,10 +180,17 @@ type MutateOptions<T> = {
   notFoundAsSuccess?: boolean;
   successMessage: string;
   errorMessage: string;
+  successTone?: ToastTone;
+  successAction?: ToastState['action'];
+  // Called only when the success toast was actually shown (a standing error toast can suppress it).
+  onToastShown?: () => void;
+  notFoundMessage?: string;
+  // Evaluated at response time before every toast; false skips that toast (data callbacks still run).
+  isToastAllowed?: () => boolean;
 };
 
 async function runMutation<T>(
-  showToast: (tone: ToastTone, message: string) => void,
+  showToast: (tone: ToastTone, message: string, action?: ToastState['action']) => boolean,
   {
     optimisticApply,
     request,
@@ -139,8 +202,14 @@ async function runMutation<T>(
     notFoundAsSuccess,
     successMessage,
     errorMessage,
+    successTone,
+    successAction,
+    onToastShown,
+    notFoundMessage,
+    isToastAllowed,
   }: MutateOptions<T>,
 ) {
+  const toastAllowed = () => isToastAllowed?.() ?? true;
   optimisticApply();
   let res: Response;
   try {
@@ -156,12 +225,12 @@ async function runMutation<T>(
   }
   if (res.status === 404 && notFoundAsSuccess) {
     onSuccess(null as T);
-    showToast('success', successMessage);
+    if (toastAllowed()) showToast(successTone ?? 'success', successMessage);
     return;
   }
   if (res.status === 404 && onNotFound) {
     onNotFound();
-    showToast('error', NOT_FOUND_MESSAGE);
+    if (toastAllowed()) showToast('error', notFoundMessage ?? NOT_FOUND_MESSAGE);
     return;
   }
   let body: ApiResponse<T> | null;
@@ -172,11 +241,13 @@ async function runMutation<T>(
   }
   if (res.ok && body?.success && body.data !== undefined) {
     onSuccess(body.data);
-    showToast('success', successMessage);
+    if (toastAllowed() && showToast(successTone ?? 'success', successMessage, successAction)) {
+      onToastShown?.();
+    }
     return;
   }
   onRollback();
-  showToast('error', errorMessage);
+  if (toastAllowed()) showToast('error', errorMessage);
 }
 
 function sameValue(a: unknown, b: unknown): boolean {
@@ -211,12 +282,84 @@ export default function ChoresView({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [conflictChoreId, setConflictChoreId] = useState<number | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const modalOpen = isAddOpen || editingId != null || isSettingsOpen || conflictChoreId != null;
   const toastIdRef = useRef(0);
   // Mirrors the current toast synchronously: showToast runs from async
   // callbacks that close over stale renders, so precedence reads this ref.
   const toastRef = useRef<ToastState | null>(null);
+  // The single remembered undoable action (see ARCHITECTURE.md). Invalidation rules live in clearUndo callers.
+  const undoRef = useRef<UndoRecord | null>(null);
+  // Mirrors undoRef.current?.inFlight (a ref change alone does not re-render) so the toast can hold.
+  const [undoInFlight, setUndoInFlight] = useState(false);
+  // Assigned after every render so the toast button never calls a closure captured at arming time.
+  const undoStepRef = useRef<(step: 'undo' | 'redo') => void>(() => {});
+  // Pre-delete version per deleted chore id, so an offline-cancelled delete re-inserts a usable version.
+  const deletedVersionsRef = useRef(new Map<number, number>());
+  const versionBeforeDelete = (id: number) => deletedVersionsRef.current.get(id) ?? 0;
+  useEffect(() => {
+    undoStepRef.current = applyUndoStep;
+  });
+  // Keyboard shortcut for the toast's Undo/Redo. Reads refs/latest flags at event time so the listener is
+  // registered once; the same applyUndoStep path (single-flight) as the button runs.
+  const modalOpenRef = useRef(modalOpen);
+  useEffect(() => {
+    modalOpenRef.current = modalOpen;
+  });
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (typeof event.key !== 'string') return; // autofill / IME-synthesized events can lack a key
+      if (event.repeat || event.isComposing) return;
+      if (event.altKey) return;
+      if (event.ctrlKey === event.metaKey) return; // exactly one of Ctrl / Cmd
+      const key = event.key.toLowerCase();
+      let step: 'undo' | 'redo' | null = null;
+      if (key === 'z') step = event.shiftKey ? 'redo' : 'undo';
+      else if (key === 'y' && event.ctrlKey && !event.metaKey && !event.shiftKey) step = 'redo';
+      if (step === null) return;
+      const record = undoRef.current;
+      if (!record || record.phase !== step || record.inFlight) return;
+      if (modalOpenRef.current) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      const target = event.target;
+      if (target instanceof Element) {
+        const tag = target.tagName;
+        if (
+          tag === 'INPUT' ||
+          tag === 'TEXTAREA' ||
+          tag === 'SELECT' ||
+          target.closest('[contenteditable]:not([contenteditable="false"])')
+        )
+          return;
+      }
+      event.preventDefault();
+      undoStepRef.current(step);
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+  const undoAction: ToastAction = {
+    label: 'Undo',
+    testId: 'feedback-toast-undo',
+    onClick: () => undoStepRef.current('undo'),
+  };
+  const redoAction: ToastAction = {
+    label: 'Redo',
+    testId: 'feedback-toast-redo',
+    onClick: () => undoStepRef.current('redo'),
+  };
 
   function handleFlushResults(results: FlushResult[]) {
+    // A flush that removed the armed queued entry (success, conflict, dropped, permanent error) ends Undo
+    // now, before any toast, so the action disappears even when the toast that follows is async.
+    const armedId = undoRef.current?.outboxEntryId;
+    if (
+      armedId &&
+      results.some((r) => r.entry.id === armedId) &&
+      !activeOutbox.getEntries().some((e) => e.id === armedId)
+    ) {
+      clearUndo();
+    }
+
     for (const result of results) {
       if (result.outcome !== 'success' || result.data === undefined) continue;
       const data = result.data as ChoreWire;
@@ -301,17 +444,50 @@ export default function ChoresView({
 
   function releaseToastFocus() {
     const testid = (document.activeElement as HTMLElement | null)?.getAttribute('data-testid');
-    if (testid === 'feedback-toast-dismiss') addChoreRef.current?.focus();
+    if (
+      testid === 'feedback-toast-dismiss' ||
+      testid === 'feedback-toast-undo' ||
+      testid === 'feedback-toast-redo'
+    ) {
+      addChoreRef.current?.focus();
+    }
   }
 
-  function showToast(tone: ToastTone, message: string) {
+  // Drops the undo record and strips the action from the standing toast (same id; Toast restarts its
+  // timer at the plain 4/6 s duration). Safe to call with nothing armed.
+  function clearUndo() {
+    setUndoInFlight(false);
+    const standing = toastRef.current;
+    if (undoRef.current === null && !standing?.action) return;
+    releaseToastFocus();
+    undoRef.current = null;
+    if (standing?.action) {
+      const stripped: ToastState = {
+        id: standing.id,
+        tone: standing.tone,
+        message: standing.message,
+      };
+      toastRef.current = stripped;
+      setToast(stripped);
+    }
+  }
+
+  // Clears the record only if it is still the one that was current when `toastId` was captured.
+  function clearUndoIfCurrent(toastId: number | undefined) {
+    if (toastId !== undefined && undoRef.current?.toastId === toastId) clearUndo();
+  }
+
+  // Returns true when the toast was shown, false when a standing error toast suppressed it.
+  function showToast(tone: ToastTone, message: string, action?: ToastAction): boolean {
     const current = toastRef.current;
-    if (tone === 'neutral' && current?.tone === 'error') return;
+    if (tone === 'neutral' && current?.tone === 'error') return false;
+    clearUndo();
     releaseToastFocus();
     toastIdRef.current += 1;
-    const next: ToastState = { id: toastIdRef.current, tone, message };
+    const next: ToastState = { id: toastIdRef.current, tone, message, ...(action && { action }) };
     toastRef.current = next;
     setToast(next);
+    return true;
   }
 
   function mutate<T>(options: MutateOptions<T>) {
@@ -319,6 +495,7 @@ export default function ChoresView({
   }
 
   function dismissToast() {
+    clearUndo();
     releaseToastFocus();
     toastRef.current = null;
     setToast(null);
@@ -332,28 +509,32 @@ export default function ChoresView({
 
   // Merges still-queued creates using the outbox's live entries, read at call time: the hook's
   // `entries` is stale inside the flush listener, the online handler and the mount-only effect.
-  function applyMergedList(list: ChoreWithVersion[]) {
+  // `forToastId` is the undo record the caller saw when it started; the record is cleared only if it is
+  // still that one, so a record armed after the fetch began survives. No id never clears.
+  function applyMergedList(list: ChoreWithVersion[], forToastId?: number) {
+    clearUndoIfCurrent(forToastId);
     const merged = mergePendingCreates(list, activeOutbox.getEntries());
     setChores(merged);
     setHasLoaded(true);
     return merged;
   }
 
-  async function renderFromCache(isCurrent: () => boolean = () => true) {
+  async function renderFromCache(isCurrent: () => boolean = () => true, forToastId?: number) {
     const cached = await readChoresCache<ChoreWire[]>();
     if (!isCurrent()) return;
-    applyMergedList((cached ?? []).map(wireToChore));
+    applyMergedList((cached ?? []).map(wireToChore), forToastId);
     setIsStale(true);
   }
 
   // Re-fetches the list without touching the cache or isStale. Resolves true when a fresh network
   // list was applied, false on a cache fallback or the 403 revocation path.
-  async function refetchChores(): Promise<boolean> {
+  async function refetchChores(forToastId: number | undefined = undoRef.current?.toastId): Promise<boolean> {
     try {
       const res = await apiFetch('/api/chores');
       if (res.status === 403) {
         // Removed from the active household: same handling as load().
         await clearChoresCache();
+        clearUndoIfCurrent(forToastId);
         setChores([]);
         setHasLoaded(false);
         setOrderSnapshot(null);
@@ -362,17 +543,17 @@ export default function ChoresView({
         return false;
       }
       if (!res.ok) {
-        await renderFromCache();
+        await renderFromCache(undefined, forToastId);
         return false;
       }
       const body = (await res.json()) as ApiResponse<ChoreWire[]>;
-      const merged = applyMergedList((body.data ?? []).map(wireToChore));
+      const merged = applyMergedList((body.data ?? []).map(wireToChore), forToastId);
       const present = new Set(merged.map((c) => c.id));
       setEditingId((cur) => (cur != null && !present.has(cur) ? null : cur));
       setConflictChoreId((cur) => (cur != null && !present.has(cur) ? null : cur));
       return true;
     } catch {
-      await renderFromCache();
+      await renderFromCache(undefined, forToastId);
       return false;
     }
   }
@@ -384,8 +565,10 @@ export default function ChoresView({
     // giving the reconnect handler a chance to hand focus off first.
     async function load(gen: number, onBeforeFresh?: () => void): Promise<boolean> {
       const isCurrent = () => connectivityGenRef.current === gen;
+      // The undo record this load started under: only that record may be cleared by its result.
+      const startToastId = undoRef.current?.toastId;
       if (!navigator.onLine) {
-        await renderFromCache(isCurrent);
+        await renderFromCache(isCurrent, startToastId);
         return true;
       }
       try {
@@ -401,6 +584,7 @@ export default function ChoresView({
           // cascade over an authoritative newer result.
           if (isCurrent()) {
             await clearChoresCache();
+            clearUndoIfCurrent(startToastId);
             setChores([]);
             setHasLoaded(false);
             setOrderSnapshot(null);
@@ -413,19 +597,19 @@ export default function ChoresView({
           // A resolved non-ok (e.g. an evicted Access cookie → 401) must be
           // treated exactly like a thrown/offline error: fall back to cache and
           // flag stale, rather than parsing an error body into an empty list.
-          await renderFromCache(isCurrent);
+          await renderFromCache(isCurrent, startToastId);
           return true;
         }
         const body = (await res.json()) as ApiResponse<ChoreWire[]>;
         const data = body.data ?? [];
         if (!isCurrent()) return false;
         onBeforeFresh?.();
-        applyMergedList(data.map(wireToChore));
+        applyMergedList(data.map(wireToChore), startToastId);
         setIsStale(false);
         await writeChoresCache(data);
         return false;
       } catch {
-        await renderFromCache(isCurrent);
+        await renderFromCache(isCurrent, startToastId);
         return true;
       }
     }
@@ -469,9 +653,280 @@ export default function ChoresView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Arms the record for the toast that was just shown (call only after showToast returned true).
+  function armUndo(
+    fields: Pick<
+      UndoRecord,
+      'kind' | 'choreId' | 'beforePayload' | 'afterPayload' | 'currentVersion' | 'outboxEntryId'
+    >,
+  ) {
+    undoRef.current = {
+      ...fields,
+      cancelled: false,
+      phase: 'undo',
+      toastId: toastIdRef.current,
+      inFlight: false,
+    };
+  }
+
+  // Undo and Redo share this path. Single-flight and identity-guarded: a completion whose record
+  // was cleared or replaced meanwhile applies data effects only and shows no toast.
+  function applyUndoStep(step: 'undo' | 'redo') {
+    const record = undoRef.current;
+    if (!record || record.phase !== step || record.inFlight) return;
+    const isUndo = step === 'undo';
+    const id = record.choreId;
+    // The payload this step writes: Undo restores the pre-action state, Redo re-applies the post-action one.
+    const target = isUndo ? record.beforePayload : record.afterPayload;
+    const before = record.beforePayload;
+    const toastId = record.toastId;
+    const doneMessage = isUndo ? UNDONE_MESSAGE : REDONE_MESSAGE;
+    const conflictMessage = isUndo ? UNDO_CONFLICT_MESSAGE : REDO_CONFLICT_MESSAGE;
+    const failedMessage = isUndo ? UNDO_FAILED_MESSAGE : REDO_FAILED_MESSAGE;
+    const nextAction = isUndo ? redoAction : undoAction;
+
+    if (!isUndo && record.cancelled) {
+      // The original action never reached the server (cancelled while queued): re-run it through the
+      // normal handler, which clears this record synchronously (single-flight) and arms a fresh one.
+      const after = record.afterPayload;
+      if (record.kind === 'complete') handleComplete(id, new Date(after.dateLastCompleted));
+      else if (record.kind === 'delete') handleDelete(id);
+      else applyEdit(id, { ...after, dateLastCompleted: new Date(after.dateLastCompleted) });
+      return;
+    }
+
+    if (isUndo && record.outboxEntryId !== null) {
+      // Still queued offline: cancel the entry instead of sending anything.
+      if (!activeOutbox.remove(record.outboxEntryId)) {
+        showToast('error', UNDO_STILL_SYNCING_MESSAGE);
+        return;
+      }
+      if (record.kind === 'delete') {
+        // Re-insert the removed row locally (its id is still in the order snapshot).
+        setChores((prev) =>
+          prev.some((c) => c.id === id) ? prev : [...prev, deletedRow(id, before, versionBeforeDelete(id))],
+        );
+      } else {
+        setChores((prev) => prev.map((c) => (c.id === id ? rowFromPayload(c, before) : c)));
+      }
+      if (showToast('neutral', UNDONE_MESSAGE, redoAction)) {
+        undoRef.current = {
+          ...record,
+          phase: 'redo',
+          currentVersion: null,
+          outboxEntryId: null,
+          cancelled: true,
+          inFlight: false,
+          toastId: toastIdRef.current,
+        };
+      } else {
+        clearUndo();
+      }
+      return;
+    }
+
+    if (record.kind === 'delete') {
+      if (isUndo) undoDelete(record);
+      else redoDelete(record);
+      return;
+    }
+    if (record.currentVersion === null) return;
+    const version = record.currentVersion;
+    const { isCurrent, markShown, settle } = beginUndoStep(record);
+    const previousRow = chores.find((c) => c.id === id);
+    let newVersion: number | null = null;
+
+    const staleRefetch = () => void refetchChores(toastId);
+
+    settle(
+      mutate<ChoreWire>({
+        optimisticApply: () =>
+          setChores((prev) => prev.map((c) => (c.id === id ? rowFromPayload(c, target) : c))),
+        request: () =>
+          apiFetch(`/api/chores/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...target, version }),
+          }),
+        onSuccess: (data) => {
+          newVersion = data.version;
+          setChores((prev) => prev.map((c) => (c.id === id ? wireToChore(data) : c)));
+        },
+        onToastShown: () => {
+          markShown();
+          if (newVersion === null) return;
+          undoRef.current = {
+            ...record,
+            phase: isUndo ? 'redo' : 'undo',
+            currentVersion: newVersion,
+            cancelled: false,
+            inFlight: false,
+            toastId: toastIdRef.current,
+          };
+        },
+        onRollback: () => {
+          if (!isCurrent()) {
+            staleRefetch();
+            return;
+          }
+          if (previousRow) setChores((prev) => prev.map((c) => (c.id === id ? previousRow : c)));
+        },
+        onNotFound: () => removeChoreLocal(id),
+        onConflict: () => {
+          if (isCurrent()) showToast('error', conflictMessage);
+          staleRefetch();
+        },
+        onNetworkFailure: () => {
+          if (!isCurrent()) {
+            staleRefetch();
+            return;
+          }
+          if (previousRow) setChores((prev) => prev.map((c) => (c.id === id ? previousRow : c)));
+          showToast('error', failedMessage);
+        },
+        isToastAllowed: isCurrent,
+        successTone: 'neutral',
+        successMessage: doneMessage,
+        successAction: nextAction,
+        notFoundMessage: NOT_FOUND_MESSAGE,
+        errorMessage: failedMessage,
+      }),
+    );
+  }
+
+  // Marks the record in flight (single-flight) and returns the identity guard plus the shared completion
+  // plumbing: markShown from onToastShown, settle on the mutate promise (a success whose toast was
+  // suppressed must not leave the record behind).
+  function beginUndoStep(record: UndoRecord) {
+    const toastId = record.toastId;
+    undoRef.current = { ...record, inFlight: true };
+    setUndoInFlight(true);
+    let shown = false;
+    return {
+      isCurrent: () => undoRef.current?.toastId === toastId,
+      markShown: () => {
+        shown = true;
+      },
+      settle: (done: Promise<unknown>) =>
+        void done.then(() => {
+          if (!shown) clearUndoIfCurrent(toastId);
+        }),
+    };
+  }
+
+  // Online Undo of a delete: restore the soft-deleted chore (same id), then swap the placeholder row.
+  function undoDelete(record: UndoRecord) {
+    const id = record.choreId;
+    const { isCurrent, markShown, settle } = beginUndoStep(record);
+    const dropOptimisticRow = () => setChores((prev) => prev.filter((c) => c.id !== id));
+
+    settle(
+      mutate<ChoreWire>({
+        optimisticApply: () =>
+          setChores((prev) =>
+            prev.some((c) => c.id === id)
+              ? prev
+              : [...prev, deletedRow(id, record.beforePayload, versionBeforeDelete(id))],
+          ),
+        request: () => apiFetch(`/api/chores/${id}/restore`, { method: 'PATCH' }),
+        onSuccess: (data) => {
+          const server = wireToChore(data);
+          // A stale completion (the user acted again meanwhile) may only replace a row that is still there.
+          setChores((prev) =>
+            prev.some((c) => c.id === id)
+              ? prev.map((c) => (c.id === id ? server : c))
+              : isCurrent()
+                ? [...prev, server]
+                : prev,
+          );
+        },
+        onToastShown: () => {
+          markShown();
+          // Redo of a delete is a version-less DELETE, so no version is stored.
+          undoRef.current = {
+            ...record,
+            phase: 'redo',
+            currentVersion: null,
+            cancelled: false,
+            inFlight: false,
+            toastId: toastIdRef.current,
+          };
+        },
+        onRollback: dropOptimisticRow,
+        onNotFound: () => removeChoreLocal(id),
+        onNetworkFailure: () => {
+          dropOptimisticRow();
+          if (isCurrent()) showToast('error', UNDO_FAILED_MESSAGE);
+        },
+        isToastAllowed: isCurrent,
+        successTone: 'neutral',
+        successMessage: UNDONE_MESSAGE,
+        successAction: redoAction,
+        notFoundMessage: RESTORE_NOT_FOUND_MESSAGE,
+        errorMessage: UNDO_FAILED_MESSAGE,
+      }),
+    );
+  }
+
+  // Online Redo of a delete: DELETE again (version-less). A 404 means it is already gone: success, no Undo.
+  function redoDelete(record: UndoRecord) {
+    const id = record.choreId;
+    const toastId = record.toastId;
+    const { isCurrent, markShown, settle } = beginUndoStep(record);
+    const previousRow = chores.find((c) => c.id === id);
+
+    settle(
+      mutate<null>({
+        optimisticApply: () => setChores((prev) => prev.filter((c) => c.id !== id)),
+        request: () => apiFetch(`/api/chores/${id}`, { method: 'DELETE' }),
+        onSuccess: () => {},
+        onToastShown: () => {
+          markShown();
+          undoRef.current = {
+            ...record,
+            phase: 'undo',
+            currentVersion: null,
+            cancelled: false,
+            inFlight: false,
+            toastId: toastIdRef.current,
+          };
+        },
+        // A stale failure (the user acted again meanwhile) must not resurrect an old row: refetch instead.
+        onRollback: () => {
+          if (!isCurrent()) {
+            void refetchChores(toastId);
+            return;
+          }
+          if (previousRow)
+            setChores((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, previousRow]));
+        },
+        onNetworkFailure: () => {
+          if (!isCurrent()) {
+            void refetchChores(toastId);
+            return;
+          }
+          if (previousRow)
+            setChores((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, previousRow]));
+          showToast('error', REDO_FAILED_MESSAGE);
+        },
+        notFoundAsSuccess: true,
+        isToastAllowed: isCurrent,
+        successTone: 'neutral',
+        successMessage: REDONE_MESSAGE,
+        successAction: undoAction,
+        errorMessage: REDO_FAILED_MESSAGE,
+      }),
+    );
+  }
+
   function handleComplete(id: number, date: Date) {
     const payload = { dateLastCompleted: date.toISOString() };
-    const original = chores.find((c) => c.id === id)?.dateLastCompleted;
+    const originalRow = chores.find((c) => c.id === id);
+    const original = originalRow?.dateLastCompleted;
+    // Never offer Undo for an unsaved (temp-id) chore.
+    const beforePayload = originalRow && id > 0 ? toEditablePayload(originalRow) : null;
+    let serverRow: ChoreWithVersion | null = null;
+    clearUndo();
     mutate<ChoreWire>({
       optimisticApply: () =>
         setChores((prev) => prev.map((c) => (c.id === id ? { ...c, dateLastCompleted: date } : c))),
@@ -481,7 +936,23 @@ export default function ChoresView({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         }),
-      onSuccess: (data) => setChores((prev) => prev.map((c) => (c.id === id ? wireToChore(data) : c))),
+      onSuccess: (data) => {
+        serverRow = wireToChore(data);
+        setChores((prev) => prev.map((c) => (c.id === id ? wireToChore(data) : c)));
+      },
+      // Redo re-applies what the server stored: /complete is forward-only and may keep a later date.
+      successAction: beforePayload ? undoAction : undefined,
+      onToastShown: () => {
+        if (!beforePayload || !serverRow) return;
+        armUndo({
+          kind: 'complete',
+          choreId: id,
+          beforePayload,
+          afterPayload: toEditablePayload(serverRow),
+          currentVersion: serverRow.version,
+          outboxEntryId: null,
+        });
+      },
       onRollback: () => {
         if (original === undefined) return;
         setChores((prev) =>
@@ -492,8 +963,18 @@ export default function ChoresView({
       },
       onNotFound: id > 0 ? () => removeChoreLocal(id) : undefined,
       onNetworkFailure: () => {
-        append({ type: 'complete', choreId: id, payload });
-        showToast('neutral', OFFLINE_MESSAGE);
+        const entry = append({ type: 'complete', choreId: id, payload });
+        const shown = showToast('neutral', OFFLINE_MESSAGE, beforePayload ? undoAction : undefined);
+        if (shown && beforePayload && originalRow) {
+          armUndo({
+            kind: 'complete',
+            choreId: id,
+            beforePayload,
+            afterPayload: toEditablePayload({ ...originalRow, dateLastCompleted: date }),
+            currentVersion: null,
+            outboxEntryId: entry.id,
+          });
+        }
       },
       successMessage: 'Chore completed',
       errorMessage: "Couldn't mark the chore complete. Please try again.",
@@ -502,18 +983,44 @@ export default function ChoresView({
 
   function handleDelete(id: number) {
     const removed = chores.find((c) => c.id === id);
+    // Never offer Undo for an unsaved (temp-id) chore.
+    const beforePayload = removed && id > 0 ? toEditablePayload(removed) : null;
+    if (removed && beforePayload) deletedVersionsRef.current.set(id, removed.version);
+    clearUndo();
     mutate<null>({
       optimisticApply: () => setChores((prev) => prev.filter((c) => c.id !== id)),
       request: () => apiFetch(`/api/chores/${id}`, { method: 'DELETE' }),
       onSuccess: () => {},
+      successAction: beforePayload ? undoAction : undefined,
+      onToastShown: () => {
+        if (!beforePayload) return;
+        armUndo({
+          kind: 'delete',
+          choreId: id,
+          beforePayload,
+          afterPayload: beforePayload,
+          currentVersion: null,
+          outboxEntryId: null,
+        });
+      },
       onRollback: () => {
         if (!removed) return;
         setChores((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, removed]));
       },
       notFoundAsSuccess: id > 0,
       onNetworkFailure: () => {
-        append({ type: 'delete', choreId: id });
-        showToast('neutral', OFFLINE_MESSAGE);
+        const entry = append({ type: 'delete', choreId: id });
+        const shown = showToast('neutral', OFFLINE_MESSAGE, beforePayload ? undoAction : undefined);
+        if (shown && beforePayload) {
+          armUndo({
+            kind: 'delete',
+            choreId: id,
+            beforePayload,
+            afterPayload: beforePayload,
+            currentVersion: null,
+            outboxEntryId: entry.id,
+          });
+        }
       },
       successMessage: 'Chore deleted',
       errorMessage: "Couldn't delete the chore. Please try again.",
@@ -523,6 +1030,7 @@ export default function ChoresView({
   function handleAddSubmit(input: Omit<Chore, 'id'>) {
     const tempId = -Date.now();
     const payload = toChorePayload(input);
+    clearUndo();
     setIsAddOpen(false);
     setQuery('');
     mutate<ChoreWire>({
@@ -553,7 +1061,15 @@ export default function ChoresView({
   function handleEditSubmit(input: Omit<Chore, 'id'>) {
     const id = editingId;
     if (id == null) return;
+    applyEdit(id, input);
+  }
+
+  // The edit itself, independent of the modal: also used by Redo after an offline cancel (no editingId).
+  function applyEdit(id: number, input: Omit<Chore, 'id'>) {
+    clearUndo();
     const existing = chores.find((c) => c.id === id);
+    const beforePayload = existing && id > 0 ? toEditablePayload(existing) : null;
+    let newVersion: number | null = null;
     const baseVersion = existing?.version ?? 1;
     const payload = toChorePayload(input);
     // Fields this edit actually changes, with their pre-edit values.
@@ -574,7 +1090,22 @@ export default function ChoresView({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...payload, version: baseVersion }),
         }),
-      onSuccess: (data) => setChores((prev) => prev.map((c) => (c.id === id ? wireToChore(data) : c))),
+      onSuccess: (data) => {
+        newVersion = data.version;
+        setChores((prev) => prev.map((c) => (c.id === id ? wireToChore(data) : c)));
+      },
+      successAction: beforePayload ? undoAction : undefined,
+      onToastShown: () => {
+        if (!beforePayload || newVersion === null) return;
+        armUndo({
+          kind: 'edit',
+          choreId: id,
+          beforePayload,
+          afterPayload: payload,
+          currentVersion: newVersion,
+          outboxEntryId: null,
+        });
+      },
       onRollback: () =>
         setChores((prev) =>
           prev.map((c) => {
@@ -589,8 +1120,18 @@ export default function ChoresView({
       onNotFound: id > 0 ? () => removeChoreLocal(id) : undefined,
       onConflict: () => setConflictChoreId(id),
       onNetworkFailure: () => {
-        append({ type: 'edit', choreId: id, baseVersion, payload });
-        showToast('neutral', OFFLINE_MESSAGE);
+        const entry = append({ type: 'edit', choreId: id, baseVersion, payload });
+        const shown = showToast('neutral', OFFLINE_MESSAGE, beforePayload ? undoAction : undefined);
+        if (shown && beforePayload) {
+          armUndo({
+            kind: 'edit',
+            choreId: id,
+            beforePayload,
+            afterPayload: payload,
+            currentVersion: null,
+            outboxEntryId: entry.id,
+          });
+        }
       },
       successMessage: 'Changes saved',
       errorMessage: "Couldn't save your changes. Please try again.",
@@ -832,7 +1373,7 @@ export default function ChoresView({
           onCancel={handleKeepEditing}
         />
       )}
-      <Toast toast={toast} onDismiss={dismissToast} />
+      <Toast toast={toast} onDismiss={dismissToast} paused={modalOpen} holding={undoInFlight} />
     </div>
   );
 }

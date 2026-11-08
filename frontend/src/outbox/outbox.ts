@@ -55,6 +55,8 @@ export function isPermanentRejection(status: number): boolean {
 
 export type Outbox = {
   append: (entry: NewOutboxEntry) => OutboxEntry;
+  /** Cancel a queued entry. False when the id is unknown or the entry is mid-send. */
+  remove: (id: string) => boolean;
   getEntries: () => OutboxEntry[];
   flush: () => Promise<FlushResult[]>;
   subscribe: (listener: () => void) => () => void;
@@ -133,52 +135,78 @@ export function createOutbox(fetchImpl: typeof fetch = fetch): Outbox {
     return entry;
   }
 
+  // Counted so overlapping flushes of the same entry keep it protected until the last finishes.
+  const inFlight = new Map<string, number>();
+
+  function remove(id: string): boolean {
+    if (inFlight.has(id)) return false;
+    if (!entries.some((e) => e.id === id)) return false;
+    removeEntry(id);
+    return true;
+  }
+
   async function flush(): Promise<FlushResult[]> {
     const results: FlushResult[] = [];
     for (const entry of [...entries]) {
-      const { url, init } = toRequest(entry);
-      let res: Response;
+      // Skip entries removed (cancelled) since the snapshot was taken.
+      if (!entries.some((e) => e.id === entry.id)) continue;
+      inFlight.set(entry.id, (inFlight.get(entry.id) ?? 0) + 1);
       try {
-        res = await fetchImpl(url, init);
-      } catch {
-        results.push({ entry, outcome: 'error' });
+        if (await sendEntry(entry, results)) continue;
         break;
+      } finally {
+        const count = (inFlight.get(entry.id) ?? 1) - 1;
+        if (count <= 0) inFlight.delete(entry.id);
+        else inFlight.set(entry.id, count);
       }
-
-      const status = res.status;
-      if (status === 409) {
-        results.push({ entry, outcome: 'conflict', status });
-        removeEntry(entry.id);
-        continue;
-      }
-      if (status === 404 && entry.type === 'delete') {
-        results.push({ entry, outcome: 'dropped-not-found', status });
-        removeEntry(entry.id);
-        continue;
-      }
-      if (!res.ok) {
-        results.push({ entry, outcome: 'error', status });
-        if (isPermanentRejection(status)) {
-          removeEntry(entry.id);
-          continue;
-        }
-        break;
-      }
-
-      let body: ApiResponse<unknown>;
-      try {
-        body = (await res.json()) as ApiResponse<unknown>;
-      } catch {
-        results.push({ entry, outcome: 'error', status });
-        break;
-      }
-      results.push({ entry, outcome: 'success', data: body?.data, status });
-      removeEntry(entry.id);
     }
     if (results.length > 0) {
       resultListeners.forEach((listener) => listener(results));
     }
     return results;
+  }
+
+  // Sends one entry; returns true to continue to the next entry, false to stop the pass.
+  async function sendEntry(entry: OutboxEntry, results: FlushResult[]): Promise<boolean> {
+    const { url, init } = toRequest(entry);
+    let res: Response;
+    try {
+      res = await fetchImpl(url, init);
+    } catch {
+      results.push({ entry, outcome: 'error' });
+      return false;
+    }
+
+    const status = res.status;
+    if (status === 409) {
+      results.push({ entry, outcome: 'conflict', status });
+      removeEntry(entry.id);
+      return true;
+    }
+    if (status === 404 && entry.type === 'delete') {
+      results.push({ entry, outcome: 'dropped-not-found', status });
+      removeEntry(entry.id);
+      return true;
+    }
+    if (!res.ok) {
+      results.push({ entry, outcome: 'error', status });
+      if (isPermanentRejection(status)) {
+        removeEntry(entry.id);
+        return true;
+      }
+      return false;
+    }
+
+    let body: ApiResponse<unknown>;
+    try {
+      body = (await res.json()) as ApiResponse<unknown>;
+    } catch {
+      results.push({ entry, outcome: 'error', status });
+      return false;
+    }
+    results.push({ entry, outcome: 'success', data: body?.data, status });
+    removeEntry(entry.id);
+    return true;
   }
 
   function getEntries() {
@@ -212,7 +240,7 @@ export function createOutbox(fetchImpl: typeof fetch = fetch): Outbox {
     }
   }
 
-  return { append, getEntries, flush, subscribe, subscribeResults, dispose };
+  return { append, remove, getEntries, flush, subscribe, subscribeResults, dispose };
 }
 
 export const outbox = createOutbox();

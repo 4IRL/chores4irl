@@ -61,7 +61,7 @@ frontend/         React SPA — Cloudflare Pages
       common/                 Shared UI (dialogs, banners, clear button, Toast)
     utils/api.ts             Single fetch entrypoint (apiFetch) — attaches X-Household-Id, routes
                               preview deployments to mock data instead of the real API
-    utils/mockApi.ts          Mock data served on *.pages.dev preview deployments
+    utils/mockApi.ts          Mock data served on *.pages.dev preview deployments (mirrors chore soft delete/restore)
     utils/choreOrder.ts       Stable list order: snapshotOrder / applyOrder (see "Chore ordering")
     utils/choreStatusCounts.ts  Done-today / due-soon / overdue counts for the status strip
     components/nav/StatusCountStrip.tsx  Sticky-on-phones count strip under the room tabs (shown once a list loads)
@@ -274,6 +274,32 @@ for the snapshot-then-rebuild precedent. F7 (#81) is the first user of this patt
 and Long-term task fields left the form, the shared type and every backend read/write; legacy request
 keys are accepted and ignored), and phase 2 (migration `0012`, dropping `details` and `long_term_task`)
 shipped once phase 1 was live (#119).
+
+### Chore soft delete
+
+`DELETE /api/chores/:id` is a soft delete: migration `0013` adds a nullable `chores.deleted_at` (ISO
+timestamp) and the delete sets it and bumps `version`. `deleted_at` never appears on the wire
+(`ChoreWire` is unchanged).
+
+- **Filter rule:** every chore read and write in `backend/src/chores.ts` (`getAllChores`,
+  `fetchByHousehold`, the `UPDATE`s in `updateChore` and `completeChore`), except the `client_id` replay
+  lookup (below) and restore, adds `deleted_at IS NULL`, so a
+  hidden chore is absent from the list and `PUT`, `PATCH /complete` and a second `DELETE` return 404.
+  A chore soft-deleted between the existence check and the `UPDATE` resolves to 404, not 409
+  (`applyVersionedMutation` re-checks when the `UPDATE` matches nothing).
+- **Restore:** `PATCH /api/chores/:id/restore` clears `deleted_at`, bumps `version` and returns the same
+  id. No version in the request; 404 when the chore is absent, in another household, or not deleted.
+- **Create replay:** the `(household_id, client_id)` unique index spans deleted rows, so a replayed
+  `POST /api/chores` of a soft-deleted chore returns 410 `Chore was deleted` rather than a hidden row.
+- **Rooms:** the room in-use count ignores soft-deleted chores. Deleting a room hard-deletes that room's
+  soft-deleted chores in the same `db.batch()` (scoped by `household_id` and `deleted_at IS NOT NULL`), both
+  statements guarded by `NOT EXISTS` (live chore in the room), so a restore racing the delete yields
+  `in_use` (409) instead of a foreign-key failure and purges nothing. The mock-chore seeder counts only
+  live rows.
+- **Never purged:** soft-deleted rows are kept forever (no purge job); only deleting their room removes
+  them.
+- **Rollback caveat:** rolling the Worker back to a build that predates `0013` shows soft-deleted chores
+  again. Purge or restore them first.
 
 ## Notifications
 
@@ -496,7 +522,9 @@ mean this can never be offline-_capable_, only offline-_tolerant_). Two mechanis
   write fails, and replay when connectivity returns (`useOutbox.ts`). Conflict handling: completions
   merge by latest timestamp rather than rejecting (see commit `8013e84`). Permanent 4xx rejections are
   dropped from the queue, while 401/403/408/429/5xx and a non-JSON 2xx keep the entry and stop the flush
-  pass (`FlushResult.status` is additive/optional).
+  pass (`FlushResult.status` is additive/optional). `Outbox.remove(id)` cancels a queued entry (returns
+  false for an unknown id or an entry mid-send, tracked by a counted in-flight set; a removed entry is
+  never sent by a flush already underway).
 - **Mutation feedback (`common/Toast.tsx`, state in `ChoresView`)** — a one-at-a-time bottom-centre toast
   reports every chore mutation outcome. Green (auto-dismiss, 4 s) after the server confirms; red and
   sticky on failure, with the optimistic change rolled back (an edit or complete that gets a 404 removes
@@ -506,7 +534,42 @@ mean this can never be offline-_capable_, only offline-_tolerant_). Two mechanis
   A failed outbox flush shows an error toast, and the chore list is refetched only when a queued entry was
   permanently dropped. A pass with both a dropped and a kept entry shows one combined toast. A 409 on a
   mutation with no conflict handler rolls back and shows the error toast. Copy is the app's own text,
-  never the backend `error` string.
+  never the backend `error` string. `showToast(tone, message, action?)` returns whether the toast was
+  shown. **Toast action:** a success/neutral toast may carry an `Undo`/`Redo` button (plus the Dismiss
+  button and an `sr-only` shortcut hint: "Press Ctrl+Z to undo" / "Press Ctrl+Shift+Z to redo") and then
+  stays 8 s instead of 4/6 s. The countdown pauses while the pointer or focus is on the card (including a
+  card that mounts under a resting pointer, checked via `:hover`), while a modal is open (`paused`; both
+  buttons `disabled`), while the tab is hidden, and while an Undo/Redo request is in flight (`holding`;
+  action button `aria-disabled`). Hover/focus/`holding` pauses are bounded by a 30 s total cap; a
+  restart after a pause is a full interval. If the action is removed from the standing toast (same id),
+  all pause state resets and the plain 4/6 s interval restarts. Error toasts never carry an action.
+  **Undo record (`undoRef` in `ChoresView`):** one remembered action (`kind`, `choreId`, before/after
+  payloads, `currentVersion`, `outboxEntryId`, `cancelled`, `phase`, `toastId`, `inFlight`), armed only
+  when the toast carrying the action was actually shown and only for a real (positive) id. A successful
+  online complete/edit arms it (Undo = versioned `PUT` of the pre-action snapshot at the version the
+  previous response returned; a 409 shows "Can't undo — someone changed it", never the edit dialog); an
+  offline-queued one arms it with the outbox entry id (Undo cancels the entry via `outbox.remove` and
+  sends nothing; if the entry is mid-send it shows "Can't undo yet — still syncing"). Undo/Redo never
+  append to the outbox. `clearUndo()` (also strips the action from the standing toast) runs at the start
+  of every mutating handler, whenever any other toast replaces the toast, on dismiss/expiry, on every
+  error toast, when a flush removes the armed entry, and when `refetchChores`/`load` apply a list while
+  the record is still the one they captured (`forToastId`; a newer record survives). An Undo request is
+  single-flight; if its record was invalidated meanwhile it applies data only and shows no toast
+  (`runMutation`'s `isToastAllowed`, checked at response time), and the toast holds its interval while the
+  request is pending (`holding`, bounded by the 30 s cap). The 403 revocation branches of
+  `refetchChores`/`load` clear the record too. `cancelled` is true only after Undo cancelled an
+  offline-queued entry (Redo, Step 5, branches on it). **Delete** also arms it (`kind: 'delete'`, no
+  version stored): Undo online is `PATCH /api/chores/:id/restore` (the row is rebuilt from `choreId` +
+  `beforePayload`, re-inserted optimistically at its snapshot position, then replaced by the response;
+  a 404 shows "Couldn't restore — that chore no longer exists"); a queued delete is cancelled via
+  `outbox.remove` and the row comes back with its pre-delete version (`deletedVersionsRef`). A delete
+  answered with 404 arms nothing. **Keyboard shortcut:** a `document` `keydown` listener in `ChoresView`
+  runs the same `applyUndoStep` as the button: `Ctrl/Cmd+Z` undoes, `Ctrl/Cmd+Shift+Z` and `Ctrl+Y`
+  redo, with exact modifiers (no Alt; Ctrl+Y is Ctrl alone), `event.key` matched case-insensitively, and
+  key-repeat / IME-composing events ignored. It is ignored (no `preventDefault`, so the browser's own
+  shortcut runs) when no record is armed in the matching phase, when the target is an
+  `input`/`textarea`/`select`/contenteditable, or when a modal is open (`modalOpen`, or any
+  `[role="dialog"][aria-modal="true"]` in the DOM, which `ChoreFormModal` now carries).
 - **`cache/choresCache.ts`** — last-known chore list cached in IndexedDB so the view isn't blank while
   offline; paired with the PWA service worker (`vite-plugin-pwa`, `workbox` config in `vite.config.ts`)
   for asset caching.
@@ -556,33 +619,34 @@ Retry → re-auth; (3) temporarily shorten the Access application's Session Dura
 
 ## Where to look for X
 
-| I need to...                                                                       | Look at                                                                                                                                                                                                                                                                             |
-| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Understand the whole backend's route/middleware shape at a glance                  | `backend/src/app.ts`                                                                                                                                                                                                                                                                |
-| Add or change an API endpoint                                                      | `backend/src/routes/<resource>.ts` + its data-access sibling (e.g. `backend/src/chores.ts`)                                                                                                                                                                                         |
-| Change auth/JWT verification behavior                                              | `backend/src/middleware/access-auth.ts`                                                                                                                                                                                                                                             |
-| Change how household scoping/switching resolves                                    | `backend/src/middleware/household-scope.ts`                                                                                                                                                                                                                                         |
-| Change global admin status/gating or the all-users directory                       | `backend/src/middleware/require-global-admin.ts`, `backend/src/admin-users.ts`, `backend/src/routes/admin.ts`, `frontend/src/components/admin/UsersDirectory.tsx`                                                                                                                   |
-| Change admin cross-household add-user or the household picker                      | `backend/src/routes/admin.ts` (`POST /members`), `backend/src/members.ts` (`adminAddHouseholdMember`), `frontend/src/components/admin/AddUserModal.tsx`, `frontend/src/components/form/HouseholdSearchSelect.tsx`                                                                   |
-| Change household creation (the Households directory)                               | `backend/src/routes/admin.ts` (`POST /households`), `backend/src/households.ts` (`createHousehold`), `frontend/src/components/admin/HouseholdsDirectory.tsx`, `frontend/src/components/admin/CreateHouseholdModal.tsx`                                                              |
-| Change the join-request (member-requests-new-user) workflow                        | `backend/src/join-requests.ts`, `backend/src/routes/members.ts` (`POST /requests`), `backend/src/routes/admin.ts` (`/join-requests/*`), `frontend/src/components/admin/AddMemberModal.tsx`, `frontend/src/components/admin/JoinRequestsSection.tsx`                                 |
-| Change the household name/switcher shown in the admin panel                        | `frontend/src/components/admin/HouseholdSection.tsx` (uses the same `switchHousehold` plumbing as `NavBar.tsx`, threaded through `App.tsx`/`AdminPanel.tsx`)                                                                                                                        |
-| Change the floating scroll-to-top button                                           | `frontend/src/hooks/useScrollPastThreshold.ts`, `frontend/src/components/chore/ScrollToTopButton.tsx`, `ChoresView.tsx` (focus-target sentinel, `deckHidden` gating)                                                                                                                |
-| Change the chore-name search box or its filtering                                  | `frontend/src/hooks/useChoreSearch.ts`, `frontend/src/components/chore/ChoreSearchInput.tsx`, `ChoresView.tsx` (empty-state precedence); the query state is lifted into `Layout` in `frontend/src/App.tsx` (survives `/admin`, never persisted)                                     |
-| Change the chore swipe style setting (gear icon) or its iOS/Android swipe behavior | `frontend/src/components/settings/SettingsModal.tsx`, `frontend/src/components/chore/ChoreTimerBar.tsx` (branches on `swipeStyle`), `backend/src/routes/me.ts` (`PATCH /swipe-style`), `backend/migrations/0010_add_swipe_style_to_users.sql`                                       |
-| Change push notifications (enable, password, setup link, test push)                | `backend/src/routes/notifications.ts`, `backend/src/notifs-provisioning.ts`, `backend/src/notifs-reset-password.ts`, `backend/src/ntfy-publish.ts`, `backend/src/middleware/no-store.ts`, `frontend/src/components/settings/SettingsModal.tsx`; see [Notifications](#notifications) |
-| Add a DB column/table                                                              | New file in `backend/migrations/` — never edit a merged one; CI applies it on main push (drops/renames: [two-phase](#destructive-migrations-two-phase))                                                                                                                             |
-| Change the shared API response/entity shapes                                       | `types/SharedTypes.d.ts`                                                                                                                                                                                                                                                            |
-| Change the single fetch entrypoint (headers, preview mocking)                      | `frontend/src/utils/api.ts`                                                                                                                                                                                                                                                         |
-| Change routing/top-level data loading                                              | `frontend/src/App.tsx`                                                                                                                                                                                                                                                              |
-| Change the offline write queue                                                     | `frontend/src/outbox/`                                                                                                                                                                                                                                                              |
-| Change mutation success/failure feedback (toast, rollback, flush errors)           | `frontend/src/components/common/Toast.tsx`, `frontend/src/components/chore/ChoresView.tsx`                                                                                                                                                                                          |
-| Run local dev                                                                      | `/run-dev` skill, or `npm run dev` at repo root                                                                                                                                                                                                                                     |
-| Push a branch / open a PR as the bot                                               | `/git-push` skill (`gpropersi-claude[bot]`, standing default per project instructions — don't ask first)                                                                                                                                                                            |
-| Understand the cloud-vs-local tradeoff rationale                                   | `TRADEOFFS.md`                                                                                                                                                                                                                                                                      |
-| Check the day's work log                                                           | `changelog/MM-DD-YYYY-changelog.md`                                                                                                                                                                                                                                                 |
-| Change CI/CD                                                                       | `.github/workflows/ci.yml`                                                                                                                                                                                                                                                          |
-| Change Worker routing/bindings/secrets config                                      | `backend/wrangler.toml`                                                                                                                                                                                                                                                             |
+| I need to...                                                                                | Look at                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Understand the whole backend's route/middleware shape at a glance                           | `backend/src/app.ts`                                                                                                                                                                                                                                                                                           |
+| Add or change an API endpoint                                                               | `backend/src/routes/<resource>.ts` + its data-access sibling (e.g. `backend/src/chores.ts`)                                                                                                                                                                                                                    |
+| Change auth/JWT verification behavior                                                       | `backend/src/middleware/access-auth.ts`                                                                                                                                                                                                                                                                        |
+| Change how household scoping/switching resolves                                             | `backend/src/middleware/household-scope.ts`                                                                                                                                                                                                                                                                    |
+| Change global admin status/gating or the all-users directory                                | `backend/src/middleware/require-global-admin.ts`, `backend/src/admin-users.ts`, `backend/src/routes/admin.ts`, `frontend/src/components/admin/UsersDirectory.tsx`                                                                                                                                              |
+| Change admin cross-household add-user or the household picker                               | `backend/src/routes/admin.ts` (`POST /members`), `backend/src/members.ts` (`adminAddHouseholdMember`), `frontend/src/components/admin/AddUserModal.tsx`, `frontend/src/components/form/HouseholdSearchSelect.tsx`                                                                                              |
+| Change household creation (the Households directory)                                        | `backend/src/routes/admin.ts` (`POST /households`), `backend/src/households.ts` (`createHousehold`), `frontend/src/components/admin/HouseholdsDirectory.tsx`, `frontend/src/components/admin/CreateHouseholdModal.tsx`                                                                                         |
+| Change the join-request (member-requests-new-user) workflow                                 | `backend/src/join-requests.ts`, `backend/src/routes/members.ts` (`POST /requests`), `backend/src/routes/admin.ts` (`/join-requests/*`), `frontend/src/components/admin/AddMemberModal.tsx`, `frontend/src/components/admin/JoinRequestsSection.tsx`                                                            |
+| Change the household name/switcher shown in the admin panel                                 | `frontend/src/components/admin/HouseholdSection.tsx` (uses the same `switchHousehold` plumbing as `NavBar.tsx`, threaded through `App.tsx`/`AdminPanel.tsx`)                                                                                                                                                   |
+| Change the floating scroll-to-top button                                                    | `frontend/src/hooks/useScrollPastThreshold.ts`, `frontend/src/components/chore/ScrollToTopButton.tsx`, `ChoresView.tsx` (focus-target sentinel, `deckHidden` gating)                                                                                                                                           |
+| Change the chore-name search box or its filtering                                           | `frontend/src/hooks/useChoreSearch.ts`, `frontend/src/components/chore/ChoreSearchInput.tsx`, `ChoresView.tsx` (empty-state precedence); the query state is lifted into `Layout` in `frontend/src/App.tsx` (survives `/admin`, never persisted)                                                                |
+| Change the chore swipe style setting (gear icon) or its iOS/Android swipe behavior          | `frontend/src/components/settings/SettingsModal.tsx`, `frontend/src/components/chore/ChoreTimerBar.tsx` (branches on `swipeStyle`), `backend/src/routes/me.ts` (`PATCH /swipe-style`), `backend/migrations/0010_add_swipe_style_to_users.sql`                                                                  |
+| Change push notifications (enable, password, setup link, test push)                         | `backend/src/routes/notifications.ts`, `backend/src/notifs-provisioning.ts`, `backend/src/notifs-reset-password.ts`, `backend/src/ntfy-publish.ts`, `backend/src/middleware/no-store.ts`, `frontend/src/components/settings/SettingsModal.tsx`; see [Notifications](#notifications)                            |
+| Add a DB column/table                                                                       | New file in `backend/migrations/` — never edit a merged one; CI applies it on main push (drops/renames: [two-phase](#destructive-migrations-two-phase))                                                                                                                                                        |
+| Change the shared API response/entity shapes                                                | `types/SharedTypes.d.ts`                                                                                                                                                                                                                                                                                       |
+| Change the single fetch entrypoint (headers, preview mocking)                               | `frontend/src/utils/api.ts`                                                                                                                                                                                                                                                                                    |
+| Change routing/top-level data loading                                                       | `frontend/src/App.tsx`                                                                                                                                                                                                                                                                                         |
+| Change the offline write queue                                                              | `frontend/src/outbox/`                                                                                                                                                                                                                                                                                         |
+| Change mutation success/failure feedback (toast, rollback, flush errors)                    | `frontend/src/components/common/Toast.tsx`, `frontend/src/components/chore/ChoresView.tsx`                                                                                                                                                                                                                     |
+| Change undo/redo of complete, edit and delete (record, keyboard shortcut, restore endpoint) | `ChoresView.tsx` (`undoRef`, `applyUndoStep`, the `keydown` effect), `Toast.tsx` (action button), `PATCH /api/chores/:id/restore` in `backend/src/routes/chores.ts` + `backend/src/chores.ts` (`restoreChore`); see [Offline behavior](#offline-behavior-frontend) and [Chore soft delete](#chore-soft-delete) |
+| Run local dev                                                                               | `/run-dev` skill, or `npm run dev` at repo root                                                                                                                                                                                                                                                                |
+| Push a branch / open a PR as the bot                                                        | `/git-push` skill (`gpropersi-claude[bot]`, standing default per project instructions — don't ask first)                                                                                                                                                                                                       |
+| Understand the cloud-vs-local tradeoff rationale                                            | `TRADEOFFS.md`                                                                                                                                                                                                                                                                                                 |
+| Check the day's work log                                                                    | `changelog/MM-DD-YYYY-changelog.md`                                                                                                                                                                                                                                                                            |
+| Change CI/CD                                                                                | `.github/workflows/ci.yml`                                                                                                                                                                                                                                                                                     |
+| Change Worker routing/bindings/secrets config                                               | `backend/wrangler.toml`                                                                                                                                                                                                                                                                                        |
 
 ## Conventions worth knowing
 

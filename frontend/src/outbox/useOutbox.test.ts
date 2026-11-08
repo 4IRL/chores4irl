@@ -47,6 +47,23 @@ describe('useOutbox', () => {
     instance.dispose();
   });
 
+  it('re-exports remove, which cancels a queued entry and updates entries', () => {
+    const instance = createOutbox(vi.fn());
+    const { result } = renderHook(() => useOutbox(instance));
+    let id = '';
+    act(() => {
+      id = result.current.append({ type: 'delete', choreId: 1 }).id;
+    });
+    expect(result.current.entries).toHaveLength(1);
+    let removed = false;
+    act(() => {
+      removed = result.current.remove(id);
+    });
+    expect(removed).toBe(true);
+    expect(result.current.entries).toHaveLength(0);
+    instance.dispose();
+  });
+
   it('invokes onFlushResults with the outcome once a flush completes', async () => {
     const fetchImpl = vi.fn(() =>
       Promise.resolve(new Response(JSON.stringify({ success: true, data: { id: 7 } }))),
