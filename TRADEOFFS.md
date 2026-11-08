@@ -17,7 +17,9 @@ model.
 
 **Managed durability.** D1's built-in backups replace what would otherwise be a bespoke SD-card backup
 system (weekly snapshots, mandatory off-site copy, systemd timers) — a real reduction in what has to be
-maintained, not a relocation of the problem.
+maintained, not a relocation of the problem. A weekly encrypted export to R2 adds an independent second
+copy beyond Time Travel; its limit is that the bucket lives in the same Cloudflare account as D1, so it
+does not protect against losing the account.
 
 ## What it costs, inherited from that same analysis
 

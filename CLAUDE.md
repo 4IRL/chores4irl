@@ -58,6 +58,7 @@ commits and PRs on this repo show **bot-only attribution** — no `Co-Authored-B
   | DB migrate status  | `make migrate-list` (local) / `make migrate-list-remote` (prod)                   |
   | New migration      | `make migrate-new name=<snake_case_desc>` (scaffold next numbered file)           |
   | Script tests       | `make test-scripts` (`scripts/*.test.mjs`, node:test)                             |
+  | Restore a backup   | `make backup-restore-local FILE=<.sql\|.sql.gpg>` (into a throwaway local D1)     |
   | Install deps       | `make install` (`npm ci`)                                                         |
   | New worktree       | `make worktree-new name=<slug> [b=<branch>] [base=<ref>]` (see docs/worktrees.md) |
   | Remove worktree    | `make worktree-rm` (run inside the worktree)                                      |

@@ -76,7 +76,8 @@ frontend/         React SPA — Cloudflare Pages
 e2e/               Playwright end-to-end tests (own JWKS fixture server, own signed-JWT helper)
 types/SharedTypes.d.ts   Types shared between backend and frontend (ApiResponse<T>, Room, etc.)
 scripts/           Root-level scripts (git hooks installer)
-.github/workflows/ci.yml   The entire CI/CD pipeline
+.github/workflows/ci.yml   The CI/CD pipeline
+.github/workflows/d1-backup.yml   Weekly encrypted D1 export to R2 (separate scheduled workflow)
 .claude/           Agent tooling: skills (run-dev)
 ```
 
@@ -263,6 +264,69 @@ Caveats:
   is fixed or reverted first.
 - If the migration succeeded but "Deploy Worker" failed, the schema is not rolled back automatically.
   Re-run the job (apply is idempotent) rather than restoring, unless the migration itself is bad.
+
+### Weekly backup export (secondary copy)
+
+Time Travel stays the primary rollback. `.github/workflows/d1-backup.yml` ("D1 Backup") adds an
+independent second copy: every Sunday 10:17 UTC (and on `workflow_dispatch`, with an optional `keep`
+input, default `8`) it runs `wrangler d1 export --remote`, checks the dump, encrypts it with
+`gpg` (symmetric AES256, passphrase from the `D1_BACKUP_PASSPHRASE` secret) and uploads it to the private
+R2 bucket `chores4irl-d1-backups` as `d1/chores4irl-<YYYYMMDDTHHMMSSZ>.sql.gpg`. It verifies the upload
+(size and, for single-part uploads, md5 ETag), smoke-restores the dump into a throwaway local D1, then
+prunes the bucket to the newest `keep` backups. The plaintext dump is never uploaded.
+
+- **The passphrase is required for any restore.** Keep `D1_BACKUP_PASSPHRASE` in a password manager as
+  well as the GitHub secret; without it every backup is unreadable.
+- **The export makes the live DB briefly unavailable** to queries, hence the off-peak schedule.
+- **What this does and does not protect:** R2 is still Cloudflare and the bucket is in the
+  same Cloudflare account as D1, so the export guards against data loss, corruption and bad
+  migrations, not against losing the account itself.
+- **Future guard:** an FTS or other virtual table would break `d1 export`. Adding one must revisit this
+  workflow before it merges.
+
+**Restore runbook.** Download the object from R2, then from the repo root:
+
+```
+D1_BACKUP_PASSPHRASE=<passphrase> make backup-restore-local FILE=<path to .sql.gpg>
+```
+
+(`PASSPHRASE_ENV=NAME` selects a different env var; a plain `.sql` file needs no passphrase.) It decrypts
+to a temp file, restores into a fresh throwaway local D1 under the system temp dir, and prints
+`persist-to<TAB><dir>` followed by `table<TAB>count` lines. A full export is restored into
+an empty database only, never on top of `make migrate-local`; the script refuses a non-empty target. If it reports
+`gpg: decryption failed`, the passphrase differs from the `D1_BACKUP_PASSPHRASE` secret. A hard
+`SIGKILL` of a local restore bypasses the script's `SIGTERM` cleanup and can leave a temp dir holding a
+plaintext copy of production data: delete it by hand.
+
+**Failure handling.**
+
+- The `Delete failed backup object` step (`if: failure()`, one of the workflow's two documented exceptions
+  to its no-step-`if` rule; R2 credentials only) deletes only the
+  just-uploaded key when verify or the smoke check fails, so the newest object in R2 is always a verified
+  one. If that delete itself fails (the alert still fires), an unverified orphan can remain and counts toward
+  retention until prune evicts it: check the newest object after any alert.
+- The final `Notify on failure` step (`if: failure()`, the other documented exception) posts a short message with the run URL to
+  `D1_BACKUP_ALERT_WEBHOOK`, which must be a self-authenticating URL (no extra auth headers are sent).
+  GitHub also emails the last committer on failure. Every step has its own `timeout-minutes`, so a hung step
+  fails and alerts. NOT alerted: a job-level timeout, an operator cancel, and a schedule GitHub
+  auto-disables after repo inactivity (it never runs). Check the Actions tab and the newest object's age
+  periodically.
+- On a step timeout or cancel the plaintext-cleanup `TERM` traps run. `SIGKILL` bypasses every trap; on the
+  hosted runner the VM is destroyed after the job, which bounds that exposure.
+
+**One-time setup (operator, before the first Sunday after merge).** The workflow is live on its schedule
+from merge, so complete all of this before the first Sunday after merge; a run before then fails at
+encrypt/upload and the notify step fails with `D1_BACKUP_ALERT_WEBHOOK secret unset` instead of alerting.
+
+1. Create the private R2 bucket `chores4irl-d1-backups` (no public access).
+2. Create an R2 API token scoped to that bucket only (Object Read & Write). It is separate from
+   `CLOUDFLARE_API_TOKEN`; do not add R2 scope to the deploy token.
+3. Add repo secrets `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `D1_BACKUP_PASSPHRASE` and
+   `D1_BACKUP_ALERT_WEBHOOK`.
+4. Confirm `CLOUDFLARE_API_TOKEN` has D1 edit scope and `CLOUDFLARE_ACCOUNT_ID` is set (both already
+   exist for the deploy).
+5. Run the workflow once via `workflow_dispatch`, confirm the object appears in R2 (a 403 means recheck the
+   token is Object Read & Write on the bucket), then run the restore on the downloaded file.
 
 ### Destructive migrations (two-phase)
 
@@ -476,6 +540,10 @@ lint + test-frontend ──→ deploy-preview  (PR only, not dependabot[bot]: pa
   `notifs-identity`; it is separate from the Worker secrets `NOTIFS_CF_ACCESS_CLIENT_ID/SECRET`, which
   cover `notifs-api` only. `CLOUDFLARE_API_TOKEN` now also needs D1 edit scope for the migration and
   Time Travel steps (an out-of-repo prerequisite: update the token in the Cloudflare dashboard).
+- The separate scheduled workflow `.github/workflows/d1-backup.yml` (weekly encrypted export to R2, see
+  [Weekly backup export](#weekly-backup-export-secondary-copy)) adds the secrets `R2_ACCESS_KEY_ID`,
+  `R2_SECRET_ACCESS_KEY` (a bucket-scoped R2 token, separate from the deploy token), `D1_BACKUP_PASSPHRASE`
+  and `D1_BACKUP_ALERT_WEBHOOK`. `ci.yml` is unchanged.
 
 ## Testing
 
@@ -646,6 +714,7 @@ Retry → re-auth; (3) temporarily shorten the Access application's Session Dura
 | Understand the cloud-vs-local tradeoff rationale                                            | `TRADEOFFS.md`                                                                                                                                                                                                                                                                                                 |
 | Check the day's work log                                                                    | `changelog/MM-DD-YYYY-changelog.md`                                                                                                                                                                                                                                                                            |
 | Change CI/CD                                                                                | `.github/workflows/ci.yml`                                                                                                                                                                                                                                                                                     |
+| Change or restore the weekly D1 backup                                                      | `.github/workflows/d1-backup.yml`, `scripts/d1-backup.mjs`, `scripts/d1-restore.mjs`, `make backup-restore-local`; see [Weekly backup export](#weekly-backup-export-secondary-copy)                                                                                                                            |
 | Change Worker routing/bindings/secrets config                                               | `backend/wrangler.toml`                                                                                                                                                                                                                                                                                        |
 
 ## Conventions worth knowing
