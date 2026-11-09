@@ -306,7 +306,9 @@ plaintext copy of production data: delete it by hand.
   one. If that delete itself fails (the alert still fires), an unverified orphan can remain and counts toward
   retention until prune evicts it: check the newest object after any alert.
 - The final `Notify on failure` step (`if: failure()`, the other documented exception) posts a short message with the run URL to
-  `D1_BACKUP_ALERT_WEBHOOK`, which must be a self-authenticating URL (no extra auth headers are sent).
+  `D1_BACKUP_ALERT_WEBHOOK`, which must be a self-authenticating URL (no extra auth headers are sent). The JSON
+  body carries the message under `content` (Discord), `text` (Slack, Mattermost) and `message` (generic
+  endpoints); each service ignores the fields it does not read.
   GitHub also emails the last committer on failure. Every step has its own `timeout-minutes`, so a hung step
   fails and alerts. NOT alerted: a job-level timeout, an operator cancel, and a schedule GitHub
   auto-disables after repo inactivity (it never runs). Check the Actions tab and the newest object's age

@@ -253,6 +253,6 @@ jobs:
           fi
           RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           rc=0
-          curl --fail --silent --show-error --max-time 30 -X POST -H 'Content-Type: application/json' --data "{\"message\":\"D1 Backup failed: $RUN_URL\"}" "$D1_BACKUP_ALERT_WEBHOOK" || rc=$?
+          curl --fail --silent --show-error --max-time 30 -X POST -H 'Content-Type: application/json' --data "{\"content\":\"D1 Backup failed: $RUN_URL\",\"text\":\"D1 Backup failed: $RUN_URL\",\"message\":\"D1 Backup failed: $RUN_URL\"}" "$D1_BACKUP_ALERT_WEBHOOK" || rc=$?
           echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s"
           exit "$rc"
