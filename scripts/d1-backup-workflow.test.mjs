@@ -358,6 +358,11 @@ describe('d1-backup.yml notify', () => {
       assert.ok(step.run.includes(needle), needle);
     }
     assert.match(step.run, /-z "\$D1_BACKUP_ALERT_WEBHOOK"/);
+    // one message under every field name the common webhook services read: Discord needs
+    // `content`, Slack/Mattermost `text`, generic endpoints `message`; each ignores the rest
+    for (const field of ['content', 'text', 'message']) {
+      assert.ok(step.run.includes(`\\"${field}\\":\\"D1 Backup failed: $RUN_URL\\"`), field);
+    }
     assert.deepEqual(Object.keys(step.env), ['D1_BACKUP_ALERT_WEBHOOK']);
     assert.ok(!/secrets\.(?!D1_BACKUP_ALERT_WEBHOOK)/.test(text(step)));
   });
