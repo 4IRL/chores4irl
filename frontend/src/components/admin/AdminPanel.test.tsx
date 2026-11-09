@@ -72,12 +72,14 @@ describe('AdminPanel', () => {
   });
 
   it('submits the add-member form to POST /api/members and appends the result to the list', async () => {
-    const user = userEvent.setup();
+    // delay: null skips the per-keystroke setTimeout hop, which stalls for seconds on a CPU-starved
+    // host (this test timed out at 5s under ~57% load while taking ~0.6s unloaded).
+    const user = userEvent.setup({ delay: null });
     render(<AdminPanel {...noRoomsProps} />);
     await screen.findByText('admin@example.com');
 
     await user.click(screen.getByRole('button', { name: 'Add Member' }));
-    const modal = screen.getByTestId('add-member-modal-backdrop');
+    const modal = await screen.findByTestId('add-member-modal-backdrop');
     await user.type(within(modal).getByLabelText('Email'), 'new@example.com');
     await user.selectOptions(within(modal).getByLabelText('Timezone'), 'America/New_York');
     await user.click(within(modal).getByRole('button', { name: 'Save' }));

@@ -495,7 +495,8 @@ describe('SettingsModal — notifications', () => {
   });
 
   it('enable failure surfaces the red error and reverts the toggle to unchecked + interactive (DD-21)', async () => {
-    const user = userEvent.setup();
+    // delay: null avoids setTimeout hops between pointer events, which stall on a CPU-starved host.
+    const user = userEvent.setup({ delay: null });
     vi.stubGlobal(
       'fetch',
       makeFetchStub({

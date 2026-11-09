@@ -1,0 +1,258 @@
+name: D1 Backup
+
+on:
+  schedule:
+    - cron: '17 10 * * 0'
+  workflow_dispatch:
+    inputs:
+      keep:
+        description: Number of newest backups to keep in R2
+        required: false
+        default: '8'
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  WRANGLER_SEND_METRICS: false
+  D1_BACKUP_BUCKET: chores4irl-d1-backups
+  D1_BACKUP_KEEP: ${{ inputs.keep || '8' }}
+
+concurrency:
+  group: d1-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        timeout-minutes: 1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        timeout-minutes: 1
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        timeout-minutes: 2
+        run: |
+          start=$(date +%s)
+          echo "start: $(date -u)"
+          rc=0
+          npm ci || rc=$?
+          echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s"
+          test "$rc" -eq 0
+
+      - name: Export D1 database
+        timeout-minutes: 4
+        working-directory: backend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          start=$(date +%s)
+          echo "start: $(date -u)"
+          trap 'rm -f "$RUNNER_TEMP/backup.sql"' ERR
+          trap 'rm -f "$RUNNER_TEMP/backup.sql"; exit 143' TERM
+          rc=0
+          npx wrangler d1 export chores4irl --remote -y --output "$RUNNER_TEMP/backup.sql" || rc=$?
+          echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s"
+          test "$rc" -eq 0
+
+      - name: Check dump
+        timeout-minutes: 1
+        run: |
+          start=$(date +%s)
+          echo "start: $(date -u)"
+          trap 'rm -f "$RUNNER_TEMP/backup.sql"' ERR
+          trap 'rm -f "$RUNNER_TEMP/backup.sql"; exit 143' TERM
+          rc=0
+          if test -s "$RUNNER_TEMP/backup.sql" && grep -q 'CREATE TABLE' "$RUNNER_TEMP/backup.sql"; then
+            echo "dump is non-empty and has CREATE TABLE ($(stat -c %s "$RUNNER_TEMP/backup.sql") bytes)"
+          else
+            echo "dump is empty or has no CREATE TABLE" >&2
+            rc=1
+          fi
+          echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s"
+          test "$rc" -eq 0
+
+      - name: Encrypt dump
+        timeout-minutes: 1
+        env:
+          D1_BACKUP_PASSPHRASE: ${{ secrets.D1_BACKUP_PASSPHRASE }}
+        run: |
+          start=$(date +%s)
+          echo "start: $(date -u)"
+          trap 'rm -f "$RUNNER_TEMP/backup.sql"' ERR
+          trap 'rm -f "$RUNNER_TEMP/backup.sql"; exit 143' TERM
+          rc=0
+          test -n "$D1_BACKUP_PASSPHRASE"
+          printf '%s' "$D1_BACKUP_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --symmetric --cipher-algo AES256 --output "$RUNNER_TEMP/backup.sql.gpg" "$RUNNER_TEMP/backup.sql" || rc=$?
+          echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s"
+          test "$rc" -eq 0
+          rm -f "$RUNNER_TEMP/backup.sql"
+
+      - name: Generate backup key
+        timeout-minutes: 1
+        run: |
+          start=$(date +%s)
+          echo "start: $(date -u)"
+          fail() { rc=$?; if [ "$rc" -eq 0 ]; then rc=1; fi; echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s" >&2; exit "$rc"; }
+          KEY=$(node scripts/d1-backup.mjs key) || fail
+          test -n "$KEY" || { echo "empty backup key" >&2; fail; }
+          echo "D1_BACKUP_KEY=$KEY" >> "$GITHUB_ENV"
+          echo "end: $(date -u) rc=0 duration=$(( $(date +%s) - start ))s key=$KEY"
+
+      - name: Upload backup
+        timeout-minutes: 2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          start=$(date +%s)
+          echo "start: $(date -u)"
+          fail() { rc=$?; if [ "$rc" -eq 0 ]; then rc=1; fi; echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s" >&2; exit "$rc"; }
+          aws s3 cp "$RUNNER_TEMP/backup.sql.gpg" "s3://$D1_BACKUP_BUCKET/$D1_BACKUP_KEY" --endpoint-url "https://$CLOUDFLARE_ACCOUNT_ID.r2.cloudflarestorage.com" || fail
+          echo "end: $(date -u) rc=0 duration=$(( $(date +%s) - start ))s"
+
+      - name: Verify upload
+        timeout-minutes: 1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          start=$(date +%s)
+          echo "start: $(date -u)"
+          fail() { rc=$?; if [ "$rc" -eq 0 ]; then rc=1; fi; echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s" >&2; exit "$rc"; }
+          HEAD=$(aws s3api head-object --bucket "$D1_BACKUP_BUCKET" --key "$D1_BACKUP_KEY" --query '[ContentLength,ETag]' --output text --endpoint-url "https://$CLOUDFLARE_ACCOUNT_ID.r2.cloudflarestorage.com") || fail
+          REMOTE_SIZE=$(printf '%s' "$HEAD" | cut -f1) || fail
+          REMOTE_ETAG=$(printf '%s' "$HEAD" | cut -f2) || fail
+          REMOTE_ETAG=${REMOTE_ETAG//\"/}
+          LOCAL_SIZE=$(stat -c %s "$RUNNER_TEMP/backup.sql.gpg") || fail
+          if [ "$REMOTE_SIZE" != "$LOCAL_SIZE" ]; then
+            echo "ContentLength mismatch: remote=$REMOTE_SIZE local=$LOCAL_SIZE" >&2
+            false || fail
+          fi
+          case "$REMOTE_ETAG" in
+            *-*)
+              echo "ETag $REMOTE_ETAG is multipart, not an md5; size check only"
+              ;;
+            *)
+              LOCAL_MD5=$(md5sum "$RUNNER_TEMP/backup.sql.gpg" | cut -d' ' -f1) || fail
+              if [ "$REMOTE_ETAG" != "$LOCAL_MD5" ]; then
+                echo "ETag mismatch: remote=$REMOTE_ETAG local=$LOCAL_MD5" >&2
+                false || fail
+              fi
+              ;;
+          esac
+          echo "end: $(date -u) rc=0 duration=$(( $(date +%s) - start ))s size=$LOCAL_SIZE"
+
+      - name: Restore smoke check
+        timeout-minutes: 2
+        env:
+          D1_BACKUP_PASSPHRASE: ${{ secrets.D1_BACKUP_PASSPHRASE }}
+        run: |
+          start=$(date +%s)
+          echo "start: $(date -u)"
+          trap 'rm -rf "$RUNNER_TEMP/smoke-db"' EXIT
+          trap 'exit 143' TERM
+          rc=0
+          node scripts/d1-restore.mjs "$RUNNER_TEMP/backup.sql.gpg" --persist-to "$RUNNER_TEMP/smoke-db" --require-rows users,d1_migrations --require-triggers prevent_owner_account_deletion || rc=$?
+          echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s"
+          test "$rc" -eq 0
+
+      - name: Delete failed backup object
+        if: failure()
+        timeout-minutes: 1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          start=$(date +%s)
+          echo "start: $(date -u)"
+          fail() { rc=$?; if [ "$rc" -eq 0 ]; then rc=1; fi; echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s" >&2; exit "$rc"; }
+          if [ -z "${D1_BACKUP_KEY:-}" ]; then
+            echo "D1_BACKUP_KEY unset: run failed before a key was generated; nothing to delete"
+            exit 0
+          fi
+          case "$D1_BACKUP_KEY" in
+            d1/chores4irl-*.sql.gpg) ;;
+            *)
+              echo "unexpected key shape, refusing to delete: $D1_BACKUP_KEY" >&2
+              false || fail
+              ;;
+          esac
+          aws s3api delete-object --bucket "$D1_BACKUP_BUCKET" --key "$D1_BACKUP_KEY" --endpoint-url "https://$CLOUDFLARE_ACCOUNT_ID.r2.cloudflarestorage.com" || fail
+          echo "end: $(date -u) rc=0 duration=$(( $(date +%s) - start ))s deleted=$D1_BACKUP_KEY"
+
+      - name: Prune old backups
+        timeout-minutes: 1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          start=$(date +%s)
+          echo "start: $(date -u)"
+          fail() { rc=$?; if [ "$rc" -eq 0 ]; then rc=1; fi; echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s" >&2; exit "$rc"; }
+          ENDPOINT="https://$CLOUDFLARE_ACCOUNT_ID.r2.cloudflarestorage.com"
+          LISTING=$(aws s3api list-objects-v2 --bucket "$D1_BACKUP_BUCKET" --prefix d1/ --query 'Contents[].Key' --output text --endpoint-url "$ENDPOINT") || fail
+          if [ -z "$LISTING" ] || [ "$LISTING" = "None" ]; then
+            echo "empty backup listing, refusing to prune" >&2
+            false || fail
+          fi
+          KEYS=$(printf '%s\n' "$LISTING" | tr '\t' '\n') || fail
+          TO_DELETE=$(printf '%s\n' "$KEYS" | node scripts/d1-backup.mjs prune --keep "$D1_BACKUP_KEEP" --protect "$D1_BACKUP_KEY") || fail
+          COUNT=0
+          while IFS= read -r OLD; do
+            [ -n "$OLD" ] || continue
+            echo "deleting $OLD"
+            aws s3api delete-object --bucket "$D1_BACKUP_BUCKET" --key "$OLD" --endpoint-url "$ENDPOINT" < /dev/null || fail
+            COUNT=$((COUNT + 1))
+          done <<< "$TO_DELETE"
+          echo "end: $(date -u) rc=0 duration=$(( $(date +%s) - start ))s pruned=$COUNT keep=$D1_BACKUP_KEEP"
+
+      - name: Notify on failure
+        if: failure()
+        timeout-minutes: 1
+        env:
+          D1_BACKUP_ALERT_WEBHOOK: ${{ secrets.D1_BACKUP_ALERT_WEBHOOK }}
+        run: |
+          start=$(date +%s)
+          echo "start: $(date -u)"
+          if [ -z "$D1_BACKUP_ALERT_WEBHOOK" ]; then
+            echo "D1_BACKUP_ALERT_WEBHOOK secret unset" >&2
+            echo "end: $(date -u) rc=1 duration=$(( $(date +%s) - start ))s"
+            exit 1
+          fi
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          rc=0
+          curl --fail --silent --show-error --max-time 30 -X POST -H 'Content-Type: application/json' --data "{\"message\":\"D1 Backup failed: $RUN_URL\"}" "$D1_BACKUP_ALERT_WEBHOOK" || rc=$?
+          echo "end: $(date -u) rc=$rc duration=$(( $(date +%s) - start ))s"
+          exit "$rc"

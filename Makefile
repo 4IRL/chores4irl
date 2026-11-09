@@ -5,11 +5,13 @@
 NPM_ROOT    = npm run
 NPM_BACKEND = npm run --workspace backend
 WRANGLER    = npm exec --workspace backend -- wrangler
+PASSPHRASE_ENV ?= D1_BACKUP_PASSPHRASE
 
 .PHONY: help install dev build worktree-new worktree-rm \
         test test-backend test-frontend test-scripts test-e2e \
         lint lint-fix format format-check \
-        migrate-local migrate-remote migrate-list migrate-list-remote migrate-new
+        migrate-local migrate-remote migrate-list migrate-list-remote migrate-new \
+        backup-restore-local
 
 .DEFAULT_GOAL := help
 
@@ -85,3 +87,7 @@ migrate-list-remote: ## Show applied/pending migration status for the remote pro
 migrate-new: ## Scaffold a new numbered migration file: make migrate-new name=<snake_case_desc>
 	@test -n "$(name)" || { echo 'Usage: make migrate-new name=<snake_case_desc>' >&2; exit 1; }
 	$(WRANGLER) d1 migrations create DB "$(name)"
+
+backup-restore-local: ## Restore a D1 backup into a throwaway local D1: make backup-restore-local FILE=<.sql|.sql.gpg> [PASSPHRASE_ENV=NAME]
+	@test -n "$(FILE)" || { echo 'Usage: make backup-restore-local FILE=<path to .sql or .sql.gpg> [PASSPHRASE_ENV=D1_BACKUP_PASSPHRASE]' >&2; exit 1; }
+	node scripts/d1-restore.mjs "$(FILE)" --passphrase-env "$(PASSPHRASE_ENV)"
