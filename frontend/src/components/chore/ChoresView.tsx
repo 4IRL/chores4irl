@@ -59,6 +59,8 @@ type ChoresViewProps = {
   onSearchQueryChange?: (query: string) => void;
   // Live refresh poll period; 0 disables the poll (tests only). Focus and visibility still trigger.
   refreshIntervalMs?: number;
+  // Called once per applied live refresh, so rooms another device added reach the tabs and form.
+  onRefreshRooms?: () => void;
 };
 
 // What a `load()` ended with. 'deferred': a refresh result was dropped because a hold was taken
@@ -273,6 +275,7 @@ export default function ChoresView({
   searchQuery,
   onSearchQueryChange,
   refreshIntervalMs = LIVE_REFRESH_INTERVAL_MS,
+  onRefreshRooms,
 }: ChoresViewProps) {
   const today = useMidnightClock(householdTimezone);
   // Chore due dates/ordering run entirely on the household's clock (not the
@@ -312,6 +315,11 @@ export default function ChoresView({
   const modalOpenRef = useRef(modalOpen);
   useEffect(() => {
     modalOpenRef.current = modalOpen;
+  });
+  // The refresh callback is built once in the mount effect, so it reads the latest prop from here.
+  const onRefreshRoomsRef = useRef(onRefreshRooms);
+  useEffect(() => {
+    onRefreshRoomsRef.current = onRefreshRooms;
   });
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -711,6 +719,10 @@ export default function ChoresView({
         },
       });
       if (outcome === 'unauthorized') refreshPausedRef.current = true;
+      // Each applied refresh also re-pulls rooms, so the same gates (pause, latch, hold) apply.
+      // Rooms are not held for an open form: it keeps its own roomId and the backend rejects a
+      // room that is gone, so a rooms change under the form is harmless.
+      if (outcome === 'fresh') onRefreshRoomsRef.current?.();
       return outcome === 'deferred' ? 'deferred' : 'done';
     };
 

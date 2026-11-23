@@ -830,4 +830,74 @@ describe('ChoresView live refresh', () => {
       expect(getCount()).toBe(3);
     });
   });
+
+  describe('rooms re-pull', () => {
+    it('does not call onRefreshRooms for the mount load', async () => {
+      setupClock();
+      const onRefreshRooms = vi.fn();
+      stubListFetch(() => jsonResponse({ success: true, data: mockChores }));
+      renderView(undefined, { onRefreshRooms });
+      await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+      await waitForMountCacheWrite();
+
+      expect(onRefreshRooms).not.toHaveBeenCalled();
+    });
+
+    it('calls onRefreshRooms once for a focus refresh that applies', async () => {
+      setupClock();
+      const onRefreshRooms = vi.fn();
+      const { getCount } = stubListFetch((n) =>
+        n === 1
+          ? jsonResponse({ success: true, data: mockChores })
+          : jsonResponse({ success: true, data: renamedVacuum() }),
+      );
+      renderView(undefined, { onRefreshRooms });
+      await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+      await focusWindow();
+
+      await waitFor(() => expect(screen.getByText('Hoover')).toBeInTheDocument());
+      expect(getCount()).toBe(2);
+      await waitFor(() => expect(onRefreshRooms).toHaveBeenCalledTimes(1));
+      await advance(1000);
+      expect(onRefreshRooms).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not call onRefreshRooms when the refresh answers 500', async () => {
+      setupClock();
+      const onRefreshRooms = vi.fn();
+      const { getCount } = stubListFetch((n) =>
+        n === 1 ? jsonResponse({ success: true, data: mockChores }) : errorResponse(500, 'boom'),
+      );
+      renderView(undefined, { onRefreshRooms });
+      await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+      await focusWindow();
+
+      await waitFor(() => expect(getCount()).toBe(2));
+      await waitFor(() => expect(screen.getByTestId('status-banner-action')).toBeInTheDocument());
+      expect(onRefreshRooms).not.toHaveBeenCalled();
+    });
+
+    it('makes no chores or rooms re-pull on focus after a poll 401 paused refresh', async () => {
+      setupClock();
+      const onRefreshRooms = vi.fn();
+      const { getCount } = stubListFetch((n) =>
+        n === 1 ? jsonResponse({ success: true, data: mockChores }) : unauthorizedResponse(),
+      );
+      renderView(undefined, { onRefreshRooms });
+      await waitFor(() => expect(screen.getByText('Vacuum')).toBeInTheDocument());
+
+      await advance(30_000);
+      await waitFor(() => expect(screen.getByTestId('status-banner-action')).toBeInTheDocument());
+      expect(getCount()).toBe(2);
+      const fetchCallsAfterPause = vi.mocked(fetch).mock.calls.length;
+
+      await focusWindow();
+      await advance(1000);
+
+      expect(vi.mocked(fetch).mock.calls.length).toBe(fetchCallsAfterPause);
+      expect(onRefreshRooms).not.toHaveBeenCalled();
+    });
+  });
 });
