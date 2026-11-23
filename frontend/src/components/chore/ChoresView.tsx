@@ -6,6 +6,7 @@ import { useRoomFilter } from '../../hooks/useRoomFilter';
 import { useChoreSearch } from '../../hooks/useChoreSearch';
 import { useIsTouchDevice } from '../../hooks/useIsTouchDevice';
 import { useScrollPastThreshold } from '../../hooks/useScrollPastThreshold';
+import { LIVE_REFRESH_INTERVAL_MS, useChoreRefresh, type RefreshResult } from '../../hooks/useChoreRefresh';
 import ChoreSearchInput from './ChoreSearchInput';
 import ScrollToTopButton from './ScrollToTopButton';
 import StatusCountStrip from '../nav/StatusCountStrip';
@@ -56,7 +57,13 @@ type ChoresViewProps = {
   // Lifted into App's Layout so the query survives /admin navigation.
   searchQuery?: string;
   onSearchQueryChange?: (query: string) => void;
+  // Live refresh poll period; 0 disables the poll (tests only). Focus and visibility still trigger.
+  refreshIntervalMs?: number;
 };
+
+// What a `load()` ended with. 'deferred': a refresh result was dropped because a hold was taken
+// meanwhile; 'superseded': a newer connectivity event won.
+type LoadOutcome = 'fresh' | 'stale' | 'unauthorized' | 'revoked' | 'deferred' | 'superseded';
 
 function toChorePayload(input: Omit<Chore, 'id'>): ChorePayload {
   return { ...input, dateLastCompleted: input.dateLastCompleted.toISOString() };
@@ -265,6 +272,7 @@ export default function ChoresView({
   onHouseholdRevoked,
   searchQuery,
   onSearchQueryChange,
+  refreshIntervalMs = LIVE_REFRESH_INTERVAL_MS,
 }: ChoresViewProps) {
   const today = useMidnightClock(householdTimezone);
   // Chore due dates/ordering run entirely on the household's clock (not the
@@ -441,6 +449,28 @@ export default function ChoresView({
   // let an in-flight online fetch win and leave the banner/online state
   // contradicting the most-recent real connectivity signal.
   const connectivityGenRef = useRef(0);
+  // Live refresh: paused by a refresh 401 until the next fresh load; latched off by a 403.
+  const refreshPausedRef = useRef(false);
+  const revokedRef = useRef(false);
+  // Assigned inside the mount effect (it needs `load`); the hook always calls the latest one.
+  const refreshRef = useRef<(ctx: { isUnchanged: () => boolean }) => Promise<RefreshResult>>(
+    async () => 'done',
+  );
+  const { acquireHold, releaseHold } = useChoreRefresh({
+    refresh: (ctx) => refreshRef.current(ctx),
+    intervalMs: refreshIntervalMs,
+    outbox: activeOutbox,
+  });
+  // An open form, settings or conflict dialog holds live refresh (U18; it also keeps baseVersion still).
+  useEffect(() => {
+    if (!modalOpen) return;
+    acquireHold();
+    return releaseHold;
+  }, [modalOpen, acquireHold, releaseHold]);
+  const handleRowDialogOpenChange = useCallback(
+    (open: boolean) => (open ? acquireHold() : releaseHold()),
+    [acquireHold, releaseHold],
+  );
 
   function releaseToastFocus() {
     const testid = (document.activeElement as HTMLElement | null)?.getAttribute('data-testid');
@@ -490,8 +520,11 @@ export default function ChoresView({
     return true;
   }
 
+  // Every write holds live refresh from its optimistic apply until the request settles, so a list
+  // landing in between never replaces the optimistic or confirmed row.
   function mutate<T>(options: MutateOptions<T>) {
-    return runMutation(showToast, options);
+    acquireHold();
+    return runMutation(showToast, options).finally(releaseHold);
   }
 
   function dismissToast() {
@@ -533,6 +566,7 @@ export default function ChoresView({
       const res = await apiFetch('/api/chores');
       if (res.status === 403) {
         // Removed from the active household: same handling as load().
+        revokedRef.current = true;
         await clearChoresCache();
         clearUndoIfCurrent(forToastId);
         setChores([]);
@@ -559,17 +593,44 @@ export default function ChoresView({
   }
 
   useEffect(() => {
-    // Returns true when it ended stale (rendered from cache), false when a fresh
-    // network copy was applied. `onBeforeFresh` runs immediately before the
-    // fresh state (and the isStale=false that unmounts the banner) is applied,
-    // giving the reconnect handler a chance to hand focus off first.
-    async function load(gen: number, onBeforeFresh?: () => void): Promise<boolean> {
-      const isCurrent = () => connectivityGenRef.current === gen;
+    // Loads the list and returns a LoadOutcome. Two modes:
+    // - 'connectivity' (mount, `online`): a failure falls back to the IndexedDB copy under the
+    //   stale banner, and a fresh list may clear the Undo record armed when the load started.
+    // - 'refresh' (live refresh): a failure keeps what is on screen and only raises the banner (U7),
+    //   it passes no undo id so a refresh never clears a live Undo, and a success is applied only
+    //   if `isUnchanged()` still holds (no hold was taken since the trigger; else 'deferred').
+    // `onBeforeFresh` runs immediately before the fresh state (and the isStale=false that unmounts
+    // the banner) is applied, giving the caller a chance to hand focus off first.
+    // A connectivity load holds live refresh while it runs: both share a generation, so without the
+    // hold a refresh started meanwhile could land first and be overwritten (or the other way round).
+    async function load(gen: number, opts: Parameters<typeof loadList>[1] = {}): Promise<LoadOutcome> {
+      if (opts.mode === 'refresh') return loadList(gen, opts);
+      acquireHold();
+      try {
+        return await loadList(gen, opts);
+      } finally {
+        releaseHold();
+      }
+    }
+
+    async function loadList(
+      gen: number,
+      opts: {
+        onBeforeFresh?: () => void;
+        mode?: 'connectivity' | 'refresh';
+        isUnchanged?: () => boolean;
+      } = {},
+    ): Promise<LoadOutcome> {
+      const refresh = opts.mode === 'refresh';
+      // A refresh also stops counting as current once any 403 (here or in refetchChores) revoked
+      // the household, so it never re-applies or re-caches the revoked household's list.
+      const isCurrent = () => connectivityGenRef.current === gen && !(refresh && revokedRef.current);
       // The undo record this load started under: only that record may be cleared by its result.
-      const startToastId = undoRef.current?.toastId;
+      // A refresh passes none, so it never clears a live Undo (invariant 4).
+      const startToastId = refresh ? undefined : undoRef.current?.toastId;
       if (!navigator.onLine) {
-        await renderFromCache(isCurrent, startToastId);
-        return true;
+        if (!refresh) await renderFromCache(isCurrent, startToastId);
+        return 'stale';
       }
       try {
         const res = await apiFetch('/api/chores');
@@ -582,53 +643,93 @@ export default function ChoresView({
           // sibling branch): a superseded in-flight 403 must not wipe cache a
           // newer successful fetch just wrote, nor fire a spurious revocation
           // cascade over an authoritative newer result.
-          if (isCurrent()) {
-            await clearChoresCache();
-            clearUndoIfCurrent(startToastId);
-            setChores([]);
-            setHasLoaded(false);
-            setOrderSnapshot(null);
-            setIsStale(false);
-            onHouseholdRevoked?.();
-          }
-          return false;
+          if (!isCurrent()) return 'superseded';
+          revokedRef.current = true;
+          await clearChoresCache();
+          // The rows are gone, so a refresh drops any Undo too (it has no start id to match).
+          if (refresh) clearUndo();
+          else clearUndoIfCurrent(startToastId);
+          setChores([]);
+          setHasLoaded(false);
+          setOrderSnapshot(null);
+          setIsStale(false);
+          onHouseholdRevoked?.();
+          return 'revoked';
         }
         if (!res.ok) {
+          if (refresh) {
+            // U7: keep what is on screen and raise the banner. Only a current 401 pauses refresh.
+            if (isCurrent()) setIsStale(true);
+            return res.status === 401 && isCurrent() ? 'unauthorized' : 'stale';
+          }
           // A resolved non-ok (e.g. an evicted Access cookie → 401) must be
           // treated exactly like a thrown/offline error: fall back to cache and
           // flag stale, rather than parsing an error body into an empty list.
           await renderFromCache(isCurrent, startToastId);
-          return true;
+          return 'stale';
         }
         const body = (await res.json()) as ApiResponse<ChoreWire[]>;
         const data = body.data ?? [];
-        if (!isCurrent()) return false;
-        onBeforeFresh?.();
-        applyMergedList(data.map(wireToChore), startToastId);
+        if (!isCurrent()) return 'superseded';
+        // Epoch check: a hold taken since the trigger (a form, dialog or write) drops this result;
+        // the hook re-pulls once the last hold releases.
+        if (refresh && !(opts.isUnchanged?.() ?? true)) return 'deferred';
+        opts.onBeforeFresh?.();
+        const merged = applyMergedList(data.map(wireToChore), startToastId);
         setIsStale(false);
-        await writeChoresCache(data);
-        return false;
+        // A form or conflict dialog must never outlive its chore (and leak the modal hold).
+        const present = new Set(merged.map((c) => c.id));
+        setEditingId((cur) => (cur != null && !present.has(cur) ? null : cur));
+        setConflictChoreId((cur) => (cur != null && !present.has(cur) ? null : cur));
+        if (refresh) {
+          // A failed cache write must not turn an applied list into a failure (DD-23).
+          await writeChoresCache(data).catch(() => {});
+        } else {
+          await writeChoresCache(data);
+        }
+        refreshPausedRef.current = false;
+        return 'fresh';
       } catch {
+        if (refresh) {
+          if (isCurrent()) setIsStale(true);
+          return 'stale';
+        }
         await renderFromCache(isCurrent, startToastId);
-        return true;
+        return 'stale';
       }
     }
 
-    // Single consolidated `online` handler (DD13): re-fetch FIRST, and only if
-    // the re-fetch did not recover restore the amber Retry banner — so a
+    // Live refresh re-pull. It never bumps the generation, so a newer online/offline event still
+    // wins (invariant 6). Same banner focus hand-off as a reconnect.
+    refreshRef.current = async ({ isUnchanged }) => {
+      if (refreshPausedRef.current || revokedRef.current) return 'done';
+      const outcome = await load(connectivityGenRef.current, {
+        mode: 'refresh',
+        isUnchanged,
+        onBeforeFresh: () => {
+          if (isBannerFocused()) addChoreRef.current?.focus();
+        },
+      });
+      if (outcome === 'unauthorized') refreshPausedRef.current = true;
+      return outcome === 'deferred' ? 'deferred' : 'done';
+    };
+
+    // Single consolidated `online` handler (DD13): re-fetch FIRST, so a
     // successful reconnect never flashes the amber banner on its way to
     // unmounting. If focus is parked on the banner/Retry when the whole banner
     // is about to unmount, move it to the always-mounted "+ Add Chore" button
-    // before the banner goes away.
+    // before the banner goes away. Then mark online whatever the outcome (if no
+    // newer connectivity event superseded this handler), so a later refresh
+    // failure shows the amber Retry banner, not the offline one.
     async function handleOnline() {
       connectivityGenRef.current += 1;
       const gen = connectivityGenRef.current;
-      const stillStale = await load(gen, () => {
-        if (isBannerFocused()) addChoreRef.current?.focus();
+      await load(gen, {
+        onBeforeFresh: () => {
+          if (isBannerFocused()) addChoreRef.current?.focus();
+        },
       });
-      // Only assert "back online but still stale" if no newer connectivity
-      // event has superseded this handler in the meantime.
-      if (stillStale && connectivityGenRef.current === gen) setOnline(true);
+      if (connectivityGenRef.current === gen) setOnline(true);
     }
 
     function handleOffline() {
@@ -1308,6 +1409,7 @@ export default function ChoresView({
             onComplete={handleComplete}
             onDelete={handleDelete}
             onEdit={setEditingId}
+            onDialogOpenChange={handleRowDialogOpenChange}
           />
         )}
       </div>
