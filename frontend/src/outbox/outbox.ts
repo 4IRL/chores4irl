@@ -61,6 +61,10 @@ export type Outbox = {
   flush: () => Promise<FlushResult[]>;
   subscribe: (listener: () => void) => () => void;
   subscribeResults: (listener: (results: FlushResult[]) => void) => () => void;
+  /** True while any flush() pass is running, including its results dispatch. */
+  isFlushing: () => boolean;
+  /** Called on the false-to-true and true-to-false edges of isFlushing(). */
+  subscribeFlushing: (listener: () => void) => () => void;
   dispose: () => void;
 };
 
@@ -108,6 +112,9 @@ export function createOutbox(fetchImpl: typeof fetch = fetch): Outbox {
   let entries: OutboxEntry[] = loadEntries();
   const listeners = new Set<() => void>();
   const resultListeners = new Set<(results: FlushResult[]) => void>();
+  // A depth counter, not a boolean: online events and callers can start overlapping passes.
+  let flushDepth = 0;
+  const flushingListeners = new Set<() => void>();
 
   function persist() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
@@ -115,6 +122,10 @@ export function createOutbox(fetchImpl: typeof fetch = fetch): Outbox {
 
   function notify() {
     listeners.forEach((listener) => listener());
+  }
+
+  function notifyFlushing() {
+    flushingListeners.forEach((listener) => listener());
   }
 
   function removeEntry(id: string) {
@@ -146,24 +157,31 @@ export function createOutbox(fetchImpl: typeof fetch = fetch): Outbox {
   }
 
   async function flush(): Promise<FlushResult[]> {
-    const results: FlushResult[] = [];
-    for (const entry of [...entries]) {
-      // Skip entries removed (cancelled) since the snapshot was taken.
-      if (!entries.some((e) => e.id === entry.id)) continue;
-      inFlight.set(entry.id, (inFlight.get(entry.id) ?? 0) + 1);
-      try {
-        if (await sendEntry(entry, results)) continue;
-        break;
-      } finally {
-        const count = (inFlight.get(entry.id) ?? 1) - 1;
-        if (count <= 0) inFlight.delete(entry.id);
-        else inFlight.set(entry.id, count);
+    flushDepth += 1;
+    try {
+      if (flushDepth === 1) notifyFlushing();
+      const results: FlushResult[] = [];
+      for (const entry of [...entries]) {
+        // Skip entries removed (cancelled) since the snapshot was taken.
+        if (!entries.some((e) => e.id === entry.id)) continue;
+        inFlight.set(entry.id, (inFlight.get(entry.id) ?? 0) + 1);
+        try {
+          if (await sendEntry(entry, results)) continue;
+          break;
+        } finally {
+          const count = (inFlight.get(entry.id) ?? 1) - 1;
+          if (count <= 0) inFlight.delete(entry.id);
+          else inFlight.set(entry.id, count);
+        }
       }
+      if (results.length > 0) {
+        resultListeners.forEach((listener) => listener(results));
+      }
+      return results;
+    } finally {
+      flushDepth -= 1;
+      if (flushDepth === 0) notifyFlushing();
     }
-    if (results.length > 0) {
-      resultListeners.forEach((listener) => listener(results));
-    }
-    return results;
   }
 
   // Sends one entry; returns true to continue to the next entry, false to stop the pass.
@@ -223,6 +241,15 @@ export function createOutbox(fetchImpl: typeof fetch = fetch): Outbox {
     return () => resultListeners.delete(listener);
   }
 
+  function isFlushing() {
+    return flushDepth > 0;
+  }
+
+  function subscribeFlushing(listener: () => void) {
+    flushingListeners.add(listener);
+    return () => flushingListeners.delete(listener);
+  }
+
   const handleOnline = () => {
     void flush();
   };
@@ -238,9 +265,20 @@ export function createOutbox(fetchImpl: typeof fetch = fetch): Outbox {
     if (typeof window !== 'undefined') {
       window.removeEventListener('online', handleOnline);
     }
+    flushingListeners.clear();
   }
 
-  return { append, remove, getEntries, flush, subscribe, subscribeResults, dispose };
+  return {
+    append,
+    remove,
+    getEntries,
+    flush,
+    subscribe,
+    subscribeResults,
+    isFlushing,
+    subscribeFlushing,
+    dispose,
+  };
 }
 
 export const outbox = createOutbox();
