@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, cleanup, screen, within } from '@testing-library/react';
+import { render, cleanup, screen, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 import { useMidnightClock } from './hooks/useMidnightClock';
@@ -612,6 +612,173 @@ describe('App', () => {
       } finally {
         removeItemSpy.mockRestore();
       }
+    });
+  });
+
+  // Live refresh: each applied chores refresh re-pulls /api/rooms through reloadRooms.
+  describe('rooms re-pull on refresh', () => {
+    const roomChores = [
+      {
+        id: 1,
+        name: 'Vacuum',
+        roomId: 1,
+        dateLastCompleted: '2026-06-01T00:00:00.000Z',
+        duration: 20,
+        frequency: 7,
+        version: 1,
+      },
+      {
+        id: 2,
+        name: 'Dishes',
+        roomId: 2,
+        dateLastCompleted: '2026-06-20T00:00:00.000Z',
+        duration: 5,
+        frequency: 1,
+        version: 1,
+      },
+    ];
+
+    // The nth /api/rooms call (1-based) is answered by `rooms`.
+    function stubRoomsFetch(rooms: (n: number) => Promise<Response>) {
+      let roomCalls = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((input: RequestInfo | URL) => {
+          const url = typeof input === 'string' ? input : input.toString();
+          if (url === '/api/me') return jsonResponse(meResponse);
+          if (url === '/api/chores') return jsonResponse({ success: true, data: roomChores });
+          if (url === '/api/rooms') {
+            roomCalls += 1;
+            return rooms(roomCalls);
+          }
+          throw new Error(`Unhandled fetch: ${url}`);
+        }),
+      );
+      return { getRoomCalls: () => roomCalls };
+    }
+
+    async function focusWindow() {
+      await act(async () => {
+        window.dispatchEvent(new Event('focus'));
+      });
+    }
+
+    it('shows a room another device added after a focus refresh', async () => {
+      stubRoomsFetch((n) =>
+        n === 1
+          ? jsonResponse(roomsResponse)
+          : jsonResponse({
+              success: true,
+              data: [...roomsResponse.data, { id: 3, householdId: 1, name: 'Bathroom' }],
+            }),
+      );
+
+      render(<App />);
+      await screen.findByRole('button', { name: 'Kitchen' });
+      await focusWindow();
+
+      expect(await screen.findByRole('button', { name: 'Bathroom' })).toBeInTheDocument();
+    });
+
+    it('keeps the current rooms (no cache fallback) when a rooms reload answers 500', async () => {
+      const { getRoomCalls } = stubRoomsFetch((n) =>
+        n === 1
+          ? jsonResponse(roomsResponse)
+          : Promise.resolve(
+              new Response(JSON.stringify({ success: false, error: 'boom' }), {
+                status: 500,
+                headers: { 'content-type': 'application/json' },
+              }),
+            ),
+      );
+
+      render(<App />);
+      await screen.findByRole('button', { name: 'Kitchen' });
+      localStorage.setItem(ROOMS_CACHE_KEY, JSON.stringify([{ id: 9, householdId: 1, name: 'Garage' }]));
+      await focusWindow();
+      await vi.waitFor(() => expect(getRoomCalls()).toBe(2));
+      await act(async () => {});
+
+      expect(screen.getByRole('button', { name: 'Living Room' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Kitchen' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Garage' })).not.toBeInTheDocument();
+    });
+
+    it('falls back to All when a rooms reload drops the selected room', async () => {
+      const user = userEvent.setup();
+      stubRoomsFetch((n) =>
+        n === 1
+          ? jsonResponse(roomsResponse)
+          : jsonResponse({ success: true, data: [roomsResponse.data[0]] }),
+      );
+
+      render(<App />);
+      await screen.findByText('Vacuum');
+      await user.click(await screen.findByRole('button', { name: 'Kitchen' }));
+      expect(screen.queryByText('Vacuum')).not.toBeInTheDocument();
+      await focusWindow();
+
+      await vi.waitFor(() =>
+        expect(screen.getByRole('button', { name: 'All' })).toHaveClass('text-indigo-400'),
+      );
+      expect(screen.getByText('Vacuum')).toBeInTheDocument();
+      expect(screen.getByText('Dishes')).toBeInTheDocument();
+    });
+
+    it('falls back to All when a rooms reload returns no rooms', async () => {
+      const user = userEvent.setup();
+      stubRoomsFetch((n) =>
+        n === 1 ? jsonResponse(roomsResponse) : jsonResponse({ success: true, data: [] }),
+      );
+
+      render(<App />);
+      await screen.findByText('Vacuum');
+      await user.click(await screen.findByRole('button', { name: 'Kitchen' }));
+      expect(screen.queryByText('Vacuum')).not.toBeInTheDocument();
+      await focusWindow();
+
+      await vi.waitFor(() =>
+        expect(screen.getByRole('button', { name: 'All' })).toHaveClass('text-indigo-400'),
+      );
+      expect(screen.getByText('Vacuum')).toBeInTheDocument();
+      expect(screen.getByText('Dishes')).toBeInTheDocument();
+    });
+
+    it('ignores a rooms reload that answers after a newer one', async () => {
+      let resolveStale: (res: Response) => void = () => {};
+      const stale = new Promise<Response>((resolve) => {
+        resolveStale = resolve;
+      });
+      const { getRoomCalls } = stubRoomsFetch((n) => {
+        if (n === 1) return jsonResponse(roomsResponse);
+        if (n === 2) return stale;
+        return jsonResponse({
+          success: true,
+          data: [...roomsResponse.data, { id: 3, householdId: 1, name: 'Bathroom' }],
+        });
+      });
+
+      render(<App />);
+      await screen.findByRole('button', { name: 'Kitchen' });
+      await focusWindow();
+      await vi.waitFor(() => expect(getRoomCalls()).toBe(2));
+      await act(async () => {});
+      await focusWindow();
+      await vi.waitFor(() => expect(getRoomCalls()).toBe(3));
+      expect(await screen.findByRole('button', { name: 'Bathroom' })).toBeInTheDocument();
+
+      const staleBody = await jsonResponse({
+        success: true,
+        data: [...roomsResponse.data, { id: 4, householdId: 1, name: 'Garage' }],
+      });
+      await act(async () => {
+        resolveStale(staleBody);
+        await stale;
+      });
+      await act(async () => {});
+
+      expect(screen.getByRole('button', { name: 'Bathroom' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Garage' })).not.toBeInTheDocument();
     });
   });
 

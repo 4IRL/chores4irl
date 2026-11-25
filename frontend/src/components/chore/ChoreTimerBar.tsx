@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSwipeable } from 'react-swipeable';
 import type { SwipeEventData } from 'react-swipeable';
 import { Pencil, Trash2 } from 'lucide-react';
@@ -21,6 +21,9 @@ type ChoreTimerBarProps = {
   onComplete: (id: number, date: Date) => void;
   onDelete: (id: number) => void;
   onEdit?: (id: number) => void;
+  // Reports the delete confirm opening and closing (or unmounting while open),
+  // so ChoresView can hold live refresh while it is up.
+  onDialogOpenChange?: (open: boolean) => void;
 };
 
 // How far the row stays parked once opened — enough room for both circular
@@ -38,6 +41,7 @@ export default function ChoreTimerBar({
   onComplete,
   onDelete,
   onEdit,
+  onDialogOpenChange,
 }: ChoreTimerBarProps) {
   const daysSince = useMemo(
     () => daysSinceInZone(day, chore.dateLastCompleted, householdTimezone),
@@ -63,6 +67,22 @@ export default function ChoreTimerBar({
   // since a full-speed swipe is otherwise indistinguishable from an
   // accidental one.
   const [pendingDelete, setPendingDelete] = useState(false);
+  // Latest callback in a ref, so a new function identity from the parent
+  // never re-runs the effect below (which would report a spurious close/open).
+  const onDialogOpenChangeRef = useRef(onDialogOpenChange);
+  useEffect(() => {
+    onDialogOpenChangeRef.current = onDialogOpenChange;
+  });
+  // The cleanup covers both the dialog closing and the row unmounting while
+  // it is open (a filter or refresh can drop the row), so a holder never leaks.
+  // The callback is captured at open so the false always goes to the same
+  // callback that got the true, even if the prop changes while open.
+  useEffect(() => {
+    if (!pendingDelete) return;
+    const reportOpenChange = onDialogOpenChangeRef.current;
+    reportOpenChange?.(true);
+    return () => reportOpenChange?.(false);
+  }, [pendingDelete]);
 
   const swipingRef = useRef(false);
   const justCommittedRef = useRef(false);

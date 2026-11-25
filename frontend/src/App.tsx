@@ -39,10 +39,29 @@ async function clearHouseholdScopedCaches(): Promise<void> {
 
 function useRooms(onHouseholdRevoked: () => void) {
   const [rooms, setRooms] = useState<Room[]>([]);
+  // Reloads can overlap (a slow re-pull answered after a newer one), and a reload still in flight
+  // when Layout remounts onto another household must not write the old household's rooms to the
+  // cache or re-trigger revocation. Only the latest request of a mounted Layout applies its result.
+  const latestRoomsRequestRef = useRef(0);
+  const mountedRef = useRef(false);
 
-  useEffect(() => {
+  // `reload` is true for a live-refresh re-pull. A failed reload (non-ok or throw) keeps the
+  // rooms already on screen: they came from a successful fetch this page life, so they are at
+  // least as fresh as the cache, and the next applied refresh retries. Only the mount fetch falls
+  // back to the cache. A 403 is handled the same either way.
+  function fetchRooms(reload: boolean): void {
+    const requestId = ++latestRoomsRequestRef.current;
+    const isCurrent = () => mountedRef.current && requestId === latestRoomsRequestRef.current;
+
+    function fallBackToCache() {
+      if (reload || !isCurrent()) return;
+      const cached = localStorage.getItem(ROOMS_CACHE_KEY);
+      if (cached) setRooms(JSON.parse(cached) as Room[]);
+    }
+
     apiFetch('/api/rooms')
       .then((res) => {
+        if (!isCurrent()) return null;
         if (res.status === 403) {
           // 403 (not 401): still authenticated, but removed from the active
           // household. Drop the revoked rooms cache and let App re-resolve
@@ -56,14 +75,13 @@ function useRooms(onHouseholdRevoked: () => void) {
           // A resolved non-ok (e.g. an evicted session → 401 with a JSON error
           // body) would otherwise parse to `data ?? [] = []` and clobber the
           // cached rooms with an empty list. Fall back to cache instead.
-          const cached = localStorage.getItem(ROOMS_CACHE_KEY);
-          if (cached) setRooms(JSON.parse(cached) as Room[]);
+          fallBackToCache();
           return null;
         }
         return res.json() as Promise<ApiResponse<Room[]>>;
       })
       .then((body) => {
-        if (!body) return;
+        if (!body || !isCurrent()) return;
         const fetched = body.data ?? [];
         localStorage.setItem(ROOMS_CACHE_KEY, JSON.stringify(fetched));
         setRooms(fetched);
@@ -73,15 +91,22 @@ function useRooms(onHouseholdRevoked: () => void) {
         // transient failure on first load left room tabs permanently empty
         // for that page life (only chores/me had a fallback, so refresh was
         // the only recovery).
-        const cached = localStorage.getItem(ROOMS_CACHE_KEY);
-        if (cached) setRooms(JSON.parse(cached) as Room[]);
+        fallBackToCache();
       });
+  }
+
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchRooms(false);
+    return () => {
+      mountedRef.current = false;
+    };
     // onHouseholdRevoked is stable-at-mount from useMe; depending on it would
     // needlessly re-fetch rooms on every App render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { rooms, setRooms };
+  return { rooms, setRooms, reloadRooms: () => fetchRooms(true) };
 }
 
 function useMe() {
@@ -256,6 +281,7 @@ type LayoutContext = {
   selectedRoom: string;
   rooms: Room[];
   onRoomsChange: (rooms: Room[]) => void;
+  reloadRooms: () => void;
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
 };
@@ -266,10 +292,15 @@ type LayoutProps = {
 };
 
 function Layout({ isAdmin, onHouseholdRevoked }: LayoutProps) {
-  const { rooms, setRooms } = useRooms(onHouseholdRevoked);
+  const { rooms, setRooms, reloadRooms } = useRooms(onHouseholdRevoked);
   const [selectedRoom, setSelectedRoom] = useState('all');
   // Lives here (not in ChoresView) so it survives /admin navigation; never persisted.
   const [searchQuery, setSearchQuery] = useState('');
+  // Render-time state adjustment: a rooms reload that drops the selected room (including one that
+  // returns no rooms at all) falls back to All. It is conditional, so it settles in one extra render.
+  if (selectedRoom !== 'all' && !rooms.some((room) => String(room.id) === selectedRoom)) {
+    setSelectedRoom('all');
+  }
   const navigate = useNavigate();
 
   // Room tabs are also the only way back to Home from any other page (e.g.
@@ -289,6 +320,7 @@ function Layout({ isAdmin, onHouseholdRevoked }: LayoutProps) {
             selectedRoom,
             rooms,
             onRoomsChange: setRooms,
+            reloadRooms,
             searchQuery,
             onSearchQueryChange: setSearchQuery,
           } satisfies LayoutContext
@@ -309,7 +341,8 @@ function Home({
   onSwipeStyleChange: (swipeStyle: SwipeStyle) => void;
   onHouseholdRevoked: () => void;
 }) {
-  const { selectedRoom, rooms, searchQuery, onSearchQueryChange } = useOutletContext<LayoutContext>();
+  const { selectedRoom, rooms, reloadRooms, searchQuery, onSearchQueryChange } =
+    useOutletContext<LayoutContext>();
   if (!me || !currentMembership) return null;
   return (
     <div className="flex-1 flex flex-col px-4 pt-4 pb-0">
@@ -322,6 +355,7 @@ function Home({
         swipeStyle={me.swipeStyle}
         onSwipeStyleChange={onSwipeStyleChange}
         onHouseholdRevoked={onHouseholdRevoked}
+        onRefreshRooms={reloadRooms}
       />
     </div>
   );

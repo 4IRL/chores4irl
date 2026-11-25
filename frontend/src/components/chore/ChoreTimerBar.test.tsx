@@ -216,6 +216,108 @@ describe('ChoreTimerBar', () => {
       expect(onEdit).not.toHaveBeenCalled();
       expect(screen.queryByTestId('confirm-dialog-backdrop')).not.toBeInTheDocument();
     });
+
+    describe('onDialogOpenChange', () => {
+      function renderWithDialogCallback(onDialogOpenChange: (open: boolean) => void) {
+        stubPointer(true);
+        return render(
+          <ChoreTimerBar
+            chore={chore}
+            day={new Date('2026-07-01T00:00:00.000Z')}
+            householdTimezone="UTC"
+            isSimulating={false}
+            swipeStyle="android"
+            onComplete={vi.fn()}
+            onDelete={vi.fn()}
+            onEdit={vi.fn()}
+            onDialogOpenChange={onDialogOpenChange}
+          />,
+        );
+      }
+
+      it('reports true once when the right-swipe opens the delete confirmation', async () => {
+        const onDialogOpenChange = vi.fn();
+        renderWithDialogCallback(onDialogOpenChange);
+
+        dragBar(screen.getByTestId('chore-bar'), 0, 140);
+        await screen.findByTestId('confirm-dialog-backdrop');
+
+        expect(onDialogOpenChange).toHaveBeenCalledTimes(1);
+        expect(onDialogOpenChange).toHaveBeenCalledWith(true);
+      });
+
+      it('reports false once when the confirmation is canceled', async () => {
+        const user = userEvent.setup();
+        const onDialogOpenChange = vi.fn();
+        renderWithDialogCallback(onDialogOpenChange);
+
+        dragBar(screen.getByTestId('chore-bar'), 0, 140);
+        await screen.findByTestId('confirm-dialog-backdrop');
+        await user.click(screen.getByTestId('confirm-dialog-cancel'));
+
+        expect(onDialogOpenChange.mock.calls).toEqual([[true], [false]]);
+      });
+
+      it('reports false once when the confirmation is confirmed', async () => {
+        const user = userEvent.setup();
+        const onDialogOpenChange = vi.fn();
+        renderWithDialogCallback(onDialogOpenChange);
+
+        dragBar(screen.getByTestId('chore-bar'), 0, 140);
+        await screen.findByTestId('confirm-dialog-backdrop');
+        await user.click(screen.getByTestId('confirm-dialog-confirm'));
+
+        expect(onDialogOpenChange.mock.calls).toEqual([[true], [false]]);
+      });
+
+      it('reports false once when the bar unmounts with the confirmation open', async () => {
+        const onDialogOpenChange = vi.fn();
+        const { unmount } = renderWithDialogCallback(onDialogOpenChange);
+
+        dragBar(screen.getByTestId('chore-bar'), 0, 140);
+        await screen.findByTestId('confirm-dialog-backdrop');
+        unmount();
+
+        expect(onDialogOpenChange.mock.calls).toEqual([[true], [false]]);
+      });
+
+      it('reports false to the callback that got true, even if the prop changes while open', async () => {
+        const user = userEvent.setup();
+        const firstCallback = vi.fn();
+        const secondCallback = vi.fn();
+        const { rerender } = renderWithDialogCallback(firstCallback);
+
+        dragBar(screen.getByTestId('chore-bar'), 0, 140);
+        await screen.findByTestId('confirm-dialog-backdrop');
+        rerender(
+          <ChoreTimerBar
+            chore={chore}
+            day={new Date('2026-07-01T00:00:00.000Z')}
+            householdTimezone="UTC"
+            isSimulating={false}
+            swipeStyle="android"
+            onComplete={vi.fn()}
+            onDelete={vi.fn()}
+            onEdit={vi.fn()}
+            onDialogOpenChange={secondCallback}
+          />,
+        );
+        await user.click(screen.getByTestId('confirm-dialog-cancel'));
+
+        expect(firstCallback.mock.calls).toEqual([[true], [false]]);
+        expect(secondCallback).not.toHaveBeenCalled();
+      });
+
+      it('never reports while no confirmation opens', () => {
+        const onDialogOpenChange = vi.fn();
+        const { unmount } = renderWithDialogCallback(onDialogOpenChange);
+
+        dragBar(screen.getByTestId('chore-bar'), 0, 40);
+        unmount();
+
+        expect(onDialogOpenChange).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('swipe threshold as a fraction of bar width', () => {

@@ -10,6 +10,7 @@ type ChoreListProps = {
   onComplete: (id: number, date: Date) => void;
   onDelete: (id: number) => void;
   onEdit?: (id: number) => void;
+  onDialogOpenChange?: (open: boolean) => void;
 };
 
 export default function ChoreList({
@@ -21,6 +22,7 @@ export default function ChoreList({
   onComplete,
   onDelete,
   onEdit,
+  onDialogOpenChange,
 }: ChoreListProps) {
   if (chores.length === 0) {
     return (
@@ -42,6 +44,7 @@ export default function ChoreList({
             onComplete={onComplete}
             onDelete={onDelete}
             onEdit={onEdit}
+            onDialogOpenChange={onDialogOpenChange}
           />
         </div>
       ))}
