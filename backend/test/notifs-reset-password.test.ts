@@ -137,7 +137,7 @@ describe('resetPassword', () => {
     },
   );
 
-  it('maps the door\'s real 404 body ({"error":"user does not exist"}) to person_not_in_app and logs that reason', async () => {
+  it('maps the real door 404 body (user does not exist) to person_not_in_app and logs that reason', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.stubGlobal(
       'fetch',
