@@ -72,11 +72,29 @@ describe('sendTestNotification', () => {
     ['unrouted', 'send_unrouted'],
     ['release_failed', 'send_release_failed'],
     ['pending', 'send_pending'],
-    ['something_new', 'send_pending'],
+    ['something_new', 'send_unknown_status:something_new'],
+    ['toString', 'send_unknown_status:toString'],
   ])('returns failed %s -> %s for a non-delivered message', async (status, reason) => {
     stubFetch(() => messageResponse(status));
     expect(await sendTestNotification(TEST_ENV, PERSON_HASH, 7)).toEqual({ status: 'failed', reason });
   });
+
+  it.each([[42], [null], [undefined]])(
+    'returns failed send_unknown_status for a non-string status %s',
+    async (status) => {
+      stubFetch(
+        () =>
+          new Response(JSON.stringify({ message: { id: 'm1', status } }), {
+            status: 202,
+            headers: { 'content-type': 'application/json' },
+          }),
+      );
+      expect(await sendTestNotification(TEST_ENV, PERSON_HASH, 7)).toEqual({
+        status: 'failed',
+        reason: 'send_unknown_status',
+      });
+    },
+  );
 
   it('fails closed on a 2xx with a non-JSON body or no message object', async () => {
     stubFetch(() => new Response('not json', { status: 202 }));

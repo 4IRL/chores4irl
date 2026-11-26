@@ -90,9 +90,13 @@ export async function sendTestNotification(
   if (messageStatus === 'delivered') {
     return finish({ status: 'ok' }, res.status);
   }
-  const reason =
+  if (typeof messageStatus === 'string' && Object.hasOwn(MESSAGE_STATUS_REASONS, messageStatus)) {
+    return fail(MESSAGE_STATUS_REASONS[messageStatus], res.status);
+  }
+  // An unrecognised status is a distinct reason so the real value is not lost.
+  const unknownReason =
     typeof messageStatus === 'string'
-      ? (MESSAGE_STATUS_REASONS[messageStatus] ?? 'send_pending')
-      : 'send_pending';
-  return fail(reason, res.status);
+      ? `send_unknown_status:${messageStatus.slice(0, 64)}`
+      : 'send_unknown_status';
+  return fail(unknownReason, res.status);
 }
