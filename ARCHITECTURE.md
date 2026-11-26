@@ -394,10 +394,11 @@ a request field):
   closed. A door 429 becomes our 429 `Too many attempts. Try again in <N> minutes.` and saves no row.
 - `POST {NOTIFS_DELIVERY_BASE_URL}/v1/apps/chores4irl/reset-password`
   (`backend/src/notifs-reset-password.ts`) with exactly `{email}`; returns `password`. Door 429 becomes our
-  429 (`Too many new passwords. Try again in <N> minutes.`); a door 404 whose JSON body says
-  `error: "person_not_in_app"` (the hub no longer knows the person) deletes the caller's `user_notifications` row (`deleteProvisioning`) and returns
-  409 `Notifications are not set up. Turn them on again.`, after which the next `/enable` provisions again
-  (the modal re-fetches status and drops to the off state). Any other 404 (bare, other code, wrong URL)
+  429 (`Too many new passwords. Try again in <N> minutes.`); a door 404 whose JSON body is exactly
+  `{"error":"user does not exist"}` (the person is absent or holds no grant in this app; the door makes
+  the two indistinguishable) deletes the caller's `user_notifications` row (`deleteProvisioning`) and
+  returns 409 `Notifications are not set up. Turn them on again.`, after which the next `/enable`
+  provisions again (the modal re-fetches status and drops to the off state). Any other 404 (bare, other error text, wrong URL)
   keeps the row and is a 502 `unexpected_status:404`. Any other non-2xx, timeout, network error, or
   200 without a non-empty `password` becomes our 502 (`Could not generate a new password`), with the
   reason (`door_auth_rejected`, `door_unavailable`, `unexpected_status:<n>`, `timeout`, `network`,
