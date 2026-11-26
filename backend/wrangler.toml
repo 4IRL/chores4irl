@@ -25,9 +25,8 @@ ACCESS_JWKS_URL = "https://urls4irl.cloudflareaccess.com/cdn-cgi/access/certs"
 # delivery-api door). NOTIFS_DELIVERY_BASE_URL
 # is the delivery-api front door; NTFY_BASE_URL is the ntfy host;
 # NOTIFS_SETUP_BASE_URL is the shared ntfy-app setup page the status payload links to.
-# Unused legacy secrets NOTIFS_CF_ACCESS_CLIENT_ID, NOTIFS_CF_ACCESS_CLIENT_SECRET and
-# NTFY_PUBLISHER_TOKEN may still be set in production: after merge, remove each with
-# `wrangler secret delete <name>` and retire/rotate the ntfy publisher token in 4irl-notifs.
+# The legacy secrets NOTIFS_CF_ACCESS_CLIENT_ID, NOTIFS_CF_ACCESS_CLIENT_SECRET and
+# NTFY_PUBLISHER_TOKEN were deleted from production on 2026-11-26 and nothing reads them.
 NOTIFS_DELIVERY_BASE_URL = "https://notifs-delivery.4irl.app"
 NOTIFS_SETUP_BASE_URL = "https://notifs-setup.4irl.app/"
 NTFY_BASE_URL = "https://notifs.4irl.app"
