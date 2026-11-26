@@ -962,9 +962,9 @@ describe('POST /api/notifications/reset-password', () => {
     expect(await res.json()).toEqual({ success: false, error: 'Could not generate a new password' });
   });
 
-  it('keeps the row and returns 502 for a door 404 without the person_not_in_app code', async () => {
+  it('keeps the row and returns 502 for a door 404 without the "user does not exist" body', async () => {
     await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
-    stubFetch({ resetStatus: 404, resetBody: { error: 'user does not exist' } });
+    stubFetch({ resetStatus: 404, resetBody: { error: 'app not found' } });
 
     const res = await postReset();
 
@@ -984,7 +984,7 @@ describe('POST /api/notifications/reset-password', () => {
     await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
     await saveProvisioning(env.DB, 2, { personHash: 'otherhash234567', subscriberToken: 'tk_other' });
     const logSpy = spyOnConsole()[0];
-    const fetchMock = stubFetch({ resetStatus: 404, resetBody: { error: 'person_not_in_app' } });
+    const fetchMock = stubFetch({ resetStatus: 404, resetBody: { error: 'user does not exist' } });
 
     const res = await postReset();
 
