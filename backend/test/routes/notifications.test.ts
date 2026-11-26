@@ -16,7 +16,6 @@ const NOTIFS_TEST_ENV = {
   NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET: 'test-client-secret',
   NOTIFS_SETUP_BASE_URL: 'https://notifs-setup.test.fixture/',
   NTFY_BASE_URL: 'https://notifs.test.fixture',
-  NTFY_PUBLISHER_TOKEN: 'tk_publisher-fixture',
 };
 
 // The shared setup-page link the server builds for a provisioned person: base
@@ -27,6 +26,7 @@ function setupUrlFor(personHash: string): string {
 
 const PROVISION_URL = `${NOTIFS_TEST_ENV.NOTIFS_DELIVERY_BASE_URL}/v1/apps/chores4irl/provision`;
 const RESET_PASSWORD_URL = `${NOTIFS_TEST_ENV.NOTIFS_DELIVERY_BASE_URL}/v1/apps/chores4irl/reset-password`;
+const MESSAGES_URL = `${NOTIFS_TEST_ENV.NOTIFS_DELIVERY_BASE_URL}/v1/messages?wait=8`;
 
 // Generated ntfy passwords the upstream stubs hand back (provision / reset).
 const PROVISION_PASSWORD = 'abcd-efgh-jkmn-pqrs';
@@ -72,7 +72,9 @@ function stubFetch(
     provisionStatus?: number;
     provisionBody?: unknown;
     provisionHeaders?: Record<string, string>;
-    ntfyStatus?: number;
+    messagesStatus?: number;
+    messagesBody?: unknown;
+    messagesThrows?: boolean;
     resetStatus?: number;
     resetBody?: unknown;
     resetHeaders?: Record<string, string>;
@@ -83,7 +85,9 @@ function stubFetch(
     provisionStatus = 200,
     provisionBody = provisionResponseBody(),
     provisionHeaders = {},
-    ntfyStatus = 200,
+    messagesStatus = 202,
+    messagesBody = { message: { id: 'm1', status: 'delivered' } },
+    messagesThrows = false,
     resetStatus = 200,
     resetBody = { user_id: 'notifs-user-1', app_id: 'chores4irl', password: RESET_PASSWORD },
     resetHeaders = {},
@@ -97,8 +101,10 @@ function stubFetch(
       if (resetThrows) throw new Error('network unreachable');
       return jsonResponse(resetBody, resetStatus, resetHeaders);
     }
-    if (url.startsWith(`${NOTIFS_TEST_ENV.NTFY_BASE_URL}/chores4irl-`)) {
-      return new Response('{}', { status: ntfyStatus, headers: { 'content-type': 'application/json' } });
+    if (url === MESSAGES_URL) {
+      if (messagesThrows) throw new Error('network unreachable');
+      if (typeof messagesBody === 'string') return new Response(messagesBody, { status: messagesStatus });
+      return jsonResponse(messagesBody, messagesStatus);
     }
     return new Response('not found', { status: 404 });
   });
@@ -554,61 +560,186 @@ describe('POST /api/notifications/enable', () => {
 });
 
 describe('POST /api/notifications/test', () => {
-  it('publishes to ntfy with Bearer auth and returns success when enabled', async () => {
-    await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
-    const fetchMock = stubFetch();
-
-    const res = await app.request(
+  async function postTest() {
+    return app.request(
       '/api/notifications/test',
       { method: 'POST', headers: await authHeader(EMAIL) },
       requestEnv(),
     );
+  }
+
+  function messageCalls(fetchMock: ReturnType<typeof stubFetch>) {
+    return callsTo(fetchMock, (url) => url === MESSAGES_URL);
+  }
+
+  it('sends one recipient message through the door with the Bearer key and returns success', async () => {
+    await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
+    const fetchMock = stubFetch();
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+
+    const res = await postTest();
     expect(res.status).toBe(200);
     const body = (await res.json()) as { success: boolean };
     expect(body.success).toBe(true);
 
-    const ntfyCalls = callsTo(
-      fetchMock,
-      (url) => url === `${NOTIFS_TEST_ENV.NTFY_BASE_URL}/chores4irl-${SEED_HASH}-all`,
-    );
-    expect(ntfyCalls).toHaveLength(1);
-    const headers = ntfyCalls[0][1]?.headers as Record<string, string>;
-    expect(headers.Authorization).toBe(`Bearer ${NOTIFS_TEST_ENV.NTFY_PUBLISHER_TOKEN}`);
+    const calls = messageCalls(fetchMock);
+    expect(calls).toHaveLength(1);
+    const init = calls[0][1] as RequestInit;
+    expect(init.method).toBe('POST');
+    const headers = init.headers as Record<string, string>;
+    expect(headers.Authorization).toBe(`Bearer ${NOTIFS_TEST_ENV.NOTIFS_APP_KEY}`);
+    const sent = JSON.parse(init.body as string);
+    expect(sent.app_id).toBe('chores4irl');
+    expect(sent.channel).toBe('all');
+    expect(sent.to).toEqual({ recipient: SEED_HASH });
+    expect(sent.to.destination).toBeUndefined();
+    expect(sent.idempotency_key).toMatch(new RegExp(`^test-${USER_ID}-\\d+$`));
+    expect(sent.display.title).toBeTruthy();
+    expect(sent.display.body).toBeTruthy();
+    expect(sent.display.url).toBe('https://chores.4irl.app');
+    expect(timeoutSpy).toHaveBeenCalledWith(12_000);
   });
 
-  it('returns 502 when the ntfy publish fails', async () => {
+  it('uses a different idempotency_key for each click', async () => {
     await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
-    stubFetch({ ntfyStatus: 500 });
+    const fetchMock = stubFetch();
+    // Real clock (fake dates would invalidate the signed test JWT); the pause
+    // guarantees the Date.now() component of the key differs between clicks.
+    await postTest();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await postTest();
+
+    const keys = messageCalls(fetchMock).map(
+      ([, init]) => JSON.parse((init as RequestInit).body as string).idempotency_key,
+    );
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).not.toBe(keys[1]);
+  });
+
+  it.each([
+    ['dead', 'send_dead'],
+    ['partial', 'send_partial'],
+    ['unrouted', 'send_unrouted'],
+    ['release_failed', 'send_release_failed'],
+    ['pending', 'send_pending'],
+  ])('returns 502 and logs %s as %s for a non-delivered message', async (status, reason) => {
+    await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
+    stubFetch({ messagesBody: { message: { id: 'm1', status } } });
+    const spies = spyOnConsole();
+
+    const res = await postTest();
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ success: false, error: 'Could not send test notification' });
+    expect(JSON.stringify(spies[0].mock.calls)).toContain(reason);
+  });
+
+  it.each([
+    ['a non-JSON body', 'not json'],
+    ['no message object', { ok: true }],
+  ])('returns 502 and logs unexpected_status:202 for a 2xx with %s', async (_label, messagesBody) => {
+    await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
+    stubFetch({ messagesBody });
+    const spies = spyOnConsole();
+
+    const res = await postTest();
+    expect(res.status).toBe(502);
+    expect(JSON.stringify(spies[0].mock.calls)).toContain('unexpected_status:202');
+  });
+
+  it.each([
+    [422, 'no_publisher'],
+    [429, 'rate_limited'],
+    [401, 'door_auth_rejected'],
+    [403, 'door_auth_rejected'],
+    [503, 'door_unavailable'],
+    [500, 'unexpected_status:500'],
+  ])('returns 502 and logs the door %i as %s', async (messagesStatus, reason) => {
+    await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
+    stubFetch({ messagesStatus, messagesBody: { error: 'x' } });
+    const spies = spyOnConsole();
+
+    const res = await postTest();
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ success: false, error: 'Could not send test notification' });
+    expect(JSON.stringify(spies[0].mock.calls)).toContain(reason);
+  });
+
+  it('returns 502 and logs network when the door is unreachable', async () => {
+    await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
+    stubFetch({ messagesThrows: true });
+    const spies = spyOnConsole();
+
+    const res = await postTest();
+    expect(res.status).toBe(502);
+    expect(JSON.stringify(spies[0].mock.calls)).toContain('network');
+  });
+
+  it('returns 502 and logs timeout when the door call times out', async () => {
+    await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
+    const base = stubFetch();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+        if (url === MESSAGES_URL) throw new DOMException('timed out', 'TimeoutError');
+        return base(input, init);
+      }),
+    );
+    const spies = spyOnConsole();
+
+    const res = await postTest();
+    expect(res.status).toBe(502);
+    expect(JSON.stringify(spies[0].mock.calls)).toContain('timeout');
+  });
+
+  it('returns 502 without any outbound call when the app key is empty', async () => {
+    await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
+    const fetchMock = stubFetch();
+    const spies = spyOnConsole();
 
     const res = await app.request(
       '/api/notifications/test',
       { method: 'POST', headers: await authHeader(EMAIL) },
-      requestEnv(),
+      { ...requestEnv(), NOTIFS_APP_KEY: '' },
     );
     expect(res.status).toBe(502);
-    const body = (await res.json()) as { success: boolean };
-    expect(body.success).toBe(false);
+    expect(messageCalls(fetchMock)).toHaveLength(0);
+    expect(JSON.stringify(spies[0].mock.calls)).toContain('missing_app_key');
   });
 
-  it('returns 409 when the user has never provisioned', async () => {
-    const res = await app.request(
-      '/api/notifications/test',
-      { method: 'POST', headers: await authHeader(EMAIL) },
-      requestEnv(),
-    );
+  it('never logs the app key, the Access secret or the subscriber token', async () => {
+    await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
+    const spies = spyOnConsole();
+
+    for (const opts of [
+      {},
+      { messagesStatus: 503, messagesBody: { error: 'x' } },
+      { messagesBody: { message: { id: 'm1', status: 'dead' } } },
+    ]) {
+      stubFetch(opts);
+      await postTest();
+    }
+    expectNoLoggedValue(spies, NOTIFS_TEST_ENV.NOTIFS_APP_KEY);
+    expectNoLoggedValue(spies, NOTIFS_TEST_ENV.NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET);
+    expectNoLoggedValue(spies, NOTIFS_TEST_ENV.NOTIFS_DELIVERY_ACCESS_CLIENT_ID);
+    expectNoLoggedValue(spies, SEED_TOKEN);
+  });
+
+  it('returns 409 and makes no outbound call when the user has never provisioned', async () => {
+    const fetchMock = stubFetch();
+    const res = await postTest();
     expect(res.status).toBe(409);
+    expect(messageCalls(fetchMock)).toHaveLength(0);
   });
 
   it('returns 409 when notifications are soft-off (not enabled)', async () => {
     await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
     await setEnabled(env.DB, USER_ID, false);
+    const fetchMock = stubFetch();
 
-    const res = await app.request(
-      '/api/notifications/test',
-      { method: 'POST', headers: await authHeader(EMAIL) },
-      requestEnv(),
-    );
+    const res = await postTest();
     expect(res.status).toBe(409);
+    expect(messageCalls(fetchMock)).toHaveLength(0);
   });
 });
 

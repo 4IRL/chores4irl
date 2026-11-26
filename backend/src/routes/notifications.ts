@@ -9,7 +9,7 @@ import { deleteProvisioning, getProvisioning, saveProvisioning, setEnabled } fro
 import { NOTIFS_APP_DISPLAY_NAME, NOTIFS_APP_ID, ntfyUsername, personTopic } from '../notifs-ids.js';
 import { provisionUser } from '../notifs-provisioning.js';
 import { resetPassword } from '../notifs-reset-password.js';
-import { publishTest } from '../ntfy-publish.js';
+import { sendTestNotification } from '../notifs-test-send.js';
 import type { BaseEnv } from '../types.js';
 
 // Per-user notification routes, mounted behind accessAuth + resolveUser (BaseEnv,
@@ -178,7 +178,7 @@ notifications.post('/test', async (c) => {
     );
   }
 
-  const result = await publishTest(c.env, row.personHash);
+  const result = await sendTestNotification(c.env, row.personHash, c.var.userId);
   if (result.status === 'failed') {
     return c.json(
       { success: false, error: 'Could not send test notification' } satisfies ApiResponse<never>,

@@ -7,11 +7,10 @@ ACCESS_POLICY_ID=fixture-policy
 # 4irl-notifs pipe. A local stack runs ntfy on :8090 and the delivery-api door on
 # :8300 with no Cloudflare Access gate, so the two CF-Access client values stay
 # blank locally (the header is only sent when the id is non-empty). The app key
-# and publisher token below are clearly-fake fixture placeholders.
+# below is a clearly-fake fixture placeholder.
 NOTIFS_DELIVERY_BASE_URL=http://127.0.0.1:8300
 NOTIFS_APP_KEY=dak_fixture-not-real
 NOTIFS_SETUP_BASE_URL=https://notifs-setup.4irl.app/
 NTFY_BASE_URL=http://127.0.0.1:8090
 NOTIFS_DELIVERY_ACCESS_CLIENT_ID=
 NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET=
-NTFY_PUBLISHER_TOKEN=tk_fixture-not-real

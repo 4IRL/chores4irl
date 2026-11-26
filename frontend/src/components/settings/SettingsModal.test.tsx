@@ -60,6 +60,18 @@ function renderModal() {
   return render(<SettingsModal swipeStyle="ios" onSwipeStyleChange={vi.fn()} onCancel={vi.fn()} />);
 }
 
+// The Send-test result container is always mounted (and empty until a send), and the
+// reveal and confirm boxes are also role="status", so a bare getByRole("status") is
+// ambiguous. These helpers select only the statuses that currently have text.
+function nonEmptyStatuses() {
+  return screen.queryAllByRole('status').filter((el) => (el.textContent ?? '').trim() !== '');
+}
+
+async function findNonEmptyStatus() {
+  await waitFor(() => expect(nonEmptyStatuses()).toHaveLength(1));
+  return nonEmptyStatuses()[0];
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
@@ -528,7 +540,7 @@ describe('SettingsModal — notifications', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Send test notification' }));
 
-    const status = await screen.findByRole('status');
+    const status = await findNonEmptyStatus();
     expect(status).toHaveTextContent('Test notification sent — check your phone.');
     expect(status.className).toContain('text-green-400');
   });
@@ -604,15 +616,86 @@ describe('SettingsModal — notifications', () => {
     const disableButton = screen.getByRole('button', { name: 'Disable' });
     await user.click(sendButton);
 
-    expect(sendButton).toBeDisabled();
+    // Send test uses aria-disabled while in flight (keeps focus); Disable is natively disabled.
+    expect(sendButton).toHaveAttribute('aria-disabled', 'true');
     expect(disableButton).toBeDisabled();
 
     await act(async () => {
       resolveTest(new Response(JSON.stringify({ success: true, data: null })));
     });
 
-    await waitFor(() => expect(sendButton).not.toBeDisabled());
+    await waitFor(() => expect(sendButton).not.toHaveAttribute('aria-disabled'));
     expect(disableButton).not.toBeDisabled();
+  });
+
+  it('shows Sending... and a polite status while a test send is in flight, keeps focus, and ignores a second click', async () => {
+    const user = userEvent.setup();
+    let resolveTest!: (r: Response) => void;
+    const pending = new Promise<Response>((r) => (resolveTest = r));
+    const testHandler = vi.fn(() => pending);
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+        'POST /api/notifications/test': testHandler,
+      }),
+    );
+    renderModal();
+
+    // The status container is mounted and empty before any send.
+    expect(await screen.findByRole('button', { name: 'Send test notification' })).toBeInTheDocument();
+    expect(nonEmptyStatuses()).toHaveLength(0);
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+
+    const sendButton = screen.getByRole('button', { name: 'Send test notification' });
+    await user.click(sendButton);
+
+    const pendingButton = screen.getByRole('button', { name: 'Sending...' });
+    expect(pendingButton).toBe(sendButton);
+    expect(pendingButton).toHaveAttribute('aria-disabled', 'true');
+    expect(pendingButton).not.toBeDisabled();
+    expect(pendingButton).toHaveFocus();
+    expect(screen.getByText('Sending test notification...')).toBeInTheDocument();
+    const container = screen.getByRole('status');
+    expect(container).toHaveAttribute('aria-live', 'polite');
+    expect(container).toHaveTextContent('Sending test notification...');
+
+    await user.click(pendingButton);
+    expect(testHandler).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveTest(new Response(JSON.stringify({ success: true, data: null })));
+    });
+
+    expect(await screen.findByRole('button', { name: 'Send test notification' })).not.toHaveAttribute(
+      'aria-disabled',
+    );
+    expect(screen.queryByText('Sending test notification...')).not.toBeInTheDocument();
+    // The ok text lands in the same status container; no alert is rendered.
+    expect(screen.getByRole('status')).toBe(container);
+    expect(container).toHaveTextContent('Test notification sent — check your phone.');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('reverts the pending label after a failed test send and renders the error as an alert only', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
+        'POST /api/notifications/test': () =>
+          jsonResponse({ success: false, error: 'Could not send test notification' }),
+      }),
+    );
+    renderModal();
+
+    await user.click(await screen.findByRole('button', { name: 'Send test notification' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not send test notification');
+    expect(screen.getByRole('button', { name: 'Send test notification' })).not.toHaveAttribute(
+      'aria-disabled',
+    );
+    expect(nonEmptyStatuses()).toHaveLength(0);
   });
 
   it('Disable collapses to the off state from the response and returns focus to the toggle (DD-22/DD-C)', async () => {
@@ -830,7 +913,7 @@ describe('SettingsModal — one-time password and generate new', () => {
 
     await user.click(await screen.findByRole('checkbox'));
 
-    const reveal = await screen.findByRole('status');
+    const reveal = await findNonEmptyStatus();
     expect(reveal).toHaveTextContent('Your ntfy password');
     expect(reveal).toHaveTextContent(PASSWORD);
     expect(reveal).toHaveTextContent(WHY_TEXT);
@@ -856,7 +939,7 @@ describe('SettingsModal — one-time password and generate new', () => {
 
     await user.click(await screen.findByRole('checkbox'));
 
-    const reveal = await screen.findByRole('status');
+    const reveal = await findNonEmptyStatus();
     expect(within(reveal).getAllByText(PASSWORD)).toHaveLength(1);
     expect(screen.getAllByText(PASSWORD)).toHaveLength(1);
     // Markup, not just text: no attribute (QR value, link href, title) may carry it either.
@@ -928,7 +1011,7 @@ describe('SettingsModal — one-time password and generate new', () => {
     expect(await screen.findByText(SETUP_TEXT)).toBeInTheDocument();
     expect(screen.queryByText('Your ntfy password')).not.toBeInTheDocument();
     expect(screen.queryByText(PASSWORD)).not.toBeInTheDocument();
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(nonEmptyStatuses()).toHaveLength(0);
   });
 
   it('the confirm flow focuses Cancel, Cancel restores focus, and generating shows the new password', async () => {
@@ -951,7 +1034,7 @@ describe('SettingsModal — one-time password and generate new', () => {
     const link = await screen.findByRole('button', { name: 'Generate a new password' });
     await user.click(link);
 
-    const confirm = screen.getByRole('status');
+    const confirm = nonEmptyStatuses()[0];
     expect(confirm).toHaveTextContent(CONFIRM_TEXT);
     expect(screen.queryByText(SETUP_TEXT)).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus());
@@ -979,7 +1062,7 @@ describe('SettingsModal — one-time password and generate new', () => {
       resolveReset(new Response(JSON.stringify({ success: true, data: { password: NEW_PASSWORD } })));
     });
 
-    const reveal = await screen.findByRole('status');
+    const reveal = await findNonEmptyStatus();
     expect(reveal).toHaveTextContent(NEW_PASSWORD);
     expect(reveal).toHaveTextContent('Sign in again on each phone with this new password.');
     expect(reveal).toHaveTextContent(WHY_TEXT);
@@ -1013,34 +1096,34 @@ describe('SettingsModal — one-time password and generate new', () => {
     );
   });
 
-  it('disables the open confirm\'s "Generate new password" button while a Send test is in flight', async () => {
+  it('Send test is aria-disabled and sends no request while the reset-confirm box is open', async () => {
     const user = userEvent.setup();
-    let resolveTest!: (r: Response) => void;
-    const pending = new Promise<Response>((r) => (resolveTest = r));
+    const testHandler = vi.fn(() => jsonResponse({ success: true, data: null }));
     vi.stubGlobal(
       'fetch',
       makeFetchStub({
         'GET /api/notifications': () => jsonResponse({ success: true, data: PROVISIONED }),
-        'POST /api/notifications/test': () => pending,
+        'POST /api/notifications/test': testHandler,
       }),
     );
     renderModal();
 
     await user.click(await screen.findByRole('button', { name: 'Generate a new password' }));
-    const confirmButton = screen.getByRole('button', { name: 'Generate new password' });
-    expect(confirmButton).not.toBeDisabled();
-
-    // Send test stays clickable with the confirm open; its in-flight request sets actionPending.
-    await user.click(screen.getByRole('button', { name: 'Send test notification' }));
     expect(screen.getByText(CONFIRM_TEXT)).toBeInTheDocument();
-    expect(confirmButton).toBeDisabled();
-    // Only actionPending is set here (no reset in flight), so Cancel is still usable.
-    expect(screen.getByRole('button', { name: 'Cancel' })).not.toBeDisabled();
 
-    await act(async () => {
-      resolveTest(new Response(JSON.stringify({ success: true, data: null })));
-    });
-    await waitFor(() => expect(confirmButton).not.toBeDisabled());
+    const sendButton = screen.getByRole('button', { name: 'Send test notification' });
+    expect(sendButton).toHaveAttribute('aria-disabled', 'true');
+    await user.click(sendButton);
+
+    expect(testHandler).not.toHaveBeenCalled();
+    expect(screen.getByText(CONFIRM_TEXT)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Generate new password' })).not.toBeDisabled();
+
+    // Closing the confirm box re-enables the button.
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('button', { name: 'Send test notification' })).not.toHaveAttribute(
+      'aria-disabled',
+    );
   });
 
   it.each([
