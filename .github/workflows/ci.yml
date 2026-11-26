@@ -169,7 +169,9 @@ jobs:
       # binding fails the job before D1 is touched. Each exchange supersedes the
       # previous key (kept valid 24 h), so the key must reach the Worker secret
       # in this same job; if a run fails between here and Deploy Worker, re-run
-      # it within 24 h.
+      # it within 24 h. Two or more such failures inside 24 h can leave the stored
+      # key revoked until a green deploy; break-glass when the hub is down is in
+      # ARCHITECTURE.md (CI/CD pipeline: manual migrate + wrangler deploy).
       - name: Exchange notifs app key
         id: notifs
         uses: 4IRL/4irl-notifs/.github/actions/notifs-app@01b21f2f1d6c2749885242569d5adcaf9295106e # 4irl-notifs main @ 01b21f2

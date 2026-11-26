@@ -565,7 +565,15 @@ lint + test-frontend ──→ deploy-preview  (PR only, not dependabot[bot]: pa
   approves it in the 4irl-notifs admin UI, hotfixes included. The key is passed to `Deploy Worker`
   (wrangler-action `secrets:`) and stored as the `NOTIFS_APP_KEY` Worker secret, rewritten on every main
   deploy. Each exchange supersedes the previous key, which keeps working for 24 h, so if a run fails
-  between the exchange and the deploy it must be re-run within 24 h. After the operator approves a
+  between the exchange and the deploy it must be re-run within 24 h. Repeated failures compound: two or
+  more failed deploys inside 24 h after an exchange supersede the key twice, which can leave the stored
+  `NOTIFS_APP_KEY` revoked (the Worker then gets door 401s) until a deploy goes green. The exchange sits
+  before the D1 steps on purpose, so a hub outage blocks the deploy rather than shipping a Worker that
+  cannot authenticate. **Break-glass when the hub is down** and a deploy is urgent: apply migrations with
+  `make migrate-remote`, then deploy the Worker by hand (`npx wrangler deploy` in `backend/`); the old
+  `NOTIFS_APP_KEY` secret stays in place, so push notifications keep their last key, and once the hub is
+  back a green main deploy replaces it. If the key was revoked, put a fresh one with
+  `npx wrangler secret put NOTIFS_APP_KEY` (from a successful exchange). After the operator approves a
   pending binding, re-run the failed `deploy-backend` job.
 - CI secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `NOTIFS_DELIVERY_ACCESS_CLIENT_ID`,
   `NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET` (GitHub Actions repo secrets, not visible in any file here). The
