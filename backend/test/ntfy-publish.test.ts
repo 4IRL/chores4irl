@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { publishTest, personTopic } from '../src/ntfy-publish.js';
+import { personTopic } from '../src/notifs-ids.js';
+import { publishTest } from '../src/ntfy-publish.js';
 
 const TEST_ENV = {
   NTFY_BASE_URL: 'https://ntfy.test',

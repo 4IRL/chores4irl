@@ -221,6 +221,38 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
     }
   }
 
+  // Reset all password-flow state (and the test message) so a later re-enable never
+  // reopens with a stale password, confirm box, stuck in-flight flag, error or "Copied!".
+  function clearPasswordFlowState() {
+    setTestMsg(null);
+    setRevealedPassword(null);
+    setRevealFromReset(false);
+    setConfirmOpen(false);
+    setResetPending(false);
+    setResetError(null);
+    setCopiedField(null);
+    setCopyErrorField(null);
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+  }
+
+  // The reset said 409 (the server dropped the dead local row). Re-fetch the status
+  // (the same load the mount effect uses) so the modal drops to the off state; if
+  // that fails, fall back to DEFAULT_STATUS. A concurrent re-enable (enabled: true)
+  // is applied as-is and shows no 409 message.
+  async function handleResetConflict(message: string) {
+    let next: NotificationStatus = DEFAULT_STATUS;
+    try {
+      const res = await apiFetch('/api/notifications');
+      const body = (await res.json()) as ApiResponse<NotificationStatus>;
+      if (res.ok && body.success && body.data) next = body.data;
+    } catch {
+      // Falls through to DEFAULT_STATUS.
+    }
+    clearPasswordFlowState();
+    setStatus(next);
+    setNotifError(next.enabled ? null : message);
+  }
+
   async function handleDisable() {
     setActionPending(true);
     setNotifError(null);
@@ -229,17 +261,7 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
       const body = (await res.json()) as ApiResponse<NotificationStatus>;
       if (body.success && body.data) {
         setStatus(body.data); // DD-C — collapse back to the off state with no re-fetch
-        setTestMsg(null);
-        // Reset all password-flow state so a later re-enable never reopens with a
-        // stale password, confirm box, stuck in-flight flag, error or "Copied!".
-        setRevealedPassword(null);
-        setRevealFromReset(false);
-        setConfirmOpen(false);
-        setResetPending(false);
-        setResetError(null);
-        setCopiedField(null);
-        setCopyErrorField(null);
-        if (copyTimer.current) clearTimeout(copyTimer.current);
+        clearPasswordFlowState();
       } else {
         setNotifError(body.error ?? 'Could not disable notifications');
       }
@@ -259,6 +281,8 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
       if (body.success && body.data) {
         setRevealedPassword(body.data.password);
         setRevealFromReset(true);
+      } else if (res.status === 409) {
+        await handleResetConflict(body.error ?? RESET_FALLBACK_ERROR);
       } else {
         // Any failure lands back in the set-up state (the finally closes the confirm) with the error there.
         setResetError(body.error ?? RESET_FALLBACK_ERROR);

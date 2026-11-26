@@ -45,23 +45,24 @@ commits and PRs on this repo show **bot-only attribution** — no `Co-Authored-B
 - **App URL (Playwright MCP):** `http://localhost:5173` by default (Playwright `baseURL`; the port is `TT_FRONTEND_PORT` from `.worktree.env` in a worktree, run `node scripts/ports.mjs print`; e2e webServer builds frontend then `vite preview` on it, backend dev on `TT_BACKEND_PORT` (8787), jwks on `TT_JWKS_PORT` (8790))
 - **Test login:** n/a (e2e seeds a household via `e2e/global-setup.ts` against a local D1; no interactive login recorded — TODO if a login flow is needed)
 - **Commands:** (via root `Makefile` — thin wrappers around the npm workspace scripts; `make help` lists all)
-  | Purpose            | Command                                                                           |
-  | ------------------ | --------------------------------------------------------------------------------- |
-  | Integration tests  | `make test-backend` (backend workspace vitest)                                    |
-  | UI/e2e tests       | `make test-e2e` (Playwright)                                                      |
-  | JS/unit tests      | `make test-frontend` (frontend workspace vitest)                                  |
-  | Build              | `make build` (frontend production build)                                          |
-  | Lint / format      | `make lint` (eslint) / `make format` (prettier) — lint-staged also runs on commit |
-  | Dev                | `make dev` (concurrently: jwks + backend + frontend)                              |
-  | DB migrate (local) | `make migrate-local` (apply pending migrations to local Miniflare D1)             |
-  | DB migrate (prod)  | `make migrate-remote` (CI applies on main push; manual for hotfix/rollback)       |
-  | DB migrate status  | `make migrate-list` (local) / `make migrate-list-remote` (prod)                   |
-  | New migration      | `make migrate-new name=<snake_case_desc>` (scaffold next numbered file)           |
-  | Script tests       | `make test-scripts` (`scripts/*.test.mjs`, node:test)                             |
-  | Restore a backup   | `make backup-restore-local FILE=<.sql\|.sql.gpg>` (into a throwaway local D1)     |
-  | Install deps       | `make install` (`npm ci`)                                                         |
-  | New worktree       | `make worktree-new name=<slug> [b=<branch>] [base=<ref>]` (see docs/worktrees.md) |
-  | Remove worktree    | `make worktree-rm` (run inside the worktree)                                      |
+  | Purpose            | Command                                                                                    |
+  | ------------------ | ------------------------------------------------------------------------------------------ |
+  | Integration tests  | `make test-backend` (backend workspace vitest)                                             |
+  | UI/e2e tests       | `make test-e2e` (Playwright)                                                               |
+  | JS/unit tests      | `make test-frontend` (frontend workspace vitest)                                           |
+  | Backend typecheck  | `make typecheck-backend` (`wrangler types` then `tsc --noEmit`; needs `backend/.dev.vars`) |
+  | Build              | `make build` (frontend production build)                                                   |
+  | Lint / format      | `make lint` (eslint) / `make format` (prettier) — lint-staged also runs on commit          |
+  | Dev                | `make dev` (concurrently: jwks + backend + frontend)                                       |
+  | DB migrate (local) | `make migrate-local` (apply pending migrations to local Miniflare D1)                      |
+  | DB migrate (prod)  | `make migrate-remote` (CI applies on main push; manual for hotfix/rollback)                |
+  | DB migrate status  | `make migrate-list` (local) / `make migrate-list-remote` (prod)                            |
+  | New migration      | `make migrate-new name=<snake_case_desc>` (scaffold next numbered file)                    |
+  | Script tests       | `make test-scripts` (`scripts/*.test.mjs`, node:test)                                      |
+  | Restore a backup   | `make backup-restore-local FILE=<.sql\|.sql.gpg>` (into a throwaway local D1)              |
+  | Install deps       | `make install` (`npm ci`)                                                                  |
+  | New worktree       | `make worktree-new name=<slug> [b=<branch>] [base=<ref>]` (see docs/worktrees.md)          |
+  | Remove worktree    | `make worktree-rm` (run inside the worktree)                                               |
 - **GitHub project board:** n/a
 - **Issue labels:** resolve at runtime via `gh label list --repo 4IRL/chores4irl` (do not invent labels)
 - **PR reviewer:** GPropersi

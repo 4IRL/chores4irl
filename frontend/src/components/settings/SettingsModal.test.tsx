@@ -1130,6 +1130,100 @@ describe('SettingsModal — one-time password and generate new', () => {
     expect(await screen.findByText(NEW_PASSWORD)).toBeInTheDocument();
   });
 
+  describe('reset 409 (notifications not set up)', () => {
+    const CONFLICT_TEXT = 'Notifications are not set up. Turn them on again.';
+
+    function conflictResponse() {
+      return Promise.resolve(
+        new Response(JSON.stringify({ success: false, error: CONFLICT_TEXT }), {
+          status: 409,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    }
+
+    // First GET (mount) is PROVISIONED; the post-409 re-fetch is handled by `refetch`.
+    function stubConflict(refetch: () => Promise<Response>, onEnable?: () => Promise<Response>) {
+      let gets = 0;
+      vi.stubGlobal(
+        'fetch',
+        makeFetchStub({
+          'GET /api/notifications': () => {
+            gets += 1;
+            return gets === 1 ? jsonResponse({ success: true, data: PROVISIONED }) : refetch();
+          },
+          'POST /api/notifications/reset-password': () => conflictResponse(),
+          'POST /api/notifications/test': () => jsonResponse({ success: true, data: null }),
+          'POST /api/notifications/enable':
+            onEnable ?? (() => jsonResponse({ success: true, data: PROVISIONED })),
+        }),
+      );
+    }
+
+    async function triggerConflict(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(await screen.findByRole('button', { name: 'Generate a new password' }));
+      await user.click(screen.getByRole('button', { name: 'Generate new password' }));
+    }
+
+    it('drops to the off state, shows the message, focuses the toggle, and turning on again works', async () => {
+      const user = userEvent.setup();
+      stubConflict(() => jsonResponse({ success: true, data: NOT_PROVISIONED }));
+      renderModal();
+
+      await triggerConflict(user);
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent(CONFLICT_TEXT);
+      const toggle = screen.getByRole('checkbox');
+      expect(toggle).not.toBeChecked();
+      expect(toggle).toHaveAttribute('aria-disabled', 'false');
+      expect(screen.getByText('Enable push notifications')).toBeInTheDocument();
+      expect(screen.queryByText(CONFIRM_TEXT)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Generate new password' })).not.toBeInTheDocument();
+      expect(screen.queryByText(/Test notification sent/)).not.toBeInTheDocument();
+      await waitFor(() => expect(document.activeElement).toBe(toggle));
+
+      await user.click(toggle);
+      expect(await screen.findByText(SETUP_TEXT)).toBeInTheDocument();
+      expect(screen.queryByText(CONFLICT_TEXT)).not.toBeInTheDocument();
+    });
+
+    it('falls back to the off state with the message and cleared password-flow state when the re-fetch fails', async () => {
+      const user = userEvent.setup();
+      stubConflict(() => Promise.reject(new Error('network down')));
+      renderModal();
+
+      // Seed state that only clearPasswordFlowState() removes: a visible test message.
+      await user.click(await screen.findByRole('button', { name: 'Send test notification' }));
+      expect(await screen.findByText(/Test notification sent/)).toBeInTheDocument();
+
+      await triggerConflict(user);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(CONFLICT_TEXT);
+      const toggle = screen.getByRole('checkbox');
+      expect(toggle).not.toBeChecked();
+      expect(screen.getByText('Enable push notifications')).toBeInTheDocument();
+      expect(screen.queryByText(CONFIRM_TEXT)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Test notification sent/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Copy password' })).not.toBeInTheDocument();
+      await waitFor(() => expect(document.activeElement).toBe(toggle));
+    });
+
+    it('applies a re-fetched enabled status and shows no 409 message', async () => {
+      const user = userEvent.setup();
+      stubConflict(() => jsonResponse({ success: true, data: PROVISIONED }));
+      renderModal();
+
+      await triggerConflict(user);
+
+      expect(await screen.findByText(SETUP_TEXT)).toBeInTheDocument();
+      expect(screen.getByText('Push notifications enabled')).toBeInTheDocument();
+      expect(screen.queryByText(CONFIRM_TEXT)).not.toBeInTheDocument();
+      expect(screen.queryByText(CONFLICT_TEXT)).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+  });
+
   it('Disable clears a shown password, and a re-enable without one shows the set-up state', async () => {
     const user = userEvent.setup();
     let enableCall = 0;

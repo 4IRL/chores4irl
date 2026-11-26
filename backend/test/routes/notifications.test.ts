@@ -10,9 +10,10 @@ import primaryJwks from '../fixtures/test-jwks.json' with { type: 'json' };
 // notifs/ntfy secrets — analogous to members.test.ts's ACCESS_ALLOWLIST_ENV).
 // Fetch-mock URL/header matchers are keyed off these same fixture constants.
 const NOTIFS_TEST_ENV = {
-  NOTIFS_API_BASE_URL: 'https://notifs-api.test.fixture',
-  NOTIFS_CF_ACCESS_CLIENT_ID: 'test-client-id',
-  NOTIFS_CF_ACCESS_CLIENT_SECRET: 'test-client-secret',
+  NOTIFS_DELIVERY_BASE_URL: 'https://notifs-delivery.test.fixture',
+  NOTIFS_APP_KEY: 'dak_route-test-key',
+  NOTIFS_DELIVERY_ACCESS_CLIENT_ID: 'test-client-id',
+  NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET: 'test-client-secret',
   NOTIFS_SETUP_BASE_URL: 'https://notifs-setup.test.fixture/',
   NTFY_BASE_URL: 'https://notifs.test.fixture',
   NTFY_PUBLISHER_TOKEN: 'tk_publisher-fixture',
@@ -24,9 +25,8 @@ function setupUrlFor(personHash: string): string {
   return `${NOTIFS_TEST_ENV.NOTIFS_SETUP_BASE_URL}?app=chores4irl&user=u_${personHash}&name=Chores4irl`;
 }
 
-const PROVISION_URL = `${NOTIFS_TEST_ENV.NOTIFS_API_BASE_URL}/v1/provision`;
-const DEPROVISION_URL = `${NOTIFS_TEST_ENV.NOTIFS_API_BASE_URL}/v1/deprovision`;
-const RESET_PASSWORD_URL = `${NOTIFS_TEST_ENV.NOTIFS_API_BASE_URL}/v1/reset-password`;
+const PROVISION_URL = `${NOTIFS_TEST_ENV.NOTIFS_DELIVERY_BASE_URL}/v1/apps/chores4irl/provision`;
+const RESET_PASSWORD_URL = `${NOTIFS_TEST_ENV.NOTIFS_DELIVERY_BASE_URL}/v1/apps/chores4irl/reset-password`;
 
 // Generated ntfy passwords the upstream stubs hand back (provision / reset).
 const PROVISION_PASSWORD = 'abcd-efgh-jkmn-pqrs';
@@ -45,8 +45,11 @@ const PROVISION_TOKEN = 'tk_provisioned';
 const SEED_HASH = 'seededhash234567';
 const SEED_TOKEN = 'tk_seeded';
 
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json', ...headers },
+  });
 }
 
 function provisionResponseBody(overrides: Record<string, unknown> = {}) {
@@ -68,27 +71,31 @@ function stubFetch(
   opts: {
     provisionStatus?: number;
     provisionBody?: unknown;
+    provisionHeaders?: Record<string, string>;
     ntfyStatus?: number;
     resetStatus?: number;
     resetBody?: unknown;
+    resetHeaders?: Record<string, string>;
     resetThrows?: boolean;
   } = {},
 ) {
   const {
     provisionStatus = 200,
     provisionBody = provisionResponseBody(),
+    provisionHeaders = {},
     ntfyStatus = 200,
     resetStatus = 200,
     resetBody = { user_id: 'notifs-user-1', app_id: 'chores4irl', password: RESET_PASSWORD },
+    resetHeaders = {},
     resetThrows = false,
   } = opts;
   const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     if (url === TEST_JWKS_URL) return jsonResponse(primaryJwks);
-    if (url === PROVISION_URL) return jsonResponse(provisionBody, provisionStatus);
+    if (url === PROVISION_URL) return jsonResponse(provisionBody, provisionStatus, provisionHeaders);
     if (url === RESET_PASSWORD_URL) {
       if (resetThrows) throw new Error('network unreachable');
-      return jsonResponse(resetBody, resetStatus);
+      return jsonResponse(resetBody, resetStatus, resetHeaders);
     }
     if (url.startsWith(`${NOTIFS_TEST_ENV.NTFY_BASE_URL}/chores4irl-`)) {
       return new Response('{}', { status: ntfyStatus, headers: { 'content-type': 'application/json' } });
@@ -393,6 +400,128 @@ describe('POST /api/notifications/enable', () => {
     expect(res.headers.get('Cache-Control')).toBe('no-store');
   });
 
+  it('sends exactly {email} with the Bearer app key and Access headers to the door', async () => {
+    const fetchMock = stubFetch();
+
+    await app.request(
+      '/api/notifications/enable',
+      { method: 'POST', headers: await authHeader(EMAIL) },
+      requestEnv(),
+    );
+
+    const calls = callsTo(fetchMock, (url) => url === PROVISION_URL);
+    expect(calls).toHaveLength(1);
+    expect(JSON.parse(calls[0][1]?.body as string)).toEqual({ email: EMAIL });
+    const headers = new Headers(calls[0][1]?.headers);
+    expect(headers.get('Authorization')).toBe(`Bearer ${NOTIFS_TEST_ENV.NOTIFS_APP_KEY}`);
+    expect(headers.get('CF-Access-Client-Id')).toBe('test-client-id');
+    expect(headers.get('CF-Access-Client-Secret')).toBe('test-client-secret');
+  });
+
+  it('returns 502, makes no door call and saves no row when the app key is empty', async () => {
+    const fetchMock = stubFetch();
+
+    const res = await app.request(
+      '/api/notifications/enable',
+      { method: 'POST', headers: await authHeader(EMAIL) },
+      { ...requestEnv(), NOTIFS_APP_KEY: '' },
+    );
+
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ success: false, error: 'Could not set up notifications' });
+    expect(callsTo(fetchMock, (url) => url === PROVISION_URL)).toHaveLength(0);
+    expect(await getProvisioning(env.DB, USER_ID)).toBeNull();
+  });
+
+  it.each([401, 403, 503])('maps a door %i to the unchanged 502 string and saves no row', async (status) => {
+    stubFetch({ provisionStatus: status, provisionBody: { error: 'no' } });
+
+    const res = await app.request(
+      '/api/notifications/enable',
+      { method: 'POST', headers: await authHeader(EMAIL) },
+      requestEnv(),
+    );
+
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ success: false, error: 'Could not set up notifications' });
+    expect(await getProvisioning(env.DB, USER_ID)).toBeNull();
+  });
+
+  it.each([
+    ['1', 'Too many attempts. Try again in 1 minute.', '1'],
+    ['60', 'Too many attempts. Try again in 1 minute.', '60'],
+    ['61', 'Too many attempts. Try again in 2 minutes.', '61'],
+    ['120', 'Too many attempts. Try again in 2 minutes.', '120'],
+    ['0', 'Too many attempts. Try again in an hour.', null],
+    ['1234567890', 'Too many attempts. Try again in an hour.', null],
+    ['soon', 'Too many attempts. Try again in an hour.', null],
+    [undefined, 'Too many attempts. Try again in an hour.', null],
+  ])(
+    'maps a door 429 (Retry-After %s) to 429 "%s", header %s, saving no row',
+    async (retryAfter, error, header) => {
+      stubFetch({
+        provisionStatus: 429,
+        provisionBody: { error: 'slow' },
+        provisionHeaders: retryAfter === undefined ? {} : { 'Retry-After': retryAfter },
+      });
+
+      const res = await app.request(
+        '/api/notifications/enable',
+        { method: 'POST', headers: await authHeader(EMAIL) },
+        requestEnv(),
+      );
+
+      expect(res.status).toBe(429);
+      expect(res.headers.get('Cache-Control')).toBe('no-store');
+      expect(res.headers.get('Retry-After')).toBe(header);
+      expect(await res.json()).toEqual({ success: false, error });
+      expect(await getProvisioning(env.DB, USER_ID)).toBeNull();
+    },
+  );
+
+  it('saves the row and reports it set up when a retry enable returns no password', async () => {
+    // A retry after an ambiguous provision timeout: the door already generated the
+    // password on the first call, so this response carries none.
+    stubFetch();
+
+    const res = await app.request(
+      '/api/notifications/enable',
+      { method: 'POST', headers: await authHeader(EMAIL) },
+      requestEnv(),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: Record<string, unknown> };
+    expect(body.data).not.toHaveProperty('password');
+    expect(await getProvisioning(env.DB, USER_ID)).toEqual({
+      personHash: PROVISION_HASH,
+      subscriberToken: PROVISION_TOKEN,
+      enabled: true,
+    });
+
+    const getRes = await app.request(
+      '/api/notifications',
+      { headers: await authHeader(EMAIL) },
+      requestEnv(),
+    );
+    const getBody = (await getRes.json()) as { data: Record<string, unknown> };
+    expect(getBody.data).toMatchObject({ provisioned: true, enabled: true });
+  });
+
+  it('never logs the app key, the Access secret or the subscriber token', async () => {
+    const spies = spyOnConsole();
+    stubFetch();
+
+    await app.request(
+      '/api/notifications/enable',
+      { method: 'POST', headers: await authHeader(EMAIL) },
+      requestEnv(),
+    );
+
+    expectNoLoggedValue(spies, NOTIFS_TEST_ENV.NOTIFS_APP_KEY);
+    expectNoLoggedValue(spies, NOTIFS_TEST_ENV.NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET);
+    expectNoLoggedValue(spies, PROVISION_TOKEN);
+  });
+
   it('re-enables a soft-off row without re-provisioning (DD-19)', async () => {
     // Seed a distinct hash/token, then soft-off — a re-provision would overwrite
     // these with the PROVISION_* values, so their survival proves no re-provision.
@@ -506,9 +635,29 @@ describe('POST /api/notifications/reset-password', () => {
     const calls = callsTo(fetchMock, (url) => url === RESET_PASSWORD_URL);
     expect(calls).toHaveLength(1);
     expect(calls[0][1]?.method).toBe('POST');
-    expect(JSON.parse(calls[0][1]?.body as string)).toEqual({ app_id: 'chores4irl', email: EMAIL });
+    expect(JSON.parse(calls[0][1]?.body as string)).toEqual({ email: EMAIL });
+    const headers = new Headers(calls[0][1]?.headers);
+    expect(headers.get('Authorization')).toBe(`Bearer ${NOTIFS_TEST_ENV.NOTIFS_APP_KEY}`);
+    expect(headers.get('CF-Access-Client-Id')).toBe('test-client-id');
 
     expectNoLoggedValue(spies, RESET_PASSWORD);
+    expectNoLoggedValue(spies, NOTIFS_TEST_ENV.NOTIFS_APP_KEY);
+    expectNoLoggedValue(spies, NOTIFS_TEST_ENV.NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET);
+  });
+
+  it('returns 502 with no door call when the app key is empty', async () => {
+    await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
+    const fetchMock = stubFetch();
+
+    const res = await app.request(
+      '/api/notifications/reset-password',
+      { method: 'POST', headers: await authHeader(EMAIL) },
+      { ...requestEnv(), NOTIFS_APP_KEY: '' },
+    );
+
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ success: false, error: 'Could not generate a new password' });
+    expect(callsTo(fetchMock, (url) => url === RESET_PASSWORD_URL)).toHaveLength(0);
   });
 
   it('takes the email only from the verified Access identity, ignoring any in the request', async () => {
@@ -532,7 +681,7 @@ describe('POST /api/notifications/reset-password', () => {
     expect(res.status).toBe(200);
     const calls = callsTo(fetchMock, (url) => url === RESET_PASSWORD_URL);
     expect(calls).toHaveLength(1);
-    expect(JSON.parse(calls[0][1]?.body as string)).toEqual({ app_id: 'chores4irl', email: EMAIL });
+    expect(JSON.parse(calls[0][1]?.body as string)).toEqual({ email: EMAIL });
   });
 
   it('never logs or returns a password carried in a failing upstream body', async () => {
@@ -610,29 +759,80 @@ describe('POST /api/notifications/reset-password', () => {
     expect(callsTo(fetchMock, (url) => url === RESET_PASSWORD_URL)).toHaveLength(0);
   });
 
-  it('maps an upstream 429 to 429 with the try-again-in-an-hour message', async () => {
+  it.each([
+    ['120', 'Too many new passwords. Try again in 2 minutes.', '120'],
+    ['1', 'Too many new passwords. Try again in 1 minute.', '1'],
+    ['60', 'Too many new passwords. Try again in 1 minute.', '60'],
+    ['61', 'Too many new passwords. Try again in 2 minutes.', '61'],
+    ['0', 'Too many new passwords. Try again in an hour.', null],
+    ['1234567890', 'Too many new passwords. Try again in an hour.', null],
+    ['soon', 'Too many new passwords. Try again in an hour.', null],
+    [undefined, 'Too many new passwords. Try again in an hour.', null],
+  ])('maps a door 429 (Retry-After %s) to 429 "%s", header %s', async (retryAfter, error, header) => {
     await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
-    stubFetch({ resetStatus: 429, resetBody: { error: 'rate limited' } });
+    stubFetch({
+      resetStatus: 429,
+      resetBody: { error: 'rate limited' },
+      resetHeaders: retryAfter === undefined ? {} : { 'Retry-After': retryAfter },
+    });
 
     const res = await postReset();
 
     expect(res.status).toBe(429);
     expect(res.headers.get('Cache-Control')).toBe('no-store');
-    expect(await res.json()).toEqual({
-      success: false,
-      error: 'Too many new passwords. Try again in an hour.',
-    });
+    expect(res.headers.get('Retry-After')).toBe(header);
+    expect(await res.json()).toEqual({ success: false, error });
   });
 
-  it('maps an upstream 404 to 502', async () => {
+  it.each([401, 403, 503])('maps a door %i to the unchanged 502 string', async (status) => {
     await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
-    stubFetch({ resetStatus: 404, resetBody: { error: 'no such user' } });
+    stubFetch({ resetStatus: status, resetBody: { error: 'no' } });
 
     const res = await postReset();
 
     expect(res.status).toBe(502);
-    expect(res.headers.get('Cache-Control')).toBe('no-store');
     expect(await res.json()).toEqual({ success: false, error: 'Could not generate a new password' });
+  });
+
+  it('maps a door 404 to 409, deletes only that user row, and a following enable provisions', async () => {
+    await env.DB.prepare('INSERT INTO users (id, email, is_admin) VALUES (?, ?, 0)')
+      .bind(2, 'other@example.com')
+      .run();
+    await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
+    await saveProvisioning(env.DB, 2, { personHash: 'otherhash234567', subscriberToken: 'tk_other' });
+    const logSpy = spyOnConsole()[0];
+    const fetchMock = stubFetch({ resetStatus: 404, resetBody: { error: 'user does not exist' } });
+
+    const res = await postReset();
+
+    expect(res.status).toBe(409);
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+    expect(await res.json()).toEqual({
+      success: false,
+      error: 'Notifications are not set up. Turn them on again.',
+    });
+    expect(await getProvisioning(env.DB, USER_ID)).toBeNull();
+    expect(await getProvisioning(env.DB, 2)).toEqual({
+      personHash: 'otherhash234567',
+      subscriberToken: 'tk_other',
+      enabled: true,
+    });
+    const logged = logSpy.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(logged).toContain('person_not_in_app');
+
+    // The next /enable finds no row and provisions through the door.
+    const enableRes = await app.request(
+      '/api/notifications/enable',
+      { method: 'POST', headers: await authHeader(EMAIL) },
+      requestEnv(),
+    );
+    expect(enableRes.status).toBe(200);
+    expect(callsTo(fetchMock, (url) => url === PROVISION_URL)).toHaveLength(1);
+    expect(await getProvisioning(env.DB, USER_ID)).toEqual({
+      personHash: PROVISION_HASH,
+      subscriberToken: PROVISION_TOKEN,
+      enabled: true,
+    });
   });
 
   it('maps a thrown upstream fetch to 502', async () => {
@@ -689,7 +889,7 @@ describe('POST /api/notifications/disable', () => {
     expect(row?.subscriberToken).toBe(SEED_TOKEN);
 
     // Soft-off — never calls a deprovision endpoint.
-    expect(callsTo(fetchMock, (url) => url === DEPROVISION_URL)).toHaveLength(0);
+    expect(callsTo(fetchMock, (url) => url.endsWith('/deprovision'))).toHaveLength(0);
   });
 
   it('returns 409 for a user who never enabled notifications', async () => {

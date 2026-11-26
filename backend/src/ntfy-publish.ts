@@ -8,24 +8,14 @@
 // only by the publisher Bearer token, a distinct auth surface from the
 // provisioning API's CF Access service token.
 
+import { personTopic } from './notifs-ids.js';
+
 export type NtfyEnv = {
   NTFY_BASE_URL: string;
   NTFY_PUBLISHER_TOKEN: string;
 };
 
 export type PublishResult = { status: 'ok' } | { status: 'failed'; reason: string };
-
-// The per-user topic. `-all` is this user's catch-all subscription topic; the
-// hash namespaces it so topics aren't guessable across users.
-export function personTopic(personHash: string): string {
-  return `chores4irl-${personHash}-all`;
-}
-
-// The person's ntfy account name. One account per person across all 4IRL apps,
-// so it is a pure function of the person hash (no app id), matching 4irl-notifs.
-export function ntfyUsername(personHash: string): string {
-  return `u_${personHash}`;
-}
 
 export async function publishTest(env: NtfyEnv, personHash: string): Promise<PublishResult> {
   const topic = personTopic(personHash);

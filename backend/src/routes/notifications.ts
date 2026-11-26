@@ -5,10 +5,11 @@ import type {
   NewNotificationPassword,
   NotificationStatus,
 } from '../../../types/SharedTypes.js';
-import { getProvisioning, saveProvisioning, setEnabled } from '../notifications.js';
-import { NOTIFS_APP_DISPLAY_NAME, NOTIFS_APP_ID, provisionUser } from '../notifs-provisioning.js';
+import { deleteProvisioning, getProvisioning, saveProvisioning, setEnabled } from '../notifications.js';
+import { NOTIFS_APP_DISPLAY_NAME, NOTIFS_APP_ID, ntfyUsername, personTopic } from '../notifs-ids.js';
+import { provisionUser } from '../notifs-provisioning.js';
 import { resetPassword } from '../notifs-reset-password.js';
-import { ntfyUsername, personTopic, publishTest } from '../ntfy-publish.js';
+import { publishTest } from '../ntfy-publish.js';
 import type { BaseEnv } from '../types.js';
 
 // Per-user notification routes, mounted behind accessAuth + resolveUser (BaseEnv,
@@ -20,6 +21,21 @@ const notifications = new Hono<BaseEnv>();
 // Cache-Control: no-store on every notifications route is applied in app.ts
 // (middleware/no-store.ts), ahead of auth, because these responses can carry a
 // generated ntfy password or the subscriber token.
+
+// "Try again in N minutes." text for a door 429: N = ceil(seconds / 60), minimum
+// 1, singular at 1. Without a known Retry-After the text ends "in an hour."
+function waitText(retryAfterSeconds: number | undefined): string {
+  if (retryAfterSeconds === undefined) {
+    return 'Try again in an hour.';
+  }
+  const minutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
+  return `Try again in ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}.`;
+}
+
+// Response headers for a 429: Retry-After is set only when the value is known.
+function retryAfterHeaders(retryAfterSeconds: number | undefined): Record<string, string> {
+  return retryAfterSeconds === undefined ? {} : { 'Retry-After': String(retryAfterSeconds) };
+}
 
 // Builds the provisioned/enabled wire status from a stored row's credentials.
 // server is the full origin (scheme + host) so the frontend never prepends a
@@ -71,6 +87,16 @@ notifications.post('/enable', async (c) => {
   // First-time enable: provisioning IS the primary action, so a failure is a
   // real error (502), not a degraded warning.
   const result = await provisionUser(c.env, c.var.verifiedEmail);
+  if (result.status === 'rate_limited') {
+    return c.json(
+      {
+        success: false,
+        error: `Too many attempts. ${waitText(result.retryAfterSeconds)}`,
+      } satisfies ApiResponse<never>,
+      429,
+      retryAfterHeaders(result.retryAfterSeconds),
+    );
+  }
   if (result.status === 'failed') {
     return c.json(
       { success: false, error: 'Could not set up notifications' } satisfies ApiResponse<never>,
@@ -106,24 +132,41 @@ notifications.post('/reset-password', async (c) => {
   }
 
   const result = await resetPassword(c.env, c.var.verifiedEmail);
-  if (result.status === 'rate_limited') {
-    return c.json(
-      {
-        success: false,
-        error: 'Too many new passwords. Try again in an hour.',
-      } satisfies ApiResponse<never>,
-      429,
-    );
+  switch (result.status) {
+    case 'rate_limited':
+      return c.json(
+        {
+          success: false,
+          error: `Too many new passwords. ${waitText(result.retryAfterSeconds)}`,
+        } satisfies ApiResponse<never>,
+        429,
+        retryAfterHeaders(result.retryAfterSeconds),
+      );
+    case 'person_not_in_app':
+      // The hub no longer knows this person: the local row is dead. Drop it so the
+      // next /enable provisions through the door.
+      await deleteProvisioning(c.env.DB, c.var.userId);
+      return c.json(
+        {
+          success: false,
+          error: 'Notifications are not set up. Turn them on again.',
+        } satisfies ApiResponse<never>,
+        409,
+      );
+    case 'failed':
+      return c.json(
+        { success: false, error: 'Could not generate a new password' } satisfies ApiResponse<never>,
+        502,
+      );
+    case 'ok': {
+      const data: NewNotificationPassword = { password: result.password };
+      return c.json({ success: true, data } satisfies ApiResponse<NewNotificationPassword>);
+    }
+    default: {
+      const unhandled: never = result;
+      throw new Error(`Unhandled reset-password result: ${JSON.stringify(unhandled)}`);
+    }
   }
-  if (result.status === 'failed') {
-    return c.json(
-      { success: false, error: 'Could not generate a new password' } satisfies ApiResponse<never>,
-      502,
-    );
-  }
-
-  const data: NewNotificationPassword = { password: result.password };
-  return c.json({ success: true, data } satisfies ApiResponse<NewNotificationPassword>);
 });
 
 notifications.post('/test', async (c) => {
