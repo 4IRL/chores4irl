@@ -455,16 +455,16 @@ subscriber token), applied by the `noStore` middleware (`middleware/no-store.ts`
 overrides them locally (`.dev.vars.example`). **Secrets** (`wrangler secret put`, blank or fixture values
 in `.dev.vars` locally): `NOTIFS_APP_KEY` (the app's `dak_` key),
 `NOTIFS_DELIVERY_ACCESS_CLIENT_ID`, `NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET` (the service token for the
-door). The deploy wiring that supplies the new secrets is
-tracked in the notifs-delivery-repoint plan (Step 3).
+door). The `Deploy Worker` CI step supplies all three on every main deploy.
 
 **App identity:** 4irl-notifs identifies each app by its own delivery key. The production deploy's
-`notifs-identity` job (see CI/CD pipeline) requests it through GitHub OIDC. The identity is bound to the
+`Exchange notifs app key` step (see CI/CD pipeline) requests it through GitHub OIDC. The identity is bound to the
 repository, the workflow file `.github/workflows/ci.yml`, `refs/heads/main` and no environment, so
 renaming that workflow file needs the operator to unbind and re-approve. The first run files a pending
 request that the operator approves in the admin UI. The Worker reads the key as the `NOTIFS_APP_KEY`
-secret; until the deploy job stores it (notifs-delivery-repoint Step 3) the secret is unset, which fails
-closed (`missing_app_key`, no outbound call). At most 20 requests may be pending at once, a pending request expires after 7 days
+secret, which `deploy-backend` rewrites on every main deploy; if it is ever unset the Worker fails
+closed (`missing_app_key`, no outbound call). Migration `0014_clear_stale_user_notifications.sql` cleared
+the dead `user_notifications` rows left by the 2026-11-05 hub wipe. At most 20 requests may be pending at once, a pending request expires after 7 days
 without a refresh (the next push to main files it again), and each green run issues a new key that
 supersedes the previous one (the old key works for 24 hours).
 
@@ -537,9 +537,8 @@ lint (eslint + prettier --check)
   ├─→ test-backend (vitest, real Miniflare D1)
   └─→ test-frontend (vitest, jsdom)
         └─→ test-e2e (playwright, needs both test jobs; 20 min job timeout)
-              ├─→ deploy-backend   (main push only: d1 migrations apply, then wrangler deploy)
-              ├─→ deploy-frontend  (main push only: wrangler pages deploy)
-              └─→ notifs-identity  (main push only: 4irl-notifs app identity exchange; nothing needs it)
+              ├─→ deploy-backend   (main push only: notifs key exchange, d1 migrations apply, then wrangler deploy + secrets)
+              └─→ deploy-frontend  (main push only: wrangler pages deploy)
 
 lint + test-frontend ──→ deploy-preview  (PR only, not dependabot[bot]: pages deploy --branch=<head>, comments URL on PR)
 ```
@@ -554,18 +553,23 @@ lint + test-frontend ──→ deploy-preview  (PR only, not dependabot[bot]: pa
 - All jobs pin third-party Actions to a commit SHA (not a tag) — check `.github/dependabot.yml` for how
   those get bumped. The `notifs-app` pin follows a 4irl-notifs commit with no release tag, so Dependabot
   cannot bump it and it is updated by hand when the action changes.
-- `notifs-identity` (`needs: [test-e2e]`, **push to `main` only**) asks 4irl-notifs for an app identity via
-  the pinned `4IRL/4irl-notifs` `notifs-app` composite action: it trades a GitHub OIDC token for a
-  delivery key. It is the only job with `id-token: write` (its job-level `permissions` block replaces the
-  top-level one, so `contents: read` is restated). **Exchange only**: no manifest is passed and the
-  returned key is discarded. Nothing depends on it, so deploys never wait on it. Until the operator
-  approves the request in the 4irl-notifs admin UI the job is red (a pending request exits 1); after
-  approval, "re-run failed jobs" turns it green.
+- `deploy-backend` starts with an `Exchange notifs app key` step (`id: notifs`, right after
+  `Install dependencies`, before the D1 steps). It uses the pinned `4IRL/4irl-notifs` `notifs-app`
+  composite action to trade a GitHub OIDC token for the app's `dak_` delivery key. `deploy-backend` is the
+  only job with `id-token: write` (its job-level `permissions` block replaces the top-level one, so
+  `contents: read` is restated) and must never gain an `environment:`, which would break the binding.
+  The step is **fail closed** (no `continue-on-error`, no `if`): the exchange now gates every backend
+  deploy and migration, so a pending or revoked binding fails `deploy-backend` until the operator
+  approves it in the 4irl-notifs admin UI, hotfixes included. The key is passed to `Deploy Worker`
+  (wrangler-action `secrets:`) and stored as the `NOTIFS_APP_KEY` Worker secret, rewritten on every main
+  deploy. Each exchange supersedes the previous key, which keeps working for 24 h, so if a run fails
+  between the exchange and the deploy it must be re-run within 24 h. After the operator approves a
+  pending binding, re-run the failed `deploy-backend` job.
 - CI secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `NOTIFS_DELIVERY_ACCESS_CLIENT_ID`,
   `NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET` (GitHub Actions repo secrets, not visible in any file here). The
   `NOTIFS_DELIVERY_*` pair is the Cloudflare Access service token `chores4irl → notifs-delivery` used by
-  `notifs-identity`; the Worker reads the same token from Worker secrets of the same names (Step 3 of
-  notifs-delivery-repoint wires them), and the old Access-token secrets are gone. `CLOUDFLARE_API_TOKEN` now also needs D1 edit scope for the migration and
+  `Exchange notifs app key` step, and `Deploy Worker` also writes the pair as Worker secrets of the same
+  names, which the Worker reads for door calls. The old Access-token secrets are gone. `CLOUDFLARE_API_TOKEN` now also needs D1 edit scope for the migration and
   Time Travel steps (an out-of-repo prerequisite: update the token in the Cloudflare dashboard).
 - The separate scheduled workflow `.github/workflows/d1-backup.yml` (weekly encrypted export to R2, see
   [Weekly backup export](#weekly-backup-export-secondary-copy)) adds the secrets `R2_ACCESS_KEY_ID`,
