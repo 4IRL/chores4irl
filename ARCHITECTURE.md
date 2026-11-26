@@ -582,9 +582,9 @@ lint + test-frontend ──→ deploy-preview  (PR only, not dependabot[bot]: pa
   `NOTIFS_DELIVERY_*` pair is the Cloudflare Access service token `chores4irl → notifs-delivery` used by
   the `Exchange notifs app key` step, and `Deploy Worker` also writes the pair as Worker secrets of the
   same names, which the Worker reads for door calls. The old Worker secrets `NOTIFS_CF_ACCESS_CLIENT_ID`,
-  `NOTIFS_CF_ACCESS_CLIENT_SECRET` and `NTFY_PUBLISHER_TOKEN` are unused by the code but stay set in
-  Cloudflare until the operator removes them after merge: run `wrangler secret delete <name>` for each
-  (production), and retire or rotate the ntfy publisher token on the 4irl-notifs side.
+  `NOTIFS_CF_ACCESS_CLIENT_SECRET` and `NTFY_PUBLISHER_TOKEN` are retired: nothing reads them, they were
+  deleted from the production Worker on 2026-11-26, and the old ntfy publisher token was revoked on the
+  4irl-notifs side (admin "Revoke & re-mint").
   `CLOUDFLARE_API_TOKEN` now also needs D1 edit scope for the migration and Time Travel steps (an
   out-of-repo prerequisite: update the token in the Cloudflare dashboard).
 - The separate scheduled workflow `.github/workflows/d1-backup.yml` (weekly encrypted export to R2, see
