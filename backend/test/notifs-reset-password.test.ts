@@ -137,11 +137,11 @@ describe('resetPassword', () => {
     },
   );
 
-  it('maps a 404 to person_not_in_app and logs that reason', async () => {
+  it('maps the door\'s real 404 body ({"error":"user does not exist"}) to person_not_in_app and logs that reason', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => jsonResponse({ error: 'person_not_in_app' }, 404)),
+      vi.fn(async () => jsonResponse({ error: 'user does not exist' }, 404)),
     );
 
     expect(await resetPassword(TEST_ENV, 'user@example.com')).toEqual({ status: 'person_not_in_app' });
@@ -155,7 +155,8 @@ describe('resetPassword', () => {
   });
 
   it.each([
-    ['another error code', () => jsonResponse({ error: 'user does not exist' }, 404)],
+    ['another error text', () => jsonResponse({ error: 'app not found' }, 404)],
+    ['the internal result name as the error text', () => jsonResponse({ error: 'person_not_in_app' }, 404)],
     ['a bare body', () => new Response('not found', { status: 404 })],
     ['an empty JSON body', () => jsonResponse({}, 404)],
   ])('treats a 404 with %s as failed unexpected_status:404', async (_label, makeResponse) => {

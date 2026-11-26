@@ -20,6 +20,10 @@ export type ResetPasswordResult =
 // the person is not (or no longer) registered with this app.
 const RESET_OVERRIDES = { 404: 'person_not_in_app' } as const;
 
+// The door's fixed 404 error text for reset-password when the person is absent or
+// holds no grant in this app (delivery-api passes it through from provisioning-api).
+const DOOR_PERSON_GONE_MESSAGE = 'user does not exist';
+
 export async function resetPassword(env: DoorEnv, email: string): Promise<ResetPasswordResult> {
   const startedAt = Date.now();
   // The password is deliberately absent from this logger's parameters.
@@ -44,15 +48,16 @@ export async function resetPassword(env: DoorEnv, email: string): Promise<ResetP
   const res = door.res;
 
   if (res.status === 404) {
-    // Only the door's own `person_not_in_app` code means the person is gone.
+    // Only the door's own `{"error":"user does not exist"}` body means the person is
+    // gone (absent, or no grant in this app: the door makes the two indistinguishable).
     // Any other 404 (wrong base URL, path or proxy) must not delete credentials.
-    let code: unknown;
+    let message: unknown;
     try {
-      code = ((await res.json()) as { error?: unknown } | null)?.error;
+      message = ((await res.json()) as { error?: unknown } | null)?.error;
     } catch {
-      code = undefined;
+      message = undefined;
     }
-    if (code === 'person_not_in_app') {
+    if (message === DOOR_PERSON_GONE_MESSAGE) {
       return finish({ status: 'person_not_in_app' }, mapDoorStatus(404, RESET_OVERRIDES), 404);
     }
     const reason = mapDoorStatus(404);
