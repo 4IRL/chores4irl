@@ -8,7 +8,7 @@ WRANGLER    = npm exec --workspace backend -- wrangler
 PASSPHRASE_ENV ?= D1_BACKUP_PASSPHRASE
 
 .PHONY: help install dev build worktree-new worktree-rm \
-        test test-backend test-frontend test-scripts test-e2e \
+        test test-backend test-frontend test-scripts test-e2e typecheck-backend \
         lint lint-fix format format-check \
         migrate-local migrate-remote migrate-list migrate-list-remote migrate-new \
         backup-restore-local
@@ -44,6 +44,10 @@ test: test-backend test-frontend test-scripts ## Run backend + frontend + script
 
 test-backend: ## Run backend tests (vitest, Workers pool + real D1)
 	$(NPM_ROOT) test:backend
+
+typecheck-backend: ## Typecheck the backend (wrangler types, then tsc --noEmit)
+	$(NPM_BACKEND) types
+	$(NPM_BACKEND) typecheck
 
 test-frontend: ## Run frontend unit tests (vitest)
 	$(NPM_ROOT) test:frontend

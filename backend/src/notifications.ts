@@ -56,6 +56,14 @@ export async function saveProvisioning(
   return { status: 'ok' };
 }
 
+// Hard-deletes the user's row (the door said the person is no longer registered
+// with this app, so the local credentials are dead). The next enable provisions
+// again. Idempotent: deleting a missing row is still ok.
+export async function deleteProvisioning(db: D1Database, userId: number): Promise<{ status: 'ok' }> {
+  await db.prepare('DELETE FROM user_notifications WHERE user_id = ?').bind(userId).run();
+  return { status: 'ok' };
+}
+
 // Soft on/off toggle — never deletes the row, so the subscriber token/QR can be
 // re-displayed on re-enable without re-provisioning. not_provisioned when the
 // user has no row to toggle.

@@ -56,6 +56,7 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
   const [notifError, setNotifError] = useState<string | null>(null);
   const [testMsg, setTestMsg] = useState<TestMessage | null>(null);
   const [actionPending, setActionPending] = useState(false); // shared Send-test/Disable guard (DD-6)
+  const [testPending, setTestPending] = useState(false); // Send-test only: drives the "Sending..." label
   const [enabling, setEnabling] = useState(false); // dedicated enable-in-flight flag (DD-21)
   const [copiedField, setCopiedField] = useState<CopyField | null>(null);
   const [copyErrorField, setCopyErrorField] = useState<CopyField | null>(null);
@@ -202,7 +203,11 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
   }
 
   async function handleTest() {
+    // Guarded no-op while a send is in flight or the reset-confirm box is open (the
+    // button is aria-disabled, not natively disabled, so clicks still reach here).
+    if (testPending || confirmOpen) return;
     setTestMsg(null); // DD-7 — clear any stale message synchronously before the request
+    setTestPending(true);
     setActionPending(true);
     try {
       const res = await apiFetch('/api/notifications/test', { method: 'POST' });
@@ -217,8 +222,41 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
     } catch {
       setTestMsg({ kind: 'err', text: 'Could not send test notification' });
     } finally {
+      setTestPending(false);
       setActionPending(false);
     }
+  }
+
+  // Reset all password-flow state (and the test message) so a later re-enable never
+  // reopens with a stale password, confirm box, stuck in-flight flag, error or "Copied!".
+  function clearPasswordFlowState() {
+    setTestMsg(null);
+    setRevealedPassword(null);
+    setRevealFromReset(false);
+    setConfirmOpen(false);
+    setResetPending(false);
+    setResetError(null);
+    setCopiedField(null);
+    setCopyErrorField(null);
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+  }
+
+  // The reset said 409 (the server dropped the dead local row). Re-fetch the status
+  // (the same load the mount effect uses) so the modal drops to the off state; if
+  // that fails, fall back to DEFAULT_STATUS. A concurrent re-enable (enabled: true)
+  // is applied as-is and shows no 409 message.
+  async function handleResetConflict(message: string) {
+    let next: NotificationStatus = DEFAULT_STATUS;
+    try {
+      const res = await apiFetch('/api/notifications');
+      const body = (await res.json()) as ApiResponse<NotificationStatus>;
+      if (res.ok && body.success && body.data) next = body.data;
+    } catch {
+      // Falls through to DEFAULT_STATUS.
+    }
+    clearPasswordFlowState();
+    setStatus(next);
+    setNotifError(next.enabled ? null : message);
   }
 
   async function handleDisable() {
@@ -229,17 +267,7 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
       const body = (await res.json()) as ApiResponse<NotificationStatus>;
       if (body.success && body.data) {
         setStatus(body.data); // DD-C — collapse back to the off state with no re-fetch
-        setTestMsg(null);
-        // Reset all password-flow state so a later re-enable never reopens with a
-        // stale password, confirm box, stuck in-flight flag, error or "Copied!".
-        setRevealedPassword(null);
-        setRevealFromReset(false);
-        setConfirmOpen(false);
-        setResetPending(false);
-        setResetError(null);
-        setCopiedField(null);
-        setCopyErrorField(null);
-        if (copyTimer.current) clearTimeout(copyTimer.current);
+        clearPasswordFlowState();
       } else {
         setNotifError(body.error ?? 'Could not disable notifications');
       }
@@ -259,6 +287,8 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
       if (body.success && body.data) {
         setRevealedPassword(body.data.password);
         setRevealFromReset(true);
+      } else if (res.status === 409) {
+        await handleResetConflict(body.error ?? RESET_FALLBACK_ERROR);
       } else {
         // Any failure lands back in the set-up state (the finally closes the confirm) with the error there.
         setResetError(body.error ?? RESET_FALLBACK_ERROR);
@@ -527,10 +557,13 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
                 <button
                   type="button"
                   onClick={handleTest}
-                  disabled={actionPending || resetPending}
-                  className="flex-1 min-h-[44px] bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg"
+                  // aria-disabled (not native disabled) while this send is in flight or the
+                  // reset-confirm box is open, so keyboard focus stays on the button.
+                  aria-disabled={testPending || confirmOpen ? true : undefined}
+                  disabled={(actionPending && !testPending) || resetPending}
+                  className={`flex-1 min-h-[44px] bg-gray-700 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg ${testPending || confirmOpen ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-600'}`}
                 >
-                  Send test notification
+                  {testPending ? 'Sending...' : 'Send test notification'}
                 </button>
                 <button
                   type="button"
@@ -542,11 +575,17 @@ export default function SettingsModal({ swipeStyle, onSwipeStyleChange, onCancel
                 </button>
               </div>
 
-              {testMsg && (
-                <p
-                  role={testMsg.kind === 'ok' ? 'status' : 'alert'}
-                  className={`text-sm mt-3 ${testMsg.kind === 'ok' ? 'text-green-400' : 'text-red-400'}`}
-                >
+              {/* Always mounted so assistive tech announces the pending and ok text; an
+                  error is a separate role="alert" so it is not announced twice. */}
+              <div role="status" aria-live="polite" className="text-sm mt-3 text-green-400 empty:hidden">
+                {testPending ? (
+                  <span className="text-gray-300">Sending test notification...</span>
+                ) : testMsg?.kind === 'ok' ? (
+                  testMsg.text
+                ) : null}
+              </div>
+              {!testPending && testMsg?.kind === 'err' && (
+                <p role="alert" className="text-sm mt-3 text-red-400">
                   {testMsg.text}
                 </p>
               )}

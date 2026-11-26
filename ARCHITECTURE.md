@@ -378,33 +378,55 @@ Worker talks to both; the browser only talks to the Worker.
 `resolveUser`, so they are per-user, not household-scoped; identity is the Access-verified email, never
 a request field):
 
-| Route                  | What it does                                                                                                         | Statuses                                                                                                                |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `GET /`                | Returns `NotificationStatus`: `{provisioned:false, enabled:false}` with no row, else the full status (see ids below) | 200                                                                                                                     |
-| `POST /enable`         | Existing row: flips `enabled` on, no provisioning. No row: calls `/v1/provision`, saves the row, returns the status  | 200; 502 `Could not set up notifications` if provisioning fails                                                         |
-| `POST /reset-password` | Calls `/v1/reset-password` and returns `{password}` (new phone or lost password)                                     | 200; 409 `Notifications are not enabled` (no row or soft-off, no outbound call); 429 upstream rate limit; 502 otherwise |
-| `POST /test`           | Publishes a test push to the person's topic                                                                          | 200 (`data: null`); 409 not enabled; 502 `Could not send test notification`                                             |
-| `POST /disable`        | Soft-off: sets `enabled = 0`, keeps the row so re-enable is a flag flip                                              | 200 (`{provisioned:true, enabled:false}`); 409 if never provisioned                                                     |
+| Route                  | What it does                                                                                                               | Statuses                                                                                                                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /`                | Returns `NotificationStatus`: `{provisioned:false, enabled:false}` with no row, else the full status (see ids below)       | 200                                                                                                                                                                              |
+| `POST /enable`         | Existing row: flips `enabled` on, no provisioning. No row: calls the door's `provision`, saves the row, returns the status | 200; 429 door rate limit; 502 `Could not set up notifications` if provisioning fails                                                                                             |
+| `POST /reset-password` | Calls the door's `reset-password` and returns `{password}` (new phone or lost password)                                    | 200; 409 `Notifications are not enabled` (no row or soft-off, no outbound call); 409 `Notifications are not set up…` (door 404, row deleted); 429 door rate limit; 502 otherwise |
+| `POST /test`           | Publishes a test push to the person's topic                                                                                | 200 (`data: null`); 409 not enabled; 502 `Could not send test notification`                                                                                                      |
+| `POST /disable`        | Soft-off: sets `enabled = 0`, keeps the row so re-enable is a flag flip                                                    | 200 (`{provisioned:true, enabled:false}`); 409 if never provisioned                                                                                                              |
 
 **Outbound calls** (all from the Worker, none from the browser):
 
-- `POST {NOTIFS_API_BASE_URL}/v1/provision` (`backend/src/notifs-provisioning.ts`) with
-  `{app_id, email}`; returns `person_hash`, `token` and, only when it just generated one for that person,
-  `password`. The `person_hash` is charset-guarded (`^[a-z0-9]+$`), and any shape surprise fails closed.
-- `POST {NOTIFS_API_BASE_URL}/v1/reset-password` (`backend/src/notifs-reset-password.ts`) with
-  `{app_id, email}`; returns `password`. Upstream 429 becomes our 429
-  (`Too many new passwords. Try again in an hour.`); any other non-2xx, network error, or 200 without a
-  non-empty `password` becomes our 502 (`Could not generate a new password`), with the upstream status in
-  the log `reason`.
-- Both send `CF-Access-Client-Id` / `CF-Access-Client-Secret` (a Cloudflare Access service token) only when
-  those secrets are non-empty; local dev has no Access gate, so they are blank there.
-- `POST {NTFY_BASE_URL}/<topic>` (`backend/src/ntfy-publish.ts`, `publishTest`) with
-  `Authorization: Bearer <NTFY_PUBLISHER_TOKEN>`. **Never** sends the CF Access headers: ntfy is guarded
-  by the publisher bearer token alone, a separate auth surface.
+- `POST {NOTIFS_DELIVERY_BASE_URL}/v1/apps/chores4irl/provision` (`backend/src/notifs-provisioning.ts`)
+  with exactly `{email}`; returns `person_hash`, `token` and, only when it just generated one for that
+  person, `password`. The `person_hash` is charset-guarded (`^[a-z0-9]+$`), and any shape surprise fails
+  closed. A door 429 becomes our 429 `Too many attempts. Try again in <N> minutes.` and saves no row.
+- `POST {NOTIFS_DELIVERY_BASE_URL}/v1/apps/chores4irl/reset-password`
+  (`backend/src/notifs-reset-password.ts`) with exactly `{email}`; returns `password`. Door 429 becomes our
+  429 (`Too many new passwords. Try again in <N> minutes.`); a door 404 whose JSON body says
+  `error: "person_not_in_app"` (the hub no longer knows the person) deletes the caller's `user_notifications` row (`deleteProvisioning`) and returns
+  409 `Notifications are not set up. Turn them on again.`, after which the next `/enable` provisions again
+  (the modal re-fetches status and drops to the off state). Any other 404 (bare, other code, wrong URL)
+  keeps the row and is a 502 `unexpected_status:404`. Any other non-2xx, timeout, network error, or
+  200 without a non-empty `password` becomes our 502 (`Could not generate a new password`), with the
+  reason (`door_auth_rejected`, `door_unavailable`, `unexpected_status:<n>`, `timeout`, `network`,
+  `missing_app_key`) in the log. `<N>` is the door's `Retry-After` in whole minutes (rounded up); the route
+  also sets a `Retry-After` header, and with no usable header the text says `in an hour`.
+- Both go through one helper, `doorFetch` (`backend/src/notifs-door.ts`), which sends
+  `Authorization: Bearer <NOTIFS_APP_KEY>` (the app's `dak_` key), a 10 s timeout, and
+  `CF-Access-Client-Id` / `CF-Access-Client-Secret` (a Cloudflare Access service token) only when the id is
+  non-empty (local dev has no Access gate). An empty `NOTIFS_APP_KEY` makes no outbound call at all (fail
+  closed, reason `missing_app_key`). `mapDoorStatus` is the one status-to-reason mapper.
+- **Provision timeout recovery:** provision is not idempotent and returns the password only on the call
+  that generated it. If it times out after the door completed it, `/enable` returns 502 and saves no row;
+  retrying `/enable` succeeds without a password and Settings shows "set up". The person then uses
+  "Generate a new password".
+- `POST /v1/messages?wait=8` (`backend/src/notifs-test-send.ts`, `sendTestNotification`) for the
+  "Send test notification" button, through the same `doorFetch` (Bearer `dak_` key plus Access headers).
+  The body is a recipient send (`to.recipient = <person_hash>`, channel `all`, a per-click
+  `idempotency_key`, and `display` title/body/url), which lands on the person's `chores4irl-<hash>-all`
+  topic. The door waits up to 8 s for the first delivery attempt, so the call uses a 12 s timeout (the one
+  exception to the shared 10 s). Success is reported only when the message status is `delivered`; `dead`,
+  `partial`, `unrouted`, `release_failed` and `pending` are each a 502 with their own log reason. A
+  `pending` result is reported as a failure even though the door may still retry and the push may arrive
+  after the user was told it failed. A 422 (`no_publisher`) means the app has no sealed ntfy publisher on
+  the door yet; that is a one-time mint on the notifications side and a prerequisite for the test send.
+  The app holds no ntfy publisher token of its own.
 
 **Ids** (all derived from `person_hash`, so only the hash is stored):
 
-- App id `chores4irl` (`NOTIFS_APP_ID`, a code constant in `notifs-provisioning.ts`, not a wrangler var).
+- App id `chores4irl` (`NOTIFS_APP_ID`, a code constant in `notifs-ids.ts`, not a wrangler var).
   It must match `^[a-z0-9][a-z0-9_]{0,62}$`.
 - Topic `chores4irl-<hash>-all` (`personTopic`), the person's catch-all subscription for this app.
 - Username `u_<hash>` (`ntfyUsername`): one ntfy account per person across **all** 4IRL apps, so it has
@@ -429,20 +451,25 @@ subscriber token), applied by the `noStore` middleware (`middleware/no-store.ts`
 ("Could not generate a new password") and a first enable with no password shown.
 
 **Config** (`backend/wrangler.toml` `[vars]`, plain hostnames, not credentials):
-`NOTIFS_API_BASE_URL` (provisioning API), `NTFY_BASE_URL` (ntfy host), `NOTIFS_SETUP_BASE_URL` (shared
-ntfy-app setup page); `backend/.dev.vars` overrides them locally (`.dev.vars.example`). **Secrets**
-(`wrangler secret put`, blank or fixture values in `.dev.vars` locally):
-`NOTIFS_CF_ACCESS_CLIENT_ID`, `NOTIFS_CF_ACCESS_CLIENT_SECRET` (the service token for the provisioning
-API) and `NTFY_PUBLISHER_TOKEN` (ntfy publish bearer).
+`NOTIFS_DELIVERY_BASE_URL` (the delivery-api front door, `https://notifs-delivery.4irl.app`),
+`NTFY_BASE_URL` (ntfy host), `NOTIFS_SETUP_BASE_URL` (shared ntfy-app setup page); `backend/.dev.vars`
+overrides them locally (`.dev.vars.example`). **Secrets** (`wrangler secret put`, blank or fixture values
+in `.dev.vars` locally): `NOTIFS_APP_KEY` (the app's `dak_` key),
+`NOTIFS_DELIVERY_ACCESS_CLIENT_ID`, `NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET` (the service token for the
+door). The `Deploy Worker` CI step supplies all three on every main deploy.
 
 **App identity:** 4irl-notifs identifies each app by its own delivery key. The production deploy's
-`notifs-identity` job (see CI/CD pipeline) requests it through GitHub OIDC. The identity is bound to the
-repository, the workflow file `.github/workflows/ci.yml`, `refs/heads/main` and no environment, so
-renaming that workflow file needs the operator to unbind and re-approve. The first run files a pending
-request that the operator approves in the admin UI. Nothing in the Worker uses the issued key yet (it is
-discarded, not stored). At most 20 requests may be pending at once, a pending request expires after 7 days
-without a refresh (the next push to main files it again), and each green run issues a new key that
-supersedes the previous one (the old key works for 24 hours).
+`Exchange notifs app key` step (see CI/CD pipeline) requests it through GitHub OIDC. The identity is
+bound to the repository, the workflow file `.github/workflows/ci.yml`, `refs/heads/main` and no
+environment, so renaming that workflow file needs the operator to unbind and re-approve. The first run
+files a pending request that the operator approves in the admin UI. The Worker reads the key as the
+`NOTIFS_APP_KEY` secret, which `deploy-backend` rewrites on every main deploy; if it is ever unset the
+Worker fails closed (`missing_app_key`, no outbound call). At most 20 requests may be pending at once, a
+pending request expires after 7 days without a refresh (the next push to main files it again), and each
+green run issues a new key that supersedes the previous one (the old key works for 24 hours).
+
+Migration `0014_clear_stale_user_notifications.sql` cleared the dead `user_notifications` rows left by
+the 2026-11-05 hub wipe.
 
 ## Environments in detail
 
@@ -513,9 +540,8 @@ lint (eslint + prettier --check)
   ├─→ test-backend (vitest, real Miniflare D1)
   └─→ test-frontend (vitest, jsdom)
         └─→ test-e2e (playwright, needs both test jobs; 20 min job timeout)
-              ├─→ deploy-backend   (main push only: d1 migrations apply, then wrangler deploy)
-              ├─→ deploy-frontend  (main push only: wrangler pages deploy)
-              └─→ notifs-identity  (main push only: 4irl-notifs app identity exchange; nothing needs it)
+              ├─→ deploy-backend   (main push only: notifs key exchange, d1 migrations apply, then wrangler deploy + secrets)
+              └─→ deploy-frontend  (main push only: wrangler pages deploy)
 
 lint + test-frontend ──→ deploy-preview  (PR only, not dependabot[bot]: pages deploy --branch=<head>, comments URL on PR)
 ```
@@ -530,19 +556,36 @@ lint + test-frontend ──→ deploy-preview  (PR only, not dependabot[bot]: pa
 - All jobs pin third-party Actions to a commit SHA (not a tag) — check `.github/dependabot.yml` for how
   those get bumped. The `notifs-app` pin follows a 4irl-notifs commit with no release tag, so Dependabot
   cannot bump it and it is updated by hand when the action changes.
-- `notifs-identity` (`needs: [test-e2e]`, **push to `main` only**) asks 4irl-notifs for an app identity via
-  the pinned `4IRL/4irl-notifs` `notifs-app` composite action: it trades a GitHub OIDC token for a
-  delivery key. It is the only job with `id-token: write` (its job-level `permissions` block replaces the
-  top-level one, so `contents: read` is restated). **Exchange only**: no manifest is passed and the
-  returned key is discarded. Nothing depends on it, so deploys never wait on it. Until the operator
-  approves the request in the 4irl-notifs admin UI the job is red (a pending request exits 1); after
-  approval, "re-run failed jobs" turns it green.
+- `deploy-backend` starts with an `Exchange notifs app key` step (`id: notifs`, right after
+  `Install dependencies`, before the D1 steps). It uses the pinned `4IRL/4irl-notifs` `notifs-app`
+  composite action to trade a GitHub OIDC token for the app's `dak_` delivery key. `deploy-backend` is the
+  only job with `id-token: write` (its job-level `permissions` block replaces the top-level one, so
+  `contents: read` is restated) and must never gain an `environment:`, which would break the binding.
+  The step is **fail closed** (no `continue-on-error`, no `if`): the exchange now gates every backend
+  deploy and migration, so a pending or revoked binding fails `deploy-backend` until the operator
+  approves it in the 4irl-notifs admin UI, hotfixes included. The key is passed to `Deploy Worker`
+  (wrangler-action `secrets:`) and stored as the `NOTIFS_APP_KEY` Worker secret, rewritten on every main
+  deploy. Each exchange supersedes the previous key, which keeps working for 24 h, so if a run fails
+  between the exchange and the deploy it must be re-run within 24 h. Repeated failures compound: two or
+  more failed deploys inside 24 h after an exchange supersede the key twice, which can leave the stored
+  `NOTIFS_APP_KEY` revoked (the Worker then gets door 401s) until a deploy goes green. The exchange sits
+  before the D1 steps on purpose, so a hub outage blocks the deploy rather than shipping a Worker that
+  cannot authenticate. **Break-glass when the hub is down** and a deploy is urgent: apply migrations with
+  `make migrate-remote`, then deploy the Worker by hand (`npx wrangler deploy` in `backend/`); the old
+  `NOTIFS_APP_KEY` secret stays in place, so push notifications keep their last key, and once the hub is
+  back a green main deploy replaces it. If the key was revoked, put a fresh one with
+  `npx wrangler secret put NOTIFS_APP_KEY` (from a successful exchange). After the operator approves a
+  pending binding, re-run the failed `deploy-backend` job.
 - CI secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `NOTIFS_DELIVERY_ACCESS_CLIENT_ID`,
   `NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET` (GitHub Actions repo secrets, not visible in any file here). The
   `NOTIFS_DELIVERY_*` pair is the Cloudflare Access service token `chores4irl → notifs-delivery` used by
-  `notifs-identity`; it is separate from the Worker secrets `NOTIFS_CF_ACCESS_CLIENT_ID/SECRET`, which
-  cover `notifs-api` only. `CLOUDFLARE_API_TOKEN` now also needs D1 edit scope for the migration and
-  Time Travel steps (an out-of-repo prerequisite: update the token in the Cloudflare dashboard).
+  the `Exchange notifs app key` step, and `Deploy Worker` also writes the pair as Worker secrets of the
+  same names, which the Worker reads for door calls. The old Worker secrets `NOTIFS_CF_ACCESS_CLIENT_ID`,
+  `NOTIFS_CF_ACCESS_CLIENT_SECRET` and `NTFY_PUBLISHER_TOKEN` are unused by the code but stay set in
+  Cloudflare until the operator removes them after merge: run `wrangler secret delete <name>` for each
+  (production), and retire or rotate the ntfy publisher token on the 4irl-notifs side.
+  `CLOUDFLARE_API_TOKEN` now also needs D1 edit scope for the migration and Time Travel steps (an
+  out-of-repo prerequisite: update the token in the Cloudflare dashboard).
 - The separate scheduled workflow `.github/workflows/d1-backup.yml` (weekly encrypted export to R2, see
   [Weekly backup export](#weekly-backup-export-secondary-copy)) adds the secrets `R2_ACCESS_KEY_ID`,
   `R2_SECRET_ACCESS_KEY` (a bucket-scoped R2 token, separate from the deploy token), `D1_BACKUP_PASSPHRASE`
@@ -747,36 +790,36 @@ A device shows other members' chore changes without a reload. `useChoreRefresh`
 
 ## Where to look for X
 
-| I need to...                                                                                | Look at                                                                                                                                                                                                                                                                                                                                   |
-| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Understand the whole backend's route/middleware shape at a glance                           | `backend/src/app.ts`                                                                                                                                                                                                                                                                                                                      |
-| Add or change an API endpoint                                                               | `backend/src/routes/<resource>.ts` + its data-access sibling (e.g. `backend/src/chores.ts`)                                                                                                                                                                                                                                               |
-| Change auth/JWT verification behavior                                                       | `backend/src/middleware/access-auth.ts`                                                                                                                                                                                                                                                                                                   |
-| Change how household scoping/switching resolves                                             | `backend/src/middleware/household-scope.ts`                                                                                                                                                                                                                                                                                               |
-| Change global admin status/gating or the all-users directory                                | `backend/src/middleware/require-global-admin.ts`, `backend/src/admin-users.ts`, `backend/src/routes/admin.ts`, `frontend/src/components/admin/UsersDirectory.tsx`                                                                                                                                                                         |
-| Change admin cross-household add-user or the household picker                               | `backend/src/routes/admin.ts` (`POST /members`), `backend/src/members.ts` (`adminAddHouseholdMember`), `frontend/src/components/admin/AddUserModal.tsx`, `frontend/src/components/form/HouseholdSearchSelect.tsx`                                                                                                                         |
-| Change household creation (the Households directory)                                        | `backend/src/routes/admin.ts` (`POST /households`), `backend/src/households.ts` (`createHousehold`), `frontend/src/components/admin/HouseholdsDirectory.tsx`, `frontend/src/components/admin/CreateHouseholdModal.tsx`                                                                                                                    |
-| Change the join-request (member-requests-new-user) workflow                                 | `backend/src/join-requests.ts`, `backend/src/routes/members.ts` (`POST /requests`), `backend/src/routes/admin.ts` (`/join-requests/*`), `frontend/src/components/admin/AddMemberModal.tsx`, `frontend/src/components/admin/JoinRequestsSection.tsx`                                                                                       |
-| Change the household name/switcher shown in the admin panel                                 | `frontend/src/components/admin/HouseholdSection.tsx` (uses the same `switchHousehold` plumbing as `NavBar.tsx`, threaded through `App.tsx`/`AdminPanel.tsx`)                                                                                                                                                                              |
-| Change the floating scroll-to-top button                                                    | `frontend/src/hooks/useScrollPastThreshold.ts`, `frontend/src/components/chore/ScrollToTopButton.tsx`, `ChoresView.tsx` (focus-target sentinel, `deckHidden` gating)                                                                                                                                                                      |
-| Change the chore-name search box or its filtering                                           | `frontend/src/hooks/useChoreSearch.ts`, `frontend/src/components/chore/ChoreSearchInput.tsx`, `ChoresView.tsx` (empty-state precedence); the query state is lifted into `Layout` in `frontend/src/App.tsx` (survives `/admin`, never persisted)                                                                                           |
-| Change the chore swipe style setting (gear icon) or its iOS/Android swipe behavior          | `frontend/src/components/settings/SettingsModal.tsx`, `frontend/src/components/chore/ChoreTimerBar.tsx` (branches on `swipeStyle`), `backend/src/routes/me.ts` (`PATCH /swipe-style`), `backend/migrations/0010_add_swipe_style_to_users.sql`                                                                                             |
-| Change push notifications (enable, password, setup link, test push)                         | `backend/src/routes/notifications.ts`, `backend/src/notifs-provisioning.ts`, `backend/src/notifs-reset-password.ts`, `backend/src/ntfy-publish.ts`, `backend/src/middleware/no-store.ts`, `frontend/src/components/settings/SettingsModal.tsx`; see [Notifications](#notifications)                                                       |
-| Add a DB column/table                                                                       | New file in `backend/migrations/` — never edit a merged one; CI applies it on main push (drops/renames: [two-phase](#destructive-migrations-two-phase))                                                                                                                                                                                   |
-| Change the shared API response/entity shapes                                                | `types/SharedTypes.d.ts`                                                                                                                                                                                                                                                                                                                  |
-| Change the single fetch entrypoint (headers, preview mocking)                               | `frontend/src/utils/api.ts`                                                                                                                                                                                                                                                                                                               |
-| Change routing/top-level data loading                                                       | `frontend/src/App.tsx`                                                                                                                                                                                                                                                                                                                    |
-| Change the offline write queue                                                              | `frontend/src/outbox/`                                                                                                                                                                                                                                                                                                                    |
-| Change mutation success/failure feedback (toast, rollback, flush errors)                    | `frontend/src/components/common/Toast.tsx`, `frontend/src/components/chore/ChoresView.tsx`                                                                                                                                                                                                                                                |
-| Change undo/redo of complete, edit and delete (record, keyboard shortcut, restore endpoint) | `ChoresView.tsx` (`undoRef`, `applyUndoStep`, the `keydown` effect), `Toast.tsx` (action button), `PATCH /api/chores/:id/restore` in `backend/src/routes/chores.ts` + `backend/src/chores.ts` (`restoreChore`); see [Offline behavior](#offline-behavior-frontend) and [Chore soft delete](#chore-soft-delete)                            |
-| Change live refresh (poll, focus/visibility re-pull, form/dialog/write hold, rooms re-pull) | `frontend/src/hooks/useChoreRefresh.ts`, `ChoresView.tsx` (`load` refresh mode, `refreshRef`, the hold wiring), `ChoreTimerBar.tsx` (`onDialogOpenChange`), `frontend/src/outbox/outbox.ts` (`isFlushing`/`subscribeFlushing`), `App.tsx` (`useRooms`' `reloadRooms`, Layout's selected-room fallback); see [Live refresh](#live-refresh) |
-| Run local dev                                                                               | `/run-dev` skill, or `npm run dev` at repo root                                                                                                                                                                                                                                                                                           |
-| Push a branch / open a PR as the bot                                                        | `/git-push` skill (`gpropersi-claude[bot]`, standing default per project instructions — don't ask first)                                                                                                                                                                                                                                  |
-| Understand the cloud-vs-local tradeoff rationale                                            | `TRADEOFFS.md`                                                                                                                                                                                                                                                                                                                            |
-| Check the day's work log                                                                    | `changelog/MM-DD-YYYY-changelog.md`                                                                                                                                                                                                                                                                                                       |
-| Change CI/CD                                                                                | `.github/workflows/ci.yml`                                                                                                                                                                                                                                                                                                                |
-| Change or restore the weekly D1 backup                                                      | `.github/workflows/d1-backup.yml`, `scripts/d1-backup.mjs`, `scripts/d1-restore.mjs`, `make backup-restore-local`; see [Weekly backup export](#weekly-backup-export-secondary-copy)                                                                                                                                                       |
-| Change Worker routing/bindings/secrets config                                               | `backend/wrangler.toml`                                                                                                                                                                                                                                                                                                                   |
+| I need to...                                                                                | Look at                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Understand the whole backend's route/middleware shape at a glance                           | `backend/src/app.ts`                                                                                                                                                                                                                                                                                                                               |
+| Add or change an API endpoint                                                               | `backend/src/routes/<resource>.ts` + its data-access sibling (e.g. `backend/src/chores.ts`)                                                                                                                                                                                                                                                        |
+| Change auth/JWT verification behavior                                                       | `backend/src/middleware/access-auth.ts`                                                                                                                                                                                                                                                                                                            |
+| Change how household scoping/switching resolves                                             | `backend/src/middleware/household-scope.ts`                                                                                                                                                                                                                                                                                                        |
+| Change global admin status/gating or the all-users directory                                | `backend/src/middleware/require-global-admin.ts`, `backend/src/admin-users.ts`, `backend/src/routes/admin.ts`, `frontend/src/components/admin/UsersDirectory.tsx`                                                                                                                                                                                  |
+| Change admin cross-household add-user or the household picker                               | `backend/src/routes/admin.ts` (`POST /members`), `backend/src/members.ts` (`adminAddHouseholdMember`), `frontend/src/components/admin/AddUserModal.tsx`, `frontend/src/components/form/HouseholdSearchSelect.tsx`                                                                                                                                  |
+| Change household creation (the Households directory)                                        | `backend/src/routes/admin.ts` (`POST /households`), `backend/src/households.ts` (`createHousehold`), `frontend/src/components/admin/HouseholdsDirectory.tsx`, `frontend/src/components/admin/CreateHouseholdModal.tsx`                                                                                                                             |
+| Change the join-request (member-requests-new-user) workflow                                 | `backend/src/join-requests.ts`, `backend/src/routes/members.ts` (`POST /requests`), `backend/src/routes/admin.ts` (`/join-requests/*`), `frontend/src/components/admin/AddMemberModal.tsx`, `frontend/src/components/admin/JoinRequestsSection.tsx`                                                                                                |
+| Change the household name/switcher shown in the admin panel                                 | `frontend/src/components/admin/HouseholdSection.tsx` (uses the same `switchHousehold` plumbing as `NavBar.tsx`, threaded through `App.tsx`/`AdminPanel.tsx`)                                                                                                                                                                                       |
+| Change the floating scroll-to-top button                                                    | `frontend/src/hooks/useScrollPastThreshold.ts`, `frontend/src/components/chore/ScrollToTopButton.tsx`, `ChoresView.tsx` (focus-target sentinel, `deckHidden` gating)                                                                                                                                                                               |
+| Change the chore-name search box or its filtering                                           | `frontend/src/hooks/useChoreSearch.ts`, `frontend/src/components/chore/ChoreSearchInput.tsx`, `ChoresView.tsx` (empty-state precedence); the query state is lifted into `Layout` in `frontend/src/App.tsx` (survives `/admin`, never persisted)                                                                                                    |
+| Change the chore swipe style setting (gear icon) or its iOS/Android swipe behavior          | `frontend/src/components/settings/SettingsModal.tsx`, `frontend/src/components/chore/ChoreTimerBar.tsx` (branches on `swipeStyle`), `backend/src/routes/me.ts` (`PATCH /swipe-style`), `backend/migrations/0010_add_swipe_style_to_users.sql`                                                                                                      |
+| Change push notifications (enable, password, setup link, test push)                         | `backend/src/routes/notifications.ts`, `backend/src/notifs-door.ts`, `backend/src/notifs-ids.ts`, `backend/src/notifs-provisioning.ts`, `backend/src/notifs-reset-password.ts`, `backend/src/notifs-test-send.ts`, `backend/src/middleware/no-store.ts`, `frontend/src/components/settings/SettingsModal.tsx`; see [Notifications](#notifications) |
+| Add a DB column/table                                                                       | New file in `backend/migrations/` — never edit a merged one; CI applies it on main push (drops/renames: [two-phase](#destructive-migrations-two-phase))                                                                                                                                                                                            |
+| Change the shared API response/entity shapes                                                | `types/SharedTypes.d.ts`                                                                                                                                                                                                                                                                                                                           |
+| Change the single fetch entrypoint (headers, preview mocking)                               | `frontend/src/utils/api.ts`                                                                                                                                                                                                                                                                                                                        |
+| Change routing/top-level data loading                                                       | `frontend/src/App.tsx`                                                                                                                                                                                                                                                                                                                             |
+| Change the offline write queue                                                              | `frontend/src/outbox/`                                                                                                                                                                                                                                                                                                                             |
+| Change mutation success/failure feedback (toast, rollback, flush errors)                    | `frontend/src/components/common/Toast.tsx`, `frontend/src/components/chore/ChoresView.tsx`                                                                                                                                                                                                                                                         |
+| Change undo/redo of complete, edit and delete (record, keyboard shortcut, restore endpoint) | `ChoresView.tsx` (`undoRef`, `applyUndoStep`, the `keydown` effect), `Toast.tsx` (action button), `PATCH /api/chores/:id/restore` in `backend/src/routes/chores.ts` + `backend/src/chores.ts` (`restoreChore`); see [Offline behavior](#offline-behavior-frontend) and [Chore soft delete](#chore-soft-delete)                                     |
+| Change live refresh (poll, focus/visibility re-pull, form/dialog/write hold, rooms re-pull) | `frontend/src/hooks/useChoreRefresh.ts`, `ChoresView.tsx` (`load` refresh mode, `refreshRef`, the hold wiring), `ChoreTimerBar.tsx` (`onDialogOpenChange`), `frontend/src/outbox/outbox.ts` (`isFlushing`/`subscribeFlushing`), `App.tsx` (`useRooms`' `reloadRooms`, Layout's selected-room fallback); see [Live refresh](#live-refresh)          |
+| Run local dev                                                                               | `/run-dev` skill, or `npm run dev` at repo root                                                                                                                                                                                                                                                                                                    |
+| Push a branch / open a PR as the bot                                                        | `/git-push` skill (`gpropersi-claude[bot]`, standing default per project instructions — don't ask first)                                                                                                                                                                                                                                           |
+| Understand the cloud-vs-local tradeoff rationale                                            | `TRADEOFFS.md`                                                                                                                                                                                                                                                                                                                                     |
+| Check the day's work log                                                                    | `changelog/MM-DD-YYYY-changelog.md`                                                                                                                                                                                                                                                                                                                |
+| Change CI/CD                                                                                | `.github/workflows/ci.yml`                                                                                                                                                                                                                                                                                                                         |
+| Change or restore the weekly D1 backup                                                      | `.github/workflows/d1-backup.yml`, `scripts/d1-backup.mjs`, `scripts/d1-restore.mjs`, `make backup-restore-local`; see [Weekly backup export](#weekly-backup-export-secondary-copy)                                                                                                                                                                |
+| Change Worker routing/bindings/secrets config                                               | `backend/wrangler.toml`                                                                                                                                                                                                                                                                                                                            |
 
 ## Conventions worth knowing
 

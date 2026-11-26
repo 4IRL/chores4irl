@@ -66,6 +66,79 @@ describe('ci.yml deploy-backend migrations', () => {
     assert.doesNotMatch(backendPackage.scripts['migrate:remote'], /--env|--local/);
   });
 
+  it('folds the notifs key exchange into deploy-backend', () => {
+    assert.equal(workflow.jobs['notifs-identity'], undefined);
+    assert.deepEqual(job.permissions, { contents: 'read', 'id-token': 'write' });
+    assert.equal(job.environment, undefined);
+
+    const notifs = stepNamed('Exchange notifs app key');
+    assert.equal(notifs.id, 'notifs');
+    assert.match(notifs.uses, /^4IRL\/4irl-notifs\/\.github\/actions\/notifs-app@[0-9a-f]{40}$/);
+    assert.equal(notifs['continue-on-error'], undefined);
+    assert.equal(notifs.if, undefined);
+    assert.ok(stepIndex('Exchange notifs app key') < stepIndex(RESTORE), 'exchange must precede D1 steps');
+    assert.deepEqual(Object.keys(notifs.with).sort(), [
+      'access_client_id',
+      'access_client_secret',
+      'app_id',
+      'delivery_url',
+    ]);
+  });
+
+  it('hands the key and Access pair to the Worker as secrets', () => {
+    const deploy = stepNamed(DEPLOY);
+    const secrets = String(deploy.with.secrets)
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    assert.deepEqual(secrets.sort(), [
+      'NOTIFS_APP_KEY',
+      'NOTIFS_DELIVERY_ACCESS_CLIENT_ID',
+      'NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET',
+    ]);
+    for (const name of secrets) {
+      assert.ok(deploy.env?.[name] !== undefined, `${name} missing from Deploy Worker env`);
+    }
+    assert.equal(norm(deploy.env.NOTIFS_APP_KEY), norm('${{ steps.notifs.outputs.key }}'));
+    for (const name of ['NOTIFS_DELIVERY_ACCESS_CLIENT_ID', 'NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET']) {
+      assert.equal(norm(deploy.env[name]), norm(`\${{ secrets.${name} }}`));
+    }
+  });
+
+  it('keeps the exchange, workflow secret names and local config names consistent', () => {
+    assert.ok(
+      stepIndex('Exchange notifs app key') < stepIndex(DEPLOY),
+      'exchange must precede Deploy Worker',
+    );
+
+    const devVarsKeys = fs
+      .readFileSync(path.join(REPO_ROOT, 'backend/.dev.vars.example'), 'utf8')
+      .split('\n')
+      .map((line) => line.match(/^([A-Z0-9_]+)=/)?.[1])
+      .filter(Boolean);
+    const secrets = String(stepNamed(DEPLOY).with.secrets)
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    for (const name of secrets) {
+      assert.ok(devVarsKeys.includes(name), `${name} missing from backend/.dev.vars.example`);
+    }
+
+    const wrangler = fs.readFileSync(path.join(REPO_ROOT, 'backend/wrangler.toml'), 'utf8');
+    assert.match(wrangler, /^NOTIFS_DELIVERY_BASE_URL\s*=/m);
+  });
+
+  it('uses the notifs-app action only in deploy-backend', () => {
+    const uses = (j) => (j.steps ?? []).filter((step) => /notifs-app/.test(String(step.uses ?? '')));
+    assert.equal(uses(job).length, 1, 'deploy-backend must have exactly one notifs-app use');
+    for (const [name, j] of Object.entries(workflow.jobs)) {
+      if (name === 'deploy-backend') continue;
+      for (const step of j.steps ?? []) {
+        assert.doesNotMatch(String(step.uses ?? ''), /notifs-app/, `${name} uses notifs-app`);
+      }
+    }
+  });
+
   it('cancels in-progress runs only for pull requests', () => {
     assert.equal(
       norm(workflow.concurrency['cancel-in-progress']),
