@@ -105,6 +105,29 @@ describe('ci.yml deploy-backend migrations', () => {
     }
   });
 
+  it('keeps the exchange, workflow secret names and local config names consistent', () => {
+    assert.ok(
+      stepIndex('Exchange notifs app key') < stepIndex(DEPLOY),
+      'exchange must precede Deploy Worker',
+    );
+
+    const devVarsKeys = fs
+      .readFileSync(path.join(REPO_ROOT, 'backend/.dev.vars.example'), 'utf8')
+      .split('\n')
+      .map((line) => line.match(/^([A-Z0-9_]+)=/)?.[1])
+      .filter(Boolean);
+    const secrets = String(stepNamed(DEPLOY).with.secrets)
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    for (const name of secrets) {
+      assert.ok(devVarsKeys.includes(name), `${name} missing from backend/.dev.vars.example`);
+    }
+
+    const wrangler = fs.readFileSync(path.join(REPO_ROOT, 'backend/wrangler.toml'), 'utf8');
+    assert.match(wrangler, /^NOTIFS_DELIVERY_BASE_URL\s*=/m);
+  });
+
   it('uses the notifs-app action only in deploy-backend', () => {
     const uses = (j) => (j.steps ?? []).filter((step) => /notifs-app/.test(String(step.uses ?? '')));
     assert.equal(uses(job).length, 1, 'deploy-backend must have exactly one notifs-app use');

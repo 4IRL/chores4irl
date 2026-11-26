@@ -527,6 +527,26 @@ describe('SettingsModal — notifications', () => {
     expect(checkbox).toHaveAttribute('aria-disabled', 'false');
   });
 
+  it('enable 429 surfaces the rate-limit message and leaves the toggle off and usable', async () => {
+    const user = userEvent.setup({ delay: null });
+    const error = 'Too many attempts. Try again in 5 minutes.';
+    vi.stubGlobal(
+      'fetch',
+      makeFetchStub({
+        'GET /api/notifications': () => jsonResponse({ success: true, data: NOT_PROVISIONED }),
+        'POST /api/notifications/enable': () => jsonResponse({ success: false, error }),
+      }),
+    );
+    renderModal();
+
+    const checkbox = await screen.findByRole('checkbox');
+    await user.click(checkbox);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(error);
+    expect(checkbox).not.toBeChecked();
+    expect(checkbox).toHaveAttribute('aria-disabled', 'false');
+  });
+
   it('Send test notification shows the green confirmation on success', async () => {
     const user = userEvent.setup();
     vi.stubGlobal(

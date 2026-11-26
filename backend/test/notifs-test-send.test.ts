@@ -82,13 +82,13 @@ describe('sendTestNotification', () => {
     stubFetch(() => new Response('not json', { status: 202 }));
     expect(await sendTestNotification(TEST_ENV, PERSON_HASH, 7)).toEqual({
       status: 'failed',
-      reason: 'unexpected_status:202',
+      reason: 'unexpected_response_shape',
     });
 
     stubFetch(() => new Response('{"ok":true}', { status: 200 }));
     expect(await sendTestNotification(TEST_ENV, PERSON_HASH, 7)).toEqual({
       status: 'failed',
-      reason: 'unexpected_status:200',
+      reason: 'unexpected_response_shape',
     });
   });
 

@@ -298,6 +298,43 @@ describe('POST /api/notifications/enable', () => {
     expect(await getProvisioning(env.DB, USER_ID)).toBeNull();
   });
 
+  it('returns 502 with no row saved on a door timeout, then a second enable succeeds and saves the row', async () => {
+    const base = stubFetch();
+    let timedOut = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+        if (url === PROVISION_URL && !timedOut) {
+          timedOut = true;
+          throw new DOMException('timed out', 'TimeoutError');
+        }
+        return base(input, init);
+      }),
+    );
+    spyOnConsole();
+
+    const first = await app.request(
+      '/api/notifications/enable',
+      { method: 'POST', headers: await authHeader(EMAIL) },
+      requestEnv(),
+    );
+    expect(first.status).toBe(502);
+    expect(await getProvisioning(env.DB, USER_ID)).toBeNull();
+
+    const second = await app.request(
+      '/api/notifications/enable',
+      { method: 'POST', headers: await authHeader(EMAIL) },
+      requestEnv(),
+    );
+    expect(second.status).toBe(200);
+    expect(await getProvisioning(env.DB, USER_ID)).toEqual({
+      personHash: PROVISION_HASH,
+      subscriberToken: PROVISION_TOKEN,
+      enabled: true,
+    });
+  });
+
   it('passes a freshly generated password through once, never storing or logging it', async () => {
     const spies = spyOnConsole();
     stubFetch({ provisionBody: provisionResponseBody({ password: PROVISION_PASSWORD }) });
@@ -636,14 +673,14 @@ describe('POST /api/notifications/test', () => {
   it.each([
     ['a non-JSON body', 'not json'],
     ['no message object', { ok: true }],
-  ])('returns 502 and logs unexpected_status:202 for a 2xx with %s', async (_label, messagesBody) => {
+  ])('returns 502 and logs unexpected_response_shape for a 2xx with %s', async (_label, messagesBody) => {
     await saveProvisioning(env.DB, USER_ID, { personHash: SEED_HASH, subscriberToken: SEED_TOKEN });
     stubFetch({ messagesBody });
     const spies = spyOnConsole();
 
     const res = await postTest();
     expect(res.status).toBe(502);
-    expect(JSON.stringify(spies[0].mock.calls)).toContain('unexpected_status:202');
+    expect(JSON.stringify(spies[0].mock.calls)).toContain('unexpected_response_shape');
   });
 
   it.each([

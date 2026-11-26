@@ -22,7 +22,7 @@ ACCESS_JWKS_URL = "https://urls4irl.cloudflareaccess.com/cdn-cgi/access/certs"
 # ACCESS_JWKS_URL above. The auth that gates them is set as Worker secrets, never
 # here: NOTIFS_APP_KEY (the app's dak_ key, minted and stored by the deploy job),
 # NOTIFS_DELIVERY_ACCESS_CLIENT_ID/_SECRET (the CF Access service token for the
-# delivery-api door) and the ntfy publisher bearer token. NOTIFS_DELIVERY_BASE_URL
+# delivery-api door). NOTIFS_DELIVERY_BASE_URL
 # is the delivery-api front door; NTFY_BASE_URL is the ntfy host;
 # NOTIFS_SETUP_BASE_URL is the shared ntfy-app setup page the status payload links to.
 NOTIFS_DELIVERY_BASE_URL = "https://notifs-delivery.4irl.app"

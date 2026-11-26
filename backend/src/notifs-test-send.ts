@@ -83,7 +83,7 @@ export async function sendTestNotification(
   const body = (await res.json().catch(() => null)) as { message?: unknown } | null;
   const message = body?.message;
   if (!message || typeof message !== 'object') {
-    return fail(`unexpected_status:${res.status}`, res.status);
+    return fail('unexpected_response_shape', res.status);
   }
 
   const messageStatus = (message as { status?: unknown }).status;

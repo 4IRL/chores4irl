@@ -1,5 +1,5 @@
 // Shared request helper for the 4irl-notifs delivery-api "front door". Every
-// outbound call (provision, reset-password, and later the test send) goes through
+// outbound call (provision, reset-password and the test send) goes through
 // doorFetch so the app key, the Access headers, the timeout and the fail-closed
 // empty-key guard live in exactly one place.
 //

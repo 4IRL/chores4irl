@@ -458,15 +458,17 @@ in `.dev.vars` locally): `NOTIFS_APP_KEY` (the app's `dak_` key),
 door). The `Deploy Worker` CI step supplies all three on every main deploy.
 
 **App identity:** 4irl-notifs identifies each app by its own delivery key. The production deploy's
-`Exchange notifs app key` step (see CI/CD pipeline) requests it through GitHub OIDC. The identity is bound to the
-repository, the workflow file `.github/workflows/ci.yml`, `refs/heads/main` and no environment, so
-renaming that workflow file needs the operator to unbind and re-approve. The first run files a pending
-request that the operator approves in the admin UI. The Worker reads the key as the `NOTIFS_APP_KEY`
-secret, which `deploy-backend` rewrites on every main deploy; if it is ever unset the Worker fails
-closed (`missing_app_key`, no outbound call). Migration `0014_clear_stale_user_notifications.sql` cleared
-the dead `user_notifications` rows left by the 2026-11-05 hub wipe. At most 20 requests may be pending at once, a pending request expires after 7 days
-without a refresh (the next push to main files it again), and each green run issues a new key that
-supersedes the previous one (the old key works for 24 hours).
+`Exchange notifs app key` step (see CI/CD pipeline) requests it through GitHub OIDC. The identity is
+bound to the repository, the workflow file `.github/workflows/ci.yml`, `refs/heads/main` and no
+environment, so renaming that workflow file needs the operator to unbind and re-approve. The first run
+files a pending request that the operator approves in the admin UI. The Worker reads the key as the
+`NOTIFS_APP_KEY` secret, which `deploy-backend` rewrites on every main deploy; if it is ever unset the
+Worker fails closed (`missing_app_key`, no outbound call). At most 20 requests may be pending at once, a
+pending request expires after 7 days without a refresh (the next push to main files it again), and each
+green run issues a new key that supersedes the previous one (the old key works for 24 hours).
+
+Migration `0014_clear_stale_user_notifications.sql` cleared the dead `user_notifications` rows left by
+the 2026-11-05 hub wipe.
 
 ## Environments in detail
 
@@ -568,9 +570,10 @@ lint + test-frontend ──→ deploy-preview  (PR only, not dependabot[bot]: pa
 - CI secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `NOTIFS_DELIVERY_ACCESS_CLIENT_ID`,
   `NOTIFS_DELIVERY_ACCESS_CLIENT_SECRET` (GitHub Actions repo secrets, not visible in any file here). The
   `NOTIFS_DELIVERY_*` pair is the Cloudflare Access service token `chores4irl → notifs-delivery` used by
-  `Exchange notifs app key` step, and `Deploy Worker` also writes the pair as Worker secrets of the same
-  names, which the Worker reads for door calls. The old Access-token secrets are gone. `CLOUDFLARE_API_TOKEN` now also needs D1 edit scope for the migration and
-  Time Travel steps (an out-of-repo prerequisite: update the token in the Cloudflare dashboard).
+  the `Exchange notifs app key` step, and `Deploy Worker` also writes the pair as Worker secrets of the
+  same names, which the Worker reads for door calls. The old Access-token secrets are gone.
+  `CLOUDFLARE_API_TOKEN` now also needs D1 edit scope for the migration and Time Travel steps (an
+  out-of-repo prerequisite: update the token in the Cloudflare dashboard).
 - The separate scheduled workflow `.github/workflows/d1-backup.yml` (weekly encrypted export to R2, see
   [Weekly backup export](#weekly-backup-export-secondary-copy)) adds the secrets `R2_ACCESS_KEY_ID`,
   `R2_SECRET_ACCESS_KEY` (a bucket-scoped R2 token, separate from the deploy token), `D1_BACKUP_PASSPHRASE`

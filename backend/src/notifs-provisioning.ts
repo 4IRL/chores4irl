@@ -42,15 +42,7 @@ export async function provisionUser(env: DoorEnv, email: string): Promise<Provis
 
   if (res.status === 429) {
     const retryAfterSeconds = parseRetryAfter(res);
-    console.log(
-      JSON.stringify({
-        event: 'notifs-provision-failed',
-        email,
-        reason: 'rate_limited',
-        status: 429,
-        duration_ms: Date.now() - startedAt,
-      }),
-    );
+    fail('rate_limited', 429); // logs only; the typed result below replaces its return value
     return { status: 'rate_limited', ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}) };
   }
   if (!res.ok) {

@@ -263,6 +263,28 @@ describe('resetPassword', () => {
     }
   });
 
+  it.each([[401], [404], [429]])(
+    'never logs the password, app key or Access secret on a %i carrying a password body',
+    async (status) => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => jsonResponse({ error: 'nope', password: NEW_PASSWORD }, status)),
+      );
+
+      const result = await resetPassword(TEST_ENV, 'user@example.com');
+
+      expect(JSON.stringify(result)).not.toContain(NEW_PASSWORD);
+      expect(logSpy).toHaveBeenCalled();
+      for (const call of logSpy.mock.calls) {
+        const text = JSON.stringify(call);
+        expect(text).not.toContain(NEW_PASSWORD);
+        expect(text).not.toContain('dak_test-app-key');
+        expect(text).not.toContain('test-client-secret');
+      }
+    },
+  );
+
   it('logs the failure outcome and reason', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.stubGlobal(
