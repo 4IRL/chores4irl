@@ -141,7 +141,7 @@ describe('resetPassword', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => jsonResponse({ error: 'user does not exist' }, 404)),
+      vi.fn(async () => jsonResponse({ error: 'person_not_in_app' }, 404)),
     );
 
     expect(await resetPassword(TEST_ENV, 'user@example.com')).toEqual({ status: 'person_not_in_app' });
@@ -152,6 +152,26 @@ describe('resetPassword', () => {
       outcome: 'person_not_in_app',
       reason: 'person_not_in_app',
     });
+  });
+
+  it.each([
+    ['another error code', () => jsonResponse({ error: 'user does not exist' }, 404)],
+    ['a bare body', () => new Response('not found', { status: 404 })],
+    ['an empty JSON body', () => jsonResponse({}, 404)],
+  ])('treats a 404 with %s as failed unexpected_status:404', async (_label, makeResponse) => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => makeResponse()),
+    );
+
+    expect(await resetPassword(TEST_ENV, 'user@example.com')).toEqual({
+      status: 'failed',
+      reason: 'unexpected_status:404',
+    });
+
+    const line = JSON.parse(logSpy.mock.calls[0][0] as string) as Record<string, unknown>;
+    expect(line).toMatchObject({ outcome: 'failed', reason: 'unexpected_status:404', status: 404 });
   });
 
   it.each([

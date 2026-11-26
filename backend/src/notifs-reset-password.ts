@@ -44,7 +44,19 @@ export async function resetPassword(env: DoorEnv, email: string): Promise<ResetP
   const res = door.res;
 
   if (res.status === 404) {
-    return finish({ status: 'person_not_in_app' }, mapDoorStatus(404, RESET_OVERRIDES), 404);
+    // Only the door's own `person_not_in_app` code means the person is gone.
+    // Any other 404 (wrong base URL, path or proxy) must not delete credentials.
+    let code: unknown;
+    try {
+      code = ((await res.json()) as { error?: unknown } | null)?.error;
+    } catch {
+      code = undefined;
+    }
+    if (code === 'person_not_in_app') {
+      return finish({ status: 'person_not_in_app' }, mapDoorStatus(404, RESET_OVERRIDES), 404);
+    }
+    const reason = mapDoorStatus(404);
+    return finish({ status: 'failed', reason }, reason, 404);
   }
   if (res.status === 429) {
     const retryAfterSeconds = parseRetryAfter(res);
