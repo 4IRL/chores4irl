@@ -137,11 +137,21 @@ describe('resetPassword', () => {
     },
   );
 
-  it('maps the real door 404 body (user does not exist) to person_not_in_app and logs that reason', async () => {
+  it('maps a code-only door 404 body to person_not_in_app', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ code: 'person_not_in_app' }, 404)),
+    );
+
+    expect(await resetPassword(TEST_ENV, 'user@example.com')).toEqual({ status: 'person_not_in_app' });
+  });
+
+  it('maps the real door 404 body (code person_not_in_app) to person_not_in_app and logs that reason', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => jsonResponse({ error: 'user does not exist' }, 404)),
+      vi.fn(async () => jsonResponse({ error: 'user does not exist', code: 'person_not_in_app' }, 404)),
     );
 
     expect(await resetPassword(TEST_ENV, 'user@example.com')).toEqual({ status: 'person_not_in_app' });
@@ -156,7 +166,12 @@ describe('resetPassword', () => {
 
   it.each([
     ['another error text', () => jsonResponse({ error: 'app not found' }, 404)],
-    ['the internal result name as the error text', () => jsonResponse({ error: 'person_not_in_app' }, 404)],
+    ['error text equal to the code name', () => jsonResponse({ error: 'person_not_in_app' }, 404)],
+    ['the legacy text-only body (no code)', () => jsonResponse({ error: 'user does not exist' }, 404)],
+    ['a wrong code', () => jsonResponse({ error: 'user does not exist', code: 'app_not_found' }, 404)],
+    ['a numeric code', () => jsonResponse({ code: 123 }, 404)],
+    ['an array code', () => jsonResponse({ code: ['person_not_in_app'] }, 404)],
+    ['a JSON null body', () => new Response('null', { status: 404 })],
     ['a bare body', () => new Response('not found', { status: 404 })],
     ['an empty JSON body', () => jsonResponse({}, 404)],
   ])('treats a 404 with %s as failed unexpected_status:404', async (_label, makeResponse) => {
