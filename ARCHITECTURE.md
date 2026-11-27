@@ -396,12 +396,13 @@ a request field):
   (`backend/src/notifs-reset-password.ts`) with exactly `{email}`; returns `password`. Door 429 becomes our
   429 (`Too many new passwords. Try again in <N> minutes.`); a door 404 whose JSON body has `code`
   `person_not_in_app` (other fields, including a missing `error`, are ignored, so a code-only body
-  `{"code":"person_not_in_app"}` is accepted). The person is absent or holds no grant in this app; the door makes
-  the two indistinguishable. chores4irl makes no set-password or deprovision call. A matching 404 deletes the caller's `user_notifications` row (`deleteProvisioning`) and
-  returns 409 `Notifications are not set up. Turn them on again.`, after which the next `/enable`
-  provisions again (the modal re-fetches status and drops to the off state). Any other 404 (bare, wrong or non-string code, the old text-only
-  `{"error":"user does not exist"}` body, wrong URL; `error` text is never matched)
-  keeps the row and is a 502 `unexpected_status:404`. Any other non-2xx, timeout, network error, or
+  `{"code":"person_not_in_app"}` is accepted). The person is absent or holds no grant in this app; the
+  door makes the two indistinguishable. chores4irl makes no set-password or deprovision call. A
+  matching 404 deletes the caller's `user_notifications` row (`deleteProvisioning`) and returns 409
+  `Notifications are not set up. Turn them on again.`, after which the next `/enable` provisions again
+  (the modal re-fetches status and drops to the off state). Any other 404 (bare, wrong or non-string
+  code, the old text-only `{"error":"user does not exist"}` body, wrong URL; `error` text is never
+  matched) keeps the row and is a 502 `unexpected_status:404`. Any other non-2xx, timeout, network error, or
   200 without a non-empty `password` becomes our 502 (`Could not generate a new password`), with the
   reason (`door_auth_rejected`, `door_unavailable`, `unexpected_status:<n>`, `timeout`, `network`,
   `missing_app_key`) in the log. `<N>` is the door's `Retry-After` in whole minutes (rounded up); the route
