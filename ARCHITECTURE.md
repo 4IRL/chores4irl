@@ -378,13 +378,13 @@ Worker talks to both; the browser only talks to the Worker.
 `resolveUser`, so they are per-user, not household-scoped; identity is the Access-verified email, never
 a request field):
 
-| Route                  | What it does                                                                                                               | Statuses                                                                                                                                                                         |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /`                | Returns `NotificationStatus`: `{provisioned:false, enabled:false}` with no row, else the full status (see ids below)       | 200                                                                                                                                                                              |
-| `POST /enable`         | Existing row: flips `enabled` on, no provisioning. No row: calls the door's `provision`, saves the row, returns the status | 200; 429 door rate limit; 502 `Could not set up notifications` if provisioning fails                                                                                             |
-| `POST /reset-password` | Calls the door's `reset-password` and returns `{password}` (new phone or lost password)                                    | 200; 409 `Notifications are not enabled` (no row or soft-off, no outbound call); 409 `Notifications are not set up…` (door 404, row deleted); 429 door rate limit; 502 otherwise |
-| `POST /test`           | Publishes a test push to the person's topic                                                                                | 200 (`data: null`); 409 not enabled; 502 `Could not send test notification`                                                                                                      |
-| `POST /disable`        | Soft-off: sets `enabled = 0`, keeps the row so re-enable is a flag flip                                                    | 200 (`{provisioned:true, enabled:false}`); 409 if never provisioned                                                                                                              |
+| Route                  | What it does                                                                                                               | Statuses                                                                                                                                                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /`                | Returns `NotificationStatus`: `{provisioned:false, enabled:false}` with no row, else the full status (see ids below)       | 200                                                                                                                                                                                                              |
+| `POST /enable`         | Existing row: flips `enabled` on, no provisioning. No row: calls the door's `provision`, saves the row, returns the status | 200; 429 door rate limit; 502 `Could not set up notifications` if provisioning fails                                                                                                                             |
+| `POST /reset-password` | Calls the door's `reset-password` and returns `{password}` (new phone or lost password)                                    | 200; 409 `Notifications are not enabled` (no row or soft-off, no outbound call); 409 `Notifications are not set up…` (door 404 with `code` `person_not_in_app`, row deleted); 429 door rate limit; 502 otherwise |
+| `POST /test`           | Publishes a test push to the person's topic                                                                                | 200 (`data: null`); 409 not enabled; 502 `Could not send test notification`                                                                                                                                      |
+| `POST /disable`        | Soft-off: sets `enabled = 0`, keeps the row so re-enable is a flag flip                                                    | 200 (`{provisioned:true, enabled:false}`); 409 if never provisioned                                                                                                                                              |
 
 **Outbound calls** (all from the Worker, none from the browser):
 
@@ -394,11 +394,13 @@ a request field):
   closed. A door 429 becomes our 429 `Too many attempts. Try again in <N> minutes.` and saves no row.
 - `POST {NOTIFS_DELIVERY_BASE_URL}/v1/apps/chores4irl/reset-password`
   (`backend/src/notifs-reset-password.ts`) with exactly `{email}`; returns `password`. Door 429 becomes our
-  429 (`Too many new passwords. Try again in <N> minutes.`); a door 404 whose JSON body is exactly
-  `{"error":"user does not exist"}` (the person is absent or holds no grant in this app; the door makes
-  the two indistinguishable) deletes the caller's `user_notifications` row (`deleteProvisioning`) and
+  429 (`Too many new passwords. Try again in <N> minutes.`); a door 404 whose JSON body has `code`
+  `person_not_in_app` (other fields, including a missing `error`, are ignored, so a code-only body
+  `{"code":"person_not_in_app"}` is accepted). The person is absent or holds no grant in this app; the door makes
+  the two indistinguishable. chores4irl makes no set-password or deprovision call. A matching 404 deletes the caller's `user_notifications` row (`deleteProvisioning`) and
   returns 409 `Notifications are not set up. Turn them on again.`, after which the next `/enable`
-  provisions again (the modal re-fetches status and drops to the off state). Any other 404 (bare, other error text, wrong URL)
+  provisions again (the modal re-fetches status and drops to the off state). Any other 404 (bare, wrong or non-string code, the old text-only
+  `{"error":"user does not exist"}` body, wrong URL; `error` text is never matched)
   keeps the row and is a 502 `unexpected_status:404`. Any other non-2xx, timeout, network error, or
   200 without a non-empty `password` becomes our 502 (`Could not generate a new password`), with the
   reason (`door_auth_rejected`, `door_unavailable`, `unexpected_status:<n>`, `timeout`, `network`,
@@ -450,6 +452,8 @@ subscriber token), applied by the `noStore` middleware (`middleware/no-store.ts`
 `POST /api/notifications/reset-password` require a 4irl-notifs version that supports the optional
 `password` field on `/v1/provision` and `/v1/reset-password`; an older upstream degrades to a 502
 ("Could not generate a new password") and a first enable with no password shown.
+Person-absent detection on reset-password also needs a 4irl-notifs build with the `code` field (issue
+#237 / PR #238); an older build degrades to a 502 with the row kept.
 
 **Config** (`backend/wrangler.toml` `[vars]`, plain hostnames, not credentials):
 `NOTIFS_DELIVERY_BASE_URL` (the delivery-api front door, `https://notifs-delivery.4irl.app`),
